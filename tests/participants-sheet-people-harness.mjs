@@ -16,7 +16,7 @@ import { namePasteAction, planNamePaste } from '../assets/participants_sheet/peo
 import { allowedActions, firstInLine, registrationCounts, waitlistPositions } from '../assets/participants_sheet/registration_actions.js';
 import { parseClipboardText } from '../assets/participants_sheet/tsv.js';
 
-const SUITES = ['paste', 'registration', 'filters', 'view'];
+const SUITES = ['paste', 'registration', 'filters', 'view', 'claim-links'];
 
 async function runSuite(name) {
     if (!SUITES.includes(name)) {

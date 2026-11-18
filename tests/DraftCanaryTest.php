@@ -742,4 +742,47 @@ final class DraftCanaryTest extends WebTestCase
 
         $browser->request('POST', $url, ['_token' => 'csrf-token', 'target' => $target, 'return' => $return], server: $server);
     }
+
+    /**
+     * A personal claim link of a draft's participant (docs/features/competitions-management/participant-linking.md §6.5,
+     * D17 draft rule): tokens can be prepared before publishing, but the claim page names neither the person nor the
+     * event to a guest or a player off the team - the one "not valid" text with a 404 - and shows both once published.
+     * Draft Night and Quiet Pines #1 (an edition of a draft series) get a participant with a link by SQL.
+     */
+    public function testTheClaimLinkOfADraftNamesNothing(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $items = [
+            [self::COMPETITION, OrganizationFixture::COMPETITION_DRAFT_NIGHT, 'DraftNightC1aimToken22', 'Nora Nightowl'],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, 'QuietPinesC1aimToken22', 'Pia Pinecone'],
+        ];
+        $competitions = [OrganizationFixture::COMPETITION_DRAFT_NIGHT, OrganizationFixture::EDITION_QUIET_PINES_1];
+
+        foreach ($items as $index => [, , $token, $name]) {
+            $connection->executeStatement(
+                "INSERT INTO competition_participant (id, name, country, competition_id, source, claim_token) VALUES (:id, :name, 'cz', :competition, 'imported', :token)",
+                ['id' => Uuid::uuid7()->toString(), 'name' => $name, 'competition' => $competitions[$index], 'token' => $token],
+            );
+        }
+
+        foreach ($items as [$table, $id, $token, $name]) {
+            foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+                $browser->restart();
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                $this->setDraft($table, $id, false);
+                $browser->request('GET', '/en/claim/' . $token);
+                self::assertResponseIsSuccessful('No canary: the claim link of ' . $name . ' is not there once published');
+                self::assertStringContainsString($name, (string) $browser->getResponse()->getContent(), 'No canary: ' . $name);
+
+                $this->setDraft($table, $id, true);
+                $browser->request('GET', '/en/claim/' . $token);
+                self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s claim link is public: ' . $name);
+                self::assertStringNotContainsString($name, (string) $browser->getResponse()->getContent(), 'A draft\'s claim link names the person');
+            }
+        }
+    }
 }

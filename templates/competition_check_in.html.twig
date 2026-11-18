@@ -12,5 +12,17 @@
     <h1 class="h3 mb-1">{{ 'competition_registration.check_in.title'|trans }}</h1>
     <p class="text-muted mb-4">{{ competition.name }}</p>
 
-    <twig:CompetitionCheckIn competitionId="{{ competition.id }}" />
+    <div data-controller="claim-qr"
+         data-claim-qr-url-value="{{ path('participants_sheet_claim_link', {competitionId: competition.id}) }}"
+         data-claim-qr-csrf-token-value="{{ csrf_token(csrf_token_id) }}"
+         data-claim-qr-texts-value="{{ {
+             title: 'participant_claim_link.sheet.dialog_title'|trans,
+             help: 'participant_claim_link.sheet.dialog_help'|trans,
+             copy: 'participant_claim_link.sheet.dialog_copy'|trans,
+             copied: 'participant_claim_link.sheet.dialog_copied'|trans,
+             close: 'participant_claim_link.check_in.close'|trans,
+             failed: 'participant_claim_link.sheet.failed'|trans,
+         }|json_encode|e('html_attr') }}">
+        <twig:CompetitionCheckIn competitionId="{{ competition.id }}" :claimLinks="claim_links" />
+    </div>
 {% endblock %}

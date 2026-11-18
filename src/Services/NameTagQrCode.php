@@ -82,6 +82,16 @@ final readonly class NameTagQrCode
     }
 
     /**
+     * A personal claim link (docs/features/competitions-management/participant-linking.md §7.4) - the link without a
+     * language (`participant_claim_link`): the claim slips, the CSV, the copied link and the desk's QR. A secret: the
+     * cached SVG's key is a hash of it, like every other URL here.
+     */
+    public function claimUrl(string $token): string
+    {
+        return $this->urlGenerator->generate('participant_claim_link', ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
+    }
+
+    /**
      * An <svg> element (no XML declaration) for embedding in the page.
      */
     public function svg(string $url): string

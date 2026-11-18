@@ -1,7 +1,7 @@
 {#
     Participants & profiles (docs/features/competitions-management/participant-linking.md §7.5) - the first card: it
-    matters before the event. Counters linking to the participants sheet's People filters, and the claim policy radios
-    (D3). Variables: competition, link_summary (GetParticipantLinkSummary), claim_policy (GetParticipantClaimPolicy),
+    matters before the event. Counters linking to the participants sheet's People filters, the personal claim links'
+    slips and CSV (L4a - an event with online timing: its personal links) and the claim policy radios (D3). Variables: competition, link_summary (GetParticipantLinkSummary), claim_policy (GetParticipantClaimPolicy),
     claim_policy_form.
 #}
 {% set sheet_url = path('participants_sheet', {competitionId: competition.id}) %}
@@ -32,6 +32,27 @@
                     </li>
                 {% endif %}
             </ul>
+
+            {# Personal claim links (§7.4, package L4a): the CSV and the claim slips - on an event with online timing its
+               personal links do the same (§5.6) #}
+            {% if link_summary.usesOnlineTiming %}
+                <p class="small text-muted mb-2">{{ 'participant_claim_link.hub.online_help'|trans }}</p>
+                <div class="d-flex flex-wrap gap-2 mb-3" data-claim-link-actions>
+                    <a href="{{ path('online_links', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-claim-action="personal-links">
+                        <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'participant_claim_link.hub.personal_links'|trans }}
+                    </a>
+                </div>
+            {% elseif link_summary.notLinked > 0 %}
+                <p class="small text-muted mb-2">{{ 'participant_claim_link.hub.help'|trans }}</p>
+                <div class="d-flex flex-wrap gap-2 mb-3" data-claim-link-actions>
+                    <a href="{{ path('competition_name_tags', {competitionId: competition.id, kind: 'claims'}) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" data-claim-action="slips">
+                        <i class="bi bi-printer me-1" aria-hidden="true"></i>{{ 'participant_claim_link.hub.print_slips'|trans }}
+                    </a>
+                    <a href="{{ path('participants_claim_links_csv', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-secondary" data-turbo="false" data-claim-action="csv">
+                        <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'participant_claim_link.hub.download_csv'|trans }}
+                    </a>
+                </div>
+            {% endif %}
 
             {% set form = claim_policy_form %}
             {{ form_start(form, {attr: {'data-claim-policy-settings': ''}}) }}

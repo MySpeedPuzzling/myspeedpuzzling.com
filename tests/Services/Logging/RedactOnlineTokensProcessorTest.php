@@ -52,6 +52,33 @@ final class RedactOnlineTokensProcessorTest extends TestCase
     }
 
     /**
+     * The claim page's request (participant-linking.md §6.5, R4) - its route is one of `participant_claim*`
+     */
+    public function testTheRoutersRecordOfAClaimLinksRequest(): void
+    {
+        $requestStack = new RequestStack();
+        $request = Request::create('/en/claim/' . self::TOKEN);
+        $request->attributes->set('_route', 'participant_claim');
+        $request->attributes->set('token', self::TOKEN);
+        $requestStack->push($request);
+
+        $record = (new RedactOnlineTokensProcessor(new OnlineTokenRedactor($requestStack)))(new LogRecord(
+            datetime: TestClock::now(),
+            channel: 'request',
+            level: Level::Info,
+            message: 'Matched route "participant_claim".',
+            context: [
+                'route' => 'participant_claim',
+                'route_parameters' => ['_route' => 'participant_claim', 'token' => self::TOKEN],
+                'request_uri' => 'http://localhost/en/claim/' . self::TOKEN,
+            ],
+        ));
+
+        self::assertSame(['_route' => 'participant_claim', 'token' => '[redacted]'], $record->context['route_parameters']);
+        self::assertSame('http://localhost/en/claim/[redacted]', $record->context['request_uri']);
+    }
+
+    /**
      * An exception in the context stays the same object - its class decides the log level and whether Sentry wants it
      * - only its message and its previous ones' lose the token
      */

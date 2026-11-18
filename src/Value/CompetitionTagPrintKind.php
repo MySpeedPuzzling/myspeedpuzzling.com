@@ -16,6 +16,9 @@ enum CompetitionTagPrintKind: string
     case Lineups = 'lineups';
     case Tables = 'tables';
     case Entries = 'entries';
+    // Claim slips (docs/features/competitions-management/participant-linking.md §7.4, D6): one per person on the list
+    // not linked to a profile, its QR their personal claim link - handed to that one person, never worn
+    case Claims = 'claims';
 
     /**
      * The kind the page opens with: the competition's QR mode decides (a competitor's tag = a person, or a line-up in an
@@ -37,6 +40,14 @@ enum CompetitionTagPrintKind: string
     public function defaultLayout(): CompetitionTagPrintLayout
     {
         return $this === self::Tables ? CompetitionTagPrintLayout::Tents : CompetitionTagPrintLayout::Tags;
+    }
+
+    /**
+     * A claim slip is a small paper handed out with the badge - the A4 sheet of tags only.
+     */
+    public function printsOnTagsOnly(): bool
+    {
+        return $this === self::Claims;
     }
 
     /**

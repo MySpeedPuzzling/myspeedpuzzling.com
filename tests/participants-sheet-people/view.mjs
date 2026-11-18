@@ -719,4 +719,83 @@ export default function (test) {
         assert.ok(!view.columns.some((candidate) => candidate.key === 'onlineLink'));
         assert.ok(!view.columnsMenu.querySelector('[data-column="onlineLink"]'));
     });
+    test('participant linking L4a: the row menu hands a person not linked their claim link - the QR in a dialog, a new link after a confirm', async () => {
+        const { view, context, shown } = await setup();
+        context.urls.claimLink = '/en/participants-sheet-api/c1/claim-link';
+        const calls = [];
+        globalThis.fetch = async (url, init) => {
+            const body = JSON.parse(init.body);
+            calls.push({ url, body, csrf: init.headers['X-CSRF-Token'] });
+
+            return {
+                type: 'basic',
+                status: 200,
+                ok: true,
+                headers: { get: (name) => (name === 'Content-Type' ? 'application/json' : null) },
+                json: async () => ({ participant: body.participant, url: `https://example.test/claim/Tok${calls.length}`, qr: '<svg data-test-qr></svg>' }),
+            };
+        };
+        const items = () => [...document.querySelectorAll('.sheet-cell-menu [role="menuitem"]')];
+        const pick = async (label) => {
+            items().find((item) => item.textContent.startsWith(label)).click();
+            await new Promise((resolve) => setTimeout(resolve, 5));
+        };
+
+        // Linked: no claim link
+        view.rowAction('p-kim', 'menu', null);
+        assert.ok(!items().some((item) => item.textContent.startsWith('claim_')));
+        view.closeMenu(false);
+
+        view.rowAction('p-ana', 'menu', null);
+        const labels = items().map((item) => item.textContent);
+        assert.ok(labels.includes('claim_copy'), labels.join(', '));
+        assert.ok(labels.includes('claim_qr'));
+        assert.ok(labels.some((label) => label.startsWith('claim_renew')));
+
+        await pick('claim_qr');
+        assert.deepEqual(calls[0], { url: '/en/participants-sheet-api/c1/claim-link', body: { participant: 'p-ana', renew: false }, csrf: 'tok' });
+        const dialog = document.querySelector('[data-claim-link-dialog]');
+        assert.ok(dialog);
+        assert.ok(dialog.querySelector('svg[data-test-qr]'));
+        assert.equal(dialog.querySelector('[data-claim-link-url]').value, 'https://example.test/claim/Tok1');
+        dialog.querySelector('[data-claim-link-close]').click();
+
+        // "New link" asks first - cancelled = nothing asked for
+        window.confirm = () => false;
+        view.rowAction('p-ana', 'menu', null);
+        await pick('claim_renew');
+        assert.equal(calls.length, 1);
+        window.confirm = () => true;
+        view.rowAction('p-ana', 'menu', null);
+        await pick('claim_renew');
+        assert.equal(calls[1].body.renew, true);
+        assert.ok(shown.some((message) => message.text.startsWith('claim_renewed')));
+        document.querySelector('[data-claim-link-close]').click();
+
+        // Copy without a clipboard to write to: the dialog to copy from
+        view.rowAction('p-jo', 'menu', null);
+        await pick('claim_copy');
+        assert.equal(calls[2].body.participant, 'p-jo');
+        assert.equal(document.querySelector('[data-claim-link-url]').value, 'https://example.test/claim/Tok3');
+        document.querySelector('[data-claim-link-close]').click();
+    });
+
+    test('participant linking L4a: a refused claim link is said, nothing opens', async () => {
+        const { view, context, shown } = await setup();
+        context.urls.claimLink = '/claim-link';
+        globalThis.fetch = async () => ({
+            type: 'basic',
+            status: 409,
+            ok: false,
+            headers: { get: (name) => (name === 'Content-Type' ? 'application/json' : null) },
+            json: async () => ({ error: 'online_timing', message: 'Use the personal link' }),
+        });
+
+        view.rowAction('p-ana', 'menu', null);
+        [...document.querySelectorAll('.sheet-cell-menu [role="menuitem"]')].find((item) => item.textContent === 'claim_qr').click();
+        await new Promise((resolve) => setTimeout(resolve, 5));
+
+        assert.equal(document.querySelector('[data-claim-link-dialog]'), null);
+        assert.deepEqual(shown.at(-1), { text: 'Use the personal link', kind: 'error' });
+    });
 }

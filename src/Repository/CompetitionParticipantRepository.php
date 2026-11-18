@@ -153,6 +153,73 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
+     * The event's people who may get a personal claim link (docs/features/competitions-management/participant-linking.md
+     * §5.2): on the list (not removed - the waitlist included, a claim slip is handed out with the badge), not linked to
+     * an account, without a claim token yet - or, given ids, only those of them.
+     *
+     * @param null|list<string> $participantIds
+     * @return list<CompetitionParticipant>
+     */
+    public function unlinkedWithoutClaimToken(string $competitionId, null|array $participantIds = null): array
+    {
+        if (!Uuid::isValid($competitionId)) {
+            return [];
+        }
+
+        $builder = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.competition = :competitionId')
+            ->andWhere('participant.deletedAt IS NULL')
+            ->andWhere('participant.player IS NULL')
+            ->andWhere('participant.claimToken IS NULL')
+            ->setParameter('competitionId', $competitionId)
+            ->orderBy('participant.name', 'ASC')
+            ->addOrderBy('participant.id', 'ASC');
+
+        if ($participantIds !== null) {
+            $participantIds = array_values(array_filter($participantIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+            if ($participantIds === []) {
+                return [];
+            }
+
+            $builder->andWhere('participant.id IN (:ids)')->setParameter('ids', $participantIds);
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $builder->getQuery()->getResult();
+
+        return $participants;
+    }
+
+    /**
+     * The participant a personal claim link belongs to, with its competition and linked player - removed ones included,
+     * the caller decides. A malformed token never reaches the database.
+     *
+     * @throws CompetitionParticipantNotFound
+     */
+    public function getByClaimToken(string $token): CompetitionParticipant
+    {
+        if (OnlineToken::looksValid($token) === false) {
+            throw new CompetitionParticipantNotFound();
+        }
+
+        /** @var null|CompetitionParticipant $participant */
+        $participant = $this->entityManager->createQueryBuilder()
+            ->select('participant', 'competition', 'player')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->innerJoin('participant.competition', 'competition')
+            ->leftJoin('participant.player', 'player')
+            ->where('participant.claimToken = :token')
+            ->setParameter('token', $token)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $participant ?? throw new CompetitionParticipantNotFound();
+    }
+
+    /**
      * Reads the row again - for a handler under the event's participants lock that must act on the row as it is now, not
      * as an earlier read of the same request left it in the identity map (a stale personal link token, a connection).
      */

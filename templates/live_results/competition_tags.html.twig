@@ -10,7 +10,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>{{ ('name_tags.toolkit.kinds.' ~ kind)|trans }} - {{ competition.name }}</title>
+    <title>{{ kind == 'claims' ? 'participant_claim_link.slips.kind'|trans : ('name_tags.toolkit.kinds.' ~ kind)|trans }} - {{ competition.name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, Helvetica, sans-serif; color: #111; padding: 16px; font-size: 14px; }
@@ -48,6 +48,11 @@
         .tag-qr { flex: 0 0 30mm; align-self: center; }
         .tag-qr svg { display: block; width: 30mm; height: 30mm; }
         .tag-scan { font-size: 8pt; color: #444; }
+
+        /* Claim slips (participant-linking.md §7.4): handed to one person, never worn */
+        .tag-claim-text { margin-top: auto; font-size: 8.5pt; line-height: 1.3; color: #222; }
+        .tag-claim-url { margin-top: 1mm; font-size: 7pt; color: #555; overflow-wrap: anywhere; }
+        .tag-waitlist { font-size: 8pt; color: #8a5a00; }
 
         /* Table tents: A4 landscape, folded along the middle - the upper half upside down reads from the other side */
         .tents { display: flex; flex-direction: column; gap: 16px; }
@@ -99,10 +104,11 @@
             {{ 'name_tags.toolkit.kind'|trans }}
             <select name="kind" onchange="this.form.submit()" data-tag-kind>
                 {% for option in kinds %}
-                    <option value="{{ option }}" {{ kind == option ? 'selected' }}>{{ ('name_tags.toolkit.kinds.' ~ option)|trans }}{% if option == default_kind and option != 'people' %} {{ 'name_tags.toolkit.your_mode'|trans }}{% endif %}</option>
+                    <option value="{{ option }}" {{ kind == option ? 'selected' }}>{{ option == 'claims' ? 'participant_claim_link.slips.kind'|trans : ('name_tags.toolkit.kinds.' ~ option)|trans }}{% if option == default_kind and option != 'people' %} {{ 'name_tags.toolkit.your_mode'|trans }}{% endif %}</option>
                 {% endfor %}
             </select>
         </label>
+        {% if kind != 'claims' %}
         <label>
             {{ 'name_tags.toolkit.layout'|trans }}
             <select name="layout" onchange="this.form.submit()" data-tag-layout>
@@ -122,7 +128,9 @@
                 {% endfor %}
             </select>
         </label>
-        {% if kind == 'tables' %}
+        {% endif %}
+        {% if kind == 'claims' %}
+        {% elseif kind == 'tables' %}
             <label>
                 {{ 'name_tags.toolkit.tables_from'|trans }}
                 <input type="number" name="from" min="1" max="9999" value="{{ tables_from }}" onchange="this.form.submit()">
@@ -150,7 +158,14 @@
         <span>{{ 'name_tags.toolkit.count'|trans({'%count%': tags|length}) }}</span>
     </form>
 
+    {% if kind == 'claims' %}
+    <p class="hint" data-claims-hint>{{ 'participant_claim_link.slips.hint'|trans }}</p>
+    {% if claims_online_timing %}
+        <p class="warning" data-claims-online>{{ 'participant_claim_link.slips.online_timing'|trans }} <a href="{{ path('online_links_qr_sheet', {competitionId: competition.id}) }}">{{ 'participant_claim_link.slips.online_timing_link'|trans }}</a></p>
+    {% endif %}
+    {% else %}
     <p class="hint">{{ ('name_tags.toolkit.hint_' ~ kind)|trans }} <span data-scan-public>{{ (competitor_pages ? 'competitor_page.print.scan_page' : 'competitor_page.print.scan_event')|trans }}</span></p>
+    {% endif %}
     {% if layout == 'tents' %}
         <p class="hint">{{ 'name_tags.toolkit.hint_tents'|trans }}</p>
     {% else %}
@@ -192,6 +207,8 @@
                 {{ 'name_tags.toolkit.empty_entries'|trans }}
             {% elseif kind == 'people' %}
                 {{ 'name_tags.empty'|trans }}
+            {% elseif kind == 'claims' and not claims_online_timing %}
+                {{ 'participant_claim_link.slips.empty'|trans }}
             {% endif %}
         </p>
     {% elseif layout == 'tents' %}
@@ -227,6 +244,19 @@
     {% else %}
         <div class="sheet">
             {% for item in tags %}
+                {% if item.claim ?? false %}
+                <div class="tag" data-tag data-claim-slip>
+                    <div class="tag-text">
+                        <div class="tag-event">{{ competition.name }}</div>
+                        <div class="tag-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
+                        {{ _self.members(item) }}
+                        {% if item.waitlisted %}<div class="tag-waitlist">{{ 'participant_claim_link.slips.waitlisted'|trans }}</div>{% endif %}
+                        <div class="tag-claim-text">{{ 'participant_claim_link.slips.text'|trans }}</div>
+                        <div class="tag-claim-url">{{ item.url_text }}</div>
+                    </div>
+                    <div class="tag-qr" data-qr-url="{{ item.qr_url }}">{{ item.qr|raw }}</div>
+                </div>
+                {% else %}
                 <div class="tag" data-tag>
                     <div class="tag-text">
                         <div class="tag-event">{{ competition.name }}{% if round is not null and not item.table %} · {{ round.name }}{% endif %}</div>
@@ -245,6 +275,7 @@
                     </div>
                     <div class="tag-qr" data-qr-url="{{ item.qr_url }}">{{ item.qr|raw }}</div>
                 </div>
+                {% endif %}
             {% endfor %}
         </div>
     {% endif %}

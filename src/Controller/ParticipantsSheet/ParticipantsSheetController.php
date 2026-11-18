@@ -119,6 +119,8 @@ final class ParticipantsSheetController extends AbstractController
             'version' => $this->generateUrl('participants_sheet_version', ['competitionId' => $competitionId]),
             'changes' => $this->generateUrl('participants_sheet_changes', ['competitionId' => $competitionId]),
             'registration' => $this->generateUrl('participants_sheet_registration', ['competitionId' => $competitionId]),
+            // A person's personal claim link and its QR (participant-linking.md §7.1)
+            'claimLink' => $this->generateUrl('participants_sheet_claim_link', ['competitionId' => $competitionId]),
             'record' => $roundUrl('official_results_record'),
             'tables' => $roundUrl('official_results_assign_table_numbers'),
             // The sheet's own search: players the organiser blocked are found too (player-blocklist.md rule 7)

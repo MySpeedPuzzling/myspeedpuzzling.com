@@ -985,3 +985,39 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   returns false, flash "nothing changed") for another event's participant, somebody else's, the player's own self-joined
   row or a link the player made themselves. 303 + flash. The event page's Disconnect / Leave are unchanged (`unlinked`).
 - The sheet's decline confirmation says the player is told.
+
+### L4a - personal claim links, claim slips, CSV, desk QR (2026-11-18)
+
+- `competition_participant.claim_token` (varchar(32) unique, `OnlineToken` format; migration hand-written under
+  no-Docker mode). `CompetitionParticipant::disconnect()` clears it only when `connected_via` was `claim_link` (R6) -
+  every unlink through `ParticipantLinks` gets that; account deletion's bulk SQL does the same (`CASE`).
+- Messages (all `SerializedByLock`, participants lock): `GenerateParticipantClaimTokens(competitionId, ?ids)` (active,
+  unlinked, without a token - waitlist included), `RegenerateParticipantClaimToken` ("New link"; linked →
+  `ParticipantAlreadyLinked`), `ClaimParticipantByToken(competitionId, token, playerId, switch)` → `ClaimLinkOutcome`
+  (`not_valid` / `already_yours` / `belongs_to_other` / `is_other_participant` / `linked`). The message carries the
+  competition the page read (the lock needs it); the handler reads the token again under the lock. Never consults the
+  policy or refused pairs; links `claim_link`, releases the player's other rows (CompetitionSelfJoin) and
+  `handOwnLink()` (the online personal link on events with online timing, §5.6).
+- Claim page (`ParticipantClaimController`, `participant_claim` / `participant_claim_link` / `participant_claim_confirm`,
+  `templates/participant_claim/page.html.twig`): every §6.5 state; `GetParticipantClaimPage` (1 statement, embeds
+  `IsCompetitionPubliclyVisible`, reads all the viewer's other rows - one name, `bool_or` paid - no player identity).
+  Limits (`ClaimPageLimit`, page and POST): `participant_claim_page_player` 30/min per signed-in player,
+  `participant_claim_page` 120/min per IP for guests (a venue's Wi-Fi is one address); unknown tokens remembered 10 s
+  (`ClaimTokenMemo`, removed rows are not - a restore must work at once). The dispute = `ClaimParticipant` (limiter
+  `participant_claim` per player). A switch or dispute that lets go of the viewer's own paid registration on a managed
+  event needs `release_paid`: the switch page says it (hidden field), the dispute form asks (checkbox); a registration
+  paid after the page was shown → `ReleaseNotConfirmed`, back to the page. `no_profile` state for an account without a
+  player. The claim slips page sends `Referrer-Policy: same-origin`.
+- R4: `OnlineTokenRedactor` redacts `/claim/<token>` and `/<locale>/claim/<token>` (also `\/` and `%2F`) and the
+  current token of `participant_claim*` routes - the Sentry scrubber and the Monolog processor use it.
+- Organiser: sheet row ⋯ "Copy claim link / Show claim QR / New claim link" for unlinked rows (desktop grid;
+  `assets/participants_sheet/claim_links.js`), on an event with online timing "Copy personal link" instead; JSON
+  `participants_sheet_claim_link` (OfficialResultsApi rules; 409 `already_linked` / `online_timing`). CSV
+  `participants_claim_links_csv` (name, country, external id, link - online timing → `online_links_csv`). Print kind
+  `claims` (`CompetitionTagPrintKind::Claims`, tags layout only, waitlist marked, QR of the locale-less link; online
+  timing → points to the personal links' QR sheet). Check-in "Not linked · Show QR" (`claim_qr` Stimulus controller,
+  `CompetitionCheckIn::$claimLinks`). Hub card: "Print claim slips" + "Download claim links (CSV)", or "Personal links"
+  (`GetParticipantLinkSummary::usesOnlineTiming`, +0 statements). `NameTagQrCode::claimUrl()`, `ParticipantClaimLinkList`
+  (generate missing, read again - the OnlineLinkList pattern), `GetParticipantClaimLinks` (1 statement).
+- Not here: e-mail invitations and the `email` column (L4b), bulk "Download claim links" of a selection, the phone
+  list's/person editor's claim actions (the desktop row menu only), `hasClaimLink` in the sheet state.

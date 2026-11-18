@@ -13,6 +13,10 @@ use SpeedPuzzling\Web\Results\CompetitionLineupTag;
 use SpeedPuzzling\Web\Results\CompetitionNameTag;
 use SpeedPuzzling\Web\Results\CompetitionRoundEntryTag;
 use SpeedPuzzling\Web\Results\CompetitionTagMember;
+use SpeedPuzzling\Web\Results\ParticipantClaimLinkRow;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLinkUrl;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantClaimLinkList;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\NameTagQrCode;
 use SpeedPuzzling\Web\Value\CompetitionTagPrintKind;
@@ -26,6 +30,9 @@ use Symfony\Component\HttpFoundation\Request;
  * the entries of one round - and how - the A4 sheet of tags or table tent cards. The template variables of
  * live_results/competition_tags.html.twig; each printed tag is a plain array of what its card shows, with its QR (the
  * kind's frozen tag path, NameTagQrCode).
+ *
+ * Claim slips (`?kind=claims`, participant-linking.md §7.4): the people not linked to a profile, each slip with the QR of
+ * their personal claim link - the A4 sheet of tags only.
  *
  * Tables: every number from 1 to the highest one the event (or the round) uses - a table nobody sits at yet still gets
  * its card -, or the range the organiser asks for (`?from=` / `?to=`, at most MAX_TABLES cards at once).
@@ -41,6 +48,8 @@ readonly final class CompetitionTagSheet
         private GetCompetitionTableTags $getCompetitionTableTags,
         private GetRoundEntryTags $getRoundEntryTags,
         private NameTagQrCode $nameTagQrCode,
+        private ParticipantClaimLinkList $participantClaimLinkList,
+        private OnlineRoundRepository $onlineRoundRepository,
     ) {
     }
 
@@ -54,6 +63,10 @@ readonly final class CompetitionTagSheet
         $defaultKind = CompetitionTagPrintKind::defaultFor($settings->qrTagMode, $pairsAndTeamsOnly);
         $kind = CompetitionTagPrintKind::tryFrom($request->query->getString('kind')) ?? $defaultKind;
         $layout = CompetitionTagPrintLayout::tryFrom($request->query->getString('layout')) ?? $kind->defaultLayout();
+
+        if ($kind->printsOnTagsOnly()) {
+            $layout = CompetitionTagPrintLayout::Tags;
+        }
 
         $sort = $request->query->getString('sort');
 
@@ -81,6 +94,7 @@ readonly final class CompetitionTagSheet
             'tables_to' => null,
             'tables_used' => [],
             'competitor_pages' => $settings->competitorPages,
+            'claims_online_timing' => false,
         ];
 
         return match ($kind) {
@@ -88,6 +102,7 @@ readonly final class CompetitionTagSheet
             CompetitionTagPrintKind::Lineups => $this->lineups($competitionId, $round, $sort) + $variables,
             CompetitionTagPrintKind::Tables => $this->tables($request, $competitionId, $round) + $variables,
             CompetitionTagPrintKind::Entries => $this->entries($competitionId, $round, $sort) + $variables,
+            CompetitionTagPrintKind::Claims => $this->claims($competitionId) + $variables,
         };
     }
 
@@ -189,6 +204,35 @@ readonly final class CompetitionTagSheet
                 'qr_url' => $url = $this->nameTagQrCode->entryUrl($competitionId, $tag->entryId),
                 'qr' => $this->nameTagQrCode->svg($url),
             ], $tags),
+        ];
+    }
+
+    /**
+     * Claim slips (participant-linking.md §7.4): everybody on the list not linked to a profile, by name, the waitlist
+     * marked - their links made first (ParticipantClaimLinkList). Each slip's QR is the person's claim link without a
+     * language. An event with online timing hands out its personal links instead (§5.6): no slips, the page points there.
+     *
+     * @return array<string, mixed>
+     */
+    private function claims(string $competitionId): array
+    {
+        if ($this->onlineRoundRepository->ofCompetition($competitionId) !== []) {
+            return ['tags' => [], 'claims_online_timing' => true, 'sort' => GetCompetitionNameTags::SORT_NAME];
+        }
+
+        return [
+            'sort' => GetCompetitionNameTags::SORT_NAME,
+            'tags' => array_map(fn (ParticipantClaimLinkRow $row): array => [
+                'heading' => $row->name,
+                'members' => [['name' => null, 'country' => $row->country, 'code' => null]],
+                'table_number' => null,
+                'table' => false,
+                'claim' => true,
+                'waitlisted' => $row->waitlisted,
+                'qr_url' => $url = $this->nameTagQrCode->claimUrl((string) $row->token),
+                'url_text' => OnlineLinkUrl::short($url),
+                'qr' => $this->nameTagQrCode->svg($url),
+            ], $this->participantClaimLinkList->forCompetition($competitionId)),
         ];
     }
 

@@ -153,6 +153,20 @@ return App::config([
                 'limit' => 10,
                 'interval' => '10 minutes',
             ],
+            // A personal claim link's page and its buttons (docs/features/competitions-management/participant-linking.md
+            // §6.5, ClaimPageLimit): guests per client IP - generous, a venue's shared Wi-Fi at check-in is one address
+            // for a whole hall -, signed-in players per player. A guesser of tokens is stopped long before 128 bits
+            // mean anything
+            'participant_claim_page' => [
+                'policy' => 'sliding_window',
+                'limit' => 120,
+                'interval' => '1 minute',
+            ],
+            'participant_claim_page_player' => [
+                'policy' => 'sliding_window',
+                'limit' => 30,
+                'interval' => '1 minute',
+            ],
             // "This was my team" on an imported event result (ClaimEventResultSlotHandler,
             // docs/features/event-results-import/README.md "Gates"): every claim puts a result on the player's profile and
             // tells its other claimers. Per player, counted in the handler - more teams than anybody puzzled in a day.

@@ -25,7 +25,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * Event-day check-in (managed registration, docs/features/competitions-management/registration.md): everybody holding
- * a spot - the waitlist is not here. Every action re-checks the maintainer and looks the participant up in this event.
+ * a spot - the waitlist is not here. Somebody not linked to a profile can be shown their personal claim link as a QR
+ * (`claimLinks`, the claim-qr Stimulus controller around the component). Every action re-checks the maintainer and looks the participant up in this event.
  */
 #[AsLiveComponent]
 final class CompetitionCheckIn
@@ -37,6 +38,14 @@ final class CompetitionCheckIn
 
     #[LiveProp(writable: true)]
     public string $searchQuery = '';
+
+    /**
+     * Unlinked people get "Not linked · Show QR" - their personal claim link on the organiser's phone
+     * (docs/features/competitions-management/participant-linking.md §7.4). Off on an event with online timing, whose
+     * personal links do the same (§5.6). Set by the page, not by the browser.
+     */
+    #[LiveProp]
+    public bool $claimLinks = false;
 
     /** @var array<ManageableCompetitionParticipant> */
     public array $participants = [];

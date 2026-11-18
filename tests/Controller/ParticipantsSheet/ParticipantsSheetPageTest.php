@@ -211,6 +211,7 @@ final class ParticipantsSheetPageTest extends WebTestCase
             'version' => '/en/participants-sheet-api/' . $competition . '/version',
             'changes' => '/en/participants-sheet-api/' . $competition . '/changes',
             'registration' => '/en/participants-sheet-api/' . $competition . '/registration',
+            'claimLink' => '/en/participants-sheet-api/' . $competition . '/claim-link',
             'record' => '/en/official-results/rounds/__ROUND__/changes',
             'tables' => '/en/official-results/rounds/__ROUND__/table-numbers',
             'playerSearch' => '/en/participants-sheet-api/' . $competition . '/player-search',

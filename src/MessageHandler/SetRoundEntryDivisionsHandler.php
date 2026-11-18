@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
+use SpeedPuzzling\Web\Value\DivisionMatch;
 use SpeedPuzzling\Web\Value\EntryDivisionInput;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -110,33 +111,27 @@ readonly final class SetRoundEntryDivisionsHandler
     }
 
     /**
-     * The division asked for by its id, name or short label - one the round uses.
+     * The division asked for by its id, name or short label - one the round uses (DivisionMatch, the rule the
+     * participants sheet and the import follow too).
      *
      * @param list<CompetitionDivision> $usable
      * @throws InvalidCompetitionDivisions
      */
     private function division(null|string $asked, array $usable, Competition $competition, string $subject): null|CompetitionDivision
     {
-        if ($asked === null || trim($asked) === '') {
+        if ($asked === null || DivisionMatch::isBlank($asked)) {
             return null;
         }
 
-        $matches = static function (CompetitionDivision $division) use ($asked): bool {
-            $wanted = mb_strtolower(trim($asked));
+        $describe = static fn (CompetitionDivision $division): array => [$division->id->toString(), $division->name, $division->shortName];
+        $division = DivisionMatch::first($asked, $usable, $describe);
 
-            return strtolower($division->id->toString()) === $wanted
-                || mb_strtolower($division->name) === $wanted
-                || ($division->shortName !== null && mb_strtolower($division->shortName) === $wanted);
-        };
-
-        foreach ($usable as $division) {
-            if ($matches($division)) {
-                return $division;
-            }
+        if ($division !== null) {
+            return $division;
         }
 
-        $ofEvent = array_any($this->divisionRepository->ofCompetition($competition), $matches);
+        $ofEvent = DivisionMatch::first($asked, $this->divisionRepository->ofCompetition($competition), $describe) !== null;
 
-        throw new InvalidCompetitionDivisions($ofEvent ? 'not_in_round' : 'unknown_division', $subject . ': ' . $asked);
+        throw new InvalidCompetitionDivisions($ofEvent ? DivisionMatch::NOT_IN_ROUND : DivisionMatch::UNKNOWN_DIVISION, $subject . ': ' . $asked);
     }
 }

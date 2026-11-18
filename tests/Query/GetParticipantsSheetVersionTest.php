@@ -61,6 +61,8 @@ final class GetParticipantsSheetVersionTest extends KernelTestCase
         yield 'managed registration' => ['UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]];
         yield 'the capacity' => ['UPDATE competition SET capacity = 120 WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]];
         yield 'online' => ['UPDATE competition SET is_online = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]];
+        // Divisions (shared-puzzles-and-divisions.md §3) - an event without them keeps the version it had
+        yield 'a division list' => ["INSERT INTO competition_division (id, competition_id, name, short_name, position, created_at) VALUES ('018d0020-0000-7000-8000-00000000d001', :id, 'Senior 55+', 'S', 0, " . TestClock::SQL_NOW . ')', ['id' => Cup::COMPETITION_RESULTS_CUP]];
     }
 
     /**

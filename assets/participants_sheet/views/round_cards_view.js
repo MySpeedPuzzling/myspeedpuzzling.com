@@ -16,7 +16,7 @@
  */
 
 import { escapeHtml } from '../sheet_grid.js';
-import { buildAction, clearMember, deleteTeam, newTeamRow, renameTeam, setPlace } from '../sheet_changes.js';
+import { buildAction, clearMember, deleteTeam, newTeamRow, renameTeam, setDivision, setPlace } from '../sheet_changes.js';
 import { IN, OUT, cleanName, hasOfficialData, parsePlace, teamPlace } from '../sheet_model.js';
 import { newClientId } from '../../official_results_api.js';
 import {
@@ -41,6 +41,8 @@ import {
     usesTables,
 } from '../round/round_common.js';
 import { resultText, roundRanks } from '../sheet_results.js';
+import { divisionItems, shownDivision } from '../round/round_divisions.js';
+import { divisionMarkerKey, divisionOf, divisionTarget, usesDivisions } from '../sheet_divisions.js';
 
 export default function createRoundCardsView(context) {
     return new RoundCardsView(context);
@@ -303,6 +305,36 @@ export class RoundCardsView {
         return `<p class="sheet-card-result small mb-0"><span class="sheet-muted">${escapeHtml(this.t('col_result'))}:</span> ${escapeHtml(text)}${escapeHtml(rankText)}</p>`;
     }
 
+    /** The entry's division with "Change" - only on a round that uses divisions (shared-puzzles-and-divisions.md §3.4). */
+    divisionLine(row) {
+        if (!usesDivisions(this.model, this.roundId)) {
+            return '';
+        }
+
+        const division = divisionOf(this.model, this.roundId, shownDivision(this.model, this.roundId, row));
+        const mark = this.context.markerFor(divisionMarkerKey(this.roundId, divisionTarget(this.model.round(this.roundId)?.category, row)));
+
+        return `<p class="sheet-card-division small mb-2"><span class="sheet-muted">${escapeHtml(this.t('col_division'))}:</span> ${escapeHtml(division?.name ?? this.t('division_none'))}${mark ? ` <span class="sheet-marker sheet-marker-${escapeHtml(mark.state)}">${escapeHtml(mark.text)}</span>` : ''}
+                <button type="button" class="btn btn-sm btn-link sheet-card-division-change" data-key="division:${escapeHtml(row)}" data-action="division" data-row="${escapeHtml(row)}" aria-haspopup="dialog">${escapeHtml(this.t('division_change'))}</button></p>`;
+    }
+
+    /** A division for one entry: the round's divisions + "No division", `from` = the one shown when the list opened. */
+    async pickDivision(row, anchor) {
+        const seen = shownDivision(this.model, this.roundId, row);
+        const choice = await this.openDialog({
+            title: this.t('col_division'),
+            items: divisionItems(this.model, this.roundId, this.texts, { current: seen }),
+            returnFocus: () => this.focusKey(`division:${row}`),
+        });
+
+        if (choice === null || choice === undefined || typeof choice.value !== 'string' || choice.value === seen) {
+            return;
+        }
+
+        const target = divisionTarget(this.model.round(this.roundId)?.category, row);
+        this.perform(setDivision(this.model, this.roundId, target, choice.value, { ...this.options(), from: seen }), this.t('division_set', { division: choice.label }), anchor);
+    }
+
     teamHtml(teamId, ranks) {
         const team = this.model.team(teamId);
         const size = sizeInfo(this.model, teamId, this.texts);
@@ -322,6 +354,7 @@ export class RoundCardsView {
                 <button type="button" class="sheet-card-menu" data-key="menu:${escapeHtml(teamId)}" data-action="menu" data-team="${escapeHtml(teamId)}" aria-haspopup="dialog" aria-label="${escapeHtml(this.t('row_actions_label', { team: title }))}"><i class="bi bi-three-dots" aria-hidden="true"></i></button>
             </div>
             <p class="sheet-card-size small mb-2${size.warn ? ' sheet-attention' : ' sheet-muted'}">${size.warn ? '<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ' : ''}${escapeHtml([size.text, size.sameAs].filter(Boolean).join(' · '))}</p>
+            ${this.divisionLine(teamId)}
             ${members.length > 0 ? `<ul class="sheet-member-chips list-unstyled">${chips}</ul>` : ''}
             <button type="button" class="btn btn-outline-secondary sheet-cards-button" data-key="add:${escapeHtml(teamId)}" data-action="add-member" data-team="${escapeHtml(teamId)}"><i class="bi bi-plus-lg" aria-hidden="true"></i> ${escapeHtml(this.tk('add_member'))}</button>
             ${this.resultLine(`team:${teamId}`, team.result, ranks.get(teamId))}`;
@@ -338,6 +371,7 @@ export class RoundCardsView {
                 <h3 class="sheet-card-title">${table !== null && table !== undefined ? `<span class="sheet-card-table">${escapeHtml(this.t('label_table', { table }))}</span> ` : ''}${flagHtml(person.country)}${escapeHtml(person.name)}${this.model.isWaitlisted(personId) ? ` <span class="sheet-badge sheet-badge-waitlist">${escapeHtml(this.t('waitlisted'))}</span>` : ''}</h3>
                 <button type="button" class="btn btn-sm btn-outline-secondary sheet-card-out" data-key="out:${escapeHtml(personId)}" data-action="out" data-person="${escapeHtml(personId)}"${holds ? ' aria-disabled="true"' : ''} aria-label="${escapeHtml(this.t('card_take_out_label', { name: person.name }))}">${escapeHtml(this.t('card_take_out'))}</button>
             </div>
+            ${this.divisionLine(personId)}
             ${this.resultLine(ref, place.result, ranks.get(place.id))}`;
     }
 
@@ -373,6 +407,9 @@ export class RoundCardsView {
                 break;
             case 'out':
                 this.takeOut(person, button);
+                break;
+            case 'division':
+                this.pickDivision(button.dataset.row, button);
                 break;
             default:
         }

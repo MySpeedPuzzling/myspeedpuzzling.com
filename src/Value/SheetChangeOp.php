@@ -22,4 +22,7 @@ enum SheetChangeOp: string
     case TeamSize = 'teamSize';
     // The organiser's "no" to a player's pending link request (participant-linking.md §5.3) - never undone
     case DeclineLinkRequest = 'declineLinkRequest';
+    // The division of an entry of a round that uses divisions (shared-puzzles-and-divisions.md §3.3): a solo entry's
+    // own (by participant), a pair's/team's (by team); `from` / `to` = the division id, '' = none
+    case Division = 'division';
 }

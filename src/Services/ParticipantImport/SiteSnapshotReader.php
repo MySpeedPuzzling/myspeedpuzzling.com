@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetRefusedParticipantLinks;
+use SpeedPuzzling\Web\Query\RoundDivisionsJson;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
@@ -37,23 +39,51 @@ readonly final class SiteSnapshotReader
      */
     public function rounds(string $competitionId): array
     {
+        return $this->roundsAndDivisions($competitionId)[0];
+    }
+
+    /**
+     * The rounds (each with the divisions it uses) and the event's division list (shared-puzzles-and-divisions.md §3) -
+     * one statement: the list rides on every round row (RoundDivisionsJson for the round's own), so an event without
+     * divisions reads what it did. An event without rounds has no division anybody could be given.
+     *
+     * @return array{list<ParticipantImportRound>, list<RoundDivision>} rounds ordered by start, name, id; the event's
+     *         divisions in its order (position, name)
+     */
+    public function roundsAndDivisions(string $competitionId): array
+    {
+        $roundDivisions = RoundDivisionsJson::sql('cr.id');
         $rows = $this->database->fetchAllAssociative(
-            'SELECT id, name, category, team_size FROM competition_round WHERE competition_id = :competitionId ORDER BY starts_at, name, id',
+            <<<SQL
+SELECT cr.id, cr.name, cr.category, cr.team_size,
+    {$roundDivisions} AS divisions,
+    (
+        SELECT json_agg(json_build_object('id', d.id, 'name', d.name, 'shortName', d.short_name) ORDER BY d.position, d.name, d.id)
+        FROM competition_division d
+        WHERE d.competition_id = cr.competition_id
+    ) AS event_divisions
+FROM competition_round cr
+WHERE cr.competition_id = :competitionId
+ORDER BY cr.starts_at, cr.name, cr.id
+SQL,
             ['competitionId' => $competitionId],
         );
 
         $rounds = [];
+        $eventDivisions = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: string, category: string, team_size: null|int} $row */
+            /** @var array{id: string, name: string, category: string, team_size: null|int, divisions: null|string, event_divisions: null|string} $row */
             $rounds[] = new ParticipantImportRound(
                 $row['id'],
                 $row['name'],
                 RoundCategory::from($row['category']),
                 $row['team_size'] !== null ? (int) $row['team_size'] : null,
+                RoundDivision::listFromJson($row['divisions']),
             );
+            $eventDivisions = RoundDivision::listFromJson($row['event_divisions']);
         }
 
-        return $rounds;
+        return [$rounds, $eventDivisions];
     }
 
     /**
@@ -112,7 +142,7 @@ SQL,
         $entries = [];
         $entryRows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT cpr.id, cpr.participant_id, cpr.round_id, cpr.team_id,
+SELECT cpr.id, cpr.participant_id, cpr.round_id, cpr.team_id, cpr.division_id,
     (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL OR cpr.result_puzzles IS NOT NULL) AS own_official_data
 FROM competition_participant_round cpr
 INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
@@ -122,20 +152,21 @@ SQL,
             $parameters,
         );
         foreach ($entryRows as $row) {
-            /** @var array{id: string, participant_id: string, round_id: string, team_id: null|string, own_official_data: bool} $row */
+            /** @var array{id: string, participant_id: string, round_id: string, team_id: null|string, division_id: null|string, own_official_data: bool} $row */
             $entries[] = [
                 'id' => $row['id'],
                 'participantId' => $row['participant_id'],
                 'roundId' => $row['round_id'],
                 'teamId' => $row['team_id'],
                 'ownOfficialData' => $row['own_official_data'] === true,
+                'divisionId' => $row['division_id'] !== null ? strtolower($row['division_id']) : null,
             ];
         }
 
         $teams = [];
         $teamRows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT ct.id, ct.round_id, ct.name
+SELECT ct.id, ct.round_id, ct.name, ct.division_id
 FROM competition_team ct
 INNER JOIN competition_round cr ON cr.id = ct.round_id
 WHERE cr.competition_id = :competitionId
@@ -144,8 +175,8 @@ SQL,
             $parameters,
         );
         foreach ($teamRows as $row) {
-            /** @var array{id: string, round_id: string, name: null|string} $row */
-            $teams[$row['id']] = ['id' => $row['id'], 'roundId' => $row['round_id'], 'name' => $row['name']];
+            /** @var array{id: string, round_id: string, name: null|string, division_id: null|string} $row */
+            $teams[$row['id']] = ['id' => $row['id'], 'roundId' => $row['round_id'], 'name' => $row['name'], 'divisionId' => $row['division_id'] !== null ? strtolower($row['division_id']) : null];
         }
 
         // A result in a round of this event - the player's own, or as a member of a pair/team (D11)
@@ -174,10 +205,11 @@ SQL,
         }
 
         [$players, $references] = $this->resolvePlayers($playerReferences);
+        [$rounds, $divisions] = $this->roundsAndDivisions($competitionId);
 
         return new SiteSnapshot(
             competitionId: $competitionId,
-            rounds: $this->rounds($competitionId),
+            rounds: $rounds,
             participants: $participants,
             entries: $entries,
             teams: $teams,
@@ -188,6 +220,7 @@ SQL,
             officialTeams: $this->officialResultsGuard->teamsWithOfficialData($competitionId),
             players: $players,
             references: $references,
+            divisions: $divisions,
         );
     }
 

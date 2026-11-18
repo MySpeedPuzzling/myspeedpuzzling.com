@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Value\SheetChangeOp;
  *     {"op": "deleteTeam", "team": "<uuid>"}
  *     {"op": "remove", "participant": "<uuid>"}       {"op": "restore", "participant": "<uuid>"}
  *     {"op": "teamSize", "round": "<uuid>", "from": null | 4, "to": null | 4}
+ *     {"op": "division", "round": "<uuid>", "participant" | "team": "<uuid>", "from": "" | "<division uuid>", "to": …}
  *
  * The shape is checked here - a request that breaks it is a page bug, answered as a whole (UnreadableSheetChanges,
  * 400). The values are checked by the planner, change by change (a blank name, an unknown country, a team size of 50
@@ -179,7 +180,45 @@ final readonly class SheetChangesParser
                 self::nullableInt($change, 'from'),
                 self::nullableInt($change, 'to'),
             ),
+            SheetChangeOp::Division => self::division($change),
         };
+    }
+
+    /**
+     * A solo entry by participant or a pair/team by team - exactly one; `from` / `to` a division id or '' (null = '').
+     *
+     * @param array<mixed> $change
+     * @throws UnreadableSheetChanges
+     */
+    private static function division(array $change): SheetChange
+    {
+        $hasParticipant = ($change['participant'] ?? null) !== null;
+        $hasTeam = ($change['team'] ?? null) !== null;
+
+        if ($hasParticipant === $hasTeam) {
+            throw new UnreadableSheetChanges(UnreadableSheetChanges::MISSING_FIELD, 'A division change names "participant" or "team" - one of them.');
+        }
+
+        return SheetChange::division(
+            self::id($change, 'round'),
+            $hasParticipant ? self::id($change, 'participant') : null,
+            $hasTeam ? self::id($change, 'team') : null,
+            self::divisionValue($change, 'from'),
+            self::divisionValue($change, 'to'),
+        );
+    }
+
+    /**
+     * @param array<mixed> $change
+     * @throws UnreadableSheetChanges
+     */
+    private static function divisionValue(array $change, string $key): string
+    {
+        $value = self::nullableString($change, $key) ?? SheetChange::NO_DIVISION;
+        $value = trim($value);
+
+        // An id in its canonical form; anything else stays as written - the planner refuses it (unknown_division)
+        return Uuid::isValid($value) ? Uuid::fromString($value)->toString() : $value;
     }
 
     /**

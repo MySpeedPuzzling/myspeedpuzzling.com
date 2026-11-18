@@ -11,12 +11,16 @@ namespace SpeedPuzzling\Web\Value;
  *
  * A person's place in a round is one value (`place`): `out` (not in the round), `in` (in it without a pair/team) or
  * `team:<teamId>` (in that pair/team) - so "in the round?", "which team" and a move are one change with one `from`.
+ *
+ * An entry's division (`division`) is the division id or '' for none (NO_DIVISION) - of the participant's entry in a
+ * solo round, of the pair/team in a pair/team round.
  */
 readonly final class SheetChange
 {
     public const string OUT = 'out';
     public const string IN = 'in';
     public const string TEAM_PREFIX = 'team:';
+    public const string NO_DIVISION = '';
 
     private function __construct(
         public SheetChangeOp $op,
@@ -99,6 +103,15 @@ readonly final class SheetChange
     }
 
     /**
+     * A solo entry by `$participantId`, a pair/team by `$teamId` (exactly one of them); `from` / `to` a division id or
+     * NO_DIVISION.
+     */
+    public static function division(string $roundId, null|string $participantId, null|string $teamId, string $from, string $to): self
+    {
+        return new self(SheetChangeOp::Division, participantId: $participantId, roundId: $roundId, teamId: $teamId, from: $from, to: $to);
+    }
+
+    /**
      * The change in the wire format SheetChangesParser reads (ids canonical, values as parsed) - the change trail of a
      * change set's receipt (ParticipantSheetChangeReceipt::$changes); parsed again, it is this change.
      *
@@ -119,6 +132,9 @@ readonly final class SheetChange
             SheetChangeOp::Remove, SheetChangeOp::Restore => ['op' => $this->op->value, 'participant' => $this->participantId],
             SheetChangeOp::TeamSize => ['op' => $this->op->value, 'round' => $this->roundId, 'from' => $this->from, 'to' => $this->to],
             SheetChangeOp::DeclineLinkRequest => ['op' => $this->op->value, 'request' => $this->requestId, 'from' => $this->from],
+            SheetChangeOp::Division => $this->teamId !== null
+                ? ['op' => $this->op->value, 'round' => $this->roundId, 'team' => $this->teamId, 'from' => $this->from, 'to' => $this->to]
+                : ['op' => $this->op->value, 'round' => $this->roundId, 'participant' => $this->participantId, 'from' => $this->from, 'to' => $this->to],
         };
     }
 

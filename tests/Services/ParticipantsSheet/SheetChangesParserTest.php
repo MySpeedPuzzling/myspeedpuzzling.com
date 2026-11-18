@@ -55,6 +55,31 @@ final class SheetChangesParserTest extends TestCase
         self::assertSame(4, $changes[9]->to);
     }
 
+    public function testADivisionChangeNamesAnEntryOrAPairAndItsDivisionOrNone(): void
+    {
+        $parsed = SheetChangesParser::parse([
+            'changesetId' => self::ID,
+            'groups' => [['id' => 'g', 'changes' => [
+                ['op' => 'division', 'round' => self::ID, 'participant' => self::ID, 'from' => '', 'to' => self::ID],
+                ['op' => 'division', 'round' => self::ID, 'team' => self::ID, 'from' => self::ID, 'to' => null],
+            ]]],
+        ]);
+        [$solo, $pair] = $parsed['groups'][0]->changes;
+
+        self::assertSame([SheetChangeOp::Division, self::ID_LOWER, null, '', self::ID_LOWER], [$solo->op, $solo->participantId, $solo->teamId, $solo->from, $solo->to]);
+        self::assertSame([null, self::ID_LOWER, self::ID_LOWER, ''], [$pair->participantId, $pair->teamId, $pair->from, $pair->to]);
+        self::assertSame(['op' => 'division', 'round' => self::ID_LOWER, 'team' => self::ID_LOWER, 'from' => self::ID_LOWER, 'to' => ''], $pair->toArray());
+
+        foreach ([['participant' => self::ID, 'team' => self::ID], []] as $who) {
+            try {
+                SheetChangesParser::parse(['changesetId' => self::ID, 'groups' => [['id' => 'g', 'changes' => [['op' => 'division', 'round' => self::ID, 'from' => '', 'to' => '', ...$who]]]]]);
+                self::fail('A division change names one entry');
+            } catch (UnreadableSheetChanges $refused) {
+                self::assertSame(UnreadableSheetChanges::MISSING_FIELD, $refused->reason);
+            }
+        }
+    }
+
     public function testADryRunNeedsNoChangeSetId(): void
     {
         $parsed = SheetChangesParser::parse(['dryRun' => true, 'groups' => [['id' => 'g', 'changes' => [['op' => 'remove', 'participant' => self::ID]]]]]);

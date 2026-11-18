@@ -17,7 +17,7 @@ const ROUND_TEXTS = { ...TEXTS, t: (key, params) => (key === 'paste_header_words
  * applied). Returns the view and what it did: `acted` (actions), `announced`, `notified` ({text, kind, anchor}),
  * `previews` (the dry runs' groups), `tables`.
  */
-async function mount(viewName, { state = smallState(), roundId = ROUND_PAIRS, previewAnswer = null, notify = true, storage = null, phone = false } = {}) {
+export async function mount(viewName, { state = smallState(), roundId = ROUND_PAIRS, previewAnswer = null, notify = true, storage = null, phone = false } = {}) {
     setupDom();
 
     if (storage !== null) {

@@ -3,8 +3,9 @@
     solo_round_view.js, round_cards_view.js and round_common.js): one JSON object, keys = what the JS asks for. Plain
     texts with |trans (their %placeholders% filled in the browser), plural texts with browser_translation() (chosen by
     translation_choice.js). Results wording reuses the official results' own texts. The `pick` round texts (competition
-    toolkit A4, the Puzzles cell's popover v2 C5) only for an event with such a round - every other sheet gets the JSON
-    it always got.
+    toolkit A4, the Puzzles cell's popover v2 C5) only for an event with such a round, the Division texts
+    (shared-puzzles-and-divisions.md §3.4) only for an event with a round that uses divisions - every other sheet gets
+    the JSON it always got.
 #}
 {{- {
     grid_label: 'participants_sheet_round.grid_label'|trans,
@@ -316,4 +317,16 @@
     puzzles_popover_done: 'competition_toolkit.desk_puzzles.status_done'|trans,
     puzzles_popover_own_time: 'participants_sheet_core.puzzles_popover.own_time'|trans,
     puzzles_popover_edit_on_desk: 'participants_sheet_core.puzzles_popover.edit_on_desk'|trans,
+} : {})|merge(state is defined and state.rounds|filter(round => (round.divisions ?? []) is not empty)|length > 0 ? {
+    col_division: 'entry_divisions.sheet.column'|trans,
+    division_none: 'entry_divisions.sheet.none'|trans,
+    division_current: 'entry_divisions.sheet.current'|trans,
+    division_change: 'entry_divisions.sheet.change'|trans,
+    division_set: 'entry_divisions.sheet.set'|trans,
+    division_all_set: 'entry_divisions.sheet.all_set'|trans,
+    division_without: browser_translation('entry_divisions.sheet.without'),
+    division_fill_empty: 'entry_divisions.sheet.fill_empty'|trans,
+    division_filled: 'entry_divisions.sheet.filled'|trans,
+    division_unknown: 'entry_divisions.sheet.unknown'|trans,
+    division_not_in_round: 'entry_divisions.sheet.not_in_round'|trans,
 } : {})|json_encode|raw -}}

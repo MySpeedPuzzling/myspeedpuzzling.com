@@ -5163,6 +5163,7 @@ competition:
                 external_id: "External id"
                 status: "Status"
                 email: "E-mail (private, for the claim invitation)"
+                division: "Division"
             confirm:
                 nothing_saved_yet: "Nothing has been saved yet."
                 button: "Confirm import"
@@ -8300,6 +8301,42 @@ participants_sheet_server:
         team_size_help: "Used to point out teams with too few or too many people - it never blocks anything."
         team_size_placeholder: "e.g. %size% (the most common size)"
 # end participants_sheet_server
+
+# Divisions in the participants sheet and the participant import (shared-puzzles-and-divisions.md §3.4, §3.5)
+entry_divisions:
+    sheet:
+        column: "Division"
+        none: "No division"
+        current: "now"
+        change: "Change"
+        set: "Division set to %division%."
+        all_set: "Every entry has a division"
+        without: "1 without a division|%count% without a division"
+        fill_empty: "Fill empty with…"
+        filled: "Entries without a division are now in %division%."
+        unknown: "\"%value%\" is not a division of this round - it has: %divisions%."
+        not_in_round: "%round% does not use the division %value% - it has: %divisions%."
+        op: "Division"
+        action: "set a division"
+        action_many: "set divisions"
+        reason:
+            not_in_round: "%round% does not use the division %division%."
+            unknown_division: "\"%division%\" is not a division of this event."
+            division_of_team: "In %round% the division belongs to the pair/team - set it on the pair/team."
+            division_not_entered: "%name% is not in %round% - put them in the round first."
+    import:
+        division_in_round: "Division in %round%"
+        division_round_twice: "The division of one round is chosen for more than one column."
+        header_read_as_division: "This event has divisions, so the column \"%column%\" is read as each entry's division. If it lists rounds, choose \"Rounds (list)\" for it."
+        preview_line: "%round% division"
+        unknown: "Row %row%: \"%value%\" is not a division of this event - it has: %divisions%. The division is not set."
+        not_in_round: "Row %row%: %round% does not use the division %division% - left as it is there."
+        not_entered: "Row %row%: %name% is not in %round% - the division %division% is not set there."
+        no_round: "Row %row%: %name% is in no round - the division %division% is not set."
+        conflict_in_file: "The rows of %name% name different divisions in %round% - the division is left as it is."
+        no_team: "Row %row%: %name% has no pair or team in %round% - a pair's or team's division is set on the pair or team."
+        members_disagree: "Members of %team% are in different divisions in %round% - the pair's or team's division is left as it is."
+# end entry_divisions
 
 participants_sheet_core:
     loading: "Loading the participants…"

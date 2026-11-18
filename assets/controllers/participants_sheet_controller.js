@@ -1377,6 +1377,10 @@ export default class extends Controller {
             return this.countriesValue?.[value] ?? String(value).toUpperCase();
         }
 
+        if (change.op === 'division') {
+            return (this.model.round(change.round)?.divisions ?? []).find((division) => division.id === value)?.name ?? String(value);
+        }
+
         if (change.op === 'place') {
             if (value === 'out') {
                 return core.t('value_out');

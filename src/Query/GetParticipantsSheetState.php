@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetRegistration;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetRound;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetState;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetTeam;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\RoundPuzzleFormats;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
@@ -87,7 +88,13 @@ readonly final class GetParticipantsSheetState
         $rounds = $this->rounds($competitionId, $event['is_online'], $event['location_country_code'], $event['series_country_code'], $now);
         $soloRounds = [];
         $pickRounds = [];
+        $divisionRounds = [];
         foreach ($rounds as $round) {
+            // A round using divisions (shared-puzzles-and-divisions.md §3.4): its entries carry `division`
+            if ($round->divisions !== []) {
+                $divisionRounds[$round->id] = true;
+            }
+
             if ($round->category === 'solo') {
                 $soloRounds[$round->id] = true;
             }
@@ -121,8 +128,8 @@ readonly final class GetParticipantsSheetState
             ),
             rounds: $rounds,
             people: $people,
-            places: $this->places($competitionId, $soloRounds, $pickRounds),
-            teams: $this->teams($competitionId, $pickRounds),
+            places: $this->places($competitionId, $soloRounds, $pickRounds, $divisionRounds),
+            teams: $this->teams($competitionId, $pickRounds, $divisionRounds),
             mercure: $this->subscription->forParticipantsSheet(
                 $competitionId,
                 array_map(static fn (ParticipantsSheetRound $round): string => $round->id, $rounds),
@@ -201,6 +208,7 @@ SQL,
      */
     private function rounds(string $competitionId, bool $isOnline, null|string $countryCode, null|string $seriesCountryCode, DateTimeImmutable $now): array
     {
+        $roundDivisions = RoundDivisionsJson::sql('cr.id');
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -217,7 +225,8 @@ SELECT
     cr.table_numbers_off,
     cr.puzzle_format,
     cr.puzzles_to_solve,
-    puzzles.pieces_count
+    puzzles.pieces_count,
+    {$roundDivisions} AS divisions
 FROM competition_round cr
 LEFT JOIN LATERAL (
     SELECT CASE WHEN COUNT(*) = 1 THEN MAX(puzzle.pieces_count) END AS pieces_count
@@ -245,7 +254,7 @@ SQL,
 
         $rounds = [];
         foreach ($rows as $schedulePosition => $row) {
-            /** @var array{id: string, name: string, category: string, team_size: null|int, starts_at: string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, pieces_count: null|int} $row */
+            /** @var array{id: string, name: string, category: string, team_size: null|int, starts_at: string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, pieces_count: null|int, divisions: null|string} $row */
             $roundId = strtolower($row['id']);
             $startsAt = new DateTimeImmutable($row['starts_at']);
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
@@ -276,6 +285,7 @@ SQL,
                     'edit' => $this->urlGenerator->generate('edit_competition_round', ['roundId' => $roundId]),
                 ],
                 puzzleFormat: $puzzleFormats[$roundId] ?? null,
+                divisions: RoundDivision::listFromJson($row['divisions']),
             );
         }
 
@@ -498,9 +508,10 @@ SQL,
      *
      * @param array<string, true> $soloRounds
      * @param array<string, true> $pickRounds
+     * @param array<string, true> $divisionRounds rounds that use divisions
      * @return list<ParticipantsSheetPlace>
      */
-    private function places(string $competitionId, array $soloRounds, array $pickRounds): array
+    private function places(string $competitionId, array $soloRounds, array $pickRounds, array $divisionRounds): array
     {
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -517,6 +528,7 @@ SELECT
     cpr.qualified_at,
     cpr.result_entered_at,
     cpr.result_puzzles,
+    cpr.division_id,
     entered_by.name AS entered_by_name,
     entered_by.code AS entered_by_code
 FROM competition_participant_round cpr
@@ -530,7 +542,7 @@ SQL,
 
         $places = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, participant_id: string, round_id: string, team_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
+            /** @var array{id: string, participant_id: string, round_id: string, team_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, division_id: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
             $roundId = strtolower($row['round_id']);
             // The official record of a pair/team round lives on the team
             $solo = isset($soloRounds[$roundId]);
@@ -548,6 +560,9 @@ SQL,
                 puzzlesUsed: $solo && isset($pickRounds[$roundId]),
                 puzzles: $solo && isset($pickRounds[$roundId]) ? RoundEntryPuzzles::fromStored($row['result_puzzles']) : null,
                 missingPieces: $solo ? $row['result_missing_pieces'] : null,
+                // A solo entry carries its own division; a pair's/team's is on the team
+                divisionUsed: $solo && isset($divisionRounds[$roundId]),
+                division: $solo && $row['division_id'] !== null ? strtolower($row['division_id']) : null,
             );
         }
 
@@ -556,9 +571,10 @@ SQL,
 
     /**
      * @param array<string, true> $pickRounds
+     * @param array<string, true> $divisionRounds rounds that use divisions
      * @return list<ParticipantsSheetTeam>
      */
-    private function teams(string $competitionId, array $pickRounds): array
+    private function teams(string $competitionId, array $pickRounds, array $divisionRounds): array
     {
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -574,6 +590,7 @@ SELECT
     ct.qualified_at,
     ct.result_entered_at,
     ct.result_puzzles,
+    ct.division_id,
     entered_by.name AS entered_by_name,
     entered_by.code AS entered_by_code
 FROM competition_team ct
@@ -588,7 +605,7 @@ SQL,
 
         $teams = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, round_id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
+            /** @var array{id: string, round_id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, qualified_at: null|string, result_entered_at: null|string, result_puzzles: null|string, division_id: null|string, entered_by_name: null|string, entered_by_code: null|string} $row */
             $roundId = strtolower($row['round_id']);
             $teams[] = new ParticipantsSheetTeam(
                 id: strtolower($row['id']),
@@ -602,6 +619,8 @@ SQL,
                 puzzlesUsed: isset($pickRounds[$roundId]),
                 puzzles: isset($pickRounds[$roundId]) ? RoundEntryPuzzles::fromStored($row['result_puzzles']) : null,
                 missingPieces: $row['result_missing_pieces'],
+                divisionUsed: isset($divisionRounds[$roundId]),
+                division: $row['division_id'] !== null ? strtolower($row['division_id']) : null,
             );
         }
 

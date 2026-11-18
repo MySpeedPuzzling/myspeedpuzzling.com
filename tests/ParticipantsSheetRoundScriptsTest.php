@@ -28,7 +28,7 @@ final class ParticipantsSheetRoundScriptsTest extends TestCase
      */
     public static function suites(): iterable
     {
-        foreach (['results', 'paste', 'common', 'views', 'puzzles'] as $suite) {
+        foreach (['results', 'paste', 'common', 'views', 'puzzles', 'divisions'] as $suite) {
             yield $suite => [$suite];
         }
     }

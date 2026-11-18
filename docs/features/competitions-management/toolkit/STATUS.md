@@ -176,7 +176,7 @@ amendments R1-R13 → packages in worktrees `.claude/worktrees/lk-<pkg>`, branch
 
 | Pkg | State | Commit(s) on main | Notes |
 |---|---|---|---|
-| design | merged | bbb232549 | §0a binding; order L1a → L1b → L2 → L4a → L3 → L5 → L4b |
+| design | merged | bbb232549 | §0a binding; order L1a → L1b → L2a → L2b → L4a → L3 → L5 → L4b (+ DV divisions in sheet/import for the real-events team, after their #421) |
 | L1a | merged | fd689e4fa..c72030417 | one link path `ParticipantLinks` (+ `connected_via`, append-only `participant_link_log`), every connect/disconnect call site moved (`ParticipantLinkCoverageTest`); account deletion unlinks, soft-deletes own self-joined rows without official data, logs `account_deleted` (fixes self-joined names showing up as unclaimed); sheet suffix "· by themselves / · import / · personal link"; join/leave/compete_connect push the sheet's live topic |
 | L1b | merged | 74089487f, 5f1d870b6 | import player column takes `#code`, bare code, profile URL or id (`PlayerReference`); a code that ever belonged to 2+ players is refused (`code_changed_owner`, R5); same player on rows of different people links none (`player_in_file_twice`); "name differs" warning; preview "→ #CODE · Name" (masked for private/blocked); export `msp_code` |
 | TR | merged | 8f6f7afac | L1a/L1b keys in 5 locales |
@@ -185,6 +185,8 @@ amendments R1-R13 → packages in worktrees `.claude/worktrees/lk-<pkg>`, branch
 | L2b | merged (PR #431) | 47a7ba077 | in-app notifications: link requested (organisers, one while unread per event), approved, declined (also superseded), "You're on the participant list" (organiser/import links on public events) + "Not me" → unlink + refused pair; notification target columns (hand-written migration) |
 | L4a | merged (PR #433) | 902b1546f | personal claim links (`claim_token`, R6), claim page `/claim/{token}` (every §6.5 state, no-store, noindex, limiter per player / per IP for guests), R4 redaction, sheet row ⋯ copy / QR / new link, CSV, print kind `claims`, check-in "Show QR", hub buttons; security review: no blocker, 6 fixes (paid registration on switch/dispute, venue-friendly limits, no_profile, slips referrer). Loki redaction on lily = docs/TODO.md |
 | L3 | merged (PR #438) | 70263a51b | "Is this you?" card (in `GetEventAttendance`'s statement), `?participant=` preselection, "This is me" on the participants list and the competitor page (`claim_participant`), tag scan with pages off → the card |
+| L5 | merged (PR #441) | 5fcba1677 | link suggestions (tiers joined by themselves / linked at another date / name + country ≤ 3 players), `ParticipantNameKey::sql()` + index `custom_player_name_key` (join match + card share it), sheet "Suggestions (N)" dialog + atomic merge of a self-joined row, hub counter, import flash; review: 2 blockers fixed (renamed self-join pre-ticked at the next edition - only organiser-named rows pre-tick; quadratic tier 1 → hash joins), R7 server-side, hidden candidates not tickable |
+| L4b | merged (PR #442) | bc147e6da | participant e-mail (import / sheet / export, erased 60 days after the event - cron 03:53 on lily, lily.srv 8873ef2), claim-link invitations (one per address per 24 h, "no" per address survives remove + re-add, suppressed addresses silent, own e-mail type, one-click refusal + RFC 8058, complaint → `invitations_complained_at`); review: 1 blocker (re-add bypass) + 3 fixed |
 
 ## Gaps 2026-11-17 (orchestrator: sub-session; brief `cm-delivery/brief-gaps-orchestrator.md`)
 Small gaps of the shipped toolkit + creation wizard, three packages in parallel (worktrees `.claude/worktrees/gp-<pkg>`,
@@ -203,3 +205,9 @@ Duplicate keeps the copy `total` instead of relaxing the K ≤ N guard; the reve
 `RevealRoundPuzzleNow` per row (the hash is checked under the lock); 1200/min instead of 120 (a hall of 20 screens on
 one link behind one NAT). Not browser-tried: a real 429 on a TV, the "changed meanwhile" toast, a camera scan in the
 wizard's search, "Add the next dates" filling the series text.
+
+Open items (participant linking):
+- lily.srv Alloy: redact `/claim/<token>` in Loki (docs/TODO.md "Participant linking") - before claim links are handed out at scale.
+- Phone list / person editor have no claim-link, suggestion or invitation actions (desktop grid only) - docs/TODO.md.
+- Jan's call: whether managed-registration events should also default to "Ask me first" (designed: no); whether the organiser should ever learn that an invitation could not be delivered (built: never - privacy).
+- `EXPLAIN ANALYZE` of the suggestions statement on a big production event once one uses it.

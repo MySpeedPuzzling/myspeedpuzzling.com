@@ -306,8 +306,8 @@ asking `UnpublishBlockers` (no statement per item); a refusal comes back as a fl
 |---|---|---|
 | Publish (first item) / Unpublish… (before Delete, confirmed in place) | everything the viewer can edit (in the ⋯ menu Unpublish only while allowed - otherwise "Can't go back to draft: …" with the reasons; on "You organize" a refusal comes back as a flash) | `publish_*` / `unpublish_*` |
 | Publish series | an edition of a draft series, for the series' team | `publish_competition_series` |
-| Edit organization, Add event, Delete organization (creator, empty only), Approve / Reject… (admins, pending, never a draft) | organizations | `edit_organization`, `add_competition?organization=`, `delete_organization`, `admin_approve_organization`, `admin_reject_organization` |
-| Add several dates, Turn into an organization (no organization yet) | series | `add_editions`, `create_organization_from_series` |
+| Edit organization, Add event, Delete organization (creator, empty only), Approve / Reject… (admins, pending, never a draft) | organizations | `edit_organization`, `event_wizard?organization=` (was `add_competition?organization=` until 2026-11-18), `delete_organization`, `admin_approve_organization`, `admin_reject_organization` |
+| Add the next dates (was "Add edition" + "Add several dates" until 2026-11-18), Turn into an organization (no organization yet) | series | `event_wizard_series_next_dates`, `create_organization_from_series` |
 | Move to another series | editions, for the people who can edit the edition's series (the target is another series they manage) | `move_edition` |
 | Move to another event or edition | each round on the rounds page | `move_competition_round` |
 
@@ -315,6 +315,10 @@ Every POST carries a session CSRF token per item; a wrong token answers 403. Adm
 wait for approval and are not drafts (a draft is submitted by publishing it).
 
 ### Forms
+
+> **2026-11-18: the classic create forms are retired** - every event, series and edition is created in the event
+> creation wizard (`docs/features/competitions-management/creation-wizard.md` "Classic create retired"); `add_competition`,
+> `add_edition` and `add_editions` only redirect there. The add-form parts below are history; the edit forms are live.
 
 - **Add event / add series** (`add_competition`), **edit event** (`edit_competition`), **edit series**
   (`edit_competition_series`): an **Organization** select - the organizations the player is on the team of (admins:
@@ -338,7 +342,7 @@ wait for approval and are not drafts (a draft is submitted by publishing it).
 - **Save as draft**: every add form (event, series, edition, several dates, organization) gets a secondary submit
   "Save as draft" next to the primary one. The primary keeps today's behaviour.
 
-### Add several dates (`add_editions`)
+### Add several dates (`add_editions` - retired 2026-11-18, the same rule lives on as the wizard's "Add the next dates")
 
 | Field | Values |
 |---|---|

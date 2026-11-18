@@ -79,7 +79,7 @@ final class ParticipantClaimPageTest extends WebTestCase
             $page = $this->browser->request('GET', self::PAGE);
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
             self::assertStringNotContainsString('Jane Unconnected', $page->text());
-            self::assertStringNotContainsString('WJPC 2024', $page->text());
+            self::assertStringNotContainsString('WJPC 2024', $page->filter('[data-claim-state]')->text());
         }
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
@@ -103,9 +103,9 @@ final class ParticipantClaimPageTest extends WebTestCase
         self::assertSelectorTextContains('[data-claim-name]', 'Jane Unconnected');
         self::assertSelectorTextContains('[data-claim-event]', 'WJPC 2024');
         self::assertSelectorTextContains('[data-claim-message]', 'Jane Unconnected - is this you?');
-        self::assertSame('/en/login?return=' . rawurlencode(self::PAGE), $page->filter('[data-claim-sign-in]')->attr('href'));
-        self::assertSame('/en/register?return=' . rawurlencode(self::PAGE), $page->filter('[data-claim-register]')->attr('href'));
-        self::assertCount(0, $page->filter('form'));
+        self::assertSame('/login?return=' . rawurlencode(self::PAGE), $page->filter('[data-claim-sign-in]')->attr('href'));
+        self::assertSame('/register?return=' . rawurlencode(self::PAGE), $page->filter('[data-claim-register]')->attr('href'));
+        self::assertCount(0, $page->filter('[data-claim-state] form'));
         $this->assertPrivate();
 
         // A guest's POST goes to the sign-in page

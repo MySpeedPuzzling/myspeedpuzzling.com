@@ -52,8 +52,10 @@ final class ParticipantClaimLinksOrganiserTest extends WebTestCase
         self::assertNotNull($token);
         self::assertTrue(OnlineToken::looksValid($token));
         self::assertSame($person, $answer['participant']);
-        self::assertMatchesRegularExpression('~^https?://[^/]+/claim/' . $token . '$~', (string) $answer['url']);
-        self::assertStringStartsWith('<svg', (string) $answer['qr']);
+        self::assertIsString($answer['url']);
+        self::assertIsString($answer['qr']);
+        self::assertMatchesRegularExpression('~^https?://[^/]+/claim/' . $token . '$~', $answer['url']);
+        self::assertStringStartsWith('<svg', $answer['qr']);
 
         // Asked again: the same link
         $this->post(['participant' => $person]);
@@ -65,7 +67,8 @@ final class ParticipantClaimLinksOrganiserTest extends WebTestCase
         $renewed = $this->json();
         self::assertNotSame($answer['url'], $renewed['url']);
         self::assertNotSame($token, $this->token($person));
-        self::assertStringEndsWith('/claim/' . $this->token($person), (string) $renewed['url']);
+        self::assertIsString($renewed['url']);
+        self::assertStringEndsWith('/claim/' . $this->token($person), $renewed['url']);
     }
 
     public function testTheSheetsEndpointRefuses(): void

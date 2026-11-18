@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Controller\ParticipantClaim;
 
 use SpeedPuzzling\Web\Services\PreferredLocale;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -26,7 +26,7 @@ final class ParticipantClaimLinkController extends AbstractController
     }
 
     #[Route(path: '/claim/{token}', name: 'participant_claim_link', methods: ['GET'])]
-    public function __invoke(Request $request, string $token): RedirectResponse
+    public function __invoke(Request $request, string $token): Response
     {
         return ParticipantClaimController::withPrivateHeaders(
             $this->redirectToRoute('participant_claim', ['token' => $token, '_locale' => $this->preferredLocale->of($request)]),

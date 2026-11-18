@@ -177,8 +177,10 @@ final class StagesStandingTest extends WebTestCase
         self::assertTrue($public['standing']['numberedAcrossStages']);
         self::assertSame([1, 2, 3, 4, 4, 6, 7], array_column($public['rows'], 'rank'));
         self::assertSame([2, 2, 2, 1, 1, 1, 1], array_column($public['rows'], 'stage'));
-        self::assertSame([strtolower(OfficialResultsFixture::ROUND_FINAL), strtolower(OfficialResultsFixture::ROUND_GROUP_A)], array_slice(array_values(array_unique(array_column($public['rows'], 'stageRoundId'))), 0, 2));
-        self::assertSame([false], array_values(array_unique(array_column($public['rows'], 'qualifiedForStage'))));
+        $final = strtolower(OfficialResultsFixture::ROUND_FINAL);
+        $groupA = strtolower(OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertSame([$final, $final, $final, $groupA, $groupA, strtolower(OfficialResultsFixture::ROUND_GROUP_B), $groupA], array_column($public['rows'], 'stageRoundId'));
+        self::assertSame(array_fill(0, 7, false), array_column($public['rows'], 'qualifiedForStage'));
         $body = (string) $this->browser->getResponse()->getContent();
         self::assertStringNotContainsString('"key"', $body);
         self::assertStringNotContainsString('playerId', $body);

@@ -327,7 +327,7 @@ final readonly class StandingCalculator
 
             $stages[] = new StandingStage(
                 number: $index + 1,
-                name: StandingStage::nameOf(array_values(array_map(static fn (BracketRound $round): string => $round->name, $stageRounds))),
+                name: StandingStage::nameOf(array_map(static fn (BracketRound $round): string => $round->name, $stageRounds)),
                 rounds: $names,
                 classified: $names !== [] && array_all(array_keys($names), static fn (string $roundId): bool => ($rounds[$roundId] ?? null)?->counted === true),
             );

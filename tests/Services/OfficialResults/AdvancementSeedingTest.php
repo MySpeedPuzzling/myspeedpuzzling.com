@@ -140,10 +140,11 @@ final class AdvancementSeedingTest extends TestCase
         $stage = [];
         foreach ($rounds as $roundId => $results) {
             $ranks = OfficialResultsRanking::rank($results);
-            $inputs[$roundId] = new StandingRoundInput($roundId, 90, true, array_map(
-                static fn (string $name): StandingEntryInput => new StandingEntryInput($name, $results[$name], $ranks[$name], 1000, $name),
-                array_keys($results),
-            ));
+            $entries = [];
+            foreach ($results as $name => $result) {
+                $entries[] = new StandingEntryInput($name, $result, $ranks[$name], 1000, $name);
+            }
+            $inputs[$roundId] = new StandingRoundInput($roundId, 90, true, $entries);
             $stage[] = new BracketRound($roundId, $roundId, RoundCategory::Solo, new DateTimeImmutable('2026-11-18 09:00'), true, 'Europe/Prague', BracketRoundStatus::Published, $roundId);
         }
 

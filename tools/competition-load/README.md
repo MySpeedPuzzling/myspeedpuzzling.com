@@ -49,6 +49,25 @@ pulling one. More k6 options after the mix: `load.sh run burst all -e PROPOSALS_
 | `proposals` | 100 competitors (signed in, page open) propose within 10 s (`PROPOSALS`, `PROPOSALS_WINDOW_S`) |
 | `all` | the saves + 300 phones' heartbeats every 15 s ±20 % and their idle state poll every 5 min + the 100 proposals at `PROPOSALS_AT` (60 s), each followed by the page's 5 s state poll while the proposal waits |
 | `single` | 30 saves, 5 state reads, then 30 × (competitor state, proposal, heartbeat) - one at a time |
+| `real` | real events (`ROUND_FORMAT=realevents load.sh setup` first - see below): 3 rounds at once, 18 judges, 1,550 phones, 180 proposals in bursts, 6 displays |
+
+### Real events (`ROUND_FORMAT=realevents`)
+
+`setup_realevents.php` (included by `setup.php realevents`) puts three rounds of the Results Cup on the stopwatch at
+once: "Load Solo" (solo, `pick` 2 of 2 - "Solve all 2", 350 entrants at tables 1-350), "Load Teams A" and "Load Teams
+B" (teams of 4, `total`, 150 teams each at tables 1-150; 1,200 members), 18 referees (k6 gives each round six) and per
+round a live-board screen + a leaderboard overlay pinned to it. All three rounds share the event's one write lock
+(`CompetitionParticipantsLock`). `MIX=real`: the judges save solo tables 1-250 / teams 1-110 every 3-8 s - on the solo
+round 30 % a per-puzzle split first (`puzzles` alone, `SPLIT_SHARE`) and the result + both puzzles later, 30 % the
+group at once; every entrant's phone heartbeats every 15 s and polls its state every 5 min (arrival rates, a session
+per phone); the proposers (solo 251-350 + one member of each team at 111-150 = 180) tap in `BURSTS` (2) windows of
+`PROPOSALS_WINDOW_S` `BURST_GAP_S` (45 s) apart from `PROPOSALS_AT` and then poll every 5 s; the displays fetch their
+state every ~`DISPLAY_POLL_MS` (2 s - a display refetches 1.5 s after each live signal).
+
+```sh
+ROUND_FORMAT=realevents tools/competition-load/load.sh setup
+tools/competition-load/load.sh run real1 real -e DURATION=4m
+```
 
 Every actor's first request signs in from its remember-me cookie (a session is made) - that is the first state read of
 each judge/competitor, not a save or a proposal.

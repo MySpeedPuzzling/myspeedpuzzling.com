@@ -162,6 +162,19 @@
     meta_description: "Offizielle Ergebnisse von %round% bei %event%: die Rangliste des Veranstalters mit %count% Teilnehmer, mit Zeiten und gelegten Teilen.|Offizielle Ergebnisse von %round% bei %event%: die Rangliste des Veranstalters mit %count% Teilnehmern, mit Zeiten und gelegten Teilen."
     connect: "Ist Ihr Name dabei?"
     connect_link: "Mit Ihrem Profil verknüpfen"
+  challenge:
+    nav_label: "Rangliste"
+    overall: "Ganze Runde"
+    heading: "%challenge% - nach eigener Zeit"
+    source: "Die eigene Zeit jedes Puzzles ist seine Zwischenzeit minus die des vorherigen Puzzles. Teilnehmer ohne sie stehen danach, ohne Platz."
+    caption: "Rangliste von %challenge% in %round%"
+    column_time: "Eigene Zeit"
+    own_time: "eigene %time%"
+    own_time_help: "Eigene Zeit - die Zwischenzeit minus die des vorherigen Puzzles"
+    not_finished: "Nicht fertig"
+    no_split: "Fertig, Zeit nicht erfasst"
+    not_recorded: "Nicht erfasst"
+    round_result: "Runde: %rank%. · %result%"
 "badge":
   "relax": "Relax"
   "suspicious": "Überprüfung erforderlich"
@@ -14104,6 +14117,8 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% fertig bei"
         export_time: "Puzzle %position% eigene Zeit"
         export_pieces: "Puzzle %position% gelegte Teile"
+        own_time: "eigene %time%"
+        preview_own_times: "Eigene Zeiten: %times%"
     standings:
         missing_rule:
             label: "Runden ohne Ergebnis"
@@ -14652,6 +14667,7 @@ time_proposal:
         already_proposed: "Eine Zeit wartet bereits auf den Schiedsrichter."
         proposal_not_found: "Dieser Zeitvorschlag existiert nicht."
 competition_standing:
+    challenge_time: "%label% %time%"
     rounds_count: "{0}Keine Runden|{1}%count% Runde|]1,Inf[%count% Runden"
     per_category_name: "Gesamt – %category%"
     penalty_short: "+%seconds% s pro fehlendem Teil"

@@ -181,6 +181,19 @@
     meta_description: "Résultats officiels de %round% à %event% : le classement de l'organisateur de %count% concurrent, avec temps et pièces posées.|Résultats officiels de %round% à %event% : le classement de l'organisateur de %count% concurrents, avec temps et pièces posées."
     connect: "Votre nom est ici ?"
     connect_link: "Reliez-le à votre profil"
+  challenge:
+    nav_label: "Classement"
+    overall: "Manche entière"
+    heading: "%challenge% - classé selon son propre temps"
+    source: "Le temps propre de chaque puzzle est son temps intermédiaire moins celui du puzzle précédent. Les concurrents sans ce temps sont listés ensuite, sans rang."
+    caption: "Classement de %challenge% dans %round%"
+    column_time: "Temps propre"
+    own_time: "propre %time%"
+    own_time_help: "Son temps propre - le temps intermédiaire moins celui du puzzle précédent"
+    not_finished: "Non terminé"
+    no_split: "Terminé, temps non enregistré"
+    not_recorded: "Non enregistré"
+    round_result: "Manche : %rank%. · %result%"
 "badge":
   "relax": "Relax"
   "suspicious": "Vérification requise"
@@ -14100,6 +14113,8 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% terminé à"
         export_time: "Puzzle %position% temps propre"
         export_pieces: "Puzzle %position% pièces posées"
+        own_time: "propre %time%"
+        preview_own_times: "Temps propres : %times%"
     standings:
         missing_rule:
             label: "Manches sans résultat"
@@ -14648,6 +14663,7 @@ time_proposal:
         already_proposed: "Un temps attend déjà l'arbitre."
         proposal_not_found: "Cette proposition de temps n'existe pas."
 competition_standing:
+    challenge_time: "%label% %time%"
     rounds_count: "{0}Aucune manche|{1}%count% manche|]1,Inf[%count% manches"
     per_category_name: "Général - %category%"
     penalty_short: "+%seconds% s par pièce manquante"

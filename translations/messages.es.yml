@@ -164,6 +164,19 @@
     meta_description: "Resultados oficiales de %round% en %event%: la clasificación del organizador de %count% participante, con tiempos y piezas colocadas.|Resultados oficiales de %round% en %event%: la clasificación del organizador de %count% participantes, con tiempos y piezas colocadas."
     connect: "¿Está aquí tu nombre?"
     connect_link: "Conéctalo a tu perfil"
+  challenge:
+    nav_label: "Clasificación"
+    overall: "Ronda completa"
+    heading: "%challenge%: por su propio tiempo"
+    source: "El tiempo propio de cada puzzle es su parcial menos el del puzzle anterior. Quien no lo tiene aparece después, sin posición."
+    caption: "Clasificación de %challenge% en %round%"
+    column_time: "Tiempo propio"
+    own_time: "propio %time%"
+    own_time_help: "Su tiempo propio: el parcial menos el del puzzle anterior"
+    not_finished: "Sin terminar"
+    no_split: "Terminado, tiempo no registrado"
+    not_recorded: "No registrado"
+    round_result: "Ronda: %rank%. · %result%"
 "badge":
   "relax": "Relax"
   "suspicious": "Verificación necesaria"
@@ -14105,6 +14118,8 @@ competition_toolkit:
         export_finished_at: "Puzzle %position% terminado en"
         export_time: "Puzzle %position% tiempo propio"
         export_pieces: "Puzzle %position% piezas colocadas"
+        own_time: "propio %time%"
+        preview_own_times: "Tiempos propios: %times%"
     standings:
         missing_rule:
             label: "Rondas sin resultado"
@@ -14653,6 +14668,7 @@ time_proposal:
         already_proposed: "Ya hay un tiempo esperando al árbitro."
         proposal_not_found: "Esta propuesta de tiempo no existe."
 competition_standing:
+    challenge_time: "%label% %time%"
     rounds_count: "{0}Ninguna ronda|{1}%count% ronda|]1,Inf[%count% rondas"
     per_category_name: "General - %category%"
     penalty_short: "+%seconds% s por pieza que falta"

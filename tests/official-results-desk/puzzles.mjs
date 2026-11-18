@@ -4,7 +4,7 @@
 // desk's `?entry=<ref>` deep link from the participants sheet's Puzzles popover (v2 C5).
 
 import assert from 'node:assert/strict';
-import { consistentRecord, deskEntryFromQuery, deskEntryRef, deskEntryUrl, editorOutcome, editorRows, puzzleOptions, recordChips, recordText } from '../../assets/official_results_desk_puzzles.js';
+import { consistentRecord, deskEntryFromQuery, deskEntryRef, deskEntryUrl, editorOutcome, editorRows, ownTimesLine, puzzleOptions, recordChips, recordText, rowOwnTimes } from '../../assets/official_results_desk_puzzles.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
 
 const A = 'rp-a';
@@ -35,6 +35,21 @@ function grouped(pending) {
 }
 
 export default function (test) {
+    test('own times (real events W4): split minus the previous split, the first its split, null without one', () => {
+        assert.deepEqual(rowOwnTimes([row(A, true, 1500), row(B, true, 3900), row(C, true, 5000)]), [1500, 2400, 1100]);
+        assert.deepEqual(rowOwnTimes([row(A, true, null), row(B, true, 3900)]), [null, null]);
+        assert.deepEqual(rowOwnTimes([row(A, true, 1500), row(B, false, null, 300)]), [1500, null]);
+        // The same rule as the chips of a stored record
+        assert.deepEqual(recordChips(FORMAT, [{ roundPuzzleId: A, done: true, atSeconds: 1500 }, { roundPuzzleId: B, done: true, atSeconds: 3900 }]).map((chip) => chip.duration), [1500, 2400]);
+    });
+
+    test('the editor preview line of own times: K >= 2 only, by label, rows without a puzzle left out', () => {
+        assert.equal(ownTimesLine(FORMAT, [row(A, true, 1500), row('', false), row(B, true, 3900)]), 'Blue box 0:25:00, B 0:40:00');
+        assert.equal(ownTimesLine(FORMAT, [row(A, true, null), row(B, true, 3900)]), '');
+        assert.equal(ownTimesLine({ ...FORMAT, toSolve: 1 }, [row(A, true, 1500)]), '');
+        assert.equal(ownTimesLine(null, [row(A, true, 1500)]), '');
+    });
+
     test('puzzle options: label always, the name only of a puzzle that is out', () => {
         assert.deepEqual(puzzleOptions(FORMAT), [
             { id: A, label: 'Blue box', name: 'Lighthouse' },

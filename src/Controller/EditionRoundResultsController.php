@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\RoundResults\RoundResultsPageBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -31,7 +32,7 @@ final class EditionRoundResultsController extends AbstractController
         ],
         name: 'edition_round_results',
     )]
-    public function __invoke(string $seriesSlug, string $editionSlug, string $roundSlug): Response
+    public function __invoke(Request $request, string $seriesSlug, string $editionSlug, string $roundSlug): Response
     {
         $competition = $this->competitionRepository->getBySeriesAndEditionSlug($seriesSlug, $editionSlug);
 
@@ -42,7 +43,7 @@ final class EditionRoundResultsController extends AbstractController
             throw new DraftNotVisible();
         }
 
-        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name);
+        $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name, $request->query->getString('challenge'));
 
         return $this->render('round_results.html.twig', [
             'page' => $page,

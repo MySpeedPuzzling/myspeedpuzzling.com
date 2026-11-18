@@ -686,6 +686,43 @@ Deviations / details:
 - The old static note `competition_standing.form.missing_rule` is no longer rendered (replaced by the choice; its text is
   `competition_toolkit.standings.missing_rule.incomplete_help`).
 
+## As built: W4 - challenges of a back-to-back block, the read side (2026-11-18)
+
+The block is ONE round "Solve all 2 (order recorded)" (`pick`, K = N = 2) with per-puzzle splits; a challenge's time
+= its split minus the previous split (`RoundEntryPuzzles::duration()` - the per-puzzle "Add to my profile" rule, reused
+everywhere, never re-implemented). Nothing on the write path, stopwatch, judge outbox or proposals changed.
+
+- **Public round page** (`round_results/_official.html.twig`): a K ≥ 2 chip shows `(own 0:40:00)` next to its
+  cumulative split (`data-official-entry-puzzle-own`; not on the first chip, whose own time is its split). A pick round
+  of K ≥ 2 gets the links "Whole round · A · B" after the source line (`_challenge_nav.html.twig`,
+  `data-official-challenge-nav`) and `?challenge=<place 1..N or label, any case>` shows that puzzle's ranking
+  (`_challenge_table.html.twig`, `data-official-challenge`): by its own time among entries that finished it
+  (`ChallengeRanking`: ties share, the next skips), the entries without that time after, unranked ("Not finished", "Finished,
+  time not recorded", "Not recorded"); a pick K < N entry that chose another puzzle is left out. The round's place and
+  result stay on each row. Ranked over every entry (`OfficialEntrantsView::forRounds(keepHidden: true)`), THEN the
+  rows hidden from the viewer dropped, never renumbered; private players masked as everywhere. **Only puzzles shown
+  to everybody get a view** (`EditionRoundDetail::challengeSlots()` - a hidden puzzle's `?challenge=` shows the
+  round's ranking). An unknown value shows the round's ranking. The canonical URL stays the round's (route params
+  only). Statements: a challenge view costs no statement more than the round view (it offers no "Add to my profile",
+  so it runs one statement fewer for a signed-in entrant); `total` rounds untouched (`OfficialRoundResultsGoldenTest`
+  byte for byte - the nav is an expression at the end of an existing line, the table switch uses Twig's newline
+  stripping so the round's table renders as before).
+- **Results desk**: the record chips under a row show `(own 0:40:00)` (K ≥ 2, not the first); the per-puzzle editor's
+  preview line ends "Own times: A 0:25:00, B 0:40:00" while typing (`rowOwnTimes()` / `ownTimesLine()` in
+  `official_results_desk_puzzles.js`, harness `tests/official-results-desk/puzzles.mjs`). **Export**: the "Puzzle N
+  own time" column existed since A4 (next to "Puzzle N finished at") - unchanged.
+- **Standings** (organiser preview + public page): a pick round of K ≥ 2 with splits shows its challenge times on a
+  line of the round's cell ("A 0:25:00 · B 0:40:00", `data-standing-challenges`, labels only - never names;
+  `RoundChallengeTime::listOf()` → `StandingEntryInput::$challengeTimes` → `StandingRoundScore::$challengeTimes`). The
+  total stays the round's. Labels ride on the standing's rounds statement (`labels_by_round_puzzle`, pick K ≥ 2 rounds
+  only). The public standing JSON carries `challengeTimes` on a score only when there are some - every other score's
+  JSON is unchanged.
+- **Displays "rank by challenge": v2** (not cheap: a new results option in the sanitizer + `schema.js` + fixtures, the
+  per-puzzle records in the display's results statement and payload, renderer ranks) - `displays.md` "Known gaps".
+- Tests: `tests/CompetitionToolkit/ChallengeTimesTest.php` (+ `SolveAllBlockSetup`), `PickRoundPublicPageTest` (chip
+  texts now include the own time), `BlocklistCanaryTest::testBlockedPlayerIsNowhereInAChallengeRanking`,
+  `PrivateProfileCanaryTest::testAChallengeRankingLinksHerProfileForTheFriendOnly`, the desk harness.
+
 ## Chained round - v2 notes (from the design review, to fix before the chained round is ever built)
 - B1: no set-level `chainAware` flag - every finished `result` change on a chained round travels in a group with a
   `chain_start` change built at queue time (old bundle / old snapshot can never produce it); refused otherwise.

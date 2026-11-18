@@ -52,4 +52,49 @@ readonly final class EditionRoundDetail
     {
         return $this->puzzleFormat === RoundPuzzleFormat::Pick && $this->puzzlesToSolve !== null;
     }
+
+    /**
+     * The puzzles of a `pick` round of K ≥ 2 that get their own ranking on the public round page - "challenges" of a
+     * solve-all block (real events W4, world-series-rules.md "Review amendments"): only puzzles shown to everybody (a
+     * hidden puzzle's ranking would tell how it went before its reveal). Empty for every other round.
+     *
+     * @return list<RoundPuzzleSlot>
+     */
+    public function challengeSlots(): array
+    {
+        if ($this->isPick() === false || $this->puzzlesToSolve < 2) {
+            return [];
+        }
+
+        return array_values(array_filter($this->puzzleSlots, static fn (RoundPuzzleSlot $slot): bool => $slot->isHidden() === false));
+    }
+
+    /**
+     * The challenge `?challenge=` names - its place in the round (1..N) or its label (any case) - or null when it names
+     * none of challengeSlots().
+     */
+    public function challengeSlot(null|string $challenge): null|RoundPuzzleSlot
+    {
+        $challenge = trim((string) $challenge);
+
+        if ($challenge === '') {
+            return null;
+        }
+
+        $slots = $this->challengeSlots();
+
+        foreach ($slots as $slot) {
+            if ((string) $slot->position === $challenge) {
+                return $slot;
+            }
+        }
+
+        foreach ($slots as $slot) {
+            if (mb_strtolower($slot->label) === mb_strtolower($challenge)) {
+                return $slot;
+            }
+        }
+
+        return null;
+    }
 }

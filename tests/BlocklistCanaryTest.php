@@ -13,6 +13,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\SolveAllBlockSetup;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -453,6 +454,46 @@ final class BlocklistCanaryTest extends WebTestCase
             static fn (Crawler $row): string => (string) $row->attr('data-official-rank'),
         ));
         self::assertCount(2, $crawler->filter('[data-official-results] [data-official-entry-puzzles]'));
+    }
+
+    /**
+     * A challenge's ranking of a back-to-back block (real events W4, `?challenge=`): "Hugo Slow" - first in challenge 1
+     * (SolveAllBlockSetup) - is the blocked player; he is not there for the blocker, everybody else keeps the
+     * challenge's places (ranked over every entry, the hidden row dropped after).
+     */
+    public function testBlockedPlayerIsNowhereInAChallengeRanking(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-b?challenge=1';
+        $database = self::getContainer()->get(Connection::class);
+        SolveAllBlockSetup::seed($database);
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_HUGO],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $ranks = static fn (Crawler $crawler): array => $crawler->filter('[data-official-challenge] tbody tr')->each(
+            static fn (Crawler $row): string => (string) $row->attr('data-official-challenge-rank'),
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the challenge ranking does not link the player.');
+        self::assertStringContainsString('Hugo Slow', $content);
+        self::assertSame(['1', '2', '3'], $ranks($crawler), 'No canary: no challenge ranking.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Hugo Slow', $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['2', '3'], $ranks($crawler));
     }
 
     /**

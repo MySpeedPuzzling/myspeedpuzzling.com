@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
+use SpeedPuzzling\Web\Results\RoundChallengeTime;
+
 /**
  * One entry of one round as StandingCalculator::sum() reads it. `key` = the entrant across rounds: the participant id
  * (solo) or the line-up (CompetitionLineupId over the exact set of members - a substitute makes another entrant).
@@ -13,6 +15,8 @@ final readonly class StandingEntryInput
     /**
      * @param list<string> $countries
      * @param list<StandingEntrant> $entrants
+     * @param list<RoundChallengeTime> $challengeTimes a solve-all block's challenge times (real events W4) - shown in the
+     *     round's cell, never a ranking input
      */
     public function __construct(
         public string $key,
@@ -26,6 +30,7 @@ final readonly class StandingEntryInput
         public array $entrants = [],
         // Finished with pieces missing (competition toolkit T6): how many - null = complete or not finished
         public null|int $missingPieces = null,
+        public array $challengeTimes = [],
     ) {
     }
 }

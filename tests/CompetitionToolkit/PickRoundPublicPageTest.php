@@ -61,9 +61,9 @@ final class PickRoundPublicPageTest extends WebTestCase
         $rows = $crawler->filter('[data-official-results] tbody tr');
         self::assertSame(['1', '2', '3'], $rows->each(static fn (Crawler $row): string => (string) $row->attr('data-official-rank')));
 
-        self::assertSame(['B Puzzle 14 00:25:00', 'A 01:05:00'], [self::chipText($rows->eq(0), 0), self::chipText($rows->eq(0), 1)]);
+        self::assertSame(['B Puzzle 14 00:25:00', 'A 01:05:00 (own 00:40:00)'], [self::chipText($rows->eq(0), 0), self::chipText($rows->eq(0), 1)]);
         self::assertCount(1, $rows->eq(0)->filter('[data-official-entry-puzzle-hidden]'));
-        self::assertSame(['C Puzzle 17 00:45:00', 'B Puzzle 14 01:15:00'], [self::chipText($rows->eq(1), 0), self::chipText($rows->eq(1), 1)]);
+        self::assertSame(['C Puzzle 17 00:45:00', 'B Puzzle 14 01:15:00 (own 00:30:00)'], [self::chipText($rows->eq(1), 0), self::chipText($rows->eq(1), 1)]);
         // Ivan has no record: no chips, the row as on any round
         self::assertCount(0, $rows->eq(2)->filter('[data-official-entry-puzzles]'));
 
@@ -80,7 +80,7 @@ final class PickRoundPublicPageTest extends WebTestCase
         // Once revealed, the name comes
         $this->database()->executeStatement("UPDATE competition_round_puzzle SET reveal_mode = 'scheduled', reveal_at = " . TestClock::SQL_NOW . " - INTERVAL '1 minute' WHERE id = :id", ['id' => self::SECRET]);
         $crawler = $this->browser->request('GET', self::URL);
-        self::assertSame('A Puzzle 12 01:05:00', self::chipText($crawler->filter('[data-official-results] tbody tr')->eq(0), 1));
+        self::assertSame('A Puzzle 12 01:05:00 (own 00:40:00)', self::chipText($crawler->filter('[data-official-results] tbody tr')->eq(0), 1));
     }
 
     public function testUnfinishedPuzzlesShowTheirPiecesAndTheRowItsOwnPieceTotal(): void

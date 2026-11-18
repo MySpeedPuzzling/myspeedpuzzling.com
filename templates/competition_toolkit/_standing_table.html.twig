@@ -81,6 +81,7 @@
                                     {% endif %}
                                     {% if score.missingPieces > 0 %}<span class="text-muted" data-standing-missing="{{ score.missingPieces }}">· {{ 'finished_missing.missing_short'|trans({'%count%': score.missingPieces}) }}</span>{% endif %}
                                     {% if score.rank is not null %}<span class="text-muted">({{ score.rank }}.)</span>{% endif %}
+                                    {% if score.challengeTimes is not empty %}<span class="d-block text-muted" data-standing-challenges>{% for time in score.challengeTimes %}{{ not loop.first ? ' · ' }}{{ 'competition_standing.challenge_time'|trans({'%label%': time.label, '%time%': time.seconds|puzzlingTime}) }}{% endfor %}</span>{% endif %}
                                 </td>
                             {% endfor %}
                         </tr>

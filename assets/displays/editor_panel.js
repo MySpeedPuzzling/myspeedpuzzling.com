@@ -4,13 +4,32 @@
 //
 // The panel never writes the design itself: it hands a change function to `commit(change, key, rebuild)`, where
 // change(design) edits a copy, `key` makes typing in one field one undo step, `rebuild` re-draws the panel (choices that
-// show or hide other fields).
+// show or hide other fields). A multi-selection (v2 E1) gets its own view (renderSelection): arrange (align/distribute),
+// shared or "Mixed" position and style fields, hide/lock/duplicate/delete - those go through `act(name, arg)`.
 
 import {
     BACKGROUND_FITS, BACKGROUND_TYPES, FONTS, FRAME_LIMITS, NAME_MAX_LENGTH, PHASES, PROP_SPECS, RESULTS_TYPES,
     STYLE_SPEC, WHEN_PUZZLE, WHEN_RESULTS,
 } from './schema.js';
 import { CATALOGUE } from './editor_state.js';
+import { ALIGN_EDGES } from './arrange.js';
+
+const ALIGN_ICONS = {
+    left: 'bi-align-start',
+    center: 'bi-align-center',
+    right: 'bi-align-end',
+    top: 'bi-align-top',
+    middle: 'bi-align-middle',
+    bottom: 'bi-align-bottom',
+};
+const FRAME_KEYS = ['x', 'y', 'w', 'h', 'rotate'];
+const MIXED_OPTION = '__mixed';
+
+function sameJson(values) {
+    const first = JSON.stringify(values[0] ?? null);
+
+    return values.every((value) => JSON.stringify(value ?? null) === first);
+}
 
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/;
 
@@ -84,12 +103,15 @@ export function layerLabel(element, t) {
 }
 
 export class EditorPanel {
-    constructor({ document, t, commit, getImages, upload, uploadAvailable, kind, standings = [] }) {
+    constructor({ document, t, commit, act = () => {}, getImages, upload, uploadAvailable, kind, standings = [] }) {
         this.document = document;
         // The event's standings for the standings element's picker: [{id, name, published}]
         this.standings = Array.isArray(standings) ? standings : [];
         this.t = t;
         this.commit = commit;
+        // The multi-selection's actions: act('align', edge), act('distribute', axis), act('frame', {key, value}),
+        // act('edit', {change, key, rebuild}), act('hidden'), act('locked'), act('duplicate'), act('remove')
+        this.act = act;
         this.getImages = getImages;
         this.upload = upload;
         this.uploadAvailable = uploadAvailable;
@@ -132,7 +154,7 @@ export class EditorPanel {
         return section;
     }
 
-    numberField(parent, { label, fieldKey, value, min, max, step = 1, optional = false, onValue }) {
+    numberField(parent, { label, fieldKey, value, min, max, step = 1, optional = false, placeholder = null, onValue }) {
         const { row, id } = this.row(parent, label, fieldKey);
         const input = this.el('input', 'form-control form-control-sm', null, row);
         input.type = 'number';
@@ -145,6 +167,10 @@ export class EditorPanel {
 
         if (optional) {
             input.placeholder = this.t('default');
+        }
+
+        if (placeholder !== null) {
+            input.placeholder = placeholder;
         }
 
         input.addEventListener('input', () => {
@@ -166,11 +192,17 @@ export class EditorPanel {
         return input;
     }
 
-    selectField(parent, { label, fieldKey, value, options, optional = false, onValue }) {
+    selectField(parent, { label, fieldKey, value, options, optional = false, mixed = false, onValue }) {
         const { row, id } = this.row(parent, label, fieldKey);
         const select = this.el('select', 'form-select form-select-sm', null, row);
         select.id = id;
         select.dataset.field = fieldKey;
+
+        if (mixed) {
+            const option = this.el('option', null, this.t('mixed'), select);
+            option.value = MIXED_OPTION;
+            option.disabled = true;
+        }
 
         if (optional) {
             const option = this.el('option', null, this.t('default'), select);
@@ -187,6 +219,10 @@ export class EditorPanel {
             select.value = '';
         }
 
+        if (mixed) {
+            select.value = MIXED_OPTION;
+        }
+
         select.addEventListener('change', () => {
             if (select.value === '') {
                 onValue(null);
@@ -201,13 +237,18 @@ export class EditorPanel {
         return select;
     }
 
-    checkField(parent, { label, fieldKey, checked, onValue }) {
+    checkField(parent, { label, fieldKey, checked, indeterminate = false, onValue }) {
         const row = this.el('div', 'form-check display-editor__field', null, parent);
         const input = this.el('input', 'form-check-input', null, row);
         input.type = 'checkbox';
         input.id = `de-${fieldKey.replace(/[^a-z0-9_-]/gi, '-')}`;
         input.dataset.field = fieldKey;
         input.checked = checked === true;
+
+        if (indeterminate) {
+            input.indeterminate = true;
+        }
+
         const labelNode = this.el('label', 'form-check-label small', label, row);
         labelNode.htmlFor = input.id;
         input.addEventListener('change', () => onValue(input.checked));
@@ -259,7 +300,7 @@ export class EditorPanel {
         return input;
     }
 
-    colorField(parent, { label, fieldKey, value, nullable = true, onValue }) {
+    colorField(parent, { label, fieldKey, value, nullable = true, placeholder = null, onValue }) {
         const { row, id } = this.row(parent, label, fieldKey);
         const group = this.el('div', 'input-group input-group-sm', null, row);
         const picker = this.el('input', 'form-control form-control-color display-editor__swatch', null, group);
@@ -271,7 +312,7 @@ export class EditorPanel {
         text.id = id;
         text.dataset.field = fieldKey;
         text.maxLength = 9;
-        text.placeholder = nullable ? this.t('default') : '#rrggbb';
+        text.placeholder = placeholder ?? (nullable ? this.t('default') : '#rrggbb');
         text.value = value ?? '';
         text.spellcheck = false;
 
@@ -377,7 +418,10 @@ export class EditorPanel {
 
         const element = editorState.selected;
 
-        if (element === null) {
+        if (editorState.selectedIds.length > 1) {
+            delete container.dataset.elementIndex;
+            this.renderSelection(container, editorState);
+        } else if (element === null) {
             this.renderCanvas(container, editorState.design);
         } else {
             this.renderElement(container, element, editorState.design.elements.indexOf(element));
@@ -543,6 +587,10 @@ export class EditorPanel {
             });
         }
 
+        // One element aligns to the edges and centre of the display
+        this.alignButtons(position, element.locked);
+        this.el('div', 'form-text mt-0 mb-2', t('align_canvas_help'), position);
+
         const visibility = this.section(container, t('section.visibility'));
         this.subsetField(visibility, {
             label: t('when.phases'),
@@ -580,7 +628,125 @@ export class EditorPanel {
         }
 
         const style = this.section(container, t('section.style'));
-        this.styleFields(style, element, edit);
+        this.styleFields(style, element.style, new Set(), edit, id);
+    }
+
+    alignButtons(parent, disabled = false) {
+        const row = this.el('div', 'display-editor__arrange btn-group btn-group-sm mb-1', null, parent);
+        row.setAttribute('role', 'group');
+
+        for (const edge of ALIGN_EDGES) {
+            this.iconButton(row, ALIGN_ICONS[edge], this.t(`align.${edge}`), disabled, () => this.act('align', edge)).dataset.align = edge;
+        }
+
+        return row;
+    }
+
+    iconButton(parent, icon, label, disabled, run) {
+        const button = this.el('button', 'btn btn-outline-secondary', null, parent);
+        button.type = 'button';
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.disabled = disabled;
+        this.el('i', `bi ${icon}`, null, button);
+        button.addEventListener('click', run);
+
+        return button;
+    }
+
+    /**
+     * More than one element selected: the count, Arrange (align ×6 to the selection's bounds, distribute ×2), the
+     * position and style fields with the shared value or "Mixed", hide/lock/duplicate/delete for all.
+     */
+    renderSelection(container, editorState) {
+        const t = this.t;
+        const selected = editorState.selectedElements();
+        const movable = selected.filter((element) => !element.locked);
+
+        const head = this.el('div', 'display-editor__panel-head', null, container);
+        this.el('div', 'fw-semibold', t('selected_count').replace('%count%', String(selected.length)), head);
+        head.dataset.selectedCount = String(selected.length);
+
+        const arrange = this.section(container, t('section.arrange'));
+        this.alignButtons(arrange, movable.length < 2);
+        const distribute = this.el('div', 'display-editor__arrange btn-group btn-group-sm mb-1 ms-1', null, arrange);
+        distribute.setAttribute('role', 'group');
+
+        for (const axis of ['horizontal', 'vertical']) {
+            const button = this.iconButton(distribute, `bi-distribute-${axis}`, t(`distribute.${axis}`), movable.length < 3, () => this.act('distribute', axis));
+            button.dataset.distribute = axis;
+
+            if (movable.length < 3) {
+                button.title = `${t(`distribute.${axis}`)} - ${t('distribute_help')}`;
+            }
+        }
+
+        if (movable.length < 3) {
+            this.el('div', 'form-text mt-0', t('distribute_help'), arrange);
+        }
+
+        if (movable.length < selected.length) {
+            this.el('div', 'form-text mt-0', t('locked_skipped'), arrange);
+        }
+
+        if (movable.length > 0) {
+            const position = this.section(container, t('section.position'));
+            const grid = this.el('div', 'display-editor__grid', null, position);
+
+            for (const key of FRAME_KEYS) {
+                const [min, max] = FRAME_LIMITS[key];
+                const values = movable.map((element) => element.frame[key]);
+                const shared = sameJson(values);
+                this.numberField(grid, {
+                    label: t(`frame.${key}`),
+                    fieldKey: `sel.frame.${key}`,
+                    value: shared ? values[0] : null,
+                    min,
+                    max,
+                    step: key === 'rotate' ? 1 : 0.1,
+                    placeholder: shared ? null : t('mixed'),
+                    onValue: (value) => this.act('frame', { key, value }),
+                });
+            }
+        }
+
+        const style = this.section(container, t('section.style'));
+        const values = {};
+        const mixed = new Set();
+
+        for (const spec of STYLE_SPEC) {
+            const all = selected.map((element) => element.style[spec.key] ?? null);
+
+            if (sameJson(all)) {
+                if (all[0] !== null) {
+                    values[spec.key] = all[0];
+                }
+            } else {
+                mixed.add(spec.key);
+            }
+        }
+
+        const edit = (change, key = null, rebuild = false) => this.act('edit', { change, key, rebuild });
+        this.styleFields(style, values, mixed, edit, 'sel');
+
+        const actions = this.section(container, t('section.selection'));
+        const row = this.el('div', 'd-flex flex-wrap gap-2', null, actions);
+        const anyVisible = selected.some((element) => !element.hidden);
+        const anyUnlocked = selected.some((element) => !element.locked);
+        const action = (label, icon, name) => {
+            const button = this.el('button', 'btn btn-sm btn-outline-secondary', null, row);
+            button.type = 'button';
+            button.dataset.selectionAction = name;
+            this.el('i', `bi ${icon} me-1`, null, button);
+            this.el('span', null, label, button);
+            button.addEventListener('click', () => this.act(name));
+
+            return button;
+        };
+        action(t(anyVisible ? 'hide_all' : 'show_all'), anyVisible ? 'bi-eye-slash' : 'bi-eye', 'hidden');
+        action(t(anyUnlocked ? 'lock_all' : 'unlock_all'), anyUnlocked ? 'bi-lock' : 'bi-unlock', 'locked');
+        action(t('duplicate'), 'bi-copy', 'duplicate');
+        action(t('delete'), 'bi-trash', 'remove').classList.replace('btn-outline-secondary', 'btn-outline-danger');
     }
 
     propLabel(type, key) {
@@ -777,9 +943,12 @@ export class EditorPanel {
         });
     }
 
-    styleFields(parent, element, edit) {
-        const id = element.id;
-        const style = element.style;
+    /**
+     * The style fields over `style` (values by key); `mixed` = keys whose values differ across a multi-selection (shown
+     * empty with "Mixed"), `fieldPrefix` = the element id (or `sel`) of the fields' keys.
+     */
+    styleFields(parent, style, mixed, edit, fieldPrefix) {
+        const mixedText = this.t('mixed');
         const setStyle = (key, value, coalesce = null, rebuild = false) => edit((target) => {
             if (value === null) {
                 delete target.style[key];
@@ -790,28 +959,30 @@ export class EditorPanel {
 
         for (const spec of STYLE_SPEC) {
             const label = this.t(`style.${spec.key}`);
-            const fieldKey = `${id}.style.${spec.key}`;
+            const fieldKey = `${fieldPrefix}.style.${spec.key}`;
             const value = style[spec.key] ?? null;
+            const isMixed = mixed.has(spec.key);
+            const placeholder = isMixed ? mixedText : null;
 
             switch (spec.kind) {
                 case 'enum':
                 case 'weight':
-                    this.selectField(parent, { label, fieldKey, value, options: spec.options, optional: true, onValue: (v) => setStyle(spec.key, v) });
+                    this.selectField(parent, { label, fieldKey, value, options: spec.options, optional: true, mixed: isMixed, onValue: (v) => setStyle(spec.key, v) });
                     break;
                 case 'int':
-                    this.numberField(parent, { label, fieldKey, value, min: spec.min, max: spec.max, optional: true, onValue: (v) => setStyle(spec.key, v, fieldKey) });
+                    this.numberField(parent, { label, fieldKey, value, min: spec.min, max: spec.max, optional: true, placeholder, onValue: (v) => setStyle(spec.key, v, fieldKey) });
                     break;
                 case 'decimal':
                     this.numberField(parent, {
-                        label, fieldKey, value, min: spec.min, max: spec.max, step: spec.max <= 2 ? 0.05 : 0.5, optional: true,
+                        label, fieldKey, value, min: spec.min, max: spec.max, step: spec.max <= 2 ? 0.05 : 0.5, optional: true, placeholder,
                         onValue: (v) => setStyle(spec.key, v, fieldKey),
                     });
                     break;
                 case 'color':
-                    this.colorField(parent, { label, fieldKey, value, onValue: (v, rebuild = false) => setStyle(spec.key, v, rebuild ? null : fieldKey, rebuild) });
+                    this.colorField(parent, { label, fieldKey, value, placeholder, onValue: (v, rebuild = false) => setStyle(spec.key, v, rebuild ? null : fieldKey, rebuild) });
                     break;
                 case 'bool':
-                    this.checkField(parent, { label, fieldKey, checked: value === true, onValue: (v) => setStyle(spec.key, v ? true : null) });
+                    this.checkField(parent, { label, fieldKey, checked: value === true, indeterminate: isMixed, onValue: (v) => setStyle(spec.key, v ? true : null) });
                     break;
                 case 'gradient': {
                     const group = this.el('fieldset', 'display-editor__field', null, parent);
@@ -885,7 +1056,7 @@ export class EditorPanel {
         }
 
         layers.forEach((element, position) => {
-            const selected = element.id === editorState.selectedId;
+            const selected = editorState.isSelected(element.id);
             const li = this.el('li', `display-editor__layer${selected ? ' is-selected' : ''}${element.hidden ? ' is-hidden' : ''}`, null, list);
             li.dataset.layer = element.id;
 
@@ -907,7 +1078,8 @@ export class EditorPanel {
                 this.el('span', 'display-editor__layer-detail', detail, name);
             }
 
-            name.addEventListener('click', () => actions.select(element.id));
+            // The click carries Shift/Ctrl/Cmd: the controller adds or removes the layer then
+            name.addEventListener('click', (event) => actions.select(element.id, event));
 
             const button = (parent, icon, label, action, disabled = false) => {
                 const node = this.el('button', 'btn btn-sm btn-link p-0 display-editor__layer-action', null, parent);
@@ -924,7 +1096,7 @@ export class EditorPanel {
             button(row, element.hidden ? 'bi-eye-slash' : 'bi-eye', this.t(element.hidden ? 'show' : 'hide'), 'toggleHidden');
             button(row, element.locked ? 'bi-lock-fill' : 'bi-unlock', this.t(element.locked ? 'unlock' : 'lock'), 'toggleLocked');
 
-            if (selected) {
+            if (element.id === editorState.selectedId) {
                 const tools = this.el('div', 'display-editor__layer-tools', null, li);
                 button(tools, 'bi-arrow-up', this.t('layer_up'), 'up', position === 0);
                 button(tools, 'bi-arrow-down', this.t('layer_down'), 'down', position === layers.length - 1);

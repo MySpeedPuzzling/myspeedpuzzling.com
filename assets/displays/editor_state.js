@@ -1,10 +1,13 @@
 // The display editor's document (docs/features/competitions-management/toolkit/D-displays-overlays.md §8.2,
-// competition toolkit D6) - pure, no DOM: the design being edited (always normalised by schema.js), the selection,
-// undo/redo (in memory, 100 steps), the unsaved flag and the save payload. Layers: add from the catalogue, reorder,
-// hide, lock, duplicate, delete. Run under node by tests/display-editor-harness.mjs.
+// competition toolkit D6, v2 E1) - pure, no DOM: the design being edited (always normalised by schema.js), the
+// selection (one or more elements, outside the undo history), undo/redo (in memory, 100 steps), the unsaved flag and
+// the save payload. Layers: add from the catalogue, reorder, hide, lock, duplicate, delete; group writes of a
+// multi-selection (move, align, distribute, remove, duplicate, hide, lock, style) - each one commit = one undo step.
+// Run under node by tests/display-editor-harness.mjs.
 
 import { normaliseDesign, RESULTS_TYPES } from './schema.js';
 import { clampFrame, placeFrame, stackOrder } from './geometry.js';
+import { alignFrames, distributeFrames } from './arrange.js';
 
 export const UNDO_LIMIT = 100;
 
@@ -93,7 +96,8 @@ export class EditorState {
         this.design = this.normalise(design) ?? this.normalise({ schema: 1 });
         this.designVersion = designVersion;
         this.savedJson = JSON.stringify(this.design);
-        this.selectedId = null;
+        // The selection in the order it was made; selectedId / selected = the one element when exactly one is selected
+        this.selectedIds = [];
         this.undoStack = [];
         this.redoStack = [];
         this.lastKey = null;
@@ -117,8 +121,35 @@ export class EditorState {
         return this.redoStack.length > 0;
     }
 
+    get selectedId() {
+        return this.selectedIds.length === 1 ? this.selectedIds[0] : null;
+    }
+
     get selected() {
         return this.element(this.selectedId);
+    }
+
+    isSelected(id) {
+        return this.selectedIds.includes(id);
+    }
+
+    /** The selected elements in document order */
+    selectedElements() {
+        return this.design.elements.filter((element) => this.selectedIds.includes(element.id));
+    }
+
+    /** What group transforms move: the selected elements that are not locked */
+    movableSelected() {
+        return this.selectedElements().filter((element) => !element.locked);
+    }
+
+    /** The movable selection as arrange.js items */
+    movableItems() {
+        return this.movableSelected().map((element) => ({ id: element.id, type: element.type, frame: { ...element.frame } }));
+    }
+
+    pruneSelection() {
+        this.selectedIds = this.selectedIds.filter((id) => this.element(id) !== null);
     }
 
     element(id) {
@@ -151,10 +182,7 @@ export class EditorState {
         this.lastKey = key;
         this.redoStack = [];
         this.design = normalised;
-
-        if (this.selectedId !== null && this.element(this.selectedId) === null) {
-            this.selectedId = null;
-        }
+        this.pruneSelection();
 
         return true;
     }
@@ -190,15 +218,43 @@ export class EditorState {
 
     afterHistoryStep() {
         this.lastKey = null;
-
-        if (this.selectedId !== null && this.element(this.selectedId) === null) {
-            this.selectedId = null;
-        }
+        this.pruneSelection();
     }
 
+    /** Only this element (null: nothing) */
     select(id) {
-        this.selectedId = id !== null && this.element(id) !== null ? id : null;
+        this.selectedIds = id !== null && this.element(id) !== null ? [id] : [];
         this.lastKey = null;
+    }
+
+    /** Shift/Ctrl/Cmd+click: adds the element, or takes it out when it is selected */
+    toggleSelected(id) {
+        if (this.isSelected(id)) {
+            this.selectedIds = this.selectedIds.filter((selected) => selected !== id);
+        } else if (this.element(id) !== null) {
+            this.selectedIds = [...this.selectedIds, id];
+        }
+
+        this.lastKey = null;
+    }
+
+    /** These elements (an area selection); additive = added to the current selection */
+    selectIds(ids, additive = false) {
+        const next = additive ? [...this.selectedIds] : [];
+
+        for (const id of ids) {
+            if (!next.includes(id) && this.element(id) !== null) {
+                next.push(id);
+            }
+        }
+
+        this.selectedIds = next;
+        this.lastKey = null;
+    }
+
+    /** Ctrl/Cmd+A: every element that is neither hidden nor locked */
+    selectAll() {
+        this.selectIds(this.design.elements.filter((element) => !element.hidden && !element.locked).map((element) => element.id));
     }
 
     withElement(id, change, key = null) {
@@ -307,6 +363,130 @@ export class EditorState {
         return this.withElement(id, (element) => {
             element.locked = !element.locked;
         });
+    }
+
+    /** Several frames in one commit ({[id]: frame}, partial frames merged) - one undo step, a key coalesces a drag */
+    setFrames(frames, key = null) {
+        const ids = Object.keys(frames);
+
+        if (ids.length === 0) {
+            return false;
+        }
+
+        const next = clone(this.design);
+
+        for (const element of next.elements) {
+            if (frames[element.id]) {
+                element.frame = { ...element.frame, ...frames[element.id] };
+            }
+        }
+
+        return this.commit(next, key);
+    }
+
+    alignSelected(edge) {
+        return this.setFrames(alignFrames(this.movableItems(), edge));
+    }
+
+    distributeSelected(axis) {
+        const frames = distributeFrames(this.movableItems(), axis);
+
+        return frames === null ? false : this.setFrames(frames);
+    }
+
+    /** Delete: every selected element, locked ones too (as a single selection) */
+    removeSelected() {
+        if (this.selectedIds.length === 1) {
+            return this.removeElement(this.selectedIds[0]);
+        }
+
+        const ids = new Set(this.selectedIds);
+
+        if (ids.size === 0) {
+            return false;
+        }
+
+        const next = clone(this.design);
+        next.elements = next.elements.filter((element) => !ids.has(element.id));
+
+        return this.commit(next);
+    }
+
+    /**
+     * Duplicate: copies of every selected element on top, in their relative stacking order, +2 % offset, unlocked;
+     * the copies become the selection.
+     */
+    duplicateSelected() {
+        if (this.selectedIds.length === 1) {
+            const id = this.duplicateElement(this.selectedIds[0]);
+
+            return id === null ? [] : [id];
+        }
+
+        const sources = stackOrder(this.selectedElements()).reverse();
+
+        if (sources.length === 0) {
+            return [];
+        }
+
+        const taken = this.takenIds();
+        const next = clone(this.design);
+        const top = this.topZ();
+        const ids = [];
+
+        sources.forEach((source, index) => {
+            const copy = clone(source);
+            copy.id = newId(this.random, taken);
+            taken.add(copy.id);
+            copy.z = Math.min(999, top + 1 + index);
+            copy.locked = false;
+            copy.frame = clampFrame({ ...copy.frame, x: copy.frame.x + 2, y: copy.frame.y + 2 });
+            next.elements.push(copy);
+            ids.push(copy.id);
+        });
+
+        if (!this.commit(next)) {
+            return [];
+        }
+
+        this.selectIds(ids);
+
+        return ids;
+    }
+
+    /** Any selected element visible → hide all, else show all */
+    toggleHiddenSelected() {
+        const hide = this.selectedElements().some((element) => !element.hidden);
+
+        return this.editSelected((element) => {
+            element.hidden = hide;
+        });
+    }
+
+    /** Any selected element unlocked → lock all, else unlock all */
+    toggleLockedSelected() {
+        const lock = this.selectedElements().some((element) => !element.locked);
+
+        return this.editSelected((element) => {
+            element.locked = lock;
+        });
+    }
+
+    /** change(element) for every selected element in one commit (the panel's group edits) */
+    editSelected(change, key = null) {
+        const ids = new Set(this.selectedIds);
+
+        if (ids.size === 0) {
+            return false;
+        }
+
+        return this.changeDesign((next) => {
+            for (const element of next.elements) {
+                if (ids.has(element.id)) {
+                    change(element);
+                }
+            }
+        }, key);
     }
 
     setFrame(id, frame, key = null) {

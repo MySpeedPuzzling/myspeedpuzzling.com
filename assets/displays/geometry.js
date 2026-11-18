@@ -1,7 +1,8 @@
 // The display editor's frame maths (docs/features/competitions-management/toolkit/D-displays-overlays.md §8.2,
-// competition toolkit D6) - pure, no DOM: moving, resizing from any of the 8 handles, keyboard nudges, clamping to the
-// canvas, snapping to the 1 % grid and to the canvas centre/edges (R §3: no sibling snapping, no multi-select), the
-// kept aspect ratio of pictures and QR codes, and the hit test of a click on the stage.
+// competition toolkit D6, v2 E1) - pure, no DOM: moving, resizing from any of the 8 handles, keyboard nudges, clamping
+// to the canvas, snapping to the 1 % grid, to the canvas centre/edges and to the edges/centres of the other elements
+// (`options.lines` from snapLines()), the kept aspect ratio of pictures and QR codes, and the hit test of a click on the
+// stage. Group maths (multi-select, align, distribute) lives in arrange.js.
 // Frames are in % of the 16:9 canvas with 2 decimals, as the design stores them (schema.js FRAME_LIMITS).
 // Run under node by tests/display-editor-harness.mjs.
 
@@ -17,8 +18,13 @@ export const MIN_SIZE = FRAME_LIMITS.w[0];
 export const RATIO_LOCKED_TYPES = ['image', 'qr'];
 
 const DEFAULT_THRESHOLD = 0.5;
-// Canvas lines an edge or a centre snaps to (no siblings in v1)
+// Canvas lines an edge or a centre snaps to (the other elements' lines come in `options.lines`)
 const CANVAS_LINES = [0, 50, 100];
+const NO_LINES = { x: [], y: [] };
+// Two lines closer than this are the same line (frames have 2 decimals)
+const SAME_LINE = 0.01;
+// A sibling line must be nearer than the canvas line by more than float noise to win
+const TIE = 1e-9;
 
 export function round2(value) {
     const rounded = Math.round(value * 100) / 100;
@@ -51,10 +57,53 @@ export function clampFrame(frame) {
 }
 
 /**
- * Snaps a position of a frame of `size` on one axis: its start edge, end edge or centre to a canvas line within the
- * threshold (a guide is drawn there), otherwise its start edge to the grid.
+ * The 3 lines of a frame per axis: start edge, centre, end edge.
  */
-function snapPosition(position, size, threshold) {
+export function frameLines(frame) {
+    return {
+        x: [frame.x, frame.x + frame.w / 2, frame.x + frame.w],
+        y: [frame.y, frame.y + frame.h / 2, frame.y + frame.h],
+    };
+}
+
+/**
+ * The lines a dragged frame snaps to: the edges and centres of every element that is not hidden (locked ones count -
+ * a locked backdrop is a good reference) and not one of `excludeIds` (the ones being moved), 2 decimals, distinct,
+ * sorted. Computed once when a drag starts - the others do not move during it.
+ */
+export function snapLines(elements, excludeIds = []) {
+    const excluded = new Set(excludeIds);
+    const x = new Set();
+    const y = new Set();
+
+    for (const element of elements) {
+        if (element.hidden || excluded.has(element.id)) {
+            continue;
+        }
+
+        const lines = frameLines(element.frame);
+        lines.x.forEach((line) => x.add(round2(line)));
+        lines.y.forEach((line) => y.add(round2(line)));
+    }
+
+    const sorted = (set) => [...set].sort((a, b) => a - b);
+
+    return { x: sorted(x), y: sorted(y) };
+}
+
+function linesOf(options) {
+    return {
+        x: Array.isArray(options.lines?.x) ? options.lines.x : [],
+        y: Array.isArray(options.lines?.y) ? options.lines.y : [],
+    };
+}
+
+/**
+ * Snaps a position of a frame of `size` on one axis: its start edge, end edge or centre to a canvas line, or any of
+ * them to a sibling line, within the threshold - the nearest wins, the canvas on a tie (a guide is drawn there) -,
+ * otherwise its start edge to the grid.
+ */
+function snapPosition(position, size, threshold, siblingLines = []) {
     let best = null;
 
     for (const line of CANVAS_LINES) {
@@ -67,29 +116,83 @@ function snapPosition(position, size, threshold) {
             }
 
             if (distance <= threshold && (best === null || distance < best.distance)) {
-                best = { distance, position: line - offset, guide: line };
+                best = { distance, position: line - offset, guide: line, sibling: false };
+            }
+        }
+    }
+
+    for (const line of siblingLines) {
+        for (const offset of [0, size, size / 2]) {
+            const distance = Math.abs(position + offset - line);
+
+            if (distance <= threshold && (best === null || distance < best.distance - TIE)) {
+                best = { distance, position: line - offset, guide: line, sibling: true };
             }
         }
     }
 
     if (best !== null) {
-        return { position: best.position, guide: best.guide };
+        return { position: best.position, guide: best.guide, sibling: best.sibling };
     }
 
-    return { position: Math.round(position / GRID) * GRID, guide: null };
+    return { position: Math.round(position / GRID) * GRID, guide: null, sibling: false };
 }
 
 /**
- * Snaps one moving edge: to a canvas line within the threshold (with its guide), else to the grid.
+ * Snaps one moving edge: to a canvas line within the threshold (with its guide), or to a sibling line strictly nearer
+ * than that, else to the grid.
  */
-function snapEdge(value, threshold) {
+function snapEdge(value, threshold, siblingLines = []) {
+    let best = null;
+
     for (const line of CANVAS_LINES) {
         if (Math.abs(value - line) <= threshold) {
-            return { value: line, guide: line };
+            best = { value: line, guide: line, sibling: false, distance: Math.abs(value - line) };
+            break;
         }
     }
 
-    return { value: Math.round(value / GRID) * GRID, guide: null };
+    for (const line of siblingLines) {
+        const distance = Math.abs(value - line);
+
+        if (distance <= threshold && (best === null || distance < best.distance - TIE)) {
+            best = { value: line, guide: line, sibling: true, distance };
+        }
+    }
+
+    if (best !== null) {
+        return { value: best.value, guide: best.guide, sibling: best.sibling };
+    }
+
+    return { value: Math.round(value / GRID) * GRID, guide: null, sibling: false };
+}
+
+function guideOf(axis, at, sibling) {
+    return sibling ? { axis, at, sibling: true } : { axis, at };
+}
+
+/**
+ * The guides of the sibling lines the final frame sits on besides the snapped one ("left edge matches A, right edge
+ * matches B" shows both), one per distinct line.
+ */
+function withCoinciding(frame, guides, lines) {
+    const result = [];
+    const own = frameLines(frame);
+
+    for (const axis of ['x', 'y']) {
+        const onAxis = guides.filter((guide) => guide.axis === axis);
+        result.push(...onAxis);
+
+        for (const line of lines[axis]) {
+            const shown = result.some((guide) => guide.axis === axis && Math.abs(guide.at - line) < SAME_LINE);
+
+            if (!shown && own[axis].some((edge) => Math.abs(edge - line) < SAME_LINE)) {
+                result.push({ axis, at: line, sibling: true });
+            }
+        }
+    }
+
+    return result;
 }
 
 function thresholds(options) {
@@ -100,7 +203,8 @@ function thresholds(options) {
 }
 
 /**
- * A drag by (dx, dy) % from the frame at the start of the drag → {frame, guides}. Guides: [{axis: 'x'|'y', at}].
+ * A drag by (dx, dy) % from the frame at the start of the drag → {frame, guides}. Guides: [{axis: 'x'|'y', at}], a
+ * sibling line's guide with `sibling: true`. Options: snap, threshold(X|Y), lines (snapLines() of the others).
  */
 export function moveFrame(start, dx, dy, options = {}) {
     let x = start.x + dx;
@@ -109,18 +213,23 @@ export function moveFrame(start, dx, dy, options = {}) {
 
     if (options.snap) {
         const limit = thresholds(options);
-        const snappedX = snapPosition(x, start.w, limit.x);
-        const snappedY = snapPosition(y, start.h, limit.y);
+        const lines = linesOf(options);
+        const snappedX = snapPosition(x, start.w, limit.x, lines.x);
+        const snappedY = snapPosition(y, start.h, limit.y, lines.y);
         x = snappedX.position;
         y = snappedY.position;
 
         if (snappedX.guide !== null) {
-            guides.push({ axis: 'x', at: snappedX.guide });
+            guides.push(guideOf('x', snappedX.guide, snappedX.sibling));
         }
 
         if (snappedY.guide !== null) {
-            guides.push({ axis: 'y', at: snappedY.guide });
+            guides.push(guideOf('y', snappedY.guide, snappedY.sibling));
         }
+
+        const frame = clampFrame({ ...start, x, y });
+
+        return { frame, guides: withCoinciding(frame, guides, lines) };
     }
 
     return { frame: clampFrame({ ...start, x, y }), guides };
@@ -138,6 +247,7 @@ export function resizeFrame(start, handle, dx, dy, options = {}) {
     const south = handle.includes('s');
     const guides = [];
     const limit = thresholds(options);
+    const lines = options.snap ? linesOf(options) : NO_LINES;
 
     let left = start.x;
     let right = start.x + start.w;
@@ -149,10 +259,10 @@ export function resizeFrame(start, handle, dx, dy, options = {}) {
             return value;
         }
 
-        const snapped = snapEdge(value, axis === 'x' ? limit.x : limit.y);
+        const snapped = snapEdge(value, axis === 'x' ? limit.x : limit.y, lines[axis]);
 
         if (snapped.guide !== null) {
-            guides.push({ axis, at: snapped.guide });
+            guides.push(guideOf(axis, snapped.guide, snapped.sibling));
         }
 
         return snapped.value;
@@ -218,10 +328,14 @@ export function resizeFrame(start, handle, dx, dy, options = {}) {
     if (options.keepRatio && start.w > 0 && start.h > 0) {
         frame = keepRatio(start, frame, { west, east, north, south, fromCentre: options.fromCentre === true });
         // A guide is only true when the snapped edge survived the ratio
-        return { frame: clampFrame(frame), guides: guides.filter((guide) => onEdge(frame, guide)) };
+        const kept = clampFrame(frame);
+
+        return { frame: kept, guides: withCoinciding(kept, guides.filter((guide) => onEdge(frame, guide)), lines) };
     }
 
-    return { frame: clampFrame(frame), guides };
+    const resized = clampFrame(frame);
+
+    return { frame: resized, guides: withCoinciding(resized, guides, lines) };
 }
 
 function onEdge(frame, guide) {

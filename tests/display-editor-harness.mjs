@@ -1,19 +1,26 @@
 // The display editor's pure modules (competition toolkit D6, D-displays-overlays.md §8.2, §11.2):
-// - assets/displays/geometry.js: move, resize from each of the 8 handles, grid + canvas centre/edge snapping, clamping,
+// - assets/displays/geometry.js: move, resize from each of the 8 handles, grid + canvas centre/edge + sibling snapping, clamping,
 //   keyboard nudges, the kept ratio of pictures and QR codes, from-centre resizing, the hit test;
 // - assets/displays/editor_state.js: add / duplicate / remove / reorder / hide / lock, undo and redo (coalesced steps,
 //   the 100-step bound), the unsaved flag, the save payload = normaliseDesign()'s output, adopting the server's design;
+// - assets/displays/arrange.js (v2 E1): group bounds, move / resize / nudge as a group, align, distribute, marquee;
+//   EditorState's multi-selection and its one-undo-step group writes;
 // - assets/displays/sample_data.js: the preview phases, sample results, QR placeholders, never real puzzles.
 // Prints {"<scenario>": "ok" | "<what failed>"} as JSON (DisplayEditorScriptTest).
 
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import {
-    HANDLES, clampFrame, hitTest, keepsRatio, moveFrame, nudgeFrame, placeFrame, resizeFrame, stackOrder, toPercent,
+    HANDLES, clampFrame, frameLines, hitTest, keepsRatio, moveFrame, nudgeFrame, placeFrame, resizeFrame, snapLines,
+    stackOrder, toPercent,
 } from '../assets/displays/geometry.js';
 import { CATALOGUE, EditorState, UNDO_LIMIT } from '../assets/displays/editor_state.js';
+import {
+    alignFrames, boundsOf, distributeFrames, groupKeepsRatio, marqueeHits, marqueeRect, moveGroup, nudgeGroup, resizeGroup,
+} from '../assets/displays/arrange.js';
 import { ELEMENT_TYPES, PROP_SPECS, STYLE_SPEC, normaliseDesign } from '../assets/displays/schema.js';
 import { PREVIEW_PHASES, previewState } from '../assets/displays/sample_data.js';
-import { layerLabel, translator } from '../assets/displays/editor_panel.js';
+import { EditorPanel, layerLabel, translator } from '../assets/displays/editor_panel.js';
 import { stopwatchView } from '../assets/round_stopwatch_clock.js';
 
 const COMPETITION = '018d0004-0000-0000-0000-00000000c0de';
@@ -489,10 +496,398 @@ check('a layer is named by its own name or type, with what it shows', () => {
     equal(label('text', 'Welcome', { text: 'Welcome' }), { title: 'Welcome', detail: 'Text' }, 'no repeat of the name');
 });
 
+// ---- sibling snapping (v2 E1)
+
+const el = (id, x, y, w, h, extra = {}) => ({ id, type: 'text', frame: frame(x, y, w, h), z: 0, hidden: false, locked: false, ...extra });
+
+check('snap lines: 3 per axis of every visible element but the moving ones, locked counted, distinct and sorted', () => {
+    equal(frameLines(frame(10, 20, 30, 40)), { x: [10, 25, 40], y: [20, 40, 60] }, 'frame lines');
+    const elements = [
+        el('a', 10, 10, 20, 20),
+        el('b', 30, 10, 10, 20, { locked: true }),
+        el('c', 60, 60, 10, 10, { hidden: true }),
+        el('m', 70, 70, 5, 5),
+    ];
+    equal(snapLines(elements, ['m']), { x: [10, 20, 30, 35, 40], y: [10, 20, 30] }, 'lines');
+    equal(snapLines([el('a', 10.004, 0, 33.333, 10)], []).x, [10, 26.67, 43.34], 'rounded to 2 decimals');
+});
+
+check('sibling snap: an edge meets a sibling edge with a sibling guide', () => {
+    const lines = snapLines([el('a', 30, 70, 20, 10)]);
+    // left edge 30.3 → 30 (the sibling's left edge)
+    const { frame: moved, guides } = moveFrame(frame(10, 10, 15, 15), 20.3, 0.1, { snap: true, threshold: 0.5, lines });
+    equal(moved, frame(30, 10, 15, 15), 'moved onto the line');
+    equal(guides.filter((guide) => guide.axis === 'x'), [{ axis: 'x', at: 30, sibling: true }], 'x guide');
+});
+
+check('sibling snap: centre to a sibling centre and an edge to a sibling centre', () => {
+    const lines = snapLines([el('a', 20, 70, 20, 10)]); // centre x 30
+    const centred = moveFrame(frame(0, 10, 10, 10), 24.8, 0.1, { snap: true, threshold: 0.5, lines });
+    equal(centred.frame.x, 25, 'centre 29.8 → 30');
+    equal(centred.guides[0], { axis: 'x', at: 30, sibling: true }, 'centre guide');
+    const edge = moveFrame(frame(0, 10, 10, 10), 30.2, 0.1, { snap: true, threshold: 0.5, lines });
+    equal(edge.frame.x, 30, 'left edge 30.2 → the sibling centre 30');
+});
+
+check('sibling snap: the nearest line wins, the canvas wins a tie', () => {
+    const lines = { x: [48.8, 51.1], y: [] };
+    // right edge at 49 (0.2 from 48.8), left edge 39: nothing else → 48.8
+    const near = moveFrame(frame(0, 10, 10, 10), 39, 0, { snap: true, threshold: 0.5, lines });
+    equal(near.frame.x, 38.8, 'nearest sibling');
+    // centre 50.3: canvas centre 0.3 away, sibling 51.1 0.8 away (out) → canvas
+    const canvas = moveFrame(frame(0, 10, 10, 10), 45.3, 0, { snap: true, threshold: 1, lines });
+    equal([canvas.frame.x, canvas.guides[0]], [45, { axis: 'x', at: 50 }], 'canvas nearer');
+    // tie: left edge 50.2 is 0.2 from the canvas centre and 0.2 from a sibling at 50.4
+    const tie = moveFrame(frame(0, 10, 10, 10), 50.2, 0, { snap: true, threshold: 0.5, lines: { x: [50.4], y: [] } });
+    equal([tie.frame.x, tie.guides[0]], [50, { axis: 'x', at: 50 }], 'canvas on a tie');
+});
+
+check('sibling snap: hidden siblings ignored, the moving element itself excluded', () => {
+    const elements = [el('self', 10, 10, 10, 10), el('hidden', 33, 50, 10, 10, { hidden: true })];
+    const lines = snapLines(elements, ['self']);
+    equal(lines, { x: [], y: [] }, 'no lines');
+    const { frame: moved, guides } = moveFrame(elements[0].frame, 23.2, 0, { snap: true, threshold: 0.5, lines });
+    equal([moved.x, guides], [33, []], 'grid only');
+});
+
+check('sibling snap: other sibling lines the frame now sits on are reported too', () => {
+    // A: x 20..40, B: x 60..80 - a 40 wide frame whose left meets A's left has its right on B's left
+    const lines = snapLines([el('a', 20, 70, 20, 10), el('b', 60, 70, 20, 10)]);
+    const { frame: moved, guides } = moveFrame(frame(0, 10, 40, 10), 20.2, 0.3, { snap: true, threshold: 0.5, lines });
+    equal(moved.x, 20, 'snapped');
+    equal(guides.filter((guide) => guide.axis === 'x'), [
+        { axis: 'x', at: 20, sibling: true },
+        { axis: 'x', at: 40, sibling: true },
+        { axis: 'x', at: 60, sibling: true },
+    ], 'every line it sits on (its centre is on A right edge too)');
+});
+
+check('sibling snap: no lines = the old result exactly', () => {
+    const cases = [
+        [frame(10, 10, 20, 20), 30.3, 29.8],
+        [frame(10, 10, 20, 20), 69.7, -9.6],
+        [frame(10, 10, 20, 20), 3.3, 4.6],
+    ];
+
+    for (const [start, dx, dy] of cases) {
+        equal(moveFrame(start, dx, dy, { snap: true, threshold: 0.5, lines: { x: [], y: [] } }), moveFrame(start, dx, dy, { snap: true, threshold: 0.5 }), `move ${dx}`);
+    }
+
+    equal(resizeFrame(frame(20, 20, 20, 20), 'e', 9.8, 0, { snap: true, threshold: 0.5, lines: { x: [], y: [] } }), resizeFrame(frame(20, 20, 20, 20), 'e', 9.8, 0, { snap: true, threshold: 0.5 }), 'resize');
+    equal(moveFrame(frame(10, 10, 20, 20), 30.3, 0.37, { lines: { x: [40], y: [] } }).guides, [], 'snap off ignores lines');
+});
+
+check('sibling snap: a resized edge meets a sibling line; the canvas keeps a tie', () => {
+    const lines = { x: [33], y: [71.5] };
+    const { frame: resized, guides } = resizeFrame(frame(20, 20, 10, 10), 'se', 2.8, 41.3, { snap: true, threshold: 0.5, lines });
+    equal(resized, frame(20, 20, 13, 51.5), 'right → 33, bottom → 71.5');
+    equal(guides, [{ axis: 'x', at: 33, sibling: true }, { axis: 'y', at: 71.5, sibling: true }], 'guides');
+    const tie = resizeFrame(frame(20, 20, 20, 20), 'e', 10.2, 0, { snap: true, threshold: 0.5, lines: { x: [50.4], y: [] } });
+    equal([tie.frame.w, tie.guides[0]], [30, { axis: 'x', at: 50 }], 'canvas centre on a tie');
+});
+
+check('sibling snap: a ratio-kept resize keeps only the guides of edges that survived', () => {
+    // A QR from se: the right edge snaps to 33 (width leads), the bottom edge does not survive the ratio
+    const { frame: resized, guides } = resizeFrame(frame(20, 20, 10, 20), 'se', 2.9, 1.1, { snap: true, threshold: 0.5, keepRatio: true, lines: { x: [33], y: [41.3] } });
+    equal(resized, frame(20, 20, 13, 26), 'ratio kept');
+    equal(guides, [{ axis: 'x', at: 33, sibling: true }], 'only the surviving edge');
+});
+
+// ---- multi-select, align, distribute (v2 E1)
+
+const item = (id, x, y, w, h, type = 'text') => ({ id, type, frame: frame(x, y, w, h) });
+
+check('arrange: bounds of frames', () => {
+    equal(boundsOf([]), null, 'none');
+    equal(boundsOf([frame(10, 20, 10, 10), frame(40, 5, 20, 5)]), { x: 10, y: 5, w: 50, h: 25 }, 'box');
+});
+
+check('arrange: a group move keeps the spacing at the canvas edge', () => {
+    const items = [item('a', 10, 10, 10, 10), item('b', 30, 40, 20, 10)];
+    const { frames } = moveGroup(items, 60, 0);
+    // bounds x 10..50 → may move 50 at most
+    equal([frames.a.x, frames.b.x], [60, 80], 'clamped as a group');
+    equal(frames.b.x - frames.a.x, 20, 'spacing kept');
+    const up = moveGroup(items, 0, -30).frames;
+    equal([up.a.y, up.b.y], [0, 30], 'top edge');
+});
+
+check('arrange: a group move snaps the group centre to the canvas centre and to sibling lines', () => {
+    const items = [item('a', 10, 10, 10, 10), item('b', 30, 10, 10, 10)]; // bounds 10..40, centre 25
+    const centred = moveGroup(items, 24.7, 0, { snap: true, threshold: 0.5 });
+    equal([centred.frames.a.x, centred.frames.b.x], [35, 55], 'group centre on 50');
+    equal(centred.guides[0], { axis: 'x', at: 50 }, 'canvas guide');
+    const sibling = moveGroup(items, 54.8, 0, { snap: true, threshold: 0.5, lines: { x: [65], y: [] } });
+    equal([sibling.frames.a.x, sibling.frames.b.x, sibling.guides[0]], [65, 85, { axis: 'x', at: 65, sibling: true }], 'group left edge on a sibling line');
+});
+
+check('arrange: a group resize maps members proportionally from se, nw and w', () => {
+    const items = [item('a', 10, 10, 10, 10), item('b', 30, 30, 10, 10)]; // bounds 10..40
+    const se = resizeGroup(items, 'se', 30, 30).frames;
+    equal([se.a, se.b], [frame(10, 10, 20, 20), frame(50, 50, 20, 20)], 'se doubles');
+    const nw = resizeGroup(items, 'nw', 15, 15).frames;
+    equal([nw.a, nw.b], [frame(25, 25, 5, 5), frame(35, 35, 5, 5)], 'nw halves towards the far corner');
+    const w = resizeGroup(items, 'w', -10, 0).frames;
+    equal([w.a, w.b], [frame(0, 10, 13.33, 10), frame(26.67, 30, 13.33, 10)], 'w stretches x only');
+});
+
+check('arrange: a group resize keeps the minimum size and the ratio with a QR code inside', () => {
+    const items = [item('a', 10, 10, 10, 10), item('b', 30, 30, 1, 1)];
+    const small = resizeGroup(items, 'se', -29.8, -29.8).frames;
+    assert(small.b.w >= 0.5 && small.b.h >= 0.5, `minimum kept: ${JSON.stringify(small.b)}`);
+    const types = ['text', 'qr'];
+    equal(groupKeepsRatio(types, false), true, 'qr: always');
+    equal(groupKeepsRatio(types, true), true, 'qr: Shift too');
+    equal(groupKeepsRatio(['text', 'image'], false), true, 'picture: by default');
+    equal(groupKeepsRatio(['text', 'image'], true), false, 'picture: Shift frees');
+    equal(groupKeepsRatio(['text', 'box'], false), false, 'text: free');
+    equal(groupKeepsRatio(['text', 'box'], true), true, 'text: Shift keeps');
+    const kept = resizeGroup([item('a', 10, 10, 10, 10), item('q', 30, 10, 10, 10, 'qr')], 'e', 30, 0, { keepRatio: true }).frames;
+    equal([kept.a.w, kept.a.h], [20, 20], 'ratio kept for the members');
+});
+
+check('arrange: a group nudge moves every member and stops at the canvas as a group', () => {
+    const items = [item('a', 0.05, 10, 10, 10), item('b', 30, 10, 10, 10)];
+    const left = nudgeGroup(items, 'ArrowLeft');
+    equal([left.a.x, left.b.x], [0, 29.95], 'clamped as a group');
+    const right = nudgeGroup(items, 'ArrowRight', true);
+    equal([right.a.x, right.b.x], [1.05, 31], 'Shift: 1 %');
+    equal(nudgeGroup(items, 'a'), null, 'other keys');
+});
+
+check('arrange: align ×6 to the selection bounds, only changed frames', () => {
+    const items = [item('a', 10, 10, 10, 10), item('b', 30, 40, 20, 20), item('c', 60, 5, 10, 5)];
+    equal(alignFrames(items, 'left'), { b: frame(10, 40, 20, 20), c: frame(10, 5, 10, 5) }, 'left');
+    equal(alignFrames(items, 'right'), { a: frame(60, 10, 10, 10), b: frame(50, 40, 20, 20) }, 'right');
+    equal(alignFrames(items, 'center'), { a: frame(35, 10, 10, 10), c: frame(35, 5, 10, 5) }, 'centre 40 (b is centred already)');
+    equal(alignFrames(items, 'top'), { a: frame(10, 5, 10, 10), b: frame(30, 5, 20, 20) }, 'top');
+    equal(alignFrames(items, 'bottom'), { a: frame(10, 50, 10, 10), c: frame(60, 55, 10, 5) }, 'bottom');
+    equal(alignFrames(items, 'middle'), { a: frame(10, 27.5, 10, 10), b: frame(30, 22.5, 20, 20), c: frame(60, 30, 10, 5) }, 'middle 32.5');
+    equal(alignFrames(items.slice(0, 2), 'left'), { b: frame(10, 40, 20, 20) }, 'two items');
+});
+
+check('arrange: one element aligns to the canvas', () => {
+    const one = [item('a', 10, 10, 20, 10)];
+    equal(alignFrames(one, 'right'), { a: frame(80, 10, 20, 10) }, 'right = 100 - w');
+    equal(alignFrames(one, 'center'), { a: frame(40, 10, 20, 10) }, 'centre');
+    equal(alignFrames(one, 'middle'), { a: frame(10, 45, 20, 10) }, 'middle');
+    equal(alignFrames(one, 'bottom'), { a: frame(10, 90, 20, 10) }, 'bottom');
+    equal(alignFrames([item('a', 0, 10, 20, 10)], 'left'), {}, 'already there');
+});
+
+check('arrange: distribute with equal gaps on both axes, fewer than 3 = null', () => {
+    const items = [item('a', 0, 0, 10, 10), item('b', 15, 30, 20, 10), item('c', 80, 70, 20, 10)];
+    equal(distributeFrames(items, 'horizontal'), { b: frame(35, 30, 20, 10) }, 'gap 25: b at 35');
+    equal(distributeFrames(items, 'vertical'), { b: frame(15, 35, 20, 10) }, 'vertical gap 25');
+    equal(distributeFrames(items.slice(0, 2), 'horizontal'), null, 'two items');
+});
+
+check('arrange: distribute keeps the first and the furthest-reaching item, negative gaps, rounding (last exact)', () => {
+    // a wide item that starts second but reaches furthest stays last
+    const wide = [item('a', 0, 0, 10, 10), item('w', 5, 20, 90, 10), item('b', 50, 40, 10, 10)];
+    const moved = distributeFrames(wide, 'horizontal');
+    equal(Object.keys(moved), ['b'], 'only b moves');
+    // span 95, sizes 110 → gap -7.5: b at 10 - 7.5 = 2.5
+    equal(moved.b.x, 2.5, 'negative gap = equal overlap');
+    const thirds = [item('a', 0, 0, 10, 10), item('b', 20, 20, 10, 10), item('c', 30, 30, 10, 10), item('d', 90, 40, 10, 10)];
+    const spaced = distributeFrames(thirds, 'horizontal');
+    // span 100, sizes 40 → gap 20: b 30, c 60, d stays 90
+    equal([spaced.b.x, spaced.c.x, spaced.d], [30, 60, undefined], 'equal gaps');
+    const odd = [item('a', 0, 0, 10, 10), item('b', 1, 0, 10, 10), item('c', 2, 0, 10, 10), item('d', 50, 0, 10, 10)];
+    const rounded = distributeFrames(odd, 'horizontal');
+    // gap = (60 - 40) / 3 = 6.666…
+    equal([rounded.b.x, rounded.c.x], [16.67, 33.33], 'rounded per item');
+    equal(rounded.d, undefined, 'the last one stays exactly');
+});
+
+check('arrange: the marquee from any direction, intersecting visible unlocked elements', () => {
+    equal(marqueeRect({ x: 40, y: 50 }, { x: 10, y: 20 }), { x: 10, y: 20, w: 30, h: 30 }, 'normalised');
+    equal(marqueeRect({ x: -5, y: 120 }, { x: 10, y: 90 }), { x: 0, y: 90, w: 10, h: 10 }, 'clamped');
+    const elements = [
+        el('a', 0, 0, 10, 10),
+        el('b', 20, 20, 10, 10),
+        el('c', 5, 5, 10, 10, { hidden: true }),
+        el('d', 5, 5, 10, 10, { locked: true }),
+        el('e', 15, 0, 5, 5),
+    ];
+    equal(marqueeHits(elements, { x: 8, y: 8, w: 15, h: 15 }), ['a', 'b'], 'intersects, document order');
+    equal(marqueeHits(elements, { x: 10, y: 10, w: 5, h: 5 }), [], 'touching an edge is not enough');
+});
+
+const designOf = (...elements) => ({
+    schema: 1,
+    elements: elements.map((element, index) => ({ id: element.id, type: 'text', frame: element.frame, z: index, hidden: element.hidden ?? false, locked: element.locked ?? false, props: { text: element.id } })),
+});
+
+check('state: select, toggle, area select additive, select all skips hidden and locked', () => {
+    const state = editor(designOf(el('aaaa0001', 0, 0, 10, 10), el('aaaa0002', 20, 0, 10, 10), el('aaaa0003', 40, 0, 10, 10, { hidden: true }), el('aaaa0004', 60, 0, 10, 10, { locked: true })));
+    state.select('aaaa0001');
+    equal([state.selectedId, state.selected?.id], ['aaaa0001', 'aaaa0001'], 'one');
+    state.toggleSelected('aaaa0002');
+    equal(state.selectedIds, ['aaaa0001', 'aaaa0002'], 'two');
+    equal([state.selectedId, state.selected], [null, null], 'no single selection for two');
+    state.toggleSelected('aaaa0001');
+    equal(state.selectedIds, ['aaaa0002'], 'toggled off');
+    state.selectIds(['aaaa0001', 'nope0000'], true);
+    equal(state.selectedIds, ['aaaa0002', 'aaaa0001'], 'additive, unknown ids dropped');
+    state.selectIds(['aaaa0004']);
+    equal(state.selectedIds, ['aaaa0004'], 'replacing');
+    state.selectAll();
+    equal(state.selectedIds, ['aaaa0001', 'aaaa0002'], 'all visible unlocked');
+    state.select(null);
+    equal(state.selectedIds, [], 'cleared');
+});
+
+check('state: group move, align and distribute are one undo step each, undo restores all', () => {
+    const state = editor(designOf(el('aaaa0001', 0, 0, 10, 10), el('aaaa0002', 20, 30, 10, 10), el('aaaa0003', 80, 60, 10, 10)));
+    state.selectAll();
+    const before = JSON.stringify(state.design);
+    const items = state.movableItems();
+
+    for (const dx of [1, 2, 3]) {
+        state.setFrames(moveGroup(items, dx, 0).frames, 'drag:1');
+    }
+
+    state.seal();
+    equal(state.undoStack.length, 1, 'a drag = one step');
+    equal(state.design.elements.map((element) => element.frame.x), [3, 23, 83], 'moved together');
+    state.undo();
+    equal(JSON.stringify(state.design), before, 'undo restores all');
+    state.redo();
+    equal(state.design.elements[1].frame.x, 23, 'redo');
+
+    const steps = state.undoStack.length;
+    state.alignSelected('top');
+    equal(state.undoStack.length, steps + 1, 'align = one step');
+    equal(state.design.elements.map((element) => element.frame.y), [0, 0, 0], 'aligned');
+    state.distributeSelected('horizontal');
+    equal(state.undoStack.length, steps + 2, 'distribute = one step');
+    equal(state.design.elements[1].frame.x, 43, 'equal gaps (3..93)');
+    state.undo();
+    state.undo();
+    equal(state.design.elements.map((element) => [element.frame.x, element.frame.y]), [[3, 0], [23, 30], [83, 60]], 'both undone');
+});
+
+check('state: locked members stay put on transforms but are removed by delete', () => {
+    const state = editor(designOf(el('aaaa0001', 0, 0, 10, 10), el('aaaa0002', 20, 30, 10, 10, { locked: true }), el('aaaa0003', 40, 50, 10, 10)));
+    state.selectIds(['aaaa0001', 'aaaa0002', 'aaaa0003']);
+    equal(state.movableSelected().map((element) => element.id), ['aaaa0001', 'aaaa0003'], 'movable');
+    state.alignSelected('left');
+    equal(state.design.elements.map((element) => element.frame.x), [0, 20, 0], 'locked one untouched');
+    equal(state.distributeSelected('horizontal'), false, 'two movable: no distribute');
+    state.removeSelected();
+    equal(state.design.elements, [], 'all removed, locked too');
+    equal(state.selectedIds, [], 'selection pruned');
+});
+
+check('state: duplicate keeps the relative stacking on top and selects the copies; hide/lock/style for all', () => {
+    const state = editor(designOf(el('aaaa0001', 0, 0, 10, 10), el('aaaa0002', 20, 30, 10, 10), el('aaaa0003', 40, 50, 10, 10)));
+    state.selectIds(['aaaa0003', 'aaaa0001']);
+    const copies = state.duplicateSelected();
+    equal(state.undoStack.length, 1, 'one step');
+    equal(state.selectedIds, copies, 'copies selected');
+    const [low, high] = copies.map((id) => state.element(id));
+    equal([low.props.text, high.props.text], ['aaaa0001', 'aaaa0003'], 'bottom copy first');
+    equal([low.z, high.z], [3, 4], 'on top, relative order kept');
+    equal([low.frame.x, low.frame.y], [2, 2], 'offset');
+
+    state.toggleHiddenSelected();
+    equal(copies.map((id) => state.element(id).hidden), [true, true], 'hide all');
+    state.toggleHiddenSelected();
+    equal(copies.map((id) => state.element(id).hidden), [false, false], 'show all');
+    state.toggleLockedSelected();
+    equal(copies.map((id) => state.element(id).locked), [true, true], 'lock all');
+    const steps = state.undoStack.length;
+    state.editSelected((element) => {
+        element.style.color = '#ff0000';
+    }, 'sel.style.color');
+    state.editSelected((element) => {
+        element.style.color = '#00ff00';
+    }, 'sel.style.color');
+    equal(state.undoStack.length, steps + 1, 'typing one style field = one step');
+    equal(copies.map((id) => state.element(id).style.color), ['#00ff00', '#00ff00'], 'style for all');
+    equal(state.element('aaaa0002').style.color, undefined, 'others untouched');
+    equal(JSON.stringify(state.savePayload().design), JSON.stringify(normaliseDesign(JSON.parse(JSON.stringify(state.design)), { competitionId: COMPETITION }).design), 'payload = normaliseDesign()');
+});
+
+check('state: undo prunes the selection to elements that exist', () => {
+    const state = editor(designOf(el('aaaa0001', 0, 0, 10, 10)));
+    const id = state.addElement('text');
+    state.selectIds(['aaaa0001', id]);
+    state.undo();
+    equal(state.selectedIds, ['aaaa0001'], 'the added one is gone');
+});
+
+const { JSDOM } = createRequire(import.meta.url)('jsdom');
+
+function panelFor(state, acts = []) {
+    const { window } = new JSDOM('<div id="panel"></div><ul id="layers"></ul>');
+    const document = window.document;
+    const panel = new EditorPanel({
+        document,
+        t: (key) => (key === 'selected_count' ? '%count% elements selected' : key),
+        commit: () => {},
+        act: (name, arg) => acts.push([name, arg]),
+        getImages: () => ({}),
+        upload: async () => null,
+        uploadAvailable: false,
+        kind: 'screen',
+    });
+    const container = document.getElementById('panel');
+    panel.render(container, state);
+
+    return { window, document, panel, container, layers: document.getElementById('layers') };
+}
+
+check('panel: a multi-selection shows the count, Arrange, shared or Mixed values, and acts on all', () => {
+    const design = designOf(el('aaaa0001', 0, 0, 20, 10), el('aaaa0002', 30, 0, 20, 10));
+    design.elements[0].style = { color: '#ff0000' };
+    design.elements[1].style = { color: '#00ff00' };
+    const state = editor(design);
+    state.selectAll();
+    const acts = [];
+    const { window, container } = panelFor(state, acts);
+    equal(container.querySelector('[data-selected-count]').textContent, '2 elements selected', 'count');
+    equal(container.querySelectorAll('[data-align]').length, 6, 'six align buttons');
+    equal([...container.querySelectorAll('[data-distribute]')].map((button) => button.disabled), [true, true], 'distribute needs 3');
+    const x = container.querySelector('[data-field="sel.frame.x"]');
+    const w = container.querySelector('[data-field="sel.frame.w"]');
+    equal([x.value, x.placeholder, w.value], ['', 'mixed', '20'], 'x mixed, width shared');
+    const color = container.querySelector('[data-field="sel.style.color"]');
+    equal([color.value, color.placeholder], ['', 'mixed'], 'colour mixed');
+    container.querySelector('[data-align="left"]').click();
+    w.value = '25';
+    w.dispatchEvent(new window.Event('input'));
+    container.querySelector('[data-selection-action="remove"]').click();
+    equal(acts.map(([name]) => name), ['align', 'frame', 'remove'], 'actions');
+    equal(acts[0][1], 'left', 'edge');
+    equal(acts[1][1], { key: 'w', value: 25 }, 'width for all');
+    assert(container.querySelector('[data-field$=".when.phases.idle"]') === null, 'no visibility rules in the multi view');
+});
+
+check('panel: one element keeps its view plus the canvas align row; layers mark every selected row', () => {
+    const state = editor(designOf(el('aaaa0001', 0, 0, 20, 10), el('aaaa0002', 30, 0, 20, 10), el('aaaa0003', 60, 0, 20, 10)));
+    state.select('aaaa0002');
+    const acts = [];
+    const single = panelFor(state, acts);
+    assert(single.container.querySelector('[data-field="aaaa0002.frame.x"]') !== null, 'single fields');
+    single.container.querySelector('[data-align="right"]').click();
+    equal(acts, [['align', 'right']], 'aligns through the state');
+
+    state.selectIds(['aaaa0001', 'aaaa0003']);
+    const { panel, layers, window } = panelFor(state);
+    const picks = [];
+    panel.renderLayers(layers, state, { select: (id, event) => picks.push([id, event?.shiftKey === true]) });
+    equal([...layers.querySelectorAll('.is-selected')].map((row) => row.dataset.layer).sort(), ['aaaa0001', 'aaaa0003'], 'both rows');
+    equal(layers.querySelectorAll('.display-editor__layer-tools').length, 0, 'per-row tools only for one');
+    layers.querySelector('[data-layer="aaaa0002"] .display-editor__layer-name').dispatchEvent(new window.MouseEvent('click', { shiftKey: true, bubbles: true }));
+    equal(picks, [['aaaa0002', true]], 'the click carries the modifier');
+});
+
 check('no innerHTML in the editor modules', () => {
     const offenders = [];
     const files = [
-        ...['editor_state.js', 'editor_panel.js', 'geometry.js', 'sample_data.js'].map((file) => new URL(`../assets/displays/${file}`, import.meta.url)),
+        ...['editor_state.js', 'editor_panel.js', 'geometry.js', 'arrange.js', 'sample_data.js'].map((file) => new URL(`../assets/displays/${file}`, import.meta.url)),
         new URL('../assets/controllers/display_editor_controller.js', import.meta.url),
     ];
 

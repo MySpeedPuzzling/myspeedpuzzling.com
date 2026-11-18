@@ -240,6 +240,35 @@
     }
 }
 
+// A multi-selection (v2 E1): a thin outline per member, one group box with the handles, the area being dragged
+.display-editor__member {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--de-accent);
+    pointer-events: none;
+
+    &.is-locked {
+        border-style: dashed;
+    }
+
+    &.is-hit {
+        border-color: #0d6efd;
+    }
+}
+
+.display-editor__selection.is-group {
+    border-width: 1px;
+    border-style: dashed;
+}
+
+.display-editor__marquee {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid #0d6efd;
+    background: rgba(13, 110, 253, 0.08);
+    pointer-events: none;
+}
+
 .display-editor__handle {
     position: absolute;
     width: 12px;
@@ -274,6 +303,11 @@
         left: 0;
         right: 0;
         height: 1px;
+    }
+
+    // A guide of another element's edge or centre (canvas guides stay blue)
+    &--sibling {
+        background: #d63384;
     }
 }
 

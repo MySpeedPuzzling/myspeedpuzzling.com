@@ -307,6 +307,22 @@ Since toolkit C8 the scanner reads every competition tag (`parseCompetitionTagUr
 `parseNameTagUrl()` is its wrapper) and resolves it on the phone, offline across the event's snapshots too:
 [judge-offline.md](judge-offline.md) "QR kinds in the judge page".
 
+**Continuous scanning with a warm camera** (judge-speed J4, `assets/live_entry_scan_session.js`): scan → the card →
+Save → the scanner is back over Find at once with the Saved toast (Undo) on top of it (toast `z-index` 1095, above the
+overlays) and the same camera - no new `getUserMedia`, so no second permission question while the page is open. Only an
+entry opened by a scan, only its own Save (Save, Confirm / Use received, the puzzle choice, "Nothing changed") and only
+with the phone's preference "After Save, scan the next tag" on (default on; the switch in the sheet, on every round).
+Back, Escape, Undo and typed tables behave as before; a not-found or foreign tag closes the scanner with its notice.
+The tag just saved is ignored while it stays in view - until no frame showed it for 1.5 s ("Saved - point at the next
+tag"); any other tag acts at once; a code acts once per scan. The camera is parked (tracks live, no decoding) while a
+card is open and released 90 s after the last read acted on (also with the scanner open), when the page is hidden,
+left or frozen, and when the browser ends the track (one automatic retry with the scanner open, then "Try again"). The
+Scan button shows a green dot while the camera is warm ("Scan - camera ready"). The scanner's footer: "Try again" (only
+after a failure) and "Type a table instead". Building blocks in `official_results_scan.js`: `openQrCamera()` /
+`cameraOf()`, `qrReader()` (one detector per page: BarcodeDetector `qr_code`, else the self-hosted zbar polyfill),
+`detectLoop()`. Proven by `tests/live-entry-scan-harness.mjs` (`LiveEntryScanScriptsTest`) and chaos
+`s14_continuous_scanning`; real phones: [judge-device-checklist.md](judge-device-checklist.md) steps 6a-6d.
+
 ## Name tags (`competition_name_tags`)
 
 A4, 2 × 5 tags of 90 × 55 mm with dashed cut lines; each: event (and round), name (smaller from 25 characters), flag

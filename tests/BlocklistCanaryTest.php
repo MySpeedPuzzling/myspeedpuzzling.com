@@ -720,6 +720,40 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * **Documented exemption: the embeddable standing** (`standing_embed`, real events L3) - a page inside an <iframe> on
+     * an organiser's website, on the stateless firewall: no session, no viewer, so no blocklist can apply (and a browser
+     * sends no MSP cookie into a third-party frame anyway). The blocker gets exactly the guests' answer - the blocked row
+     * included - while the public page keeps hiding it from him.
+     */
+    public function testTheStandingEmbedHasNoViewerAndSoNoBlocklist(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $standingId = PublishedStanding::insert($database, $cup, 'overall-solo', 'Overall solo', 'solo', [OfficialResultsFixture::ROUND_GROUP_A]);
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $embed = '/embed/standing/' . $standingId;
+
+        $browser->request('GET', $embed);
+        self::assertResponseIsSuccessful();
+        $asGuest = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('Ben Steady', $asGuest, 'No canary: the embed does not list him.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', '/en/events/results-cup/standings/overall-solo');
+        self::assertStringNotContainsString('Ben Steady', (string) $browser->getResponse()->getContent(), 'No canary: the page shows the blocker the blocked row.');
+        $browser->request('GET', $embed);
+        self::assertSame($asGuest, (string) $browser->getResponse()->getContent(), 'The embed answers a blocker differently - it has a viewer.');
+    }
+
+    /**
      * The public bracket (competition toolkit A9): the blocked player's qualified row - solo, or a pair with them - is
      * not in a round's box for the blocker; everybody else keeps their official place.
      */

@@ -9,6 +9,7 @@ use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\CompetitorPage\CompetitorListController;
+use SpeedPuzzling\Web\Controller\Standings\StandingEmbedController;
 use SpeedPuzzling\Web\Exceptions\SandboxModeIsOff;
 use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
@@ -879,6 +880,8 @@ final readonly class SandboxDemoEvents
 
         foreach ($this->demoData->standings($competitionId) as $name => $standing) {
             $say(sprintf('  Standing          %s  (%s)', $url('event_standing', ['slug' => $event->slug, 'standingSlug' => $standing['slug']]), $name));
+            // Real events L3: the <iframe> page an organiser puts on their own website (the SPWS Wix site)
+            $say(sprintf('  Standing embed    %s  (%s)', $url(StandingEmbedController::ROUTE, ['standingId' => strtolower($standing['id'])], false), $name));
         }
 
         foreach ($this->demoData->displays($competitionId) as $name => $display) {

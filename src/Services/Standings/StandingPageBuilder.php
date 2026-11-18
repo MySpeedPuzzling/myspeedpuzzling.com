@@ -11,7 +11,10 @@ use SpeedPuzzling\Web\Query\GetCompetitionStandings;
 use SpeedPuzzling\Web\Query\GetPublicStandingHead;
 use SpeedPuzzling\Web\Query\GetStandingResults;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Results\PublicStandingEmbed;
+use SpeedPuzzling\Web\Results\PublicStandingHead;
 use SpeedPuzzling\Web\Results\PublicStandingPage;
+use SpeedPuzzling\Web\Results\PublicStandingTable;
 use SpeedPuzzling\Web\Results\PublicStandingTableView;
 use SpeedPuzzling\Web\Results\PublishedStandingRef;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingsLiveUpdates;
@@ -24,7 +27,8 @@ use SpeedPuzzling\Web\Value\EventTitle;
  * unapproved - for its team too, like the round results pages) and for a standing that is not published.
  *
  * buildById() is the table part alone (competition toolkit v2 S4, the `public_standing_table` fragment the open page
- * reloads on a standings signal) - the same 404 rules, found by the standing's id.
+ * reloads on a standings signal) - the same 404 rules, found by the standing's id. buildEmbed() is that table for a guest
+ * with the event's name (real events L3, the embeddable standing `standing_embed`).
  */
 readonly final class StandingPageBuilder
 {
@@ -84,19 +88,60 @@ readonly final class StandingPageBuilder
      */
     public function buildById(string $standingId): PublicStandingTableView
     {
+        $head = $this->publishedHead($standingId);
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+
+        return $this->tableView($head, $this->getStandingResults->publicView($head->standing, $viewer?->playerId));
+    }
+
+    /**
+     * The embeddable standing (real events L3, `standing_embed`): the table as a guest sees it - no viewer, so the
+     * signed-in user's blocklist and allow list are ignored explicitly (the answer is shared, like the public JSON) -
+     * with the same 404 rules as the page.
+     *
+     * @throws CompetitionStandingNotFound
+     */
+    public function buildEmbed(string $standingId): PublicStandingEmbed
+    {
+        $head = $this->publishedHead($standingId);
+        $eventName = $head->eventName;
+
+        // An edition is named with its series, like the event title of the public pages (EventTitle::forCompetition())
+        if ($head->seriesName !== null && mb_stripos($eventName, $head->seriesName) === false) {
+            $eventName = $head->seriesName . ' · ' . $eventName;
+        }
+
+        return new PublicStandingEmbed(
+            view: $this->tableView($head, $this->getStandingResults->publicView($head->standing, null, asGuest: true)),
+            eventName: $eventName,
+            standingRoute: $head->seriesSlug !== null ? 'edition_standing' : 'event_standing',
+            standingRouteParams: $head->seriesSlug !== null
+                ? ['seriesSlug' => $head->seriesSlug, 'editionSlug' => (string) $head->eventSlug, 'standingSlug' => $head->standing->slug]
+                : ['slug' => (string) $head->eventSlug, 'standingSlug' => $head->standing->slug],
+        );
+    }
+
+    /**
+     * @throws CompetitionStandingNotFound
+     */
+    private function publishedHead(string $standingId): PublicStandingHead
+    {
         $head = $this->getPublicStandingHead->byId(strtolower($standingId));
 
         if ($head === null || $head->standing->publishedAt === null || $head->eventSlug === null) {
             throw new CompetitionStandingNotFound();
         }
 
-        $standing = $head->standing;
-
-        if ($this->isCompetitionPubliclyVisible->check($standing->competitionId) === false) {
+        if ($this->isCompetitionPubliclyVisible->check($head->standing->competitionId) === false) {
             throw new CompetitionStandingNotFound();
         }
 
-        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+        return $head;
+    }
+
+    private function tableView(PublicStandingHead $head, PublicStandingTable $table): PublicStandingTableView
+    {
+        $standing = $head->standing;
 
         return new PublicStandingTableView(
             competitionId: strtolower($standing->competitionId),
@@ -107,11 +152,11 @@ readonly final class StandingPageBuilder
                 category: $standing->category,
                 roundIds: array_map(strtolower(...), $standing->roundIds),
             ),
-            table: $this->getStandingResults->publicView($standing, $viewer?->playerId),
+            table: $table,
             roundRoute: $head->seriesSlug !== null ? 'edition_round_results' : 'event_round_results',
             routeParams: $head->seriesSlug !== null
-                ? ['seriesSlug' => $head->seriesSlug, 'editionSlug' => $head->eventSlug]
-                : ['slug' => $head->eventSlug],
+                ? ['seriesSlug' => $head->seriesSlug, 'editionSlug' => (string) $head->eventSlug]
+                : ['slug' => (string) $head->eventSlug],
         );
     }
 }

@@ -1,0 +1,188 @@
+// The embeddable standing (Encore entry `standing_embed`, templates/standing/embed.html.twig, real events L3) - a page
+// inside an <iframe> on an organiser's website. The public standing page's table part with the site's own leaderboard
+// styles, compact, on a transparent background (the host page shows through) - light text colours for `?theme=dark`.
+// No site layout: no header, footer, navigation.
+
+@import 'user-variables';
+@import 'variables';
+@import 'mixins';
+@import 'utilities';
+
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
+
+@import 'bootstrap/scss/root';
+@import 'bootstrap/scss/reboot';
+@import 'bootstrap/scss/type';
+@import 'bootstrap/scss/tables';
+@import 'bootstrap/scss/badge';
+@import 'bootstrap/scss/helpers';
+@import 'bootstrap/scss/utilities/api';
+
+@import 'leaderboard';
+@import 'flag-icons/sass/flag-icons';
+
+$embed-muted: #5b616d;
+$embed-dark-text: #e9ecf2;
+$embed-dark-muted: #aab1bf;
+$embed-dark-line: rgba(255, 255, 255, .14);
+
+html.standing-embed-root,
+.standing-embed {
+    background: transparent;
+}
+
+.standing-embed {
+    margin: 0;
+    padding: 8px;
+    font-family: Rubik, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: .875rem;
+    line-height: 1.45;
+    color: #222;
+}
+
+.standing-embed__head {
+    margin-bottom: 6px;
+}
+
+.standing-embed__event {
+    margin: 0;
+    font-size: .8125rem;
+    color: $embed-muted;
+}
+
+.standing-embed__title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+// The site's table look, compact: no shadow, no full bleed on phones (the frame is the organiser's column)
+.standing-embed .custom-table-wrapper {
+    border-radius: 6px;
+    overflow: hidden;
+
+    .table {
+        margin-bottom: 0;
+        border: 1px solid #ddd;
+        background: #fff;
+
+        thead th {
+            background: #fe696a;
+            color: #fff !important;
+            border-bottom: 0;
+
+            a {
+                color: #fff;
+                text-decoration: underline;
+            }
+        }
+
+        a {
+            color: #777;
+        }
+    }
+
+    td {
+        padding-right: 0;
+        padding-left: 8px;
+
+        &:last-child {
+            padding-right: 8px;
+        }
+    }
+}
+
+.standing-embed .table-active-player {
+    background: #f0ecfb;
+}
+
+.standing-embed__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin-top: 6px;
+    font-size: .75rem;
+    color: $embed-muted;
+}
+
+.standing-embed__brand {
+    margin-left: auto;
+    color: #fe696a;
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+// ?theme=dark - for a dark host page: light text on the transparent background, the table on a dark surface
+.standing-embed--dark {
+    color: $embed-dark-text;
+
+    .standing-embed__event,
+    .standing-embed__foot,
+    .text-muted {
+        color: $embed-dark-muted !important;
+    }
+
+    .custom-table-wrapper .table {
+        --#{$prefix}table-color: #{$embed-dark-text};
+        --#{$prefix}table-bg: #1d2128;
+        --#{$prefix}table-border-color: #{$embed-dark-line};
+        --bs-table-color: #{$embed-dark-text};
+        --bs-table-bg: #1d2128;
+        border-color: $embed-dark-line;
+        background: #1d2128;
+        color: $embed-dark-text;
+
+        > :not(caption) > * > * {
+            background: #1d2128;
+            color: $embed-dark-text;
+            border-color: $embed-dark-line;
+        }
+
+        thead th {
+            background: #c94d4e;
+        }
+
+        a {
+            color: $embed-dark-muted;
+        }
+    }
+
+    .lb-rank,
+    .lb-time-value,
+    a.lb-name,
+    .custom-table-wrapper .table a.lb-name {
+        color: $embed-dark-text;
+    }
+
+    .lb-name-guest,
+    .lb-gap {
+        color: $embed-dark-muted;
+    }
+
+    .lb-team-badge,
+    .badge.text-bg-light {
+        background: #2c313a !important;
+        color: $embed-dark-text !important;
+        border-color: $embed-dark-line !important;
+    }
+
+    .table-active-player > * {
+        background: #2a2540 !important;
+    }
+
+    .standing-embed__brand {
+        color: #ff8a8b;
+    }
+}

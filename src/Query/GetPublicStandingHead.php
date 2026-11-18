@@ -29,7 +29,8 @@ readonly final class GetPublicStandingHead
         $division = GetCompetitionStandings::divisionSql('s');
         $row = $this->database->fetchAssociative(<<<SQL
 SELECT s.id, s.competition_id, s.name, s.slug, s.category, s.mode, s.round_ids, s.unfinished_penalty_seconds_per_piece, s.order_rule,
-    s.missing_rule, s.penalise_finished_missing, s.position, s.published_at, s.numbered_across_stages, {$division} AS division, c.slug AS event_slug, cs.slug AS series_slug
+    s.missing_rule, s.penalise_finished_missing, s.position, s.published_at, s.numbered_across_stages, {$division} AS division, c.slug AS event_slug, cs.slug AS series_slug,
+    c.name AS event_name, cs.name AS series_name
 FROM competition_standing s
 INNER JOIN competition c ON c.id = s.competition_id
 LEFT JOIN competition_series cs ON cs.id = c.series_id
@@ -40,11 +41,13 @@ SQL, ['id' => $standingId]);
             return null;
         }
 
-        /** @var array{event_slug: null|string, series_slug: null|string} $row */
+        /** @var array{event_slug: null|string, series_slug: null|string, event_name: string, series_name: null|string} $row */
         return new PublicStandingHead(
             standing: GetCompetitionStandings::hydrate($row),
             eventSlug: $row['event_slug'],
             seriesSlug: $row['series_slug'],
+            eventName: $row['event_name'],
+            seriesName: $row['series_name'],
         );
     }
 

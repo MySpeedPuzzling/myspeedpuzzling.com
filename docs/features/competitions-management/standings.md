@@ -252,6 +252,50 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §4.2. As built 202
   viewer's render reaches the guests or back), `DraftCanaryTest::testTheStandingsOfADraftAreNotThere` (+ fragment),
   `StandingLiveScriptTest`.
 
+## Embeddable standing (real events L3)
+
+For an organiser's own website (the SPWS Wix site): one published standing as a page made for an `<iframe>`. As built
+2026-11-18 (no Docker - not walked in a browser yet).
+
+- **Route** `standing_embed` `GET /embed/standing/{standingId}` (English) or `/embed/standing/{standingId}/{locale}`
+  (cs, de, es, fr, ja), `?theme=dark` optional (anything else = light). By id, not by slug: the organiser's copy stays
+  valid when the event's slug changes. `StandingEmbedController` on the **stateless firewall** (no session, no cookie, no
+  viewer).
+- **Content:** `StandingPageBuilder::buildEmbed()` - the public page's table part (`_public_table` / `_public_stages`,
+  the same partials) from `GetStandingResults::publicView(…, asGuest: true)`, so exactly what a guest sees on the public
+  page: published rounds only, private players by the organiser's name for everybody. The event's name (an edition with
+  its series' - from `GetPublicStandingHead`, two more columns, no statement more), the standing's name + category badge,
+  "Results by MySpeedPuzzling" = the public standing page. Own lean layout `templates/standing/embed.html.twig` (no
+  `base.html.twig`: no navigation, footer, cookie banner, service worker, Turbo), transparent background, compact table,
+  `<base target="_blank">` - every link (players, rounds, the brand line) opens a new tab, never inside the frame.
+  Encore entry `standing_embed` (`assets/standing_embed.js` + `styles/standing_embed.scss`: Bootstrap core + the site's
+  `_leaderboard.scss`, dark overrides), no split chunks, in `PRECACHE_SKIP_ENTRIES`.
+- **Live:** the existing data-free signal (S4 "Live push") - `assets/standing_embed.js` drives `StandingLive` (the
+  public page's own module): on a `standing.signal` it refetches **this page** (0-4 s jitter, `cache: no-cache`) and swaps
+  `[data-standing-embed-table]` only when it differs; without a stream every 60 s ±20 %, with one a 5-minute safety
+  poll; a 404 stops it. "Updated at …" line (`public_standing.live.updated`).
+- **Cache:** rendered once per generation, locale and theme (`PublicStandingSnapshots::embedHtml()`, key
+  `embed_v1_{standingId}_{locale}_{theme}_{gen}`, 60 s) - warm 1 statement (the visibility, read on every request before
+  anything cached). `Cache-Control: public, max-age=0, must-revalidate` + ETag (sha1 of the body) → 304 while nothing
+  changed. Chosen over a short `max-age`: with the signal, a refetch must never be served a stale copy.
+- **Headers:** `Content-Security-Policy: frame-ancestors *`, no `X-Frame-Options`, `X-Robots-Tag: noindex, nofollow`.
+  The rest of the site's framing behaviour is unchanged (the app sends no framing header elsewhere; a site-wide
+  `SAMEORIGIN` was considered and left out - it could break pages someone frames today; Jan's call).
+- **404:** unknown or unpublished standing, an event that is not public (drafts, unapproved) - a lean, still frameable
+  page "This standing is not available." (`private, no-store`).
+- **Exemptions:** no viewer, so the blocklist does not apply (`BlocklistCanaryTest::testTheStandingEmbedHasNoViewerAndSoNoBlocklist`
+  - a third-party frame carries no MSP cookie anyway); private players masked for the allowed friend too
+  (`PrivateProfileCanaryTest::testTheStandingEmbedNeverNamesHer`); drafts 404 (`DraftCanaryTest::testTheStandingsOfADraftAreNotThere`).
+- **Organiser:** the standings page (`competition_standings_manage`) shows per published standing of a public page an
+  "Embed on your website" box: the `<iframe src="…" width="100%" height="600" style="border:0" loading="lazy">` snippet
+  (URL in the organiser's language), Copy (`clipboard` controller), Preview, a hint on `?theme=dark` and the language part.
+- **Sandbox:** `/embed/` is an open path of the sandbox's welcome gate (`SandboxGate`), so a framed demo works without the
+  gate's cookie; the demo command prints a `Standing embed` URL per standing (`docs/features/sandbox/README.md`).
+- Tests: `tests/CompetitionToolkit/StandingEmbedTest.php` (headers incl. another page still SAMEORIGIN, stateless, ETag
+  304, locale + theme, 404s, once per generation, snippet), the three canaries, `ServiceWorkerInstallTest`.
+- Not built: an auto-height (postMessage resize) - the organiser sets the height; divisions (L2a) show once the standing
+  carries them (the view model is the public page's).
+
 ## Advancement steps (competition toolkit A8)
 
 As built in [results-desk.md](results-desk.md) "Declared advancement steps". In short: `competition_advancement_step`

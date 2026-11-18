@@ -15946,3 +15946,12 @@ standing_division:
         unknown_division: "Diese Wertungsklasse gehört nicht mehr zu dieser Veranstaltung - laden Sie die Seite neu."
         division_not_in_round: "Jede Runde der Gesamtwertung einer Wertungsklasse muss diese Wertungsklasse verwenden - haken Sie sie auf der Seite Wertungsklassen für die Runden an oder lassen Sie diese Runden weg."
         used_by_standing: "Die Gesamtwertung „%subject%“ zählt nur diese Wertungsklasse - ändern oder löschen Sie sie zuerst."
+standing_embed:
+    results_by: "Ergebnisse von MySpeedPuzzling"
+    not_found: "Diese Gesamtwertung ist nicht verfügbar."
+    organiser:
+        title: "Auf Ihrer Website einbetten"
+        help: "Fügen Sie diesen Code in Ihre Website ein (ein HTML- oder Einbettungsblock). Dort kann ihn jeder sehen; er aktualisiert sich selbst, wenn Sie Ergebnisse veröffentlichen. Passen Sie die Höhe an Ihre Seite an."
+        copy: "Code kopieren"
+        preview: "Vorschau"
+        options: "Für eine dunkle Seite hängen Sie ?theme=dark an die Adresse an. Die Sprache ist der letzte Teil der Adresse: /en, /cs, /de, /es, /fr oder /ja (nichts = Englisch)."

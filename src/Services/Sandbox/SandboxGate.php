@@ -26,6 +26,8 @@ final class SandboxGate
         '/api/',
         '/internal-api/',
         '/-/',
+        // The embeddable standing (real events L3): framed by another site, where the gate's cookie is a third-party one
+        '/embed/',
     ];
 
     private const array OPEN_PATHS = [

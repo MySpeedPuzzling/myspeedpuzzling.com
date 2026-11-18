@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
+use SpeedPuzzling\Web\Controller\Standings\StandingEmbedController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitionStandings;
@@ -18,6 +19,7 @@ use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
@@ -92,6 +94,7 @@ final class CompetitionStandingsController extends AbstractController
 
         // The public page of each published standing (A7) - the event's reference only when one is published
         $publicUrls = [];
+        $embedUrls = [];
         $reference = array_any($standings, static fn (CompetitionStandingOverview $standing): bool => $standing->publishedAt !== null)
             ? $this->getCompetitionEvents->referenceById($competitionId)
             : null;
@@ -109,11 +112,14 @@ final class CompetitionStandingsController extends AbstractController
 
             if ($url !== null) {
                 $publicUrls[$standing->id] = $url;
+                // Real events L3: the <iframe> page for the organiser's own website, in the organiser's language
+                $embedUrls[$standing->id] = $this->generateUrl(StandingEmbedController::ROUTE, ['standingId' => strtolower($standing->id)], UrlGeneratorInterface::ABSOLUTE_URL);
             }
         }
 
         $response = $this->render('competition_toolkit/standings.html.twig', [
             'public_urls' => $publicUrls,
+            'embed_urls' => $embedUrls,
             'competition' => $competition,
             'rounds' => $rounds,
             'tables' => array_map(fn (CompetitionStandingOverview $standing) => $this->getStandingResults->organiserView($standing), $standings),

@@ -84,7 +84,7 @@ final class ServiceWorkerInstallTest extends TestCase
     {
         $serviceWorker = (string) file_get_contents(__DIR__ . '/../public/service-worker.js');
 
-        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch', 'analytics_studio'\\];$/m", $serviceWorker));
+        self::assertSame(1, preg_match("/^const PRECACHE_SKIP_ENTRIES = \\['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch', 'analytics_studio', 'standing_embed'\\];$/m", $serviceWorker));
     }
 
     /**

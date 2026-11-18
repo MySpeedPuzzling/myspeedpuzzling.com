@@ -16205,3 +16205,12 @@ standing_division:
         unknown_division: "That division is not one of this event's any more - reload the page."
         division_not_in_round: "Every round of a division's standing must use that division - tick it for the rounds on the Divisions page, or leave those rounds out."
         used_by_standing: "The standing \"%subject%\" counts only this division - change or delete that standing first."
+standing_embed:
+    results_by: "Results by MySpeedPuzzling"
+    not_found: "This standing is not available."
+    organiser:
+        title: "Embed on your website"
+        help: "Paste this code into your website (an HTML or embed block). Anybody can see it there; it updates by itself as you publish results. Change the height to fit your page."
+        copy: "Copy code"
+        preview: "Preview"
+        options: "For a dark page, add ?theme=dark at the end of the address. The language is the last part of the address: /en, /cs, /de, /es, /fr or /ja (nothing = English)."

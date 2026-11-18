@@ -12,7 +12,7 @@ use DateTimeImmutable;
  */
 final class PlanPerson
 {
-    /** @var null|array{name: string, country: null|string, externalId: null|string, playerId: null|string, deleted: bool} null = the import creates them */
+    /** @var null|array{name: string, country: null|string, externalId: null|string, playerId: null|string, deleted: bool, email: null|string} null = the import creates them */
     public null|array $before = null;
 
     /** The file names them - matched or created by at least one row */
@@ -55,6 +55,8 @@ final class PlanPerson
         public readonly null|string $playerCode = null,
         /** The viewer may not see who the participant's player (before the import) is */
         public readonly bool $playerMasked = false,
+        /** The organiser's address of the person (participant-linking.md §7.3) - a file's empty cell never clears it */
+        public null|string $email = null,
     ) {
     }
 
@@ -64,7 +66,7 @@ final class PlanPerson
     }
 
     /**
-     * @return array{name: string, country: null|string, externalId: null|string, playerId: null|string, deleted: bool}
+     * @return array{name: string, country: null|string, externalId: null|string, playerId: null|string, deleted: bool, email: null|string}
      */
     public function state(): array
     {
@@ -74,6 +76,7 @@ final class PlanPerson
             'externalId' => $this->externalId,
             'playerId' => $this->playerId,
             'deleted' => $this->deleted,
+            'email' => $this->email,
         ];
     }
 

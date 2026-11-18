@@ -75,6 +75,10 @@ use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\UnpublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\EraseParticipantEmails;
+use SpeedPuzzling\Web\Message\RefuseParticipantClaimInvitations;
+use SpeedPuzzling\Web\Message\SendParticipantClaimInvitation;
+use SpeedPuzzling\Web\Message\SendParticipantClaimInvitations;
 use SpeedPuzzling\Web\Message\FinishImport;
 use SpeedPuzzling\Web\Message\FinishSettledImport;
 use SpeedPuzzling\Web\Message\GenerateTableLayout;
@@ -269,6 +273,10 @@ final class SerializedByLockMessagesTest extends TestCase
         // result exists" are checked under the same lock as the judges' result writes
         self::assertSame($key, (new ProposeRoundTime($competitionId, 'round', 'team:' . $participantId, 'proposal', 'player', 1, 1))->lockKey());
         self::assertSame($key, (new WithdrawTimeProposal(strtolower($competitionId), 'proposal', 'player'))->lockKey());
+        // Claim invitations (participant-linking.md §5.5): recorded and refused under the lock every participant write takes
+        self::assertSame($key, (new SendParticipantClaimInvitations($competitionId, [$participantId], 'player'))->lockKey());
+        self::assertSame($key, (new SendParticipantClaimInvitations($competitionId, null, 'player'))->lockKey());
+        self::assertSame($key, (new RefuseParticipantClaimInvitations($competitionId, $participantId))->lockKey());
     }
 
     /**
@@ -452,6 +460,8 @@ final class SerializedByLockMessagesTest extends TestCase
         KeepRoundPuzzleHiddenEverywhere::class => 'a round puzzle\' site-wide hide - SecretPuzzleHides takes its own row locks; entries and results are not touched',
         RevealRoundPuzzleNow::class => 'a round puzzle\' reveal - SecretPuzzleHides takes its own row locks; entries and results are not touched',
         RevealPuzzlesTheStopwatchMissed::class => 'the round puzzles\' reveal after a publish - SecretPuzzleHides takes its own row locks (the round, its secret puzzles); entries and results are not touched',
+        EraseParticipantEmails::class => 'the daily erasure of the organisers\' participant addresses (participant-linking.md D15) - many ended events in one bulk statement (one lock key per message), only `email`, a column no spot, entry or result depends on',
+        SendParticipantClaimInvitation::class => 'one claim invitation e-mail, async (participant-linking.md §5.5): reads the participant again and sends - writes nothing (NameTagQrCode only builds the claim link); the invitation was recorded under the lock by SendParticipantClaimInvitations, and the event\'s lock held across the mail call would hold up every participant write',
         UpdateWjpcPlayerId::class => 'writes only remote_id, a column nothing else writes; its handler waits for worldjigsawpuzzle.org, and the event\'s lock held across that call would hold up every registration',
     ];
 

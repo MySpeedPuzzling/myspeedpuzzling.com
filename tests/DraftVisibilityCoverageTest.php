@@ -52,6 +52,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetCompetitionReferees.php' => self::ORGANISER . ' Reads only the country of the event (and its series) of a referee\'s last result, for the round\'s time zone (judge-speed J1).',
         'Query/GetCompetitionRoundsForManagement.php' => self::ORGANISER,
         'Query/GetCompetitorPageSettings.php' => self::ORGANISER,
+        'Query/GetEventsWithParticipantEmails.php' => self::WRITE . ' The daily erasure of the organisers\' participant addresses (participant-linking.md D15) - every ended event, a draft too; nothing is shown.',
         'Query/GetParticipantClaimPolicy.php' => self::ORGANISER . ' Resolves one event\'s claim policy (participant-linking.md D3) for the hub card and the join page, which 404s a draft first (IsCompetitionPubliclyVisible) - no event is listed.',
         'Query/GetEditionRounds.php' => self::PAGE_GATED,
         'Query/GetEventAttendance.php' => self::PAGE_GATED,

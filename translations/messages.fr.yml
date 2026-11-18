@@ -4521,6 +4521,7 @@ competition:
       "player_linked_elsewhere": "Ligne %row% : le msp_player_id \"%id%\" est déjà relié à \"%other%\" dans cet événement, il n'a donc pas été relié à \"%name%\"."
       "deleted_kept_with_results": "Ligne %row% : \"%name%\" a des résultats dans cet événement, le statut \"deleted\" est donc ignoré et la personne reste."
       "self_joined_left": "Ligne %row% : \"%name%\" s'est inscrit(e) sur MySpeedPuzzling puis a quitté l'événement, la ligne a donc été ignorée. Si la personne participe finalement, ajoutez-la sur la page des participants."
+      invalid_email: "Ligne %row% : \"%email%\" n'est pas une adresse e-mail – la ligne est importée sans elle."
       linking:
         invalid_player_reference: "Ligne %row% : \"%reference%\" n'est ni un #code, ni un ID de joueur, ni un lien de profil MySpeedPuzzling – la ligne est importée sans profil."
         unknown_player_reference: "Ligne %row% : aucun joueur MySpeedPuzzling %reference% – la ligne est importée sans profil."
@@ -4653,6 +4654,7 @@ competition:
         "participant_id": "ID de participant"
         "external_id": "ID externe"
         "status": "Statut"
+        email: "E-mail (privé, pour l'invitation de rattachement)"
       "confirm":
         "nothing_saved_yet": "Rien n'est encore enregistré."
         "button": "Confirmer l'importation"
@@ -15413,6 +15415,51 @@ results_import_counts:
     summary: "Résultats - nouveaux : %added%, modifiés : %updated%, supprimés : %removed%"
     summary_of_category: "Résultats (%category%) - nouveaux : %added%, modifiés : %updated%, supprimés : %removed%"
     name_column: "Nom"
+participant_claim_invitation:
+    sheet:
+        column_email: "E-mail"
+        column_email_title: "Privé – seuls les organisateurs de l'événement le voient, utilisé uniquement pour l'invitation de rattachement"
+        column_invited: "Invité(e)"
+        paste_change_email: "E-mail %from% → %to%"
+        said_no: "A refusé les invitations"
+        send: "Envoyer l'invitation"
+        send_help: "Son lien de rattachement par e-mail à %email%"
+        bulk: "Envoyer les invitations"
+        none: "Aucune de ces personnes ne peut recevoir d'invitation pour le moment."
+        failed: "Les invitations n'ont pas pu être envoyées – veuillez réessayer."
+        same_for_everybody: "Tout le monde reçoit le même e-mail avec son propre lien de rattachement – il permet de se connecter ou de créer un compte. Personne n'apprend si une adresse a un compte."
+        sending: "Envoi…"
+        title: "{0}Envoyer des invitations à 0 personne|{1}Envoyer une invitation à 1 personne|]1,Inf[Envoyer des invitations à %count% personnes"
+        emails: "{0}0 e-mail sera envoyé.|{1}1 e-mail sera envoyé.|]1,Inf[%count% e-mails seront envoyés."
+        confirm: "{0}Envoyer 0 invitation|{1}Envoyer 1 invitation|]1,Inf[Envoyer %count% invitations"
+        sent: "{0}Aucune invitation n'a été envoyée.|{1}1 invitation envoyée.|]1,Inf[%count% invitations envoyées."
+        skipped: "Ignorés : %list%."
+        skip:
+            not_on_list: "Ne figure plus sur la liste"
+            linked: "Déjà relié(e) à un profil"
+            no_email: "Ajoutez d'abord son e-mail dans la colonne E-mail"
+            said_no: "A refusé les invitations pour cet événement"
+            invited_recently: "Invité(e) au cours des dernières 24 heures – une invitation par jour au maximum"
+        skipped_count:
+            not_on_list: "{0}0 hors de la liste|{1}1 hors de la liste|]1,Inf[%count% hors de la liste"
+            linked: "{0}0 déjà relié|{1}1 déjà relié(e)|]1,Inf[%count% déjà reliés"
+            no_email: "{0}0 sans e-mail|{1}1 sans e-mail|]1,Inf[%count% sans e-mail"
+            said_no: "{0}0 a refusé les invitations|{1}1 a refusé les invitations|]1,Inf[%count% ont refusé les invitations"
+            invited_recently: "{0}0 invité au cours des dernières 24 heures|{1}1 invité(e) au cours des dernières 24 heures|]1,Inf[%count% invités au cours des dernières 24 heures"
+        reason:
+            invalid_email: "\"%email%\" n'est pas une adresse e-mail."
+    error:
+        not_public: "Les invitations partent une fois l'événement publié – ses liens de rattachement fonctionnent à partir de ce moment."
+        online_timing: "Cet événement utilise le chronométrage en ligne : ses liens personnels relient les personnes à leur profil – distribuez plutôt ceux-là."
+    hub:
+        send: "Envoyer des invitations à toutes les personnes non reliées ayant un e-mail (%count%)"
+        none: "Ajoutez les adresses e-mail des personnes dans le tableau des participants (colonne E-mail) ou dans votre fichier pour leur envoyer leurs liens de rattachement par e-mail."
+        form_expired: "La page est restée ouverte trop longtemps – veuillez réessayer."
+    refuse:
+        headline: "Invitations pour cet événement"
+        text: "Vous ne souhaitez plus recevoir d'e-mails vous invitant à relier votre profil à %event% ?"
+        confirm: "Ne plus m'envoyer d'invitations"
+        done: "C'est fait – vous ne recevrez plus d'invitations pour %event%."
 participant_claim_link:
     page:
         title: "Reliez votre profil MySpeedPuzzling"

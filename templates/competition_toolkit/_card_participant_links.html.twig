@@ -1,7 +1,8 @@
 {#
     Participants & profiles (docs/features/competitions-management/participant-linking.md §7.5) - the first card: it
     matters before the event. Counters linking to the participants sheet's People filters, the personal claim links'
-    slips and CSV (L4a - an event with online timing: its personal links) and the claim policy radios (D3). Variables: competition, link_summary (GetParticipantLinkSummary), claim_policy (GetParticipantClaimPolicy),
+    slips and CSV (L4a - an event with online timing: its personal links), the claim invitations by e-mail (L4b) and the
+    claim policy radios (D3). Variables: competition, link_summary (GetParticipantLinkSummary), claim_policy (GetParticipantClaimPolicy),
     claim_policy_form.
 #}
 {% set sheet_url = path('participants_sheet', {competitionId: competition.id}) %}
@@ -59,6 +60,39 @@
                     <a href="{{ path('participants_claim_links_csv', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-secondary" data-turbo="false" data-claim-action="csv">
                         <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'participant_claim_link.hub.download_csv'|trans }}
                     </a>
+                </div>
+
+                {# Claim invitations by e-mail (§7.5, package L4b): to the addresses of the E-mail column - confirmed with
+                   who is skipped and why #}
+                <div class="mb-3" data-claim-invitations>
+                    {% if link_summary.invitable > 0 %}
+                        <details class="small">
+                            <summary class="btn btn-sm btn-outline-primary" data-claim-action="invite">
+                                <i class="bi bi-envelope me-1" aria-hidden="true"></i>{{ 'participant_claim_invitation.hub.send'|trans({'%count%': link_summary.invitable}) }}
+                            </summary>
+                            <div class="border rounded p-2 mt-2">
+                                <p class="mb-1">{{ 'participant_claim_invitation.sheet.emails'|trans({'%count%': link_summary.invitable}) }}</p>
+                                <p class="mb-1 text-muted">{{ 'participant_claim_invitation.sheet.same_for_everybody'|trans }}</p>
+                                {% set skipped = [] %}
+                                {% for reason, count in {no_email: link_summary.withoutEmail, invited_recently: link_summary.invitedRecently, said_no: link_summary.saidNo} %}
+                                    {% if count > 0 %}
+                                        {% set skipped = skipped|merge([('participant_claim_invitation.sheet.skipped_count.' ~ reason)|trans({'%count%': count})]) %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if skipped is not empty %}
+                                    <p class="mb-1 text-muted" data-claim-invitations-skipped>{{ 'participant_claim_invitation.sheet.skipped'|trans({'%list%': skipped|join(' · ')}) }}</p>
+                                {% endif %}
+                                <form method="post" action="{{ path('send_claim_invitations_to_everybody', {competitionId: competition.id}) }}" class="mt-2">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('claim-invitations-' ~ competition.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-primary" data-claim-invitations-confirm>
+                                        {{ 'participant_claim_invitation.sheet.confirm'|trans({'%count%': link_summary.invitable}) }}
+                                    </button>
+                                </form>
+                            </div>
+                        </details>
+                    {% else %}
+                        <p class="small text-muted mb-0" data-claim-invitations-none>{{ 'participant_claim_invitation.hub.none'|trans }}</p>
+                    {% endif %}
                 </div>
             {% endif %}
 

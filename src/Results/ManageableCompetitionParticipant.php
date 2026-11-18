@@ -29,6 +29,8 @@ readonly final class ManageableCompetitionParticipant
         public null|DateTimeImmutable $paidAt = null,
         public null|DateTimeImmutable $checkedInAt = null,
         public null|string $organizerNote = null,
+        // The organiser's private address of the person (participant-linking.md D15) - organiser surfaces only
+        public null|string $email = null,
     ) {
     }
 

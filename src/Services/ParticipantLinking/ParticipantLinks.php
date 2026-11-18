@@ -297,6 +297,26 @@ final class ParticipantLinks implements ResetInterface
         $this->log($participant, $player, $why, null, $by, $now);
     }
 
+    /**
+     * A claim invitation e-mailed to the person (participant-linking.md §5.5) - no link, so no player on the row; who
+     * sent it is the organiser
+     */
+    public function invitationSent(CompetitionParticipant $participant, null|Player $by, DateTimeImmutable $now): void
+    {
+        $this->logRepository->save(new ParticipantLinkLog(
+            id: Uuid::uuid7(),
+            competitionId: $participant->competition->id,
+            participantId: $participant->id,
+            participantName: $participant->name,
+            playerId: null,
+            playerName: '',
+            action: ParticipantLinkAction::InvitationSent,
+            method: null,
+            byPlayerId: $by?->id,
+            at: $now,
+        ));
+    }
+
     private function supersede(ParticipantLinkRequest $request, DateTimeImmutable $now): void
     {
         $request->supersede($now);

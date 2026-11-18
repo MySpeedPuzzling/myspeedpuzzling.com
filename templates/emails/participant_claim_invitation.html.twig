@@ -1,0 +1,53 @@
+{% trans_default_domain 'emails' %}
+{# The claim invitation (SendParticipantClaimInvitationHandler, docs/features/competitions-management/participant-linking.md
+   §9.1, R8): the organiser lists the person - their personal claim link links their MySpeedPuzzling profile, or lets them
+   sign in or create one. The same body whether the address has an account or not (D10); names and places are the
+   organiser's text - escaped before they go into the translation's markup. #}
+{% set event_line = 'participant_claim_invitation.event'|trans({'%event%': eventName|e}) %}
+{% set details = [] %}
+{% if dateFrom is not null %}
+    {% set details = details|merge([events_date_range(dateFrom, dateTo, 'yMMMd', locale)]) %}
+{% endif %}
+{% if place is not empty %}
+    {% set details = details|merge([place]) %}
+{% endif %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'participant_claim_invitation.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'participant_claim_invitation.title'|trans({'%event%': eventName}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>
+                        {{ (organizationName is not null ? 'participant_claim_invitation.intro_organization' : 'participant_claim_invitation.intro')|trans({
+                            '%organization%': (organizationName ?? '')|e,
+                            '%name%': participantName|e,
+                            '%event%': event_line,
+                        })|raw }}
+                        {%- if details is not empty %} ({{ details|join(', ') }}){% endif %}.
+                    </p>
+                    <p>{{ 'participant_claim_invitation.why'|trans }}</p>
+
+                    <center>
+                        <button href="{{ claimUrl }}">{{ 'participant_claim_invitation.button'|trans }}</button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p>{{ 'participant_claim_invitation.no_account'|trans }}</p>
+                    <p class="small-print">{{ 'participant_claim_invitation.opt_out'|trans({'%event%': eventName|e, '%refusalUrl%': refusalUrl|e('html_attr')})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

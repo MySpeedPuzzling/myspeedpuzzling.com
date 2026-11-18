@@ -29,6 +29,8 @@ readonly final class ParticipantImportRowData
         /** The generic team cell - the team in every pair/team round of the row */
         public null|string $team = null,
         public array $teamsByRound = [],
+        /** The organiser's address of the person - an empty cell never clears one (participant-linking.md §7.3) */
+        public null|string $email = null,
     ) {
     }
 
@@ -49,6 +51,7 @@ readonly final class ParticipantImportRowData
             'roundName' => $this->roundName,
             'team' => $this->team,
             'teamsByRound' => $this->teamsByRound,
+            'email' => $this->email,
         ];
     }
 }

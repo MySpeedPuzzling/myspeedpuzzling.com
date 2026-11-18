@@ -26,7 +26,7 @@ readonly final class GetParticipantImportStateVersion
         $query = <<<SQL
 SELECT encode(sha256(convert_to(concat_ws(E'\n',
     (
-        SELECT string_agg(json_build_array(cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at IS NULL, cp.source, cp.connected_via)::text, E'\n' ORDER BY cp.id)
+        SELECT string_agg(json_build_array(cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at IS NULL, cp.source, cp.connected_via, cp.email)::text, E'\n' ORDER BY cp.id)
         FROM competition_participant cp
         WHERE cp.competition_id = :competitionId
     ),

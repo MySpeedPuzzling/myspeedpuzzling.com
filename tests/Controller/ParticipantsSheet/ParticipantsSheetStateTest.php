@@ -144,7 +144,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
             array_column($people, 'name'),
         );
         $anna = self::find($people, OfficialResultsFixture::PARTICIPANT_ANNA);
-        self::assertSame(['id', 'name', 'country', 'externalId', 'note', 'source', 'removedAt', 'connectedAt', 'linkedVia', 'player', 'registration', 'playerResultRounds'], array_keys($anna));
+        self::assertSame(['id', 'name', 'country', 'externalId', 'note', 'email', 'invitedAt', 'invitationsRefused', 'source', 'removedAt', 'connectedAt', 'linkedVia', 'player', 'registration', 'playerResultRounds'], array_keys($anna));
         self::assertSame('cz', $anna['country']);
         self::assertNull($anna['registration'], 'The event does not manage registration');
         self::assertSame([], $anna['playerResultRounds']);

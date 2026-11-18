@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Results\ParticipantImportRemovals;
 use SpeedPuzzling\Web\Results\ParticipantImportRow;
 use SpeedPuzzling\Web\Results\ParticipantImportRowProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\ParticipantEmail;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\ParticipantImportRowAction;
@@ -198,6 +199,7 @@ final class PlanBuilder
                 connectedVia: $participant['connectedVia'] ?? null,
                 playerCode: $participant['playerCode'] ?? null,
                 playerMasked: $participant['playerMasked'] ?? false,
+                email: $participant['email'] ?? null,
             );
             $person->before = $person->state();
             $this->people[$person->key] = $person;
@@ -273,6 +275,18 @@ final class PlanBuilder
             $countryCode = CountryCode::fromCode($country);
             if ($countryCode === null) {
                 $row->messages[] = self::message('invalid_country', ['%row%' => $rowNum, '%country%' => $country]);
+            }
+        }
+
+        // The organiser's address of the person (participant-linking.md §7.3): set when the cell is filled, an empty cell
+        // keeps the one on the site, a cell that is no address is reported and the row imported without it
+        $email = null;
+        if ($data->email !== null && $data->email !== '') {
+            $email = ParticipantEmail::read($data->email);
+
+            if ($email === false) {
+                $row->messages[] = self::message('invalid_email', ['%row%' => $rowNum, '%email%' => $data->email]);
+                $email = null;
             }
         }
 
@@ -360,6 +374,9 @@ final class PlanBuilder
             if ($countryCode !== null) {
                 $person->country = $countryCode->name;
             }
+            if ($email !== null) {
+                $person->email = $email;
+            }
             // A row never takes over a link the participant has (somebody else's participant_id, a typo): a matched
             // participant keeps their player, and keeps their external id when another participant of the event
             // has the file's one - otherwise the organiser's own id is theirs to correct (as before the preview)
@@ -402,6 +419,7 @@ final class PlanBuilder
                 externalId: $externalId !== '' ? $externalId : null,
                 playerId: $validPlayerId !== null && $this->canConnect($validPlayerId, 'new:' . $rowNum, $row, $name, $cell) ? $validPlayerId : null,
                 deleted: false,
+                email: $email,
             );
             $this->people[$person->key] = $person;
 
@@ -1012,6 +1030,7 @@ final class PlanBuilder
                 'name' => $person->name,
                 'country' => $person->country,
                 'externalId' => $person->externalId,
+                'email' => $person->email,
                 'connectPlayerId' => $person->playerId !== null && $person->playerId !== ($before['playerId'] ?? null) ? $person->playerId : null,
                 'markAsImported' => $person->markAsImported,
                 'restore' => $person->isRestored(),
@@ -1230,10 +1249,10 @@ final class PlanBuilder
      */
     private function changesOf(PlanPerson $person): array
     {
-        $before = $person->before ?? ['name' => null, 'country' => null, 'externalId' => null, 'playerId' => null];
+        $before = $person->before ?? ['name' => null, 'country' => null, 'externalId' => null, 'playerId' => null, 'email' => null];
         $changes = [];
 
-        foreach (['name' => 'name', 'country' => 'country', 'externalId' => 'external_id', 'playerId' => 'msp_player_id'] as $property => $field) {
+        foreach (['name' => 'name', 'country' => 'country', 'externalId' => 'external_id', 'playerId' => 'msp_player_id', 'email' => 'email'] as $property => $field) {
             $old = $before[$property];
             $new = $person->state()[$property];
 

@@ -18,12 +18,13 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport\Plan;
  * reserved, registered now), `disconnect` (the player link cleared), `organizerNote` (present = set to that value, null
  * clears), `leaveWaitlist` (a restored row of an event that does not manage registration), `id` of a new team,
  * `notThem` (the cleared link is the organiser's "Not this person", participant-linking.md D11) and `declinedRequests`
- * (link requests the organiser declined, §5.3).
+ * (link requests the organiser declined, §5.3). `email` (present = set to that address, null clears) is the import's too
+ * (its Email column) and the sheet's (participant-linking.md §7.1, §7.3).
  */
 readonly final class ParticipantImportOperations
 {
     /**
-     * @param list<array{key: string, name: string, country: null|string, externalId: null|string, connectPlayerId: null|string, markAsImported: bool, restore: bool, softDelete: bool, changed: bool, id?: string, source?: string, reserve?: bool, disconnect?: bool, notThem?: bool, organizerNote?: null|string, leaveWaitlist?: bool}> $participants
+     * @param list<array{key: string, name: string, country: null|string, externalId: null|string, connectPlayerId: null|string, markAsImported: bool, restore: bool, softDelete: bool, changed: bool, id?: string, source?: string, reserve?: bool, disconnect?: bool, notThem?: bool, organizerNote?: null|string, email?: null|string, leaveWaitlist?: bool}> $participants
      *        created (key "new:…") or changed (key = participant id) participants; values are the state after the write,
      *        `changed` = a value the organiser sees changes (not only markAsImported())
      * @param list<array{key: string, roundId: string, name: null|string, id?: string}> $newTeams

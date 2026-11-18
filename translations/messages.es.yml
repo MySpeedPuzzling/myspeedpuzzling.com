@@ -4455,6 +4455,7 @@ fair_use_policy:
       "player_linked_elsewhere": "Fila %row%: el msp_player_id \"%id%\" ya está conectado a \"%other%\" en este evento, así que no se ha conectado a \"%name%\"."
       "deleted_kept_with_results": "Fila %row%: \"%name%\" tiene resultados en este evento, así que se ignora el estado \"deleted\" y se queda."
       "self_joined_left": "Fila %row%: \"%name%\" se apuntó por su cuenta en MySpeedPuzzling y luego dejó el evento, así que la fila se ha omitido. Si al final participa, añádelo en la página de participantes."
+      invalid_email: "Fila %row%: \"%email%\" no es una dirección de correo; la fila se importa sin ella."
       linking:
         invalid_player_reference: "Fila %row%: \"%reference%\" no es un #código, un ID de jugador ni un enlace de perfil de MySpeedPuzzling; la fila se importa sin perfil."
         unknown_player_reference: "Fila %row%: no existe el jugador de MySpeedPuzzling %reference%; la fila se importa sin perfil."
@@ -4587,6 +4588,7 @@ fair_use_policy:
         "participant_id": "ID de participante"
         "external_id": "ID externo"
         "status": "Estado"
+        email: "Correo electrónico (privado, para la invitación de vinculación)"
       "confirm":
         "nothing_saved_yet": "Todavía no se ha guardado nada."
         "button": "Confirmar importación"
@@ -15418,6 +15420,51 @@ results_import_counts:
     summary: "Resultados - nuevos: %added%, cambiados: %updated%, eliminados: %removed%"
     summary_of_category: "Resultados (%category%) - nuevos: %added%, cambiados: %updated%, eliminados: %removed%"
     name_column: "Nombre"
+participant_claim_invitation:
+    sheet:
+        column_email: "Correo"
+        column_email_title: "Privado: solo lo ven los organizadores del evento y solo se usa para la invitación de vinculación"
+        column_invited: "Invitado"
+        paste_change_email: "Correo %from% → %to%"
+        said_no: "Rechazó las invitaciones"
+        send: "Enviar invitación"
+        send_help: "Su enlace de vinculación por correo a %email%"
+        bulk: "Enviar invitaciones"
+        none: "Ahora mismo nadie de ellos puede recibir una invitación."
+        failed: "No se pudieron enviar las invitaciones; vuelve a intentarlo."
+        same_for_everybody: "Todos reciben el mismo correo con su propio enlace de vinculación: les permite iniciar sesión o crear una cuenta. A nadie se le dice si una dirección tiene cuenta."
+        sending: "Enviando…"
+        title: "{0}Enviar invitaciones a 0 personas|{1}Enviar una invitación a 1 persona|]1,Inf[Enviar invitaciones a %count% personas"
+        emails: "{0}Se envían 0 correos.|{1}Se envía 1 correo.|]1,Inf[Se envían %count% correos."
+        confirm: "{0}Enviar 0 invitaciones|{1}Enviar 1 invitación|]1,Inf[Enviar %count% invitaciones"
+        sent: "{0}No se envió ninguna invitación.|{1}1 invitación enviada.|]1,Inf[%count% invitaciones enviadas."
+        skipped: "Omitidos: %list%."
+        skip:
+            not_on_list: "Ya no está en la lista"
+            linked: "Ya está vinculado a un perfil"
+            no_email: "Añade primero su correo en la columna Correo"
+            said_no: "Rechazó las invitaciones para este evento"
+            invited_recently: "Invitado en las últimas 24 horas: como máximo una invitación al día"
+        skipped_count:
+            not_on_list: "{0}0 fuera de la lista|{1}1 fuera de la lista|]1,Inf[%count% fuera de la lista"
+            linked: "{0}0 ya vinculados|{1}1 ya vinculado|]1,Inf[%count% ya vinculados"
+            no_email: "{0}0 sin correo|{1}1 sin correo|]1,Inf[%count% sin correo"
+            said_no: "{0}0 rechazaron las invitaciones|{1}1 rechazó las invitaciones|]1,Inf[%count% rechazaron las invitaciones"
+            invited_recently: "{0}0 invitados en las últimas 24 horas|{1}1 invitado en las últimas 24 horas|]1,Inf[%count% invitados en las últimas 24 horas"
+        reason:
+            invalid_email: "\"%email%\" no es una dirección de correo."
+    error:
+        not_public: "Las invitaciones se envían cuando el evento esté publicado; a partir de entonces funcionan sus enlaces de vinculación."
+        online_timing: "Este evento usa cronometraje en línea: sus enlaces personales vinculan a las personas con sus perfiles; reparte esos en su lugar."
+    hub:
+        send: "Enviar invitaciones a todos los no vinculados con correo (%count%)"
+        none: "Añade las direcciones de correo de las personas en la hoja de participantes (columna Correo) o en tu archivo para enviarles sus enlaces de vinculación por correo."
+        form_expired: "La página estuvo abierta demasiado tiempo; vuelve a intentarlo."
+    refuse:
+        headline: "Invitaciones para este evento"
+        text: "¿No quieres recibir más correos que te invitan a vincular tu perfil a %event%?"
+        confirm: "No enviarme más invitaciones"
+        done: "Listo: no te enviaremos más invitaciones para %event%."
 participant_claim_link:
     page:
         title: "Vincula tu perfil de MySpeedPuzzling"

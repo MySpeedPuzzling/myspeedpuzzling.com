@@ -22,6 +22,10 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
         public null|string $externalId,
         // The organiser's private note
         public null|string $note,
+        // The organiser's private address of the person and the claim invitations (participant-linking.md §7.1, L4b)
+        public null|string $email,
+        public null|DateTimeImmutable $invitedAt,
+        public bool $invitationsRefused,
         // ParticipantSource value: self_joined | imported | manual
         public string $source,
         public null|DateTimeImmutable $removedAt,
@@ -41,7 +45,7 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
     }
 
     /**
-     * @return array{id: string, name: string, country: null|string, externalId: null|string, note: null|string, source: string, removedAt: null|string, connectedAt: null|string, linkedVia: null|string, player: null|ParticipantsSheetPlayer, registration: null|ParticipantsSheetRegistration, playerResultRounds: list<string>, online?: ParticipantsSheetOnlineLink}
+     * @return array{id: string, name: string, country: null|string, externalId: null|string, note: null|string, email: null|string, invitedAt: null|string, invitationsRefused: bool, source: string, removedAt: null|string, connectedAt: null|string, linkedVia: null|string, player: null|ParticipantsSheetPlayer, registration: null|ParticipantsSheetRegistration, playerResultRounds: list<string>, online?: ParticipantsSheetOnlineLink}
      */
     public function jsonSerialize(): array
     {
@@ -51,6 +55,9 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
             'country' => $this->country,
             'externalId' => $this->externalId,
             'note' => $this->note,
+            'email' => $this->email,
+            'invitedAt' => $this->invitedAt?->format(DateTimeImmutable::ATOM),
+            'invitationsRefused' => $this->invitationsRefused,
             'source' => $this->source,
             'removedAt' => $this->removedAt?->format(DateTimeImmutable::ATOM),
             'connectedAt' => $this->connectedAt?->format(DateTimeImmutable::ATOM),

@@ -1,0 +1,29 @@
+{# "Don't send me more invitations for this event" (ParticipantClaimInvitationsRefuseController, participant-linking.md
+   §9.1): GET only shows this page, its button POSTs. Names the event only. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'participant_claim_invitation.refuse.headline'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'participant_claim_invitation.refuse.headline'|trans }}</h1>
+
+            {% if not refused %}
+                <p>{{ 'participant_claim_invitation.refuse.text'|trans({'%event%': event_name}) }}</p>
+
+                <form action="{{ action_url }}" method="post" class="mb-3" data-testid="claim-invitations-refuse-form">
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'participant_claim_invitation.refuse.confirm'|trans }}
+                    </button>
+                </form>
+            {% else %}
+                <div class="alert alert-info" role="alert" data-testid="claim-invitations-refused">
+                    <i class="ci-check-circle me-2"></i>
+                    {{ 'participant_claim_invitation.refuse.done'|trans({'%event%': event_name}) }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

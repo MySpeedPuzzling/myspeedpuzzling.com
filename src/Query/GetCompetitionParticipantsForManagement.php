@@ -28,6 +28,7 @@ SELECT
     cp.paid_at,
     cp.checked_in_at,
     cp.organizer_note,
+    cp.email,
     p.id AS player_id,
     p.name AS player_name,
     p.code AS player_code,
@@ -130,6 +131,7 @@ SQL;
          *     paid_at: null|string,
          *     checked_in_at: null|string,
          *     organizer_note: null|string,
+         *     email: null|string,
          *     player_id: null|string,
          *     player_name: null|string,
          *     player_code: null|string,
@@ -154,6 +156,7 @@ SQL;
             paidAt: $row['paid_at'] !== null ? new DateTimeImmutable($row['paid_at']) : null,
             checkedInAt: $row['checked_in_at'] !== null ? new DateTimeImmutable($row['checked_in_at']) : null,
             organizerNote: $row['organizer_note'],
+            email: $row['email'],
         );
     }
 }

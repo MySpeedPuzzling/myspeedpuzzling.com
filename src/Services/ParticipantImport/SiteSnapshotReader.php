@@ -72,7 +72,7 @@ readonly final class SiteSnapshotReader
         $refusing = GetRefusedParticipantLinks::sqlRefusingActions();
         $participantRows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at, cp.source, cp.organizer_note, cp.registration_status,
+SELECT cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at, cp.source, cp.organizer_note, cp.email, cp.registration_status,
     cp.connected_via, p.name AS player_name, p.code AS player_code, {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private,
     -- Refused pairs (participant-linking.md D11): the players the log says no to for this row - an import never links them
     (
@@ -89,7 +89,7 @@ SQL,
             $parameters,
         );
         foreach ($participantRows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted_at: null|string, source: string, organizer_note: null|string, registration_status: null|string, connected_via: null|string, player_name: null|string, player_code: null|string, player_is_private: null|bool, refused_player_ids: null|string} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted_at: null|string, source: string, organizer_note: null|string, email: null|string, registration_status: null|string, connected_via: null|string, player_name: null|string, player_code: null|string, player_is_private: null|bool, refused_player_ids: null|string} $row */
             $participants[] = [
                 'id' => $row['id'],
                 'name' => $row['name'],
@@ -100,6 +100,7 @@ SQL,
                 'deletedAt' => $row['deleted_at'] !== null ? new DateTimeImmutable($row['deleted_at']) : null,
                 'selfJoined' => $row['source'] === 'self_joined',
                 'organizerNote' => $row['organizer_note'],
+                'email' => $row['email'],
                 'registrationStatus' => $row['registration_status'],
                 'connectedVia' => $row['player_id'] !== null ? $row['connected_via'] : null,
                 'playerCode' => $row['player_code'],

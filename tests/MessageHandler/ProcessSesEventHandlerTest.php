@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Value\BounceType;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
@@ -118,6 +119,78 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         self::assertNotNull($this->reloadAuditLog($auditLog)->complainedAt);
         self::assertTrue($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->newsletterEnabled);
         self::assertFalse(self::getContainer()->get(EmailSuppressionRepository::class)->isSuppressed(PlayerFixture::PLAYER_REGULAR_EMAIL));
+    }
+
+    /**
+     * participant-linking.md R8: a claim invitation goes to an address an organiser typed in - a complaint suppresses it
+     * for claim invitations (every event), and holds back nothing else: no banner, notifications still go
+     */
+    public function testAComplaintAboutAClaimInvitationStopsClaimInvitationsOnly(): void
+    {
+        $this->complain('participant_claim_invitation');
+
+        $suppression = self::getContainer()->get(EmailSuppressionRepository::class)->findByEmail(PlayerFixture::PLAYER_REGULAR_EMAIL);
+        self::assertNotNull($suppression);
+        self::assertSame(EmailSuppressionSource::InvitationComplaint, $suppression->source);
+        self::assertTrue($suppression->holdsBackClaimInvitations(TestClock::now()));
+        self::assertFalse($suppression->isInEffect(TestClock::now()), 'No other e-mail is held back');
+
+        $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
+        self::assertTrue($player->emailNotificationsEnabled);
+        self::assertTrue($player->resultEmailsEnabled);
+        self::assertTrue($player->newsletterEnabled);
+
+        // Complained again: still the one row
+        $this->complain('participant_claim_invitation');
+        self::assertCount(1, $this->entityManager->getConnection()->fetchAllAssociative('SELECT id FROM email_suppression WHERE email = :email', ['email' => strtolower(PlayerFixture::PLAYER_REGULAR_EMAIL)]));
+    }
+
+    /**
+     * R8 on an address with a full inbox: the full inbox keeps pausing notifications, the complaint is kept beside it -
+     * a delivery lifting the pause leaves the complaint, no invitation goes there ever again
+     */
+    public function testAComplaintAboutAnInvitationToAFullInboxOutlivesThePause(): void
+    {
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+        $this->mailboxFull('full@example.com', '2026-10-05T08:00:00.000Z');
+        $this->mailboxFull('full@example.com', '2026-10-20T08:00:00.000Z');
+        $this->mailboxFull('full@example.com', '2026-11-03T08:00:00.000Z');
+
+        $this->complain('participant_claim_invitation', 'full@example.com');
+
+        $suppression = $suppressions->findByEmail('full@example.com');
+        self::assertNotNull($suppression);
+        self::assertSame(EmailSuppressionSource::MailboxFull, $suppression->source);
+        self::assertTrue($suppression->isInEffect(new DateTimeImmutable('2026-11-20')), 'Notifications still pause');
+        self::assertNotNull($suppression->invitationsComplainedAt);
+
+        // The inbox has room again: the pause goes, the complaint stays
+        $delivered = $this->auditLog('password_reset', 'full@example.com');
+        $this->process($this->event('Delivery', $delivered, ['delivery' => ['timestamp' => '2026-11-05T08:00:00.000Z']], recipients: ['full@example.com']));
+
+        $suppression = $suppressions->findByEmail('full@example.com');
+        self::assertNotNull($suppression);
+        self::assertSame(EmailSuppressionSource::InvitationComplaint, $suppression->source);
+        self::assertFalse($suppression->isInEffect(new DateTimeImmutable('2026-11-06')));
+        self::assertTrue($suppression->holdsBackClaimInvitations(new DateTimeImmutable('2027-06-01')));
+    }
+
+    public function testAFullInboxAfterAComplaintAboutAnInvitationStillPausesNotifications(): void
+    {
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+        $this->complain('participant_claim_invitation', 'full@example.com');
+
+        $this->mailboxFull('full@example.com', '2026-10-05T08:00:00.000Z');
+        $this->mailboxFull('full@example.com', '2026-10-20T08:00:00.000Z');
+        $this->mailboxFull('full@example.com', '2026-11-03T08:00:00.000Z');
+
+        $suppression = $suppressions->findByEmail('full@example.com');
+        self::assertNotNull($suppression);
+        self::assertSame(EmailSuppressionSource::MailboxFull, $suppression->source);
+        self::assertTrue($suppression->isInEffect(new DateTimeImmutable('2026-11-20')));
+        // Long after the pause expired: still no invitation
+        self::assertFalse($suppression->isInEffect(new DateTimeImmutable('2027-06-01')));
+        self::assertTrue($suppression->holdsBackClaimInvitations(new DateTimeImmutable('2027-06-01')));
     }
 
     public function testABounceOrComplaintAboutASandboxMailChangesNothingOnProduction(): void
@@ -388,14 +461,14 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         return $auditLog;
     }
 
-    private function complain(string $emailType): EmailAuditLog
+    private function complain(string $emailType, string $recipient = PlayerFixture::PLAYER_REGULAR_EMAIL): EmailAuditLog
     {
-        $auditLog = $this->auditLog($emailType, PlayerFixture::PLAYER_REGULAR_EMAIL);
+        $auditLog = $this->auditLog($emailType, $recipient);
 
         $this->process($this->event('Complaint', $auditLog, ['complaint' => [
-            'complainedRecipients' => [['emailAddress' => PlayerFixture::PLAYER_REGULAR_EMAIL]],
+            'complainedRecipients' => [['emailAddress' => $recipient]],
             'timestamp' => '2026-10-12T10:00:00.000Z',
-        ]], recipients: [PlayerFixture::PLAYER_REGULAR_EMAIL]));
+        ]], recipients: [$recipient]));
 
         return $auditLog;
     }

@@ -194,6 +194,43 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
+     * The event's participants a claim invitation is asked for (participant-linking.md §5.5) - removed ones included,
+     * SendParticipantClaimInvitations says why they get none; null = every participant of the event.
+     *
+     * @param null|list<string> $participantIds
+     * @return list<CompetitionParticipant>
+     */
+    public function ofCompetitionForInvitations(string $competitionId, null|array $participantIds): array
+    {
+        if (!Uuid::isValid($competitionId)) {
+            return [];
+        }
+
+        $builder = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.competition = :competitionId')
+            ->setParameter('competitionId', $competitionId)
+            ->orderBy('participant.name', 'ASC')
+            ->addOrderBy('participant.id', 'ASC');
+
+        if ($participantIds !== null) {
+            $participantIds = array_values(array_filter($participantIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+            if ($participantIds === []) {
+                return [];
+            }
+
+            $builder->andWhere('participant.id IN (:ids)')->setParameter('ids', $participantIds);
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $builder->getQuery()->getResult();
+
+        return $participants;
+    }
+
+    /**
      * The participant a personal claim link belongs to, with its competition and linked player - removed ones included,
      * the caller decides. A malformed token never reaches the database.
      *

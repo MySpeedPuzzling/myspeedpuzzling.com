@@ -170,6 +170,7 @@ but they need warm-up and steady volume we don't have. Every stream stays on SES
 | Complaint, `content_digest_activity` / `content_digest_miss_you` | `content_digest_frequency = off` |
 | Complaint, `unread_digest` | `email_notifications_enabled = false` |
 | Complaint, `result_review` | `result_emails_enabled = false` |
+| Complaint, `participant_claim_invitation` (participant-linking.md R8) | `email_suppression` row `source = invitation_complaint`: no claim invitation to the address from any event any more - **nothing else held back** (not `isInEffect()` / `MailboxFullRule::sqlInEffect()`: no banner, notifications still go); a bounce or a full inbox later turns it into that source; the complaint is kept in `invitations_complained_at` (also set on an address already suppressed, and a delivery lifting a full inbox leaves the row as `invitation_complaint`) |
 | Complaint, anything transactional | `complained_at` only |
 | Reject / Rendering Failure | warning (→ Sentry) |
 

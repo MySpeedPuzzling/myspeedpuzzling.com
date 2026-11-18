@@ -319,6 +319,9 @@ FROM (
         cp.country,
         cp.external_id,
         cp.organizer_note,
+        cp.email,
+        cp.claim_invited_at,
+        cp.claim_invitations_refused_at,
         cp.source,
         cp.deleted_at,
         cp.connected_at,
@@ -371,7 +374,7 @@ SQL,
 
         $people = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, connected_via: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, online_token: null|string, uses_online_timing: bool} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, email: null|string, claim_invited_at: null|string, claim_invitations_refused_at: null|string, source: string, deleted_at: null|string, connected_at: null|string, connected_via: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, online_token: null|string, uses_online_timing: bool} $row */
             $playerId = $row['player_id'] !== null ? strtolower($row['player_id']) : null;
             $managed = $registrationManaged ?? $row['registration_managed'];
             // A removed participant's link opens nothing any more (OnlineAccess) - not shown
@@ -383,6 +386,9 @@ SQL,
                 country: $row['country'],
                 externalId: $row['external_id'],
                 note: $row['organizer_note'],
+                email: $row['email'],
+                invitedAt: self::date($row['claim_invited_at']),
+                invitationsRefused: $row['claim_invitations_refused_at'] !== null,
                 source: $row['source'],
                 removedAt: self::date($row['deleted_at']),
                 connectedAt: self::date($row['connected_at']),

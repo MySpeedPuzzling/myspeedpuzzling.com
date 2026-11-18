@@ -26,6 +26,9 @@ readonly final class SheetChangeOutcome
     /** The refusals of accepted link suggestions (participant-linking.md §5.3, R7) - texts under participant_link_suggestions */
     public const array SUGGESTION_REASONS = ['merge_by_hand'];
 
+    /** The E-mail column's refusal (participant-linking.md §7.1, package L4b) - its text lives with the invitations */
+    public const array INVITATION_REASONS = ['invalid_email'];
+
     /**
      * @param array<string, null|string|int> $parameters
      */
@@ -73,6 +76,10 @@ readonly final class SheetChangeOutcome
 
         if (in_array($this->reason, self::SUGGESTION_REASONS, true)) {
             return 'participant_link_suggestions.sheet.reason.' . $this->reason;
+        }
+
+        if (in_array($this->reason, self::INVITATION_REASONS, true)) {
+            return 'participant_claim_invitation.sheet.reason.' . $this->reason;
         }
 
         return 'participants_sheet_server.reason.' . $this->reason . ($this->cause !== null ? '_' . $this->cause : '');

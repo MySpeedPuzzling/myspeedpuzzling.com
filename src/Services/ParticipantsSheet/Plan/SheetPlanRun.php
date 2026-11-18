@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\LinkRequestStatus;
+use SpeedPuzzling\Web\Value\ParticipantEmail;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -56,7 +57,7 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  * The working state is plain arrays on purpose: saving and restoring it around a group is an assignment (copy on
  * write), whatever the group did.
  *
- * @phpstan-type Person array{name: string, country: null|string, externalId: null|string, playerId: null|string, note: null|string, deleted: bool, selfJoined: bool, markAsImported: bool, waitlisted: bool, new: bool}
+ * @phpstan-type Person array{name: string, country: null|string, externalId: null|string, playerId: null|string, note: null|string, email: null|string, deleted: bool, selfJoined: bool, markAsImported: bool, waitlisted: bool, new: bool}
  * @phpstan-type Entry array{id: null|string, present: bool, team: null|string, ownData: bool}
  * @phpstan-type Team array{roundId: string, name: null|string, new: bool, deleted: bool}
  * @phpstan-type Round array{name: string, category: RoundCategory, teamSize: null|int}
@@ -153,6 +154,7 @@ final class SheetPlanRun
                 'externalId' => $participant['externalId'],
                 'playerId' => $participant['playerId'],
                 'note' => $participant['organizerNote'],
+                'email' => $participant['email'] ?? null,
                 'deleted' => $participant['deletedAt'] !== null,
                 'selfJoined' => $participant['selfJoined'],
                 'markAsImported' => false,
@@ -374,6 +376,7 @@ final class SheetPlanRun
             'externalId' => $externalId,
             'playerId' => null,
             'note' => null,
+            'email' => null,
             'deleted' => false,
             'selfJoined' => false,
             'markAsImported' => false,
@@ -467,6 +470,19 @@ final class SheetPlanRun
                 $current = self::cleanText($person['note']);
                 $from = self::cleanText($from);
                 break;
+
+            case SheetChangeField::Email:
+                // participant-linking.md §7.1: one address, canonical; families may share one - allowed
+                $email = ParticipantEmail::read($to);
+
+                if ($email === false) {
+                    return $this->refused($change, $index, 'invalid_email', ['email' => (string) $to]);
+                }
+
+                $to = $email;
+                $current = $person['email'];
+                $from = $from !== null && ParticipantEmail::canonicalize($from) !== '' ? ParticipantEmail::canonicalize($from) : null;
+                break;
         }
 
         if ($current === $to) {
@@ -486,6 +502,7 @@ final class SheetPlanRun
             SheetChangeField::Country => $person['country'] = $to,
             SheetChangeField::ExternalId => $person['externalId'] = $to,
             SheetChangeField::Note => $person['note'] = $to,
+            SheetChangeField::Email => $person['email'] = $to,
         };
 
         $this->people[$id] = $person;
@@ -1339,6 +1356,7 @@ final class SheetPlanRun
                 SheetChangeField::Country => $this->people[(string) $change->participantId]['country'] ?? null,
                 SheetChangeField::ExternalId => $this->people[(string) $change->participantId]['externalId'] ?? null,
                 SheetChangeField::Note => $this->people[(string) $change->participantId]['note'] ?? null,
+                SheetChangeField::Email => $this->people[(string) $change->participantId]['email'] ?? null,
                 null => null,
             },
             SheetChangeOp::Player => $this->people[(string) $change->participantId]['playerId'] ?? null,
@@ -1464,6 +1482,10 @@ final class SheetPlanRun
 
             if ($person['note'] !== $before['note']) {
                 $operation['organizerNote'] = $person['note'];
+            }
+
+            if ($person['email'] !== $before['email']) {
+                $operation['email'] = $person['email'];
             }
 
             $participants[] = $operation;

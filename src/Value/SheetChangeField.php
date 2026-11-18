@@ -13,4 +13,6 @@ enum SheetChangeField: string
     case Country = 'country';
     case ExternalId = 'externalId';
     case Note = 'note';
+    // The organiser's private address of the person (participant-linking.md §7.1) - for the claim invitation
+    case Email = 'email';
 }

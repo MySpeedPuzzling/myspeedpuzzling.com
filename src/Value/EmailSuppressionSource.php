@@ -21,6 +21,14 @@ enum EmailSuppressionSource: string
      */
     case MailboxFull = 'mailbox_full';
 
+    /**
+     * The person marked a claim invitation as spam (docs/features/competitions-management/participant-linking.md R8): no
+     * more claim invitations to the address from any event - and nothing else changes (Jan's rule: a complaint switches
+     * off only what was complained about). Holds back no other mail, shows no banner (isInEffect(), sqlInEffect()); a
+     * real bounce later turns it into that source.
+     */
+    case InvitationComplaint = 'invitation_complaint';
+
     /** Put there by hand through the internal API, with a reason the player reads: nothing at all is sent */
     case Manual = 'manual';
 }

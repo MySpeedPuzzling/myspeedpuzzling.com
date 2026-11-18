@@ -38,6 +38,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '10 minutes',
             ],
+            // Per client IP, and every test request comes from the same one - a test of the limit sends its own address
+            'participant_claim_page' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+            ],
             'event_result_claim' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

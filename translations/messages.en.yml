@@ -15641,6 +15641,73 @@ results_import_counts:
     summary_of_category: "%category% results - new: %added%, changed: %updated%, removed: %removed%"
     name_column: "Name"
 
+participant_claim_link:
+    page:
+        title: "Link your MySpeedPuzzling profile"
+        not_valid: "This link is not valid any more. Ask the organiser for a new one."
+        too_many: "Too many tries in a short time - please wait a minute and open the link again."
+        draft_team: "This link works once the event is published."
+        is_this_you: "%name% - is this you?"
+        guest_help: "Sign in or create an account - you come back here and link your profile to this name on the participant list."
+        sign_in: "Sign in"
+        create_account: "Create an account"
+        confirm: "Yes, link my profile"
+        already_yours: "You're linked to this name."
+        open_event: "Open the event"
+        belongs_to_other: "This name is already linked to another profile."
+        dispute: "It's me - tell the organiser"
+        other_participant: "You are on this list as %other%. Switch to %name%?"
+        other_paid: "Your paid registration as %other% will be let go of."
+        switch: "Switch to %name%"
+    flash:
+        linked: "Linked - this name on the participant list is you now."
+        already_yours: "You are linked to this name already."
+        dispute_sent: "We asked the organiser to check who this name belongs to."
+        too_many: "Too many tries in a short time - please wait a minute and try again."
+        no_profile: "Your account has no player profile yet - please finish setting it up first."
+    csv:
+        name: "Name"
+        country: "Country"
+        external_id: "External ID"
+        link: "Claim link"
+    slips:
+        kind: "Claim slips"
+        hint: "One slip for each person on your list not linked to a profile yet - hand each slip to that one person, with their badge. Whoever scans it signed in is linked to that name at once."
+        text: "Scan to link your MySpeedPuzzling profile. Keep this slip to yourself."
+        waitlisted: "On the waitlist"
+        empty: "Everybody on your list is linked to a profile - no slips to print."
+        online_timing: "This event uses online timing: its personal links link people to their profiles too - hand those out instead."
+        online_timing_link: "Print the personal links"
+    sheet:
+        copy: "Copy claim link"
+        qr: "Show claim QR"
+        renew: "New claim link"
+        renew_help: "The link handed out before stops working"
+        renew_confirm: "Make a new claim link for %name%? The link you handed out before stops working."
+        renewed: "New claim link for %name% - the old one stops working."
+        copied: "The link of %name% is copied."
+        failed: "The claim link could not be made - please try again."
+        copy_online: "Copy personal link"
+        copy_online_failed: "Copying was refused - the link: %link%"
+        dialog_title: "Personal claim link"
+        dialog_help: "Whoever opens this link signed in is linked to this name at once - hand it to this person only."
+        dialog_copy: "Copy"
+        dialog_copied: "Copied"
+        error:
+            participant_not_found: "This person is not on the list any more."
+            already_linked: "This person is linked to a profile already - no claim link needed."
+            online_timing: "This event uses online timing - hand out the personal link instead."
+    check_in:
+        not_linked: "Not linked"
+        show_qr: "Show QR"
+        close: "Close"
+    hub:
+        help: "Hand each person not linked yet their own claim link - it links them at once, whatever the setting below."
+        print_slips: "Print claim slips"
+        download_csv: "Download claim links (CSV)"
+        online_help: "The personal links of your online competition link people to their profiles too."
+        personal_links: "Personal links"
+
 participant_linking:
     sheet_suffix:
         by_themselves: "by themselves"

@@ -14660,6 +14660,8 @@ public_standing:
     flash:
         published: "総合順位「%name%」を公開しました。"
         unpublished: "総合順位「%name%」を非公開にしました。"
+    live:
+        updated: "%time%に更新"
 advancement_step:
     card:
         none: "進出ステップはまだありません。ステップでは、誰が勝ち進むかを決めます：「各グループの上位8人が準決勝へ」。"

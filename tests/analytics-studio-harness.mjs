@@ -19,11 +19,14 @@ import {
     compareTable,
     DEFAULT_SORT,
     entrantRows,
+    hasPredictionColumn,
     initialView,
     MAX_COMPARE,
+    mergeRoundPredictions,
     officialRanking,
     predictionOf,
     resultOf,
+    roundSource,
     slotsOf,
     stepSlot,
     toggleCompare,
@@ -43,6 +46,10 @@ import {
     RECONNECT_JITTER_MS,
     REVEAL_GRACE_MS,
     revealDelay,
+    ROUND_PREDICTIONS_READY_MS,
+    ROUND_PREDICTIONS_STALLED_MS,
+    ROUND_PREDICTIONS_WARMING_MS,
+    ROUND_PREDICTIONS_WARMING_TRIES,
     SIGNAL_JITTER_MS,
     SIGNAL_MIN_GAP_MS,
     SIGNAL_SETTLE_MS,
@@ -78,6 +85,7 @@ export const ENGLISH = {
     'sort.best': 'Best on this puzzle',
     'sort.rating': 'MSP Rating',
     'sort.rank': 'Official rank',
+    'sort.prediction': 'Prediction',
     'filter.all': 'All',
     'filter.solved': 'Solved this puzzle',
     'filter.never': 'Never solved',
@@ -156,6 +164,9 @@ export const ENGLISH = {
     'prediction.range': '(%range%)',
     'prediction.method.personal': 'from their own times',
     'prediction.method.general': 'from similar puzzlers',
+    'prediction.cell_title': 'Time prediction now',
+    'prediction.warming': 'Calculating predictions…',
+    'prediction.unavailable': 'Predictions are not available right now',
     'similar.brand': 'Same brand, %pieces% pieces',
     'similar.size': 'All %pieces% pieces',
     'similar.count': 'Solved',
@@ -487,6 +498,121 @@ scenario('predictions: from the entrant answer, else the predictions answer; opt
     assert.equal(predictionOf({ entrant: ENTRANT }, E(1), 0, null).status, 'none');
 });
 
+// ---- the prediction column (v2 R31-R33)
+
+// The `round-predictions` answer of the fixture round (solo; A and B visible): E1 + E5 values on A, E2 opted out,
+// E3/E4 private/unlinked `{}`, E6 a public player without a model `{predictionsOptedOut: false, prediction: {}}`
+function roundAnswer(status = 'ready', { hash = STATE.visibleHash, without = [] } = {}) {
+    const value = (seconds) => ({ seconds, low50: seconds - 200, high50: seconds + 200, low80: null, high80: null, method: 'personal' });
+    const entrants = {
+        [E(1)]: { members: [{ predictionsOptedOut: false, prediction: { [A]: value(2580), [B]: value(2990) } }] },
+        [E(2)]: { members: [{ predictionsOptedOut: true, prediction: null }] },
+        [E(3)]: { members: [{}] },
+        [E(4)]: { members: [{}] },
+        [E(5)]: { members: [{ predictionsOptedOut: false, prediction: { [A]: value(2400) } }] },
+        [E(6)]: { members: [{ predictionsOptedOut: false, prediction: {} }] },
+    };
+
+    for (const key of without) {
+        entrants[key] = { members: [] };
+    }
+
+    return { visibleHash: hash, status, entrants };
+}
+
+function predictionRows(roundPredictions, { state = STATE, label = 'A', entrant = null, predictions = null } = {}) {
+    const slot = activeSlot(state, label);
+
+    return entrantRows(state, ANALYTICS, slot?.visible ? slot.key : null, { entrant, predictions, round: roundSource(state, roundPredictions) });
+}
+
+scenario('prediction sort: fastest first, opted out / none / private last by name; offered only when ready', () => {
+    const ready = roundAnswer('ready');
+    const slot = activeSlot(STATE, 'A');
+    const rows = predictionRows(ready);
+    const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
+    assert.equal(byKey[E(1)].predictionSeconds, 2580);
+    assert.equal(byKey[E(5)].predictionSeconds, 2400);
+    assert.equal(byKey[E(2)].predictionStatus, 'optedOut');
+    assert.equal(byKey[E(3)].predictionStatus, 'none', 'private: nothing');
+    assert.equal(byKey[E(6)].predictionStatus, 'none', 'no model: nothing');
+    assert.equal(byKey[E(6)].predictionSeconds, null);
+
+    assert.deepEqual(availableSorts(STATE, slot, ready), ['name', 'table', 'solves', 'best', 'prediction', 'rating']);
+    const sorted = visibleRows(rows, { sort: 'prediction', state: STATE, slot, roundPredictions: ready }).map((row) => row.key);
+    // 40:00, 43:00, then the rest by name (Ben, Kim, José, Zoë - folded)
+    assert.deepEqual(sorted, [E(5), E(1), E(2), E(4), E(3), E(6)]);
+    assert.deepEqual(sorted.slice(2), shownKeys({ sort: 'name' }).filter((key) => ![E(1), E(5)].includes(key)));
+
+    // Not ready (warming, nothing yet, another visible set): no sort - the list keeps its name order
+    for (const answer of [roundAnswer('warming', { without: [E(1)] }), null, roundAnswer('ready', { hash: 'another' })]) {
+        assert.ok(!availableSorts(STATE, slot, answer).includes('prediction'));
+        assert.deepEqual(visibleRows(predictionRows(answer), { sort: 'prediction', state: STATE, slot, roundPredictions: answer }).map((row) => row.key), shownKeys({ sort: 'name' }));
+    }
+
+    // A hidden slot, a pair round: never
+    assert.ok(!availableSorts(STATE, activeSlot(STATE, 'C'), ready).includes('prediction'));
+    assert.equal(hasPredictionColumn(STATE, activeSlot(STATE, 'C')), false);
+    const { state: pairs } = pairState();
+    assert.equal(hasPredictionColumn(pairs, activeSlot(pairs, 'A')), false);
+    assert.ok(!availableSorts(pairs, activeSlot(pairs, 'A'), { ...ready, visibleHash: pairs.visibleHash }).includes('prediction'));
+    // Slot B: only E1 has a value there
+    assert.deepEqual(visibleRows(predictionRows(ready, { label: 'B' }), { sort: 'prediction', state: STATE, slot: activeSlot(STATE, 'B'), roundPredictions: ready }).map((row) => row.key)[0], E(1));
+});
+
+scenario('prediction sources: entrant > compare > round; a member missing from the round answer is pending', () => {
+    const round = roundAnswer('warming', { without: [E(5)] });
+    assert.equal(predictionOf({ round }, E(1), 0, A).value.seconds, 2580);
+    assert.equal(predictionOf({ round }, E(5), 0, A).status, 'pending');
+    assert.equal(predictionOf({ round }, E(2), 0, A).status, 'optedOut');
+    assert.equal(predictionOf({ round }, E(3), 0, A).status, 'none');
+    // The compare answer wins over the round (E5 3810 there), the entrant answer over both (E1 2580 in ENTRANT)
+    assert.equal(predictionOf({ predictions: PREDICTIONS, round }, E(5), 0, A).value.seconds, 3810);
+    assert.equal(predictionOf({ predictions: PREDICTIONS, round: roundAnswer() }, E(5), 0, A).value.seconds, 3810);
+    const otherRound = roundAnswer();
+    otherRound.entrants[E(1)].members[0].prediction[A].seconds = 1;
+    assert.equal(predictionOf({ entrant: ENTRANT, predictions: PREDICTIONS, round: otherRound }, E(1), 0, A).value.seconds, 2580);
+    // Not in the compare answer (E6 there is absent) → the round
+    assert.equal(predictionOf({ predictions: PREDICTIONS, round: otherRound }, E(6), 0, A).status, 'none');
+    // An answer of another visible set is no source at all
+    assert.equal(roundSource(STATE, roundAnswer('ready', { hash: 'another' })), null);
+    assert.equal(roundSource(STATE, null), null);
+    const rows = predictionRows(roundAnswer('ready', { hash: 'another' }));
+    assert.equal(rows.find((row) => row.key === E(1)).predictionStatus, 'pending');
+    assert.equal(rows.find((row) => row.key === E(3)).predictionStatus, 'none', 'private: never pending');
+    // Hidden slot: no prediction at all
+    assert.ok(predictionRows(roundAnswer(), { label: 'C' }).every((row) => row.predictionStatus === null));
+});
+
+scenario('mergeRoundPredictions: a warming answer for the same visible set keeps the shown values; another set replaces', () => {
+    const ready = roundAnswer('ready');
+    const rewarm = roundAnswer('warming', { without: [E(1), E(5)] });
+    const merged = mergeRoundPredictions(ready, rewarm);
+    assert.equal(merged.status, 'ready', 'the sort stays');
+    assert.equal(predictionOf({ round: merged }, E(1), 0, A).value.seconds, 2580);
+    assert.equal(predictionOf({ round: merged }, E(5), 0, A).value.seconds, 2400);
+    // A newer value wins
+    const fresh = roundAnswer('warming', { without: [E(5)] });
+    fresh.entrants[E(1)].members[0].prediction[A].seconds = 2500;
+    assert.equal(predictionOf({ round: mergeRoundPredictions(ready, fresh) }, E(1), 0, A).value.seconds, 2500);
+    // Warming after warming: still warming, values kept
+    const first = roundAnswer('warming', { without: [E(5)] });
+    const second = roundAnswer('warming', { without: [E(1)] });
+    const both = mergeRoundPredictions(first, second);
+    assert.equal(both.status, 'warming');
+    assert.equal(predictionOf({ round: both }, E(1), 0, A).value.seconds, 2580);
+    assert.equal(predictionOf({ round: both }, E(5), 0, A).value.seconds, 2400);
+    // Another visible set (a reveal): the next answer alone - nothing of the old set
+    const revealed = roundAnswer('warming', { hash: 'after-reveal', without: [E(1), E(5)] });
+    const replaced = mergeRoundPredictions(ready, revealed);
+    assert.equal(replaced, revealed);
+    assert.equal(predictionOf({ round: replaced }, E(1), 0, A).status, 'pending');
+    // Ready replaces; nothing new keeps the old
+    assert.equal(mergeRoundPredictions(first, ready), ready);
+    assert.equal(mergeRoundPredictions(ready, null), ready);
+    assert.equal(mergeRoundPredictions(null, rewarm), rewarm);
+});
+
 // ---- URL
 
 scenario('url: round trip of puzzle, e, sort, q; defaults left out; no cmp', () => {
@@ -499,10 +625,15 @@ scenario('url: round trip of puzzle, e, sort, q; defaults left out; no cmp', () 
     assert.equal(encodeView({ sort: 'name', q: '  ' }), '');
     assert.deepEqual(decodeView(''), { puzzle: null, e: null, sort: null, q: '' });
     assert.deepEqual(decodeView(encodeView(decodeView('?puzzle=A&q=12'))), { puzzle: 'A', e: null, sort: null, q: '12' });
+    // The prediction sort round-trips; until it is available the list falls back to name (visibleRows)
+    assert.equal(encodeView({ sort: 'prediction' }), '?sort=prediction');
+    assert.equal(decodeView('?sort=prediction').sort, 'prediction');
+    assert.equal(initialView(decodeView('?sort=prediction')).sort, 'prediction');
+    assert.deepEqual(shownKeys({ sort: 'prediction' }), shownKeys({ sort: 'name' }));
 });
 
 scenario('url: unknown or malformed values are ignored', () => {
-    const decoded = decodeView('?puzzle=<script>&e=not-a-uuid&sort=prediction&cmp=x,y&density=compact');
+    const decoded = decodeView('?puzzle=<script>&e=not-a-uuid&sort=fastest&cmp=x,y&density=compact');
     assert.deepEqual(decoded, { puzzle: null, e: null, sort: null, q: '' });
     assert.equal(decodeView(`?q=${'x'.repeat(500)}`).q.length, 100);
     assert.equal(decodeView(`?e=${E(1).toUpperCase()}`).e, E(1));
@@ -647,11 +778,11 @@ function stopwatch(status, { startedAtMs = NOW - 600_000, stoppedAtMs = null, as
     return { roundId: ROUND, status, startedAt: null, stoppedAt: null, minutesLimit: 90, startedAtMs, stoppedAtMs, asOfMs, stateHash: 'h' };
 }
 
-function setup({ state = clone(STATE), skew = 0, random = () => 0.5 } = {}) {
+function setup({ state = clone(STATE), skew = 0, random = () => 0.5, roundAnswers = null } = {}) {
     const device = { now: NOW - skew };
     const timers = [];
-    const server = { state, status: 'ok', analyticsStatus: 'ok', fetches: [], analytics: [], entrants: [], predictions: [], rttMs: 0, delayEntrant: 0 };
-    const seen = { states: [], analytics: [], entrants: [], predictions: [], gone: 0 };
+    const server = { state, status: 'ok', analyticsStatus: 'ok', fetches: [], analytics: [], entrants: [], predictions: [], roundPredictions: [], rttMs: 0, delayEntrant: 0 };
+    const seen = { states: [], analytics: [], entrants: [], predictions: [], roundPredictions: [], gone: 0 };
     const events = { options: null, updates: [], started: false, suspended: false, closed: false, live: false };
     const pending = [];
 
@@ -690,7 +821,13 @@ function setup({ state = clone(STATE), skew = 0, random = () => 0.5 } = {}) {
         onState: (current) => seen.states.push(current),
         onAnalytics: (analytics) => seen.analytics.push(analytics),
         onEntrant: (entrant) => seen.entrants.push(entrant),
+        fetchRoundPredictions: roundAnswers === null ? null : async (hash) => {
+            server.roundPredictions.push({ hash, at: device.now - NOW });
+
+            return roundAnswers(hash, server.roundPredictions.length);
+        },
         onPredictions: (predictions) => seen.predictions.push(predictions),
+        onRoundPredictions: (answer) => seen.roundPredictions.push(answer),
         onGone: () => { seen.gone += 1; },
         now: () => device.now,
         schedule: (task, ms) => {
@@ -1153,6 +1290,126 @@ scenario('refresh: polls every 30 s while the stream is live, back to 10 s when 
     assert.equal(sinceStart().at(-1), 82_000 + RECONNECT_JITTER_MS / 2);
 });
 
+scenario('refresh: round predictions - asked with the first state; warming every 4 s, stalled after 20, then every 60 s', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, server, seen, advance } = setup({ state, roundAnswers: (hash) => ({ status: 'ok', roundPredictions: roundAnswer('warming', { hash, without: [E(1)] }) }) });
+    refresh.start();
+    await settle();
+    assert.deepEqual(server.roundPredictions, [{ hash: STATE.visibleHash, at: 0 }]);
+    assert.equal(seen.roundPredictions[0].status, 'warming');
+    assert.equal(seen.roundPredictions[0].stalled, false);
+    assert.equal(ROUND_PREDICTIONS_WARMING_MS, 4000);
+    assert.equal(ROUND_PREDICTIONS_WARMING_TRIES, 20);
+    await advance(ROUND_PREDICTIONS_WARMING_MS * 20);
+    assert.deepEqual(server.roundPredictions.map((call) => call.at), Array.from({ length: 21 }, (_, n) => n * 4000));
+    assert.ok(seen.roundPredictions.slice(0, 20).every((answer) => answer.stalled === false));
+    assert.equal(seen.roundPredictions[20].stalled, true, 'the 21st warming answer (~80 s): stalled');
+    // Then once a minute, still told as stalled; the state polls never carry it
+    await advance(ROUND_PREDICTIONS_STALLED_MS * 2);
+    assert.deepEqual(server.roundPredictions.slice(21).map((call) => call.at), [80_000 + 60_000, 80_000 + 120_000]);
+    assert.ok(seen.roundPredictions.slice(21).every((answer) => answer.stalled === true));
+    assert.ok(server.fetches.length > 5, 'state polls go on');
+});
+
+scenario('refresh: round predictions - ready asks again after 10 min ±20 %; a failure is asked again in 4 s', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    let fail = false;
+    const { refresh, server, seen, advance } = setup({
+        state,
+        roundAnswers: (hash) => (fail ? { status: 'error' } : { status: 'ok', roundPredictions: roundAnswer('ready', { hash }) }),
+    });
+    refresh.start();
+    await settle();
+    assert.equal(seen.roundPredictions.length, 1);
+    assert.equal(seen.roundPredictions[0].status, 'ready');
+    assert.equal(ROUND_PREDICTIONS_READY_MS, 600_000);
+    // random() = 0.5: exactly 10 minutes - the state polls (60 s idle / 10 s live) do not ask for it
+    await advance(ROUND_PREDICTIONS_READY_MS - 1);
+    assert.equal(server.roundPredictions.length, 1);
+    fail = true;
+    await advance(1);
+    assert.equal(server.roundPredictions.length, 2);
+    assert.equal(seen.roundPredictions.length, 1, 'a failure tells nothing');
+    fail = false;
+    await advance(ROUND_PREDICTIONS_WARMING_MS);
+    assert.deepEqual(server.roundPredictions.map((call) => call.at), [0, 600_000, 604_000]);
+    assert.equal(seen.roundPredictions.length, 2);
+});
+
+scenario('refresh: round predictions - a new visible hash asks at once, an answer for the old hash is dropped', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const held = [];
+    const { refresh, server, seen, advance } = setup({
+        state,
+        roundAnswers: (hash) => new Promise((resolve) => held.push(() => resolve({ status: 'ok', roundPredictions: roundAnswer('ready', { hash }) }))),
+    });
+    refresh.start();
+    await settle();
+    assert.equal(server.roundPredictions.length, 1);
+    // A reveal: the next state carries another hash
+    server.state = { ...clone(STATE), visibleHash: 'after-reveal', nextRevealAtMs: null };
+    await advance(LIVE_POLL_MS);
+    assert.deepEqual(server.roundPredictions.map((call) => call.hash), [STATE.visibleHash, 'after-reveal']);
+    held[0]();
+    await settle();
+    assert.equal(seen.roundPredictions.length, 0, 'the old hash is dropped');
+    held[1]();
+    await settle();
+    assert.equal(seen.roundPredictions.length, 1);
+    assert.equal(seen.roundPredictions[0].visibleHash, 'after-reveal');
+    // The same hash again: no new ask
+    await advance(LIVE_POLL_MS);
+    assert.equal(server.roundPredictions.length, 2);
+});
+
+scenario('refresh: round predictions - a pair round, a round with nothing visible, or no URL never ask', async () => {
+    const { state: pairs } = pairState();
+    pairs.nextRevealAtMs = null;
+    const pair = setup({ state: pairs, roundAnswers: () => ({ status: 'ok', roundPredictions: roundAnswer() }) });
+    pair.refresh.start();
+    await settle();
+    await pair.advance(60_000);
+    assert.equal(pair.server.roundPredictions.length, 0);
+
+    const hidden = clone(STATE);
+    hidden.nextRevealAtMs = null;
+    hidden.slots = hidden.slots.map((slot) => ({ ...slot, puzzle: null }));
+    const before = setup({ state: hidden, roundAnswers: () => ({ status: 'ok', roundPredictions: roundAnswer() }) });
+    before.refresh.start();
+    await settle();
+    assert.equal(before.server.roundPredictions.length, 0);
+    // The reveal: asked at once
+    before.server.state = { ...clone(STATE), nextRevealAtMs: null };
+    await before.advance(LIVE_POLL_MS);
+    assert.equal(before.server.roundPredictions.length, 1);
+
+    const plain = setup({ state: hidden });
+    plain.refresh.start();
+    await settle();
+    assert.equal(plain.seen.roundPredictions.length, 0);
+});
+
+scenario('refresh: round predictions - a server already on another visible set is asked again; gone and close stop it', async () => {
+    const state = clone(STATE);
+    state.nextRevealAtMs = null;
+    const { refresh, server, seen, advance, timers } = setup({ state, roundAnswers: () => ({ status: 'ok', roundPredictions: roundAnswer('ready', { hash: 'server-is-ahead' }) }) });
+    refresh.start();
+    await settle();
+    assert.equal(seen.roundPredictions.length, 0, 'not for the hash shown');
+    await advance(ROUND_PREDICTIONS_WARMING_MS);
+    assert.equal(server.roundPredictions.length, 2);
+    server.status = 'gone';
+    await advance(LIVE_POLL_MS * 2);
+    const asked = server.roundPredictions.length;
+    await advance(ROUND_PREDICTIONS_STALLED_MS * 3);
+    assert.equal(server.roundPredictions.length, asked, 'nothing while gone');
+    refresh.close();
+    assert.equal(timers.length, 0);
+});
+
 // ---- render
 
 function dom() {
@@ -1451,7 +1708,7 @@ scenario('render: every label name is listed (LABEL_NAMES) and has an English te
     const literal = [...source.matchAll(/\bt\('([a-z0-9_.]+)'/g)].map((match) => match[1]);
     const mapped = [...source.matchAll(/:\s*'((?:history|prediction|similar|rating|skill|column)[a-z0-9_.]*)'/g)].map((match) => match[1]);
     const dynamic = [
-        ...['name', 'table', 'solves', 'best', 'rating', 'rank'].map((name) => `sort.${name}`),
+        ...['name', 'table', 'solves', 'best', 'prediction', 'rating', 'rank'].map((name) => `sort.${name}`),
         ...['all', 'solved', 'never', 'nohistory'].map((name) => `filter.${name}`),
         ...['entrants', 'puzzle', 'live'].map((name) => `tab.${name}`),
         ...['idle', 'running', 'times_up', 'stopped'].map((name) => `clock.${name}`),
@@ -1469,6 +1726,61 @@ scenario('render: every label name is listed (LABEL_NAMES) and has an English te
     assert.deepEqual(LABEL_NAMES.filter((name) => !(name in ENGLISH)), []);
     assert.deepEqual(Object.keys(ENGLISH).filter((name) => !LABEL_NAMES.includes(name)), []);
     assert.equal(new Set(LABEL_NAMES).size, LABEL_NAMES.length);
+});
+
+scenario('render: the prediction column - value, pending, opted out, private; status line; the sort once ready', () => {
+    const view = renderModel();
+    const cell = (root, n) => root.querySelector(`.as-row[data-as-entry="${E(n)}"] .as-row__prediction`);
+    // Nothing yet: "…" for the public ones, empty for private/unlinked, "Calculating predictions…", no sort
+    assert.ok(view.root.querySelector('.as-list').classList.contains('as-list--predictions'));
+    assert.ok(view.root.classList.contains('as--predictions'), 'the list column widens');
+    assert.equal(text(cell(view.root, 1)), '…');
+    assert.equal(text(cell(view.root, 3)), '');
+    assert.equal(text(view.root.querySelector('.as-list__status')), 'Calculating predictions…');
+    assert.ok(![...view.root.querySelectorAll('.as-sort option')].some((node) => node.value === 'prediction'));
+
+    const ready = renderModel({ roundPredictions: roundAnswer('ready'), view: { sort: 'prediction' } }).root;
+    assert.equal(text(cell(ready, 1)), '≈ 43:00');
+    assert.equal(cell(ready, 1).getAttribute('title'), 'Time prediction now');
+    assert.equal(text(cell(ready, 5)), '≈ 40:00');
+    assert.equal(text(cell(ready, 2)), '—');
+    assert.equal(cell(ready, 2).querySelector('.as-opted-out').getAttribute('title'), "Not shown at the player's wish");
+    assert.equal(text(cell(ready, 3)), '');
+    assert.equal(text(cell(ready, 6)), '');
+    assert.equal(text(ready.querySelector('.as-list__status')), '');
+    assert.equal(ready.querySelector('.as-sort option[value="prediction"]').selected, true);
+    assert.equal(text(ready.querySelector('.as-sort option[value="prediction"]')), 'Prediction');
+    assert.deepEqual([...ready.querySelectorAll('.as-row')].map((row) => row.getAttribute('data-as-entry')).slice(0, 2), [E(5), E(1)]);
+    assert.ok(ready.querySelector('.as-list').classList.contains('as-list--by-prediction'));
+    // The cell sits right after the best time
+    assert.ok(cell(ready, 1).previousElementSibling.classList.contains('as-row__best'));
+
+    // Selected entrant without its own answer yet: the detail reads the round's value (no spinner)
+    const detail = renderModel({ roundPredictions: roundAnswer('ready'), view: { selected: E(5) } }).root.querySelector('.as-entrant');
+    assert.equal(detail.querySelector('.as-fact--prediction .as-spinner'), null);
+    assert.ok(text(detail.querySelector('.as-fact--prediction')).includes('≈ 40:00'));
+
+    // Stalled: "not available", the missing cells empty (not "…"), the known ones kept
+    const stalled = renderModel({ roundPredictions: { ...roundAnswer('warming', { without: [E(1)] }), stalled: true }, view: { sort: 'prediction' } }).root;
+    assert.equal(text(stalled.querySelector('.as-list__status')), 'Predictions are not available right now');
+    assert.equal(text(cell(stalled, 1)), '');
+    assert.equal(text(cell(stalled, 5)), '≈ 40:00');
+    assert.ok(!stalled.querySelector('.as-list').classList.contains('as-list--by-prediction'), 'sort not offered: by name');
+
+    // An answer of another visible set: nothing of it shown
+    const old = renderModel({ roundPredictions: roundAnswer('ready', { hash: 'before-reveal' }) }).root;
+    assert.equal(text(cell(old, 1)), '…');
+
+    // A hidden slot and a pair round: no column at all
+    const hidden = renderModel({ roundPredictions: roundAnswer('ready'), view: { puzzle: 'C' } }).root;
+    assert.equal(hidden.querySelector('.as-row__prediction'), null);
+    assert.ok(!hidden.querySelector('.as-list').classList.contains('as-list--predictions'));
+    assert.ok(!hidden.classList.contains('as--predictions'));
+    assert.equal(text(hidden.querySelector('.as-list__status')), '');
+    const { state, analytics } = pairState();
+    const pairs = renderModel({ state, analytics, roundPredictions: roundAnswer('ready') }).root;
+    assert.equal(pairs.querySelector('.as-row__prediction'), null);
+    assert.ok(![...pairs.querySelectorAll('.as-sort option')].some((node) => node.value === 'prediction'));
 });
 
 // ---- XSS

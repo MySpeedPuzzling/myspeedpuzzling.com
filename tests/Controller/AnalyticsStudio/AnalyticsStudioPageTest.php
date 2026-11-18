@@ -54,6 +54,7 @@ final class AnalyticsStudioPageTest extends WebTestCase
         self::assertSame('/analytics-studio/' . F::ROUND_GROUP_A . '/state', $root->attr('data-state-url'));
         self::assertSame('/analytics-studio/' . F::ROUND_GROUP_A . '/analytics', $root->attr('data-analytics-url'));
         self::assertSame('/analytics-studio/' . F::ROUND_GROUP_A . '/predictions', $root->attr('data-predictions-url'));
+        self::assertSame('/analytics-studio/' . F::ROUND_GROUP_A . '/round-predictions', $root->attr('data-round-predictions-url'));
         self::assertSame('/analytics-studio/' . F::ROUND_GROUP_A . '/entrant/' . $root->attr('data-entry-placeholder'), $root->attr('data-entrant-url'));
         $labels = json_decode((string) $root->attr('data-labels'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($labels);

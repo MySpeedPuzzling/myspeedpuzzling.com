@@ -27,7 +27,7 @@ readonly final class AnalyticsStudioPageBuilder
      */
     public const array LABEL_NAMES = [
         'search_placeholder', 'sort', 'sort.name', 'sort.table', 'sort.solves', 'sort.best', 'sort.rating', 'sort.rank',
-        'filter.all', 'filter.solved', 'filter.never', 'filter.nohistory',
+        'sort.prediction', 'filter.all', 'filter.solved', 'filter.never', 'filter.nohistory',
         'tab.entrants', 'tab.puzzle', 'tab.live',
         'clock.idle', 'clock.scheduled', 'clock.running', 'clock.times_up', 'clock.stopped', 'clock.left',
         'live.count', 'official.count', 'slot.hidden', 'slot.reveals_in', 'slot.image_later',
@@ -42,6 +42,7 @@ readonly final class AnalyticsStudioPageBuilder
         'history.solves', 'history.first', 'history.best', 'history.last', 'history.first_try', 'history.place',
         'history.unfinished', 'history.as_group', 'history.lineup', 'history.members_solved',
         'prediction', 'prediction.solo', 'prediction.range', 'prediction.method.personal', 'prediction.method.general',
+        'prediction.cell_title', 'prediction.warming', 'prediction.unavailable',
         'similar.brand', 'similar.size', 'similar.count', 'similar.median', 'similar.best',
         'attempts', 'attempt.first', 'attempt.unboxed', 'attempt.solo', 'attempt.pair', 'attempt.team', 'attempt.unfinished',
         'recent_similar', 'recent_form', 'recent_form.median', 'earlier_rounds',

@@ -21,6 +21,9 @@
 //   compare set's predictions again - re-rendered in place, no reload. Visibility is never computed here.
 // - R3: predictions come only for the entrants on screen - the selected one with its `entrant` answer, the compare set
 //   from `predictions?entries=…` (≤ 4). Every answer for a selection or hash that is no longer current is dropped.
+// - v2 R31-R33: a solo round with a visible puzzle also asks for `round-predictions?v=` (the list's column) - at once
+//   for a new visible hash; `warming` → again after 4 s, 20 times, then every 60 s, told as `stalled`; `ready` → again
+//   after 10 min ±20 % (before the 15-minute per-player entries expire). A pair/team round never asks (D12).
 
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { createServerClock, isNewerState, stopwatchView } from '../round_stopwatch_clock.js';
@@ -42,6 +45,11 @@ export const SIGNAL_JITTER_MS = 1000;
 export const SIGNAL_MIN_GAP_MS = 5000;
 // R26: the live cadence while the stream is live (the signal tells of changes) - the poll stays the safety net
 export const STREAMED_LIVE_POLL_MS = 30 * 1000;
+// The round's predictions (v2 R31-R33)
+export const ROUND_PREDICTIONS_WARMING_MS = 4000;
+export const ROUND_PREDICTIONS_WARMING_TRIES = 20;
+export const ROUND_PREDICTIONS_STALLED_MS = 60 * 1000;
+export const ROUND_PREDICTIONS_READY_MS = 10 * 60 * 1000;
 // setTimeout's limit is ~24.8 days; nothing here waits that long
 const MAX_DELAY_MS = 24 * 3600 * 1000;
 
@@ -99,10 +107,12 @@ export class AnalyticsStudioRefresh {
      * @param {function(string): Promise<{status: string, analytics?: object}>} options.fetchAnalytics        (visibleHash)
      * @param {function(string, string): Promise<{status: string, entrant?: object}>} options.fetchEntrant    (entry key, visibleHash)
      * @param {function(string[], string): Promise<{status: string, predictions?: object}>} options.fetchPredictions (keys, visibleHash)
+     * @param {null|function(string): Promise<{status: string, roundPredictions?: object}>} [options.fetchRoundPredictions] (visibleHash)
      * @param {function(object): void} [options.onState]
      * @param {function(object): void} [options.onAnalytics]
      * @param {function(object): void} [options.onEntrant]
      * @param {function(object): void} [options.onPredictions]
+     * @param {function(object): void} [options.onRoundPredictions]  the answer + `stalled`
      * @param {function(): void} [options.onGone]
      * @param {function(): number} [options.now]
      * @param {function(function(), number): *} [options.schedule]
@@ -116,10 +126,12 @@ export class AnalyticsStudioRefresh {
         fetchAnalytics,
         fetchEntrant,
         fetchPredictions,
+        fetchRoundPredictions = null,
         onState = () => {},
         onAnalytics = () => {},
         onEntrant = () => {},
         onPredictions = () => {},
+        onRoundPredictions = () => {},
         onGone = () => {},
         now = () => Date.now(),
         schedule = (task, ms) => setTimeout(task, ms),
@@ -135,6 +147,8 @@ export class AnalyticsStudioRefresh {
         this.onAnalyticsFn = onAnalytics;
         this.onEntrantFn = onEntrant;
         this.onPredictionsFn = onPredictions;
+        this.fetchRoundPredictionsFn = fetchRoundPredictions;
+        this.onRoundPredictionsFn = onRoundPredictions;
         this.onGoneFn = onGone;
         this.now = now;
         this.scheduleFn = schedule;
@@ -173,6 +187,10 @@ export class AnalyticsStudioRefresh {
         this.entrantLoading = null;
         this.predictionsLoaded = null;
         this.predictionsLoading = null;
+        // The round's predictions: the visible hash followed, its warming answers so far, the hash on its way
+        this.roundPredictionsHash = null;
+        this.roundPredictionsTries = 0;
+        this.roundPredictionsLoading = null;
     }
 
     start() {
@@ -444,6 +462,8 @@ export class AnalyticsStudioRefresh {
             this.clear('signal');
             this.signalAt = null;
             this.signalAgain = false;
+            this.clear('roundPredictions');
+            this.roundPredictionsHash = null;
             this.set('poll', GONE_POLL_MS, () => this.refresh());
             this.onGoneFn();
 
@@ -498,6 +518,7 @@ export class AnalyticsStudioRefresh {
         this.syncAnalytics();
         this.syncEntrant();
         this.syncPredictions();
+        this.syncRoundPredictions();
     }
 
     syncAnalytics() {
@@ -600,6 +621,85 @@ export class AnalyticsStudioRefresh {
                 } else {
                     this.syncPredictions();
                 }
+            });
+    }
+
+    /**
+     * The round's predictions follow the visible hash: asked at once for a new one; nothing for a pair/team round or
+     * before a slot is visible.
+     */
+    syncRoundPredictions() {
+        const hash = this.currentHash();
+        const slots = Array.isArray(this.state?.slots) ? this.state.slots : [];
+        const wanted = this.fetchRoundPredictionsFn !== null && hash !== null && this.state?.round?.category === 'solo'
+            && slots.some((slot) => isObject(slot?.puzzle));
+
+        if (this.closed || !wanted) {
+            this.clear('roundPredictions');
+            this.roundPredictionsHash = null;
+
+            return;
+        }
+
+        if (hash === this.roundPredictionsHash) {
+            return;
+        }
+
+        this.roundPredictionsHash = hash;
+        this.roundPredictionsTries = 0;
+        this.clear('roundPredictions');
+        this.fetchRoundPredictions();
+    }
+
+    fetchRoundPredictions() {
+        const hash = this.roundPredictionsHash;
+
+        if (this.closed || hash === null || this.roundPredictionsLoading === hash) {
+            return;
+        }
+
+        this.roundPredictionsLoading = hash;
+        Promise.resolve()
+            .then(() => this.fetchRoundPredictionsFn(hash))
+            .catch(() => ({ status: 'error' }))
+            .then((answer) => {
+                if (this.roundPredictionsLoading === hash) {
+                    this.roundPredictionsLoading = null;
+                }
+
+                // A reveal changed the hash meanwhile (its own ask is under way), or the round is gone
+                if (this.closed || hash !== this.roundPredictionsHash) {
+                    return;
+                }
+
+                const body = answer?.status === 'ok' && isObject(answer.roundPredictions) ? answer.roundPredictions : null;
+
+                if (body?.visibleHash === hash && body.status === 'ready') {
+                    this.roundPredictionsTries = 0;
+                    this.onRoundPredictionsFn({ ...body, stalled: false });
+                    this.set('roundPredictions', ROUND_PREDICTIONS_READY_MS * (1 - POLL_SPREAD + this.random() * 2 * POLL_SPREAD), () => this.fetchRoundPredictions());
+
+                    return;
+                }
+
+                // Nothing to show for this round (the server says so): the next visible hash asks again
+                if (body?.visibleHash === hash && body.status === 'none') {
+                    this.onRoundPredictionsFn({ ...body, stalled: false });
+
+                    return;
+                }
+
+                // Warming, failed, or the server already sees other puzzles (the state follows): asked again
+                this.roundPredictionsTries += 1;
+                const stalled = this.roundPredictionsTries > ROUND_PREDICTIONS_WARMING_TRIES;
+
+                if (body?.visibleHash === hash && body.status === 'warming') {
+                    this.onRoundPredictionsFn({ ...body, stalled });
+                } else if (stalled) {
+                    this.onRoundPredictionsFn({ visibleHash: hash, status: 'warming', entrants: {}, stalled });
+                }
+
+                this.set('roundPredictions', stalled ? ROUND_PREDICTIONS_STALLED_MS : ROUND_PREDICTIONS_WARMING_MS, () => this.fetchRoundPredictions());
             });
     }
 }

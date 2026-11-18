@@ -3,7 +3,9 @@
 //   one row per entry for the active puzzle slot;
 // - search (diacritics folded like SearchText::fold() - search_fold.js; names, team names, country codes, table
 //   numbers), filter chips, sort - a sort or filter needing a puzzle only once that slot is visible (§5);
-// - R3: no prediction column or sort in the list - predictions come for the selected entrant and the compare set only;
+// - the prediction column + sort (v2 R31/R32): solo rounds only, from the round's `round-predictions` answer (the third,
+//   lowest-priority source after the entrant and compare answers); the sort only once that answer is `ready` for the
+//   visible puzzles shown - a list never re-orders under the commentator while the values trickle in;
 // - R8: unpublished confirmed results are never a sort key and never ordered; a published round sorts by official rank;
 // - the compare set (at most 4 - phones show 2, the layout decides) and its best value per row;
 // - the view reducer for the keymap (keys.js turns key presses into the actions applied here).
@@ -11,14 +13,14 @@
 
 import { foldSearchText } from '../search_fold.js';
 
-export const SORTS = ['name', 'table', 'solves', 'best', 'rating', 'rank'];
+export const SORTS = ['name', 'table', 'solves', 'best', 'prediction', 'rating', 'rank'];
 export const DEFAULT_SORT = 'name';
 export const FILTERS = ['all', 'solved', 'never', 'nohistory'];
 export const MAX_COMPARE = 4;
 export const SKILL_TIERS = ['enthusiast', 'apprentice', 'proficient', 'advanced', 'expert', 'master', 'legend'];
 export const DIFFICULTY_TIERS = ['very_easy', 'easy', 'average', 'challenging', 'hard', 'very_hard'];
 
-const PUZZLE_SORTS = ['solves', 'best'];
+const PUZZLE_SORTS = ['solves', 'best', 'prediction'];
 const PUZZLE_FILTERS = ['solved', 'never'];
 
 function isNumber(value) {
@@ -127,9 +129,54 @@ function memberNames(members) {
 }
 
 /**
- * One row per entry for the slot with key `slotKey` (null = hidden slot or none: no puzzle numbers at all).
+ * Whether the round's entrants get a prediction column: a solo round (no pair/team prediction - D12) whose active slot
+ * is visible (nothing before a reveal - D7/R1).
  */
-export function entrantRows(state, analytics, slotKey = null) {
+export function hasPredictionColumn(state, slot) {
+    return state?.round?.category === 'solo' && slot?.visible === true;
+}
+
+/**
+ * The round's predictions when they belong to the visible puzzles shown (an answer for another visible set is never
+ * shown - a reveal re-warms), else null.
+ */
+export function roundSource(state, roundPredictions) {
+    return isObject(roundPredictions) && typeof state?.visibleHash === 'string' && roundPredictions.visibleHash === state.visibleHash
+        ? roundPredictions : null;
+}
+
+/**
+ * The next `round-predictions` answer merged with the one shown: for the same visible puzzles, a `warming` answer (the
+ * re-warm after the 15-minute cache) keeps the shown values of the entries it lacks, and a `ready` one stays ready - the
+ * column never blanks, the sort never goes away; another visible set → the next answer alone.
+ */
+export function mergeRoundPredictions(previous, next) {
+    if (!isObject(next)) {
+        return isObject(previous) ? previous : null;
+    }
+
+    if (!isObject(previous) || previous.visibleHash !== next.visibleHash || next.status !== 'warming') {
+        return next;
+    }
+
+    const entrants = { ...(isObject(previous.entrants) ? previous.entrants : {}) };
+
+    for (const [key, entry] of Object.entries(isObject(next.entrants) ? next.entrants : {})) {
+        const kept = own(own(previous.entrants, key), 'members');
+
+        if (!(Array.isArray(kept) && kept.length > (Array.isArray(entry?.members) ? entry.members.length : 0))) {
+            entrants[key] = entry;
+        }
+    }
+
+    return { ...next, status: previous.status === 'ready' ? 'ready' : next.status, entrants };
+}
+
+/**
+ * One row per entry for the slot with key `slotKey` (null = hidden slot or none: no puzzle numbers at all).
+ * `sources` = {entrant, predictions, round} for the prediction column (solo rows only).
+ */
+export function entrantRows(state, analytics, slotKey = null, sources = null) {
     if (!Array.isArray(state?.entrants)) {
         return [];
     }
@@ -168,6 +215,9 @@ export function entrantRows(state, analytics, slotKey = null) {
             }
         }
 
+        // The prediction column: a solo row of a visible slot; a private/unlinked entrant has none
+        const prediction = isTeam || slotKey === null || sources === null ? null
+            : (members[0]?.analysable ? predictionOf(sources, entrant.key, 0, slotKey) : { status: 'none' });
         const ratings = members.map((member) => member.stats?.rating).filter(isNumber);
         const name = isTeam && teamName !== null ? teamName : memberNames(members);
         const result = resultOf(state, entrant.key);
@@ -189,6 +239,8 @@ export function entrantRows(state, analytics, slotKey = null) {
             bestSeconds,
             rating: ratings.length === 0 ? null : Math.max(...ratings),
             rankingOptedOut: !isTeam && members[0]?.stats?.rankingOptedOut === true,
+            predictionStatus: prediction?.status ?? null,
+            predictionSeconds: prediction?.status === 'value' ? prediction.value.seconds : null,
             result,
             searchText: ` ${foldSearchText([name, teamName ?? '', ...members.map((member) => member.name)].join(' '))} ${members
                 .map((member) => (member.country ?? '').toLowerCase()).join(' ')} `,
@@ -221,10 +273,15 @@ export function matchesQuery(row, query) {
 }
 
 /**
- * The sorts that make sense now: the puzzle ones only for a visible slot (§5), by official rank only once published (R8).
+ * The sorts that make sense now: the puzzle ones only for a visible slot (§5), by official rank only once published (R8),
+ * by prediction only on a solo round whose predictions are `ready` for the visible puzzles shown (R32).
  */
-export function availableSorts(state, slot) {
+export function availableSorts(state, slot, roundPredictions = null) {
     return SORTS.filter((sort) => {
+        if (sort === 'prediction') {
+            return hasPredictionColumn(state, slot) && roundSource(state, roundPredictions)?.status === 'ready';
+        }
+
         if (PUZZLE_SORTS.includes(sort)) {
             return slot?.visible === true;
         }
@@ -266,6 +323,8 @@ const COMPARATORS = {
     table: (a, b) => compareNullsLast(a.table, b.table, 1),
     solves: (a, b) => compareNullsLast(a.solves, b.solves, -1),
     best: (a, b) => compareNullsLast(a.bestSeconds, b.bestSeconds, 1),
+    // Fastest first; opted out, none, private last (by name)
+    prediction: (a, b) => compareNullsLast(a.predictionSeconds ?? null, b.predictionSeconds ?? null, 1),
     rating: (a, b) => compareNullsLast(a.rating, b.rating, -1),
     // Official ranks only: a live result has none (resultOf), so an unpublished round can never be ordered by them
     rank: (a, b) => compareNullsLast(a.result?.state === 'official' ? (a.result.rank ?? null) : null, b.result?.state === 'official' ? (b.result.rank ?? null) : null, 1),
@@ -287,8 +346,8 @@ function passesFilter(row, filter) {
 /**
  * The list as shown: filtered, searched, sorted (an unavailable sort/filter falls back to name / all).
  */
-export function visibleRows(rows, { query = '', sort = DEFAULT_SORT, filter = 'all', state = null, slot = null } = {}) {
-    const sorts = availableSorts(state, slot);
+export function visibleRows(rows, { query = '', sort = DEFAULT_SORT, filter = 'all', state = null, slot = null, roundPredictions = null } = {}) {
+    const sorts = availableSorts(state, slot, roundPredictions);
     const filters = availableFilters(slot);
     const activeSort = sorts.includes(sort) ? sort : DEFAULT_SORT;
     const activeFilter = filters.includes(filter) ? filter : 'all';
@@ -350,18 +409,24 @@ export function toggleCompare(compare, key) {
 }
 
 /**
- * A member's prediction for a slot from whatever answered (the entrant answer, else the predictions answer):
- * `{status: 'value', value}` | `{status: 'optedOut'}` | `{status: 'none'}` (no model, private/unlinked) |
- * `{status: 'pending'}` (not loaded yet).
+ * A member's prediction for a slot from whatever answered (the entrant answer, else the predictions answer, else the
+ * round's `round-predictions` answer): `{status: 'value', value}` | `{status: 'optedOut'}` | `{status: 'none'}` (no
+ * model, private/unlinked) | `{status: 'pending'}` (not loaded yet).
  */
-export function predictionOf({ entrant = null, predictions = null } = {}, key, memberIndex, slotKey) {
+export function predictionOf({ entrant = null, predictions = null, round = null } = {}, key, memberIndex, slotKey) {
     let member;
 
     if (isObject(entrant) && entrant.key === key && Array.isArray(entrant.members)) {
         member = entrant.members[memberIndex];
     } else {
-        const members = own(own(predictions?.entrants, key), 'members');
-        member = Array.isArray(members) ? members[memberIndex] : undefined;
+        for (const source of [predictions, round]) {
+            const members = own(own(source?.entrants, key), 'members');
+            member = Array.isArray(members) ? members[memberIndex] : undefined;
+
+            if (member !== undefined) {
+                break;
+            }
+        }
     }
 
     if (member === undefined) {

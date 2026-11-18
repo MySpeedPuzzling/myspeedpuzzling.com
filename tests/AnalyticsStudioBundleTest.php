@@ -16,13 +16,14 @@ use Symfony\Component\Process\Process;
  * - no lazy chunk;
  * - a size budget for its JS, measured by tests/live-entry-bundle.mjs as Encore's minifier (terser) would leave the
  *   modules. 2026-11-17 (S3): 63.5 KB minified / 21.2 KB gzip (S2's modules + page.js 9 KB) - budget the measured
- *   size + 5 %. Raise it only on purpose, saying why in the commit;
+ *   size + 5 %. Raise it only on purpose, saying why in the commit. 2026-11-18 (v2 V3, the prediction column + sort:
+ *   the round-predictions planner, merge, column and status line): 70.2 KB / 22.9 KB gzip → 73.7 KB / 24.1 KB;
  * - one file of its own: it shares no split chunk with `app`, and its stylesheet is its own (no Bootstrap).
  */
 final class AnalyticsStudioBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 66_400;
-    private const int GZIP_BUDGET_BYTES = 22_300;
+    private const int MINIFIED_BUDGET_BYTES = 73_700;
+    private const int GZIP_BUDGET_BYTES = 24_100;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

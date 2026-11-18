@@ -149,9 +149,11 @@ before.
 - **Mapping** (`ColumnMapping`): member columns `player N name`, `player N`, `member N`, `team member N`, `name N`,
   `participant #N`, `puzzler N`, `competitor N` (N = 1-12, case, `_`/`-` and gaps do not matter, the first column of a
   number wins) are the repeated field `MemberName`. Detected member columns drop Name / First / Last name and the
-  per-person columns (player, #code, participant id, external id, status) from the detection; mapped by hand next to
+  per-person columns (e-mail, player, #code, participant id, external id, status) from the detection; mapped by hand next to
   members they are a mapping error (`team_tickets.mapping.*`) - a team row has several people. `member N msp` /
-  `member N email` are **not** built (no per-member reference yet; matching is by name + the row's country).
+  `member N email` are **not** built (no per-member reference yet; matching is by name + the row's country). An e-mail column of a team ticket
+  is the buyer's (Ticket Tailor's `Buyer email`): it is never copied to the members - they are imported without an
+  e-mail (the sheet's e-mail column stays empty for them).
 - **Ticket type** (`TicketType`): detected (`ticket type`, `ticket`, `ticket name`, `ticket tier`) only next to member
   columns - a file of people keeps such a column ignored unless mapped by hand. Next to it a `division(s)` header of an
   event without divisions is no longer read as Rounds (a registration form's division question). The preview lists

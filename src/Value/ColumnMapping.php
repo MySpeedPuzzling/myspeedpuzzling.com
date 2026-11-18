@@ -40,8 +40,12 @@ readonly final class ColumnMapping
     /** Headers of the Ticket type column - recognised only next to member columns (a file of people keeps them ignored) */
     private const array TICKET_HEADERS = ['ticket type', 'ticket', 'ticket name', 'ticket type name', 'ticket tier'];
 
-    /** One value per person - a team row has several people, so these are never read from it */
+    /**
+     * One value per person - a team row has several people, so these are never read from it. An e-mail column of a
+     * team ticket is the buyer's: never copied to the members (they get none)
+     */
     private const array PER_PERSON_FIELDS = [
+        ParticipantImportField::Email,
         ParticipantImportField::PlayerId,
         ParticipantImportField::PlayerCode,
         ParticipantImportField::ParticipantId,

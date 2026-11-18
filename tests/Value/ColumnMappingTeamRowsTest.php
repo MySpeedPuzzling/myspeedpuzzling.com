@@ -104,6 +104,9 @@ final class ColumnMappingTeamRowsTest extends TestCase
             self::errorKeys(ColumnMapping::fromQuery([0 => 'name', 1 => 'member_name', 2 => 'member_name'], $headers, self::rounds())),
         );
 
+        // The buyer's e-mail of a team ticket is nobody's of the members
+        self::assertSame(['team_tickets.mapping.per_person_column'], self::errorKeys(ColumnMapping::fromQuery([0 => 'email', 1 => 'member_name'], $headers, self::rounds())));
+
         $perPerson = ColumnMapping::fromQuery([0 => 'external_id', 1 => 'member_name'], $headers, self::rounds());
         self::assertSame(['team_tickets.mapping.per_person_column'], self::errorKeys($perPerson));
         $field = $perPerson->errors()[0]->getParameters()['%field%'];

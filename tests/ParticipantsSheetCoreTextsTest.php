@@ -23,7 +23,7 @@ final class ParticipantsSheetCoreTextsTest extends KernelTestCase
         'preview_status_' => ['new', 'change', 'same', 'warning', 'error', 'skip'],
         'field_' => ['name', 'country', 'externalId', 'note', 'result', 'table_number', 'qualified'],
         'op_' => ['newParticipant', 'player', 'place', 'newTeam', 'renameTeam', 'deleteTeam', 'remove', 'restore', 'teamSize', 'declineLinkRequest'],
-        'action_' => ['edit', 'field', 'link', 'unlink', 'add_person', 'remove', 'restore', 'place', 'round_in', 'round_out', 'new_team', 'put_in_team', 'clear_member', 'rename_team', 'delete_team', 'team_size', 'results', 'paste', 'clear', 'fill', 'keep_mine', 'approve', 'decline', 'not_them'],
+        'action_' => ['edit', 'field', 'link', 'unlink', 'add_person', 'remove', 'restore', 'place', 'round_in', 'round_out', 'new_team', 'put_in_team', 'clear_member', 'rename_team', 'delete_team', 'team_size', 'results', 'paste', 'clear', 'fill', 'keep_mine', 'approve', 'decline', 'not_them', 'link_suggestions'],
         'help_keys_' => ['move', 'edit', 'type', 'commit', 'cancel', 'tab', 'space', 'list', 'select', 'select_column', 'copy', 'fill', 'clear', 'undo', 'leave', 'ime'],
         'help_does_' => ['move', 'edit', 'type', 'commit', 'cancel', 'tab', 'space', 'list', 'select', 'select_column', 'copy', 'fill', 'clear', 'undo', 'leave', 'ime'],
         'help_task_' => ['saving', 'saving_title', 'names', 'names_title', 'pairs', 'pairs_title', 'results', 'results_title', 'undo', 'undo_title', 'leave', 'leave_title'],

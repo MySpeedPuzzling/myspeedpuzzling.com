@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\StandingMode;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -49,6 +50,8 @@ final class DisplayStandingsTest extends WebTestCase
     use CreatesCompetitionDisplays;
     use QueryCountAssertions;
     use WorldSeriesSetup;
+
+    private const string CUP = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
 
     private KernelBrowser $browser;
     private Connection $database;
@@ -84,6 +87,7 @@ final class DisplayStandingsTest extends WebTestCase
         self::assertSame(3, $explicit['roundsCounted']);
         self::assertSame(6, $explicit['roundsTotal']);
         self::assertSame(['name' => 'Solo 4', 'counted' => false], self::at($explicit, 'rounds.3'));
+        self::assertArrayNotHasKey('stages', $explicit, 'A sum standing has no stages (v2 S5b)');
         // Cut to the element's 3 rows; one person has no members
         self::assertSame([[1, 'Dora', 2400], [2, 'Bob', 2700], [3, 'Alice', 3000]], self::rows($explicit['rows']));
         self::assertSame([], self::at($explicit, 'rows.0.members'));
@@ -158,6 +162,46 @@ final class DisplayStandingsTest extends WebTestCase
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new UnpublishCompetitionStanding($solo, self::WS_COMPETITION));
         [, $state] = self::displayState($this->browser, $token);
         self::assertNull(self::at($state, 'standings.el000000'));
+    }
+
+    /**
+     * A `stages` standing (v2 S5/S5b) on the Results Cup: Group A + Group B (published) → Final (not played). The
+     * standing says how many stages are classified, of how many, and whether it is numbered; its rows carry the stage,
+     * its name ("✓ " = qualified for it) and the place in the stage round - the renderer's place column and subtitle.
+     */
+    public function testAStagesStandingCarriesItsStagesAndEachRowsStagePlace(): void
+    {
+        DeclaredAdvancementStep::insert($this->database, self::CUP, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        $this->database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]);
+        $standingId = Uuid::uuid7();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new CreateCompetitionStanding($standingId, self::CUP, 'Final classification', RoundCategory::Solo, [], new StandingRules(), StandingMode::Stages));
+        $this->publish($standingId->toString(), self::CUP);
+
+        $token = self::createDisplay(self::CUP, [['type' => 'standings', 'props' => ['standingId' => $standingId->toString(), 'columns' => ['rank', 'name', 'stage', 'total']]]]);
+        [$raw, $state] = self::displayState($this->browser, $token);
+        $standing = self::at($state, 'standings.el000000');
+        self::assertIsArray($standing);
+
+        self::assertSame('Final classification', $standing['name']);
+        self::assertTrue($standing['provisional']);
+        self::assertSame(['classified' => 1, 'total' => 2, 'numbered' => false], $standing['stages']);
+        self::assertIsArray($standing['rows']);
+        $rows = $standing['rows'];
+        self::assertSame(['Anna Fast', 'Ben Steady', 'Gina Quick', 'Hugo Slow', 'Cara Tied', 'Dan Unfinished', 'Ivan Last'], array_column($rows, 'name'));
+        // Not numbered: no number across the stages - the place in the own group; the qualified have none
+        self::assertSame(array_fill(0, 7, null), array_column($rows, 'rank'));
+        self::assertSame([null, null, null, null, 2, 4, 3], array_column($rows, 'stageRank'));
+        self::assertSame([1, 1, 1, 1, 1, 1, 1], array_column($rows, 'stage'));
+        self::assertSame([...array_fill(0, 4, '✓ Final'), ...array_fill(0, 3, 'Group A / Group B')], array_column($rows, 'stageName'));
+        self::assertSame(['key', 'rank', 'complete', 'name', 'members', 'countries', 'totalSeconds', 'totalTimeSeconds', 'totalMissingPieces', 'totalPenaltySeconds', 'roundsScored', 'perRound', 'stage', 'stageName', 'stageRank'], array_keys((array) self::at($standing, 'rows.0')));
+        self::assertSame('after %counted% of %count% stages', self::at($state, 'texts.standingStagesOf'));
+        self::assertStringNotContainsString('qualifiedForStage', $raw);
+        self::assertStringNotContainsString('stageRoundId', $raw);
+
+        // Numbered across the stages - said so
+        $this->database->executeStatement('UPDATE competition_standing SET numbered_across_stages = true WHERE id = :id', ['id' => $standingId->toString()]);
+        [, $state] = self::displayState($this->browser, $token);
+        self::assertSame(['classified' => 1, 'total' => 2, 'numbered' => true], self::at($state, 'standings.el000000.stages'));
     }
 
     public function testADesignWithoutAStandingsElementKeepsItsAnswer(): void
@@ -321,9 +365,9 @@ final class DisplayStandingsTest extends WebTestCase
         return $id->toString();
     }
 
-    private function publish(string $standingId): void
+    private function publish(string $standingId, string $competitionId = self::WS_COMPETITION): void
     {
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new PublishCompetitionStanding($standingId, self::WS_COMPETITION));
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new PublishCompetitionStanding($standingId, $competitionId));
     }
 
     /**

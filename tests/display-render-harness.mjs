@@ -624,6 +624,102 @@ check('standings: rows diffed by key (nodes reused and moved), another round cou
     equal(renderer.nextChangeMs(state([STANDING_ROW('c', 1, 'C', 90)]), START), null, 'no next change');
 });
 
+// ---- a `stages` standing (competition toolkit v2 S5b): the final classification across the bracket
+
+const STAGES_TEXTS = { ...baseState().texts, standingStagesOf: 'after %counted% of %count% stages' };
+const STAGE_ROW = (key, rank, stageRank, name, seconds, stage, stageName, extra = {}) => ({
+    key, rank, complete: true, name, members: [], countries: ['cz'], totalSeconds: seconds, totalTimeSeconds: seconds, totalMissingPieces: 0, totalPenaltySeconds: 0, roundsScored: 1,
+    perRound: [SCORE(seconds), NOT_COUNTED, NOT_COUNTED], stage, stageName, stageRank, ...extra,
+});
+const STAGES_STANDING = (rows, stages, extra = {}) => ({
+    name: 'Final classification', category: 'solo', provisional: true, final: false, roundsCounted: 2, roundsTotal: 3, stages,
+    rounds: [{ name: 'Group A', counted: true }, { name: 'Group B', counted: true }, { name: 'Final', counted: false }], rows, ...extra,
+});
+const stagesState = (standing) => baseState({ standings: { st000001: standing }, texts: STAGES_TEXTS });
+
+check('standings: a stages standing - the stage place, qualified without one, no round columns, "after 1 of 2 stages"', () => {
+    // The groups classified, the final not: the qualified are one group without a place, the others keep their group's
+    const standing = STAGES_STANDING([
+        STAGE_ROW('a', null, null, 'Anna', 3000, 1, '✓ Final', { complete: false }),
+        STAGE_ROW('b', null, null, 'Ben', 3100, 1, '✓ Final', { complete: false }),
+        STAGE_ROW('c', null, 2, 'Cara', 3300, 1, 'Group A / Group B'),
+        STAGE_ROW('d', null, 4, 'Dan', 3600, 1, 'Group A / Group B', { totalMissingPieces: 20, perRound: [SCORE(3600, 'unfinished', 20), NOT_COUNTED, NOT_COUNTED] }),
+        STAGE_ROW('i', null, 3, 'Ivan', 3400, 1, 'Group A / Group B'),
+    ], { classified: 1, total: 2, numbered: false });
+    const columns = ['rank', 'name', 'stage', 'rounds', 'total', 'missing'];
+    const { root, node } = render([element('st000001', 'standings', { columns, rows: 10, title: true })], stagesState(standing));
+    const el = node('st000001');
+    equal(el.querySelector('.msp-standings__badge').textContent, 'Provisional', 'badge');
+    equal(el.querySelector('.msp-standings__subtitle-text').textContent, 'after 1 of 2 stages', 'subtitle by stages');
+    const rows = standingRows(root);
+    equal(rows.map((row) => row.querySelector('.msp-standings__rank').textContent), ['–', '–', '2', '4', '3'], 'the stage places');
+    // A group's 2nd is no podium - only the last stage has one
+    equal(rows.map((row) => row.querySelector('.msp-standings__rank').className), Array(5).fill('msp-standings__rank'), 'no podium outside the last stage');
+    equal(rows.map((row) => row.querySelector('.msp-standings__cell--stage').textContent), ['✓ Final', '✓ Final', 'Group A / Group B', 'Group A / Group B', 'Group A / Group B'], 'stage column');
+    assert(el.querySelector('.msp-standings__cell--round') === null, 'no round columns');
+    equal(rows.map((row) => row.querySelector('.msp-standings__total').textContent), ['50:00', '51:40', '55:00', '1:00:00', '56:40'], 'the result in the stage round');
+    // Not numbered: the place is in the place column already - no "(n.)"; the missing pieces still show
+    equal(rows.map((row) => row.querySelector('.msp-standings__missing').textContent), ['', '', '', '−20', ''], 'missing only (no text for 20 in this state - the fallback)');
+    // Qualified rows are not "incomplete" - no "0 of 2 rounds" under their name
+    equal(rows.map((row) => row.querySelector('.msp-standings__sub').textContent), ['', '', '', '', ''], 'no incomplete text');
+    const head = el.querySelector('.msp-standings__row--head');
+    assert(visible(head), 'head shown with the stage column');
+    equal(head.querySelectorAll('.msp-standings__cell--round').length, 0, 'no round labels');
+    // Its stages clash (none): the badge alone
+    const clash = render([element('st000001', 'standings', { title: true })], stagesState(STAGES_STANDING([], { classified: 0, total: 0, numbered: false })));
+    equal(clash.node('st000001').querySelector('.msp-standings__subtitle-text').textContent, '', 'no stages - no count');
+});
+
+check('standings: a stages standing numbered across the stages - the number, (n.) under the result, podium in the last stage, final', () => {
+    const standing = STAGES_STANDING([
+        STAGE_ROW('a', 1, 1, 'Anna', 3000, 2, 'Final'),
+        STAGE_ROW('g', 2, 2, 'Gina', 3100, 2, 'Final'),
+        STAGE_ROW('h', 3, 3, 'Hugo', 3300, 2, 'Final'),
+        STAGE_ROW('b', 4, 2, 'Ben', 2900, 1, 'Group A / Group B'),
+        STAGE_ROW('c', 4, 2, 'Cara', 2950, 1, 'Group A / Group B'),
+        STAGE_ROW('d', null, null, 'Dan', 3600, 1, 'Group A / Group B'),
+    ], { classified: 2, total: 2, numbered: true }, { provisional: false, final: true, roundsCounted: 3 });
+    const { root, node } = render([element('st000001', 'standings', { columns: ['rank', 'name', 'total'], rows: 10, title: true })], stagesState(standing));
+    const el = node('st000001');
+    assert(!visible(el.querySelector('.msp-standings__badge')), 'no badge');
+    equal(el.querySelector('.msp-standings__subtitle-text').textContent, 'Final - all 3 rounds', 'final as on the public page');
+    const rows = standingRows(root);
+    equal(rows.map((row) => row.querySelector('.msp-standings__rank').textContent), ['1', '2', '3', '4', '4', '–'], 'numbered across the stages');
+    equal(rows.slice(0, 4).map((row) => row.querySelector('.msp-standings__rank').className), ['msp-standings__rank msp-standings__rank--1', 'msp-standings__rank msp-standings__rank--2', 'msp-standings__rank msp-standings__rank--3', 'msp-standings__rank'], 'podium in the final');
+    equal(rows.map((row) => row.querySelector('.msp-standings__missing').textContent), ['(1.)', '(2.)', '(3.)', '(2.)', '(2.)', ''], 'the round place under the result');
+    // No stage column: each stage named on its first row
+    equal(rows.map((row) => row.querySelector('.msp-standings__sub').textContent), ['Final', '', '', 'Group A / Group B', '', ''], 'stage on its first row');
+    assert(!visible(el.querySelector('.msp-standings__row--head')), 'no head without rounds or stage columns');
+});
+
+check('standings: a sum standing turning into a stages one (and back) rebuilds the cells', () => {
+    const { document, root } = dom();
+    const elements = [element('st000001', 'standings', { columns: ['rank', 'name', 'total', 'rounds'] })];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    renderer.render(baseState({ standings: { st000001: STANDING([STANDING_ROW('a', 1, 'A', 100)]) } }), START);
+    equal(standingRows(root)[0].querySelectorAll('.msp-standings__cell--round').length, 3, 'sum: a cell per round');
+    renderer.render(stagesState(STAGES_STANDING([STAGE_ROW('a', null, 5, 'A', 100, 1, 'Group A')], { classified: 1, total: 2, numbered: false })), START);
+    equal(standingRows(root)[0].querySelectorAll('.msp-standings__cell--round').length, 0, 'stages: none');
+    equal(standingRows(root)[0].querySelector('.msp-standings__rank').textContent, '5', 'the stage place');
+    renderer.render(baseState({ standings: { st000001: STANDING([STANDING_ROW('a', 1, 'A', 100)]) } }), START);
+    equal(standingRows(root)[0].querySelectorAll('.msp-standings__cell--round').length, 3, 'sum again');
+    equal(standingRows(root)[0].querySelector('.msp-standings__rank').textContent, '1', 'its rank');
+});
+
+check('xss: a stages standing fed evil data in every string', () => {
+    const { document, root, window } = dom();
+    const elements = [element('st000001', 'standings', { columns: ['rank', 'flag', 'name', 'members', 'total', 'missing'], title: true }), element('st000002', 'standings', { columns: ['rank', 'name', 'stage', 'total'] })];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    const evil = () => ({ ...evilStanding(), stages: { classified: EVIL, total: EVIL, numbered: true }, rows: evilStanding().rows.map((row) => (typeof row === 'object' ? { ...row, stage: EVIL, stageRank: EVIL } : row)) });
+    const state = evilState();
+    state.standings = { st000001: evil(), st000002: { ...evil(), stages: EVIL } };
+    renderer.render(state, START);
+    const problem = injected(root);
+    assert(problem === null, problem);
+    assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
+    assert(window.document.querySelectorAll('script').length === 0, 'no script');
+});
+
 check('xss: a standing fed evil data in every string', () => {
     const { document, root, window } = dom();
     const elements = [element('st000001', 'standings', { columns: ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'], whenEmpty: 'text', emptyText: EVIL }), element('st000002', 'standings', { whenEmpty: 'text', emptyText: EVIL })];

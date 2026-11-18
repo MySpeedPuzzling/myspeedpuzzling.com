@@ -145,6 +145,7 @@ final readonly class CompetitionDisplayPayload
         return [
             'standingProvisional' => $this->translator->trans('public_standing.provisional', locale: $locale),
             'standingRoundsOf' => $this->translator->trans('public_standing.rounds_of', ['%scored%' => '%scored%', '%count%' => '%count%'], locale: $locale),
+            'standingStagesOf' => $this->translator->trans('public_standing.stage.after_stages', ['%counted%' => '%counted%', '%count%' => '%count%'], locale: $locale),
             'standingRoundShort' => $this->translator->trans('public_standing.round_short', ['%number%' => '%number%'], locale: $locale),
             'standingTotal' => $this->translator->trans('public_standing.total', locale: $locale),
             'standingFinal' => (object) $final,

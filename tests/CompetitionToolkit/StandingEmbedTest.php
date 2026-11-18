@@ -193,6 +193,6 @@ final class StandingEmbedTest extends WebTestCase
      */
     private static function ranks(Crawler $crawler): array
     {
-        return array_values($crawler->filter('[data-standing-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-standing-rank')));
+        return $crawler->filter('[data-standing-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-standing-rank'));
     }
 }

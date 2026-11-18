@@ -14204,6 +14204,17 @@ competition_toolkit:
         no_shows_wait: "Nichtantritte zählen, sobald die Ergebnisse einer Runde veröffentlicht sind – bis dahin werden Teilnehmer ohne Ergebnis dort noch nicht gezählt."
         substitutes_warning: "{0}Kein Paar oder Team tritt nur in einigen Runden auf.|{1}1 Paar oder Team tritt nur in einigen Runden auf – prüfen Sie Ersatzspieler: Eine geänderte Besetzung ist ein eigener Teilnehmer und erhält in den Runden, die sie nicht gespielt hat, einen Nichtantritt.|]1,Inf[%count% Paare oder Teams treten nur in einigen Runden auf – prüfen Sie Ersatzspieler: Eine geänderte Besetzung ist ein eigener Teilnehmer und erhält in den Runden, die sie nicht gespielt hat, einen Nichtantritt."
         publish_no_shows: "{0}Kein Eintrag ohne Ergebnis wird in %standing% als Nichtantritt gezählt.|{1}1 Eintrag ohne Ergebnis wird in %standing% als Nichtantritt gezählt.|]1,Inf[%count% Einträge ohne Ergebnis werden in %standing% als Nichtantritte gezählt."
+        mode:
+            label: "Wie entschieden wird"
+            sum: "Summe der Runden"
+            sum_help: "Die Zeiten der gewählten Runden werden addiert - die niedrigste Summe gewinnt."
+            stages: "Endstand über den Turnierbaum"
+            stages_help: "Vorne ist, wer im Turnierbaum am weitesten kam: zuerst die Plätze des Finales, dann alle, die in der Phase davor ausgeschieden sind, nach ihrem Platz dort, und so weiter. Die Runden kommen aus den Qualifikationsschritten - keine Runden, Strafe oder Reihenfolge zu wählen."
+            stages_no_steps: "Der Endstand braucht Qualifikationsschritte: Legen Sie zuerst fest, wie es von Runde zu Runde weitergeht (Gruppen → Halbfinale → Finale)."
+            stages_categories: "Möglich für: %categories%"
+        numbered: "Alle über die Phasen hinweg durchnummerieren"
+        numbered_help: "Liste 1-200 wie bei der WJPC; sonst behält jede Phase die Plätze ihrer Runde."
+        rule_numbered: "über die Phasen durchnummeriert"
     divisions:
         title: "Wertungsklassen"
         intro: "Wertungsklassen reihen Teilnehmer innerhalb einer Runde getrennt – z. B. Regular, Senior 55+ und Junior unter 16, die dasselbe Puzzle mit demselben Start legen. Der Gesamtplatz bleibt; jeder Eintrag mit Wertungsklasse erhält zusätzlich seinen Platz darin. Runden ohne Wertungsklassen funktionieren wie bisher."
@@ -14807,6 +14818,7 @@ competition_standing:
         wrong_category: "Alle Runden einer Gesamtwertung müssen zu ihrer Kategorie gehören."
         limit_reached: "Eine Veranstaltung kann höchstens 20 Gesamtwertungen haben."
         invalid_name: "Die Gesamtwertung braucht einen Namen."
+        no_steps: "Diese Kategorie hat keine funktionierenden Qualifikationsschritte (keine festgelegt oder sie widersprechen sich) - ein Endstand braucht sie."
 public_standing:
     event_links: "Gesamtwertungen:"
     part_of: "Teil von %name%"
@@ -14830,6 +14842,7 @@ public_standing:
         unfinished: "* nicht beendet: das Zeitlimit der Runde plus die Strafe."
         incomplete: "Ohne Ergebnis in einer der Runden – steht nach allen anderen, ohne Platz."
         not_published: "– = die Ergebnisse dieser Runde sind noch nicht veröffentlicht."
+        stages: "Nach erreichter Phase sortiert - die weiteste zuerst; (n.) = der Platz in dieser Runde."
     organiser:
         published: "Veröffentlicht"
         not_published: "Nicht veröffentlicht"
@@ -14843,6 +14856,13 @@ public_standing:
         unpublished: "Die Gesamtwertung „%name%“ ist nicht mehr öffentlich."
     live:
         updated: "Aktualisiert um %time%"
+    stage:
+        reached: "Phase %number%: %stage%"
+        qualified_for: "Qualifiziert für %stage%"
+        result: "Ergebnis"
+        after_stages: "nach %counted% von %count% Phasen"
+        legend_qualified: "Für eine Phase qualifiziert, deren Ergebnisse noch nicht alle veröffentlicht sind - bis dahin ohne Platz."
+    stages_clash: "Die Qualifikationsschritte dieser Kategorie fehlen oder widersprechen sich - niemand kann eingestuft werden."
 advancement_step:
     card:
         none: "Noch keine Qualifikationsschritte. Ein Schritt legt fest, wer weiterkommt: „die besten 8 jeder Gruppe kommen ins Halbfinale“."

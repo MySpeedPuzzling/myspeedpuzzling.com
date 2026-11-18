@@ -14460,6 +14460,17 @@ competition_toolkit:
         no_shows_wait: "No-shows count once a round's results are published - until then, entrants without a result there are not counted yet."
         substitutes_warning: "[0,1]1 pair or team appears in only some rounds - check substitutes: a changed line-up is a separate entrant and gets a no-show in the rounds it did not play.|]1,Inf[%count% pairs or teams appear in only some rounds - check substitutes: a changed line-up is a separate entrant and gets a no-show in the rounds it did not play."
         publish_no_shows: "[0,1]1 entry without a result will count as a no-show in %standing%.|]1,Inf[%count% entries without a result will count as no-shows in %standing%."
+        mode:
+            label: "How it is decided"
+            sum: "Sum of rounds"
+            sum_help: "The times of the chosen rounds are added up - the lowest total wins."
+            stages: "Final classification across the bracket"
+            stages_help: "Whoever got furthest in the bracket is ahead: the final's places first, then everybody out in the stage before by their place there, and so on. The rounds come from the advancement steps - no rounds, penalty or order to choose."
+            stages_no_steps: "The final classification needs advancement steps: declare first how people move from round to round (groups → semifinals → final)."
+            stages_categories: "Possible for: %categories%"
+        numbered: "Number everybody across the stages"
+        numbered_help: "WJPC-style 1-200 list; otherwise each stage keeps its own round's places."
+        rule_numbered: "numbered across the stages"
     divisions:
         title: "Divisions"
         intro: "Divisions rank people separately inside one round - e.g. Regular, Senior 55+ and Junior under 16 solving the same puzzle at the same start. The overall rank stays; each entry with a division gets its rank within it too. Rounds without divisions work as before."
@@ -15063,6 +15074,7 @@ competition_standing:
         wrong_category: "All rounds of a standing must be of its category."
         limit_reached: "An event can have at most 20 standings."
         invalid_name: "The standing needs a name."
+        no_steps: "This category has no working advancement steps (none declared, or they clash) - a final classification needs them."
 public_standing:
     event_links: "Standings:"
     part_of: "Part of %name%"
@@ -15086,6 +15098,7 @@ public_standing:
         unfinished: "* not finished: the round's time limit plus the penalty."
         incomplete: "Without a result in one of the rounds - listed after everybody else, without a place."
         not_published: "– = results of that round are not published yet."
+        stages: "Listed by the stage reached - the furthest first; (n.) = the place in that round."
     organiser:
         published: "Published"
         not_published: "Not published"
@@ -15099,6 +15112,13 @@ public_standing:
         unpublished: "The standing “%name%” is no longer public."
     live:
         updated: "Updated at %time%"
+    stage:
+        reached: "Stage %number%: %stage%"
+        qualified_for: "Qualified for %stage%"
+        result: "Result"
+        after_stages: "after %counted% of %count% stages"
+        legend_qualified: "Qualified for a stage whose results are not all published yet - listed without a place until they are."
+    stages_clash: "The advancement steps of this category are missing or clash - nobody can be classified."
 advancement_step:
     card:
         none: "No advancement steps yet. A step declares who moves on: “the best 8 of each group go to the semifinal”."

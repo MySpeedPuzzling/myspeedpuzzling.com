@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Results\Bracket\Bracket;
 use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Results\PublicStandingRow;
 use SpeedPuzzling\Web\Results\PublicStandingTable;
@@ -16,7 +17,9 @@ use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Results\StandingRoundColumn;
 use SpeedPuzzling\Web\Results\StandingRow;
 use SpeedPuzzling\Web\Results\StandingTable;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\BracketLayout;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingCalculator;
+use SpeedPuzzling\Web\Services\OfficialResultsRanking;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
@@ -42,6 +45,13 @@ use SpeedPuzzling\Web\Value\StandingRoundInput;
  * Statements: the event's rounds (with their piece totals), then GetRoundResultEntries per round of the standing
  * (organiser) or at most two for all its published rounds (public).
  *
+ * A `stages` standing (competition toolkit v2 S5, StandingCalculator::stages()) reads its rounds from the bracket of its
+ * category - BracketLayout over the declared advancement steps and GetBracketRounds, the bracket page's own layout (+2
+ * statements: the steps, the rounds in schedule order). No bracket (no valid step of the category, steps clashing) =
+ * no rows and `stages: []`. Organiser: every bracket round, a stage classified once each of its rounds has somebody in
+ * it. Public: published rounds only, a stage classified once all its rounds are published; the same entrants view, the
+ * same hidden-after-ranking rule (after the numbering).
+ *
  * @phpstan-type RoundRow array{id: string, name: string, slug: null|string, category: string, minutes_limit: null|int, published: bool, puzzle_format: string, puzzles_to_solve: null|int, puzzles_count: int, pieces_total: null|int, pieces_by_round_puzzle: array<string, int>, labels_by_round_puzzle: array<string, string>}
  */
 readonly final class GetStandingResults
@@ -50,6 +60,8 @@ readonly final class GetStandingResults
         private Connection $database,
         private GetRoundResultEntries $getRoundResultEntries,
         private OfficialEntrantsView $officialEntrantsView,
+        private GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
+        private GetBracketRounds $getBracketRounds,
     ) {
     }
 
@@ -58,6 +70,10 @@ readonly final class GetStandingResults
      */
     public function organiserView(CompetitionStandingOverview $standing, bool $organiser = true): StandingTable
     {
+        if ($standing->isStages()) {
+            return $this->organiserStagesView($standing, $organiser);
+        }
+
         $roundsById = $this->rounds($standing->competitionId);
         $columns = [];
         $inputs = [];
@@ -104,6 +120,10 @@ readonly final class GetStandingResults
      */
     public function publicView(CompetitionStandingOverview $standing, null|string $viewerPlayerId, bool $asGuest = false): PublicStandingTable
     {
+        if ($standing->isStages()) {
+            return $this->publicStagesView($standing, $viewerPlayerId, $asGuest);
+        }
+
         $roundsById = $this->rounds($standing->competitionId);
 
         /** @var array<string, RoundRow> $included */
@@ -147,24 +167,7 @@ readonly final class GetStandingResults
 
             foreach ($official->entries ?? [] as $entry) {
                 $key = self::publicKey($standing->competitionId, $entry);
-                $entries[] = new StandingEntryInput(
-                    key: $key,
-                    result: $entry->result,
-                    rank: $entry->rank,
-                    piecesCount: self::publicPiecesCount($round, $entry),
-                    name: $entry->teamName ?? implode(', ', array_map(static fn (PublishedRoundEntrant $entrant): string => $entrant->playerName, $entry->entrants)),
-                    countries: self::countries($entry->entrants),
-                    entrants: array_map(static fn (PublishedRoundEntrant $entrant): StandingEntrant => new StandingEntrant(
-                        name: $entrant->playerName,
-                        country: $entrant->playerCountry?->name,
-                        playerId: $entrant->playerId,
-                        playerCode: $entrant->playerId !== null ? $entrant->linkedPlayerCode : null,
-                    ), $entry->entrants),
-                    missingPieces: $entry->missingPieces,
-                    challengeTimes: $round['puzzle_format'] === RoundPuzzleFormat::Pick->value
-                        ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle'])
-                        : [],
-                );
+                $entries[] = self::publicInput($round, $key, $entry);
                 $latest[$key] = $entry;
                 $hidden[$key] = ($hidden[$key] ?? false) || $entry->hiddenFromViewer;
             }
@@ -197,6 +200,188 @@ readonly final class GetStandingResults
                     isViewers: $entry->isViewers,
                 );
             }, $visible),
+        );
+    }
+
+    /**
+     * The organiser's `stages` standing: every round of the category's bracket, published or not (GetRoundResultEntries
+     * per round, like the sum preview); a round counts once somebody is in it.
+     */
+    private function organiserStagesView(CompetitionStandingOverview $standing, bool $organiser): StandingTable
+    {
+        $bracket = $this->bracketOf($standing);
+
+        if ($bracket === null) {
+            return new StandingTable(standing: $standing, rounds: [], rows: [], skippedRounds: 0, includesUnpublished: true, stages: []);
+        }
+
+        $roundsById = $this->rounds($standing->competitionId);
+
+        $columns = [];
+        $inputs = [];
+
+        foreach ($bracket->rounds() as $bracketRound) {
+            $roundId = strtolower($bracketRound->id);
+            $round = $roundsById[$roundId] ?? null;
+
+            if ($round === null) {
+                continue;
+            }
+
+            $isPick = $round['puzzle_format'] === RoundPuzzleFormat::Pick->value;
+            $entries = array_map(
+                fn (RoundResultEntry $entry): StandingEntryInput => $this->input($standing->competitionId, $entry, $isPick ? $entry->piecesCount : $round['pieces_total'], $organiser, $isPick ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle']) : []),
+                $this->getRoundResultEntries->forRound($roundId),
+            );
+            $counted = $entries !== [];
+
+            $columns[] = self::column($round, $counted, array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
+            $inputs[$roundId] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries);
+        }
+
+        return new StandingTable(
+            standing: $standing,
+            rounds: $columns,
+            rows: StandingCalculator::stages($bracket, $inputs, $standing->numberedAcrossStages),
+            skippedRounds: 0,
+            includesUnpublished: true,
+            stages: StandingCalculator::stageList($bracket, $inputs),
+        );
+    }
+
+    /**
+     * The public `stages` standing for one viewer: the bracket's published rounds only (OfficialEntrantsView - ranked
+     * results, private players masked, removed people left out), a stage classified once all its rounds are published;
+     * the rows hidden from the viewer dropped after the numbering, without renumbering.
+     */
+    private function publicStagesView(CompetitionStandingOverview $standing, null|string $viewerPlayerId, bool $asGuest): PublicStandingTable
+    {
+        $bracket = $this->bracketOf($standing);
+
+        if ($bracket === null) {
+            return new PublicStandingTable(
+                table: new StandingTable(standing: $standing, rounds: [], rows: [], skippedRounds: 0, includesUnpublished: false, stages: []),
+                rows: [],
+            );
+        }
+
+        $roundsById = $this->rounds($standing->competitionId);
+
+        /** @var array<string, RoundRow> $included */
+        $included = [];
+        foreach ($bracket->rounds() as $bracketRound) {
+            $roundId = strtolower($bracketRound->id);
+
+            if (isset($roundsById[$roundId])) {
+                $included[$roundId] = $roundsById[$roundId];
+            }
+        }
+
+        $published = array_filter($included, static fn (array $round): bool => $round['published']);
+        $officialByRound = $published !== []
+            ? $this->officialEntrantsView->forRounds(
+                array_map(static fn (array $round): RoundCategory => RoundCategory::from($round['category']), $published),
+                $asGuest ? null : $viewerPlayerId,
+                keepHidden: true,
+                asGuest: $asGuest,
+            )
+            : [];
+
+        $columns = [];
+        $inputs = [];
+        /** @var array<string, array<string, PublishedRoundEntry>> $byRound round id => key => its entry there */
+        $byRound = [];
+        /** @var array<string, bool> $hidden */
+        $hidden = [];
+
+        foreach ($included as $roundId => $round) {
+            $roundId = (string) $roundId;
+            $entries = [];
+
+            foreach ($officialByRound[$roundId]->entries ?? [] as $entry) {
+                $key = self::publicKey($standing->competitionId, $entry);
+                $entries[] = self::publicInput($round, $key, $entry);
+                $current = $byRound[$roundId][$key] ?? null;
+
+                if ($current === null || OfficialResultsRanking::compare($entry->result, $current->result) < 0) {
+                    $byRound[$roundId][$key] = $entry;
+                }
+
+                $hidden[$key] = ($hidden[$key] ?? false) || $entry->hiddenFromViewer;
+            }
+
+            $columns[] = self::column($round, $round['published'], array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
+            $inputs[$roundId] = new StandingRoundInput($roundId, $round['minutes_limit'], $round['published'], $entries);
+        }
+
+        $rows = StandingCalculator::stages($bracket, $inputs, $standing->numberedAcrossStages);
+
+        // Hidden AFTER the numbering - everybody else keeps the classification's places
+        $visible = array_values(array_filter($rows, static fn (StandingRow $row): bool => ($hidden[$row->key] ?? false) === false));
+
+        return new PublicStandingTable(
+            table: new StandingTable(
+                standing: $standing,
+                rounds: $columns,
+                rows: $visible,
+                skippedRounds: 0,
+                includesUnpublished: false,
+                stages: StandingCalculator::stageList($bracket, $inputs),
+            ),
+            rows: array_map(static function (StandingRow $row) use ($byRound): PublicStandingRow {
+                // The row's people as its stage round (the one round of its perRound) shows them
+                $entry = $byRound[(string) array_key_first($row->perRound)][$row->key];
+
+                return new PublicStandingRow(
+                    row: $row,
+                    entrants: $entry->entrants,
+                    isTeam: $entry->isTeam,
+                    teamName: $entry->teamName,
+                    isViewers: $entry->isViewers,
+                );
+            }, $visible),
+        );
+    }
+
+    /**
+     * The bracket of the standing's category - the public bracket page's own layout (BracketLayout); null without one.
+     */
+    private function bracketOf(CompetitionStandingOverview $standing): null|Bracket
+    {
+        $steps = $this->getCompetitionAdvancementSteps->ofCompetition($standing->competitionId);
+
+        if ($steps === []) {
+            return null;
+        }
+
+        $brackets = BracketLayout::of($steps, $this->getBracketRounds->ofCompetition($standing->competitionId));
+
+        return array_find($brackets, static fn (Bracket $bracket): bool => $bracket->category === $standing->category);
+    }
+
+    /**
+     * @param RoundRow $round
+     */
+    private static function publicInput(array $round, string $key, PublishedRoundEntry $entry): StandingEntryInput
+    {
+        return new StandingEntryInput(
+            key: $key,
+            result: $entry->result,
+            rank: $entry->rank,
+            piecesCount: self::publicPiecesCount($round, $entry),
+            name: $entry->teamName ?? implode(', ', array_map(static fn (PublishedRoundEntrant $entrant): string => $entrant->playerName, $entry->entrants)),
+            countries: self::countries($entry->entrants),
+            entrants: array_map(static fn (PublishedRoundEntrant $entrant): StandingEntrant => new StandingEntrant(
+                name: $entrant->playerName,
+                country: $entrant->playerCountry?->name,
+                playerId: $entrant->playerId,
+                playerCode: $entrant->playerId !== null ? $entrant->linkedPlayerCode : null,
+            ), $entry->entrants),
+            missingPieces: $entry->missingPieces,
+            challengeTimes: $round['puzzle_format'] === RoundPuzzleFormat::Pick->value
+                ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle'])
+                : [],
+            qualified: $entry->qualified,
         );
     }
 
@@ -371,6 +556,7 @@ SQL, ['competitionId' => $competitionId]);
                 )],
                 missingPieces: $entry->missingPieces,
                 challengeTimes: $challengeTimes,
+                qualified: $entry->isQualified(),
             );
         }
 
@@ -392,6 +578,7 @@ SQL, ['competitionId' => $competitionId]);
             ), $entry->members),
             missingPieces: $entry->missingPieces,
             challengeTimes: $challengeTimes,
+            qualified: $entry->isQualified(),
         );
     }
 }

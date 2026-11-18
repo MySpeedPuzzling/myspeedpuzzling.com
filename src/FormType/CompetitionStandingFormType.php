@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Entity\CompetitionStanding;
 use SpeedPuzzling\Web\FormData\CompetitionStandingFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\StandingMissing;
+use SpeedPuzzling\Web\Value\StandingMode;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Component\Form\AbstractType;
@@ -22,6 +23,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 /**
  * Only the event's own rounds are offered (option `rounds`: id => label) - any other id is an invalid choice. The
  * category of each round is shown in its label; the handler refuses a round of another category.
+ *
+ * Option `stages_available` (competition toolkit v2 S5): false = the event has no bracket of any category - the
+ * "Final classification across the bracket" choice is disabled (the handler refuses it for a category without one).
  *
  * @extends AbstractType<CompetitionStandingFormData>
  */
@@ -44,6 +48,20 @@ final class CompetitionStandingFormType extends AbstractType
             'expanded' => true,
             'label' => 'competition_standing.form.category',
             'choice_label' => static fn (RoundCategory $category): string => 'competition.round.category.' . $category->value,
+        ]);
+
+        $builder->add('mode', EnumType::class, [
+            'class' => StandingMode::class,
+            'expanded' => true,
+            'label' => 'competition_toolkit.standings.mode.label',
+            'choice_label' => static fn (StandingMode $mode): string => 'competition_toolkit.standings.mode.' . $mode->value,
+            'choice_attr' => static fn (StandingMode $mode): array => $mode === StandingMode::Stages && $options['stages_available'] === false ? ['disabled' => 'disabled'] : [],
+        ]);
+
+        $builder->add('numberedAcrossStages', CheckboxType::class, [
+            'required' => false,
+            'label' => 'competition_toolkit.standings.numbered',
+            'help' => 'competition_toolkit.standings.numbered_help',
         ]);
 
         $builder->add('roundIds', ChoiceType::class, [
@@ -90,5 +108,7 @@ final class CompetitionStandingFormType extends AbstractType
         ]);
         $resolver->setRequired('rounds');
         $resolver->setAllowedTypes('rounds', 'array');
+        $resolver->setDefault('stages_available', false);
+        $resolver->setAllowedTypes('stages_available', 'bool');
     }
 }

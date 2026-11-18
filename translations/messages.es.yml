@@ -14205,6 +14205,17 @@ competition_toolkit:
         no_shows_wait: "Los no presentados cuentan cuando se publican los resultados de una ronda; hasta entonces, los participantes sin resultado en ella aún no se cuentan."
         substitutes_warning: "{0}Ninguna pareja ni equipo aparece solo en algunas rondas.|{1}1 pareja o equipo aparece solo en algunas rondas: revisa los suplentes. Una composición distinta es un participante aparte y recibe un no presentado en las rondas que no jugó.|]1,Inf[%count% parejas o equipos aparecen solo en algunas rondas: revisa los suplentes. Una composición distinta es un participante aparte y recibe un no presentado en las rondas que no jugó."
         publish_no_shows: "{0}Ninguna inscripción sin resultado contará como no presentado en %standing%.|{1}1 inscripción sin resultado contará como no presentado en %standing%.|]1,Inf[%count% inscripciones sin resultado contarán como no presentados en %standing%."
+        mode:
+            label: "Cómo se decide"
+            sum: "Suma de rondas"
+            sum_help: "Se suman los tiempos de las rondas elegidas: gana el total más bajo."
+            stages: "Clasificación final según el cuadro"
+            stages_help: "Va delante quien llegó más lejos en el cuadro: primero los puestos de la final, luego todos los eliminados en la fase anterior según su puesto en ella, y así sucesivamente. Las rondas salen de los pasos de avance: no hay rondas, penalización ni orden que elegir."
+            stages_no_steps: "La clasificación final necesita pasos de avance: define primero cómo se pasa de una ronda a otra (grupos → semifinales → final)."
+            stages_categories: "Posible para: %categories%"
+        numbered: "Numerar a todos a lo largo de las fases"
+        numbered_help: "Lista 1-200 al estilo del WJPC; si no, cada fase conserva los puestos de su ronda."
+        rule_numbered: "numerado a lo largo de las fases"
     divisions:
         title: "Divisiones"
         intro: "Las divisiones clasifican a las personas por separado dentro de una misma ronda, p. ej. Regular, Senior 55+ y Junior menores de 16 resolviendo el mismo puzzle con la misma salida. La posición general se mantiene; cada inscripción con división recibe además su posición dentro de ella. Las rondas sin divisiones funcionan como antes."
@@ -14808,6 +14819,7 @@ competition_standing:
         wrong_category: "Todas las rondas de una clasificación general deben ser de su categoría."
         limit_reached: "Un evento puede tener como máximo 20 clasificaciones generales."
         invalid_name: "La clasificación general necesita un nombre."
+        no_steps: "Esta categoría no tiene pasos de avance válidos (no hay ninguno o se contradicen); la clasificación final los necesita."
 public_standing:
     event_links: "Clasificaciones generales:"
     part_of: "Parte de %name%"
@@ -14831,6 +14843,7 @@ public_standing:
         unfinished: "* no terminado: el límite de tiempo de la ronda más la penalización."
         incomplete: "Sin resultado en alguna de las rondas: aparece después de todos los demás, sin puesto."
         not_published: "– = los resultados de esa ronda aún no están publicados."
+        stages: "Ordenado por la fase alcanzada, la más lejana primero; (n.) = el puesto en esa ronda."
     organiser:
         published: "Publicada"
         not_published: "Sin publicar"
@@ -14844,6 +14857,13 @@ public_standing:
         unpublished: "La clasificación general «%name%» ya no es pública."
     live:
         updated: "Actualizado a las %time%"
+    stage:
+        reached: "Fase %number%: %stage%"
+        qualified_for: "Clasificado para %stage%"
+        result: "Resultado"
+        after_stages: "tras %counted% de %count% fases"
+        legend_qualified: "Clasificado para una fase cuyos resultados aún no están todos publicados: sin puesto hasta entonces."
+    stages_clash: "Faltan los pasos de avance de esta categoría o se contradicen: no se puede clasificar a nadie."
 advancement_step:
     card:
         none: "Aún no hay pasos de avance. Un paso indica quién pasa: «los 8 mejores de cada grupo van a la semifinal»."

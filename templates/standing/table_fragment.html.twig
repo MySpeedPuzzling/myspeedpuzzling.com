@@ -5,5 +5,5 @@
     Variables: view (PublicStandingTableView).
 #}
 <turbo-frame id="standing-table" target="_top">
-    {{- include('standing/_public_table.html.twig', {table: view.table, standing: view.standing, round_route: view.roundRoute, route_params: view.routeParams}, with_context = false) -}}
+    {{- include(view.table.table.stages is not null ? 'standing/_public_stages.html.twig' : 'standing/_public_table.html.twig', {table: view.table, standing: view.standing, round_route: view.roundRoute, route_params: view.routeParams}, with_context = false) -}}
 </turbo-frame>

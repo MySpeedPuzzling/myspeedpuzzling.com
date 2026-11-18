@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\CompetitionToolkit;
 
+use SpeedPuzzling\Web\Results\Bracket\Bracket;
+use SpeedPuzzling\Web\Results\Bracket\BracketRound;
 use SpeedPuzzling\Web\Results\StandingRoundScore;
 use SpeedPuzzling\Web\Results\StandingRow;
+use SpeedPuzzling\Web\Results\StandingStage;
+use SpeedPuzzling\Web\Services\AdvancementSeeding;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\StandingEntryInput;
 use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
@@ -44,6 +49,11 @@ use SpeedPuzzling\Web\Value\StandingScoreStatus;
  * or unfinished) in any counted round is left out - also one whose every score is a NoShow, so the organiser preview
  * and the public page (which never sees an absentee) list the same people. Its name and people are the ones of the
  * last round (in the standing's order) it is in.
+ *
+ * stages() is the other mode - the final classification across a bracket (competition toolkit v2 S5), see there.
+ *
+ * @phpstan-type StageReach array{stage: int, position: int, round: StandingRoundInput, entry: StandingEntryInput}
+ * @phpstan-type StageCandidate array{key: string, at: StageReach, group: int, qualified: bool, seed: array{bool, int, bool, float}}
  */
 final readonly class StandingCalculator
 {
@@ -141,6 +151,199 @@ final readonly class StandingCalculator
             ?: strcmp($a->key, $b->key));
 
         return self::ranked($rules, $rows);
+    }
+
+    /**
+     * The final classification across a bracket (`stages`, competition toolkit v2 S5, A-round-formats.md §3.5,
+     * displays-standings.md §4.3) - pure. The bracket is the standing's category's (BracketLayout, the same stages as
+     * the bracket page); `$rounds` are its rounds that the caller read, `counted` = the round may place anybody (public:
+     * published; organiser: somebody is in it). A stage is **classified** once every round of it counts; the rounds of a
+     * stage that is not are ignored.
+     *
+     * 1. An entrant's stage = the deepest classified stage it has an entry in (any entry - a "did not start" in the final
+     *    was advanced there; the public view never sees one). Entrants across rounds by `key`, like sum(); an entrant
+     *    without a ranked result in any classified round is left out (nobody is invented into the classification).
+     * 2. Marked qualified there while the next stage is not classified yet: one unranked group "qualified for" the next
+     *    stage, by name, in that stage's place (deeper stages first).
+     * 3. Otherwise listed in its stage, deepest first, with its own round's place (`stageRank`). Not numbered: grouped
+     *    per round of the stage (schedule order), by the place, unranked last - no combined number. Numbered: one
+     *    number 1..N over everybody (`rank`) - within a stage across its parallel rounds by the advancement seed's keys
+     *    (AdvancementSeeding::crossRoundKey(): the place, finished before unfinished, the result relative to the round's
+     *    winner); equal keys share the number, the next skips ("1, 2, 2, 4"); everybody listed ahead counts, also an
+     *    unranked row; a row without a ranked result in its stage round has no number, last in its stage.
+     *
+     * A row's perRound holds its stage round only (its time, missing pieces, challenge times); totalSeconds = that
+     * round's score (time limit for an unfinished result), never a ranking input here.
+     *
+     * @param array<string, StandingRoundInput> $rounds round id (lower case) => the round
+     * @return list<StandingRow>
+     */
+    public static function stages(Bracket $bracket, array $rounds, bool $numbered): array
+    {
+        $stages = self::stageList($bracket, $rounds);
+        $rules = new StandingRules();
+        /** @var array<string, StageReach> $reached */
+        $reached = [];
+        /** @var array<string, null|int> $winners */
+        $winners = [];
+        /** @var array<string, true> $ranked */
+        $ranked = [];
+
+        foreach ($stages as $index => $stage) {
+            if ($stage->classified === false) {
+                continue;
+            }
+
+            $position = 0;
+            foreach (array_keys($stage->rounds) as $roundId) {
+                $round = $rounds[$roundId];
+                $winners[$roundId] = AdvancementSeeding::roundWinnerSeconds(array_map(static fn (StandingEntryInput $entry): RoundEntryResult => $entry->result, $round->entries));
+
+                foreach (self::bestPerKey($round->entries) as $key => $entry) {
+                    $key = (string) $key;
+
+                    if ($entry->rank !== null) {
+                        $ranked[$key] = true;
+                    }
+
+                    $current = $reached[$key] ?? null;
+
+                    if ($current === null || $current['stage'] < $index || ($current['stage'] === $index && (self::placeOf($entry) <=> self::placeOf($current['entry'])) < 0)) {
+                        $reached[$key] = ['stage' => $index, 'position' => $position, 'round' => $round, 'entry' => $entry];
+                    }
+                }
+
+                $position++;
+            }
+        }
+
+        /** @var list<StageCandidate> $candidates */
+        $candidates = [];
+
+        foreach ($reached as $key => $at) {
+            $key = (string) $key;
+
+            if (!isset($ranked[$key])) {
+                continue;
+            }
+
+            $next = $stages[$at['stage'] + 1] ?? null;
+            $entry = $at['entry'];
+
+            $candidates[] = [
+                'key' => $key,
+                'at' => $at,
+                // The group's place: deeper first; "qualified for" sits where the next stage would
+                'group' => $entry->qualified && $next !== null && $next->classified === false ? $at['stage'] + 1 : $at['stage'],
+                'qualified' => $entry->qualified && $next !== null && $next->classified === false,
+                'seed' => AdvancementSeeding::crossRoundKey($entry->rank, $entry->result, $winners[$at['round']->roundId] ?? null, $entry->piecesCount),
+            ];
+        }
+
+        usort($candidates, static function (array $a, array $b) use ($numbered): int {
+            if ($a['group'] !== $b['group']) {
+                return $b['group'] <=> $a['group'];
+            }
+
+            $aEntry = $a['at']['entry'];
+            $bEntry = $b['at']['entry'];
+
+            if ($a['qualified'] === false) {
+                $order = $numbered
+                    ? ($a['seed'] <=> $b['seed'] ?: $a['at']['position'] <=> $b['at']['position'])
+                    : ($a['at']['position'] <=> $b['at']['position'] ?: self::placeOf($aEntry) <=> self::placeOf($bEntry));
+
+                if ($order !== 0) {
+                    return $order;
+                }
+            }
+
+            return strcasecmp($aEntry->name, $bEntry->name) ?: strcmp($a['key'], $b['key']);
+        });
+
+        $rows = [];
+        $number = null;
+        $previous = null;
+
+        foreach ($candidates as $index => $candidate) {
+            $at = $candidate['at'];
+            $entry = $at['entry'];
+            $round = $at['round'];
+            $rank = null;
+
+            if ($numbered && $candidate['qualified'] === false && $entry->rank !== null) {
+                if ($previous === null || $previous['group'] !== $candidate['group'] || $previous['seed'] !== $candidate['seed']) {
+                    $number = $index + 1;
+                }
+
+                $rank = $number;
+                $previous = $candidate;
+            }
+
+            $score = self::score($rules, $round, $entry);
+            $stage = $stages[$candidate['group']];
+
+            $rows[] = new StandingRow(
+                key: $candidate['key'],
+                rank: $rank,
+                complete: $candidate['qualified'] === false && $entry->rank !== null,
+                name: $entry->name,
+                countries: $entry->countries,
+                entrants: $entry->entrants,
+                totalSeconds: $score->scoreSeconds ?? 0,
+                roundsScored: $score->scoreSeconds !== null ? 1 : 0,
+                roundsFinished: $score->status === StandingScoreStatus::Finished ? 1 : 0,
+                perRound: [$round->roundId => $score],
+                totalTimeSeconds: $score->timeSeconds ?? 0,
+                totalMissingPieces: $score->missingPieces,
+                totalPenaltySeconds: $score->penaltySeconds,
+                stage: $stage->number,
+                stageName: $stage->name,
+                stageRoundId: $candidate['qualified'] ? null : $round->roundId,
+                stageRank: $candidate['qualified'] ? null : $entry->rank,
+                qualifiedForStage: $candidate['qualified'],
+            );
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The stages of a bracket as a `stages` standing reads them (see stages()): numbered from 1, named by their rounds,
+     * classified when every round of the stage is in `$rounds` and counts.
+     *
+     * @param array<string, StandingRoundInput> $rounds
+     * @return list<StandingStage>
+     */
+    public static function stageList(Bracket $bracket, array $rounds): array
+    {
+        $stages = [];
+
+        foreach ($bracket->stages as $index => $stageRounds) {
+            $names = [];
+            foreach ($stageRounds as $round) {
+                $names[strtolower($round->id)] = $round->name;
+            }
+
+            $stages[] = new StandingStage(
+                number: $index + 1,
+                name: StandingStage::nameOf(array_map(static fn (BracketRound $round): string => $round->name, $stageRounds)),
+                rounds: $names,
+                classified: $names !== [] && array_all(array_keys($names), static fn (string $roundId): bool => ($rounds[$roundId] ?? null)?->counted === true),
+            );
+        }
+
+        return $stages;
+    }
+
+    /**
+     * An entry's place in its round for ordering: ranked by the place, unranked last.
+     *
+     * @return array{bool, int}
+     */
+    private static function placeOf(StandingEntryInput $entry): array
+    {
+        return [$entry->rank === null, $entry->rank ?? 0];
     }
 
     /**

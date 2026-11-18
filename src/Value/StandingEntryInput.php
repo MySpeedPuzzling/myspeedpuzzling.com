@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Value;
 use SpeedPuzzling\Web\Results\RoundChallengeTime;
 
 /**
- * One entry of one round as StandingCalculator::sum() reads it. `key` = the entrant across rounds: the participant id
+ * One entry of one round as StandingCalculator::sum() / stages() read it. `key` = the entrant across rounds: the participant id
  * (solo) or the line-up (CompetitionLineupId over the exact set of members - a substitute makes another entrant).
  */
 final readonly class StandingEntryInput
@@ -31,6 +31,9 @@ final readonly class StandingEntryInput
         // Finished with pieces missing (competition toolkit T6): how many - null = complete or not finished
         public null|int $missingPieces = null,
         public array $challengeTimes = [],
+        // Marked qualified in its round - only the `stages` classification reads it (competition toolkit v2 S5: "Qualified
+        // for <next stage>" while the next stage is not classified yet)
+        public bool $qualified = false,
     ) {
     }
 }

@@ -11,6 +11,11 @@ use SpeedPuzzling\Web\Results\PublicStandingSnapshot;
  * `public_standing_state`) - an explicit whitelist over the guest snapshot: never a row's `key`, never a player id,
  * participant, line-up or entry id; a #code only for a public profile. Statuses are passed through as the calculator
  * names them (`finished`, `unfinished`, `did_not_start`, ... - a status added later reaches the JSON unchanged).
+ *
+ * A `stages` standing (competition toolkit v2 S5) adds `standing.numberedAcrossStages` and per row `stage` (1 = the
+ * first), `stageName` (its rounds' names), `stageRoundId` + `stageRank` (its round there and its place in it - null
+ * for a row "qualified for" a stage not classified yet) and `qualifiedForStage`; `rank` is the number across the stages
+ * when numbered, else null. A `sum` standing's JSON has none of them.
  */
 final class PublicStandingJson
 {
@@ -39,6 +44,7 @@ final class PublicStandingJson
                     'penaliseFinishedMissing' => $data['rules']['penaliseFinishedMissing'],
                 ],
                 'url' => $standingUrl,
+                ...(isset($data['numberedAcrossStages']) ? ['numberedAcrossStages' => $data['numberedAcrossStages']] : []),
             ],
             'rounds' => array_map(static fn (array $round): array => [
                 'id' => $round['id'],
@@ -77,6 +83,13 @@ final class PublicStandingJson
                         'piecesPlaced' => $score['result']['piecesPlaced'],
                     ] : null,
                 ], $row['perRound']),
+                ...(isset($row['stage']) ? [
+                    'stage' => $row['stage'],
+                    'stageName' => $row['stageName'] ?? null,
+                    'stageRoundId' => $row['stageRoundId'] ?? null,
+                    'stageRank' => $row['stageRank'] ?? null,
+                    'qualifiedForStage' => $row['qualifiedForStage'] ?? false,
+                ] : []),
             ], $data['rows']),
             'generatedAtMs' => $data['generatedAtMs'],
         ];

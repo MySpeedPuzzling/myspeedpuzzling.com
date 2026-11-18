@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -710,6 +711,45 @@ final class DraftCanaryTest extends WebTestCase
             $this->setDraft(self::COMPETITION, $draftNight, true);
             $browser->request('GET', $url);
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'One division of a draft\'s round results is public');
+        }
+    }
+
+    /**
+     * The final classification across the bracket (`stages`, competition toolkit v2 S5) of an event turned into a draft:
+     * its page, table fragment and JSON answer 404 and the sitemap leaves it out - for a guest and a player off its team.
+     */
+    public function testTheStagesStandingOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        DeclaredAdvancementStep::insert($connection, $cup, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]);
+        $standingId = PublishedStanding::insert($connection, $cup, 'classification', 'Classification', 'solo', [], mode: 'stages');
+        $urls = ['/en/events/results-cup/standings/classification', '/en/standing-table/' . $standingId, '/api/competition-standings/' . $standingId];
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, $cup, false);
+            foreach ($urls as $url) {
+                $browser->request('GET', $url);
+                self::assertResponseIsSuccessful('No canary: ' . $url);
+            }
+            self::assertStringContainsString('Anna Fast', (string) $browser->getResponse()->getContent());
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringContainsString('/en/events/results-cup/standings/classification<', (string) $browser->getResponse()->getContent(), 'No canary: the sitemap does not list the classification');
+
+            $this->setDraft(self::COMPETITION, $cup, true);
+            foreach ($urls as $url) {
+                $browser->request('GET', $url);
+                self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s classification is public: ' . $url);
+            }
+            $browser->request('GET', self::SITEMAP);
+            self::assertStringNotContainsString('/standings/classification', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s classification');
         }
     }
 

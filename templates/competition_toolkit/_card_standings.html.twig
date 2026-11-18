@@ -15,7 +15,7 @@
                     {% for standing in standings %}
                         <li class="mb-1" data-toolkit-standing="{{ standing.id }}">
                             <a href="{{ path('edit_competition_standing', {competitionId: competition.id, standingId: standing.id}) }}" class="fw-semibold">{{ standing.name }}</a>
-                            <span class="text-muted">· {{ ('competition.round.category.' ~ standing.category.value)|trans }} · {{ 'competition_standing.rounds_count'|trans({'%count%': standing.roundIds|length}) }}</span>
+                            <span class="text-muted">· {{ ('competition.round.category.' ~ standing.category.value)|trans }} · {{ standing.isStages ? 'competition_toolkit.standings.mode.stages'|trans : 'competition_standing.rounds_count'|trans({'%count%': standing.roundIds|length}) }}</span>
                         </li>
                     {% endfor %}
                 </ul>

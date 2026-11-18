@@ -15,6 +15,8 @@ readonly final class StandingTable
     /**
      * @param list<StandingRoundColumn> $rounds the standing's rounds that are rounds of its event and category, in its order
      * @param list<StandingRow> $rows
+     * @param null|list<StandingStage> $stages a `stages` standing's stages (competition toolkit v2 S5) - empty when its
+     *     category has no bracket (no valid advancement step, or steps clashing); null for a `sum` standing
      */
     public function __construct(
         public CompetitionStandingOverview $standing,
@@ -24,7 +26,34 @@ readonly final class StandingTable
         public int $skippedRounds,
         // The organiser's view: computed over every round, published or not
         public bool $includesUnpublished,
+        public null|array $stages = null,
     ) {
+    }
+
+    /**
+     * A `stages` standing whose category has no bracket: the steps are missing or clash - nobody is classified.
+     */
+    public function stagesClash(): bool
+    {
+        return $this->stages === [];
+    }
+
+    /**
+     * `stages`: how many stages place anybody yet (public: all their rounds published)
+     */
+    public function stagesClassified(): int
+    {
+        return count(array_filter($this->stages ?? [], static fn (StandingStage $stage): bool => $stage->classified));
+    }
+
+    public function stagesTotal(): int
+    {
+        return count($this->stages ?? []);
+    }
+
+    public function stage(int $number): null|StandingStage
+    {
+        return array_find($this->stages ?? [], static fn (StandingStage $stage): bool => $stage->number === $number);
     }
 
     public function roundsCounted(): int
@@ -42,6 +71,10 @@ readonly final class StandingTable
      */
     public function isProvisional(): bool
     {
+        if ($this->stagesClash()) {
+            return true;
+        }
+
         foreach ($this->rounds as $round) {
             if ($round->counted === false || ($this->includesUnpublished && $round->published === false)) {
                 return true;
@@ -119,6 +152,8 @@ readonly final class StandingTable
             ],
             'rounds' => array_map(static fn (StandingRoundColumn $round): array => $round->toArray(), $this->rounds),
             'rows' => array_map(static fn (StandingRow $row): array => $row->toArray(), $this->rows),
+            // `stages` only - a `sum` standing's JSON stays as it was
+            ...($this->stages !== null ? ['stages' => array_map(static fn (StandingStage $stage): array => $stage->toArray(), $this->stages)] : []),
         ];
     }
 }

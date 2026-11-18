@@ -2,7 +2,8 @@
 
 {#
     A new standing or a standing's settings (competition toolkit A6) - with the live preview once it exists.
-    Variables: competition, form, standing (edit only), table (StandingTable, edit only).
+    Variables: competition, form, standing (edit only), table (StandingTable, edit only), bracket_categories (the
+    categories the event has a bracket of - a `stages` standing can classify them, v2 S5).
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -22,6 +23,10 @@
     ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_standings_manage', {competitionId: competition.id}), fallbackTitle: 'competition_standing.list.title'|trans}) }}
 
+    <style>
+        [data-standing-form]:has([data-standing-mode] input[value="stages"]:checked) [data-standing-sum-only],
+        [data-standing-form]:not(:has([data-standing-mode] input[value="stages"]:checked)) [data-standing-stages-only] { display: none; }
+    </style>
     <div class="pb-4" data-competition-standing-form>
         <h1 class="h2">{{ page_title }}</h1>
 
@@ -40,6 +45,28 @@
                     </div>
                 </fieldset>
 
+                {# How it is decided (competition toolkit v2 S5) - the fields of the other mode hide (CSS :has(), no script) #}
+                <fieldset class="mb-3" data-standing-mode>
+                    <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.mode)|striptags }}</legend>
+                    {{ form_errors(form.mode) }}
+                    {% for choice in form.mode %}
+                        <div class="form-check mb-1">
+                            {{ form_widget(choice) }}{{ form_label(choice) }}
+                            <div class="form-text mt-0">{{ ('competition_toolkit.standings.mode.' ~ choice.vars.value ~ '_help')|trans }}</div>
+                        </div>
+                    {% endfor %}
+                    {% if bracket_categories is empty %}
+                        <div class="form-text" data-standing-stages-no-steps>{{ 'competition_toolkit.standings.mode.stages_no_steps'|trans }}</div>
+                    {% else %}
+                        <div class="form-text" data-standing-stages-categories>{{ 'competition_toolkit.standings.mode.stages_categories'|trans({'%categories%': bracket_categories|map(c => ('competition.round.category.' ~ c.value)|trans)|join(', ')}) }}</div>
+                    {% endif %}
+                </fieldset>
+
+                <div data-standing-stages-only>
+                    {{ form_row(form.numberedAcrossStages, {row_attr: {class: 'mb-3'}}) }}
+                </div>
+
+                <div data-standing-sum-only>
                 <fieldset class="mb-3">
                     <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.roundIds)|striptags }}</legend>
                     <div class="form-text mt-0 mb-1">{{ 'competition_standing.form.rounds_help'|trans }}</div>
@@ -75,6 +102,7 @@
                         </div>
                     {% endfor %}
                 </fieldset>
+                </div>
 
                 <button type="submit" class="btn btn-primary" data-standing-save>{{ 'competition_standing.form.save'|trans }}</button>
             {{ form_end(form) }}
@@ -82,7 +110,7 @@
 
         {% if table %}
             <h2 class="h5 mt-5">{{ 'competition_standing.preview.title'|trans }}</h2>
-            {{ include('competition_toolkit/_standing_table.html.twig') }}
+            {{ include(table.stages is not null ? 'competition_toolkit/_stages_preview.html.twig' : 'competition_toolkit/_standing_table.html.twig') }}
         {% endif %}
     </div>
 {% endblock %}

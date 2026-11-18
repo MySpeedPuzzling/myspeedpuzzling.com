@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OfficialResults;
 
+use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Results\Bracket\Bracket;
+use SpeedPuzzling\Web\Results\Bracket\BracketRound;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\SeededEntry;
+use SpeedPuzzling\Web\Results\StandingRow;
 use SpeedPuzzling\Web\Services\AdvancementSeeding;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingCalculator;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
+use SpeedPuzzling\Web\Value\BracketRoundStatus;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\StandingEntryInput;
+use SpeedPuzzling\Web\Value\StandingRoundInput;
 
 final class AdvancementSeedingTest extends TestCase
 {
@@ -110,6 +119,45 @@ final class AdvancementSeedingTest extends TestCase
 
         self::assertSame(['amy', 'zed'], array_map(static fn (SeededEntry $entry): null|string => $entry->entry->name, $top['selected']));
         self::assertSame(['amy', 'zed'], array_map(static fn (SeededEntry $entry): null|string => $entry->entry->name, $top['tiedAtCut']));
+    }
+
+    /**
+     * Parity (competition toolkit v2 S5): a `stages` standing numbered across the parallel rounds of a stage orders them
+     * by the same key as the seed - crossRoundKey() - so the classification and the bracket's seed agree.
+     */
+    public function testTheCrossRoundKeyOrdersTheSeedAndAStagesStandingAlike(): void
+    {
+        $rounds = [
+            'group-a' => ['a1' => RoundEntryResult::finished(3600), 'a2' => RoundEntryResult::finished(3960), 'a3' => RoundEntryResult::unfinished(900)],
+            'group-b' => ['b1' => RoundEntryResult::finished(4000), 'b2' => RoundEntryResult::finished(4200), 'b3' => RoundEntryResult::finished(4800)],
+        ];
+        $seeded = array_map(
+            static fn (SeededEntry $entry): null|string => $entry->entry->name,
+            AdvancementSeeding::seed(['group-a' => self::round('group-a', $rounds['group-a']), 'group-b' => self::round('group-b', $rounds['group-b'])], ['group-a' => 1000, 'group-b' => 1000]),
+        );
+
+        $inputs = [];
+        $stage = [];
+        foreach ($rounds as $roundId => $results) {
+            $ranks = OfficialResultsRanking::rank($results);
+            $entries = [];
+            foreach ($results as $name => $result) {
+                $entries[] = new StandingEntryInput($name, $result, $ranks[$name], 1000, $name);
+            }
+            $inputs[$roundId] = new StandingRoundInput($roundId, 90, true, $entries);
+            $stage[] = new BracketRound($roundId, $roundId, RoundCategory::Solo, new DateTimeImmutable('2026-11-18 09:00'), true, 'Europe/Prague', BracketRoundStatus::Published, $roundId);
+        }
+
+        $classified = StandingCalculator::stages(new Bracket(RoundCategory::Solo, [$stage], [], []), $inputs, true);
+
+        self::assertSame($seeded, array_map(static fn (StandingRow $row): string => $row->name, $classified));
+        // Both round winners won: the same place, where the seed only breaks the tie by the round order
+        self::assertSame([1, 1, 3, 4, 5, 6], array_map(static fn (StandingRow $row): null|int => $row->rank, $classified));
+        // The key itself: unranked last, the place, finished before unfinished, the result relative to the round's winner
+        self::assertSame([false, 2, false, 1.1], AdvancementSeeding::crossRoundKey(2, RoundEntryResult::finished(3960), 3600, 1000));
+        self::assertSame([false, 3, true, -0.9], AdvancementSeeding::crossRoundKey(3, RoundEntryResult::unfinished(900), 3600, 1000));
+        self::assertSame([true, 0, false, 0.0], AdvancementSeeding::crossRoundKey(null, RoundEntryResult::didNotStart(), 3600, 1000));
+        self::assertSame(3600, AdvancementSeeding::roundWinnerSeconds([RoundEntryResult::unfinished(10), RoundEntryResult::finished(4000), RoundEntryResult::finished(3600)]));
     }
 
     /**

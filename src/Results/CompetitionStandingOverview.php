@@ -28,15 +28,24 @@ readonly final class CompetitionStandingOverview
         public StandingRules $rules,
         public int $position,
         public null|DateTimeImmutable $publishedAt,
+        // `stages` only (competition toolkit v2 S5): one number over everybody across the stages
+        public bool $numberedAcrossStages = false,
     ) {
     }
 
+    public function isStages(): bool
+    {
+        return $this->mode === StandingMode::Stages;
+    }
+
     /**
+     * `numberedAcrossStages` only for a `stages` standing - a `sum` standing's JSON stays as it was.
+     *
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
-        return [
+        $array = [
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
@@ -45,5 +54,11 @@ readonly final class CompetitionStandingOverview
             'published' => $this->publishedAt !== null,
             'rules' => $this->rules->toArray(),
         ];
+
+        if ($this->isStages()) {
+            $array['numberedAcrossStages'] = $this->numberedAcrossStages;
+        }
+
+        return $array;
     }
 }

@@ -25,7 +25,7 @@ classification, no standings Mercure topic, no public JSON in v1). Jan's World S
 no qualification, the winner per category has the lowest sum.
 
 - **Model:** `competition_standing` (`CompetitionStanding`, FK `competition_id` ON DELETE CASCADE): name (≤ 80), slug
-  (unique per event, kept on rename), `category`, `mode` (`StandingMode::Sum` only), `round_ids` jsonb (ordered,
+  (unique per event, kept on rename), `category`, `mode` (`StandingMode::Sum`; `Stages` - v2 S5 below), `round_ids` jsonb (ordered,
   validated on write by `CompetitionStandingRounds`: ≥ 1, ≤ 50, rounds of the event and the standing's category, a
   repeated id kept once), `unfinished_penalty_seconds_per_piece` 0..600, `order_rule` (`finished_rounds_first` default /
   `total_only`), `missing_rule` (`incomplete` default / `as_zero_pieces` - the World Series no-show, below), `position`, `published_at` (the public
@@ -301,8 +301,62 @@ an event with steps has a bracket.
   (published-only marks, top 3, 404s, links, organiser view, sitemap, edition URL, statement budget), canaries
   `BlocklistCanaryTest`, `PrivateProfileCanaryTest`, `DraftCanaryTest` (`…Bracket…`), `DetailPagesQueryBudgetTest`.
 
+## Final classification across the bracket (competition toolkit v2 S5)
+
+Design of record: `toolkit/` v2 note `displays-standings.md` §4.3; A-round-formats.md §3.5. As built 2026-11-18:
+
+- **Model:** `StandingMode::Stages` + `competition_standing.numbered_across_stages` (bool, default false - migration
+  `Version20261118150000`, hand-written under no-Docker mode). A `stages` standing stores `round_ids = []`: its rounds
+  are the bracket's of its category, read at compute time through `BracketLayout::of(GetCompetitionAdvancementSteps,
+  GetBracketRounds)` - the bracket page's own stages (groups 1 → semifinals 2 → final 3). Writes: `CreateCompetitionStanding`
+  / `EditCompetitionStanding` carry `mode` + `numberedAcrossStages` (edit: null = kept - the wizard's "rounds added later"
+  never changes a mode; a `stages` standing never joins new rounds, its list is empty). `CompetitionStandingRounds`
+  refuses `no_steps` (no step of the category that works as declared, or the event's steps clash); round prune/move find
+  nothing to prune. Duplicate copies the mode and the switch.
+- **The rule:** `StandingCalculator::stages(Bracket, rounds, numbered)` (pure). A stage is *classified* once every round of
+  it counts (public: published; organiser: somebody is in it); rounds of other stages are ignored. An entrant's stage =
+  the deepest classified stage it has an entry in (any entry - a "did not start" in the final keeps the organiser's
+  preview's finalist in the final; the public never sees a DNS, so there he is out where he last had a ranked result).
+  Marked qualified there while the next stage is not classified: one unranked group "Qualified for <next stage>", by name,
+  in that stage's place. Others: deepest stage first, `stageRank` = the own round's place (`OfficialResultsRanking`);
+  not numbered = grouped per round of a stage with parallel rounds, no combined number; numbered = one 1..N (`rank`) over
+  everybody, within a stage by `AdvancementSeeding::crossRoundKey()` (the seed's own key - extracted, the seed itself
+  unchanged), equal keys share ("1, 2, 2, 4"), every row listed ahead counts, a row without a ranked result in its stage
+  round has no number. An entrant with no ranked result in any classified round is left out. Stage names = the rounds'
+  names joined " / " (max 3, then "+N") - no invented "Semifinal". Rows: additive `StandingRow::$stage`, `$stageName`,
+  `$stageRoundId`, `$stageRank`, `$qualifiedForStage`; `perRound` holds the stage round only (its time, missing pieces,
+  challenge times, status - `no_show` never arises: the missing rule is a sum's). `StandingTable::$stages`
+  (`StandingStage`: number, name, rounds, classified) - `[]` = no bracket ("the advancement steps of this category are
+  missing or clash", nobody listed, provisional).
+- **Views:** organiser (`GetStandingResults::organiserView()`): every bracket round through `GetRoundResultEntries` (+2
+  statements over a sum of the same rounds: the steps, the rounds in schedule order - pinned). Public (`publicView()`):
+  published rounds through `OfficialEntrantsView` (ranked results, private masked), hidden rows dropped **after** the
+  numbering (`StagesStandingTest`, `BlocklistCanaryTest::testBlockedPlayerIsNowhereInAStagesStanding`); provisional
+  until every stage is classified ("after 1 of 2 stages").
+- **Pages:** `standing/_stages_table.html.twig` (a header row per stage reached / "Qualified for", a sub-header per round
+  of a stage with parallel rounds when not numbered, linking its published results) inside `standing/_public_stages.html.twig`
+  (the public page's and the `public_standing_table` fragment's table part - chosen by the includer, the sum's
+  `_public_table.html.twig` untouched) and `competition_toolkit/_stages_preview.html.twig` (organiser list + edit page).
+  Form: "How it is decided" - "Sum of rounds" / "Final classification across the bracket" (disabled with a hint while
+  the event has no bracket; "Possible for: Solo") + "Number everybody across the stages"; the other mode's fields hide
+  with CSS `:has()` (no script), a `stages` form needs no rounds (`Assert\When`).
+- **JSON / displays:** organiser JSON rows + `standing.numberedAcrossStages` + `stages[]`; the public JSON
+  (`public_standing_state`) rows gain `stage`, `stageName`, `stageRoundId`, `stageRank`, `qualifiedForStage` and the
+  standing `numberedAcrossStages` - only for `stages` (a sum's JSON unchanged); the displays' `standings` element rows
+  `stage`, `stageName` ("✓ " in front for a "qualified for" row - the renderer's `stage` column) and `stageRank`.
+- **Live:** `GetCompetitionStandingsPresence` counts every round of a published `stages` standing's category (its round
+  list is empty) - a round of the category outside the bracket only costs a needless generation. Sitemap: a `stages`
+  standing with a published round of its category.
+- **Not built:** the round page's "Part of …" link for a `stages` standing (it lists `round_ids` only); the bracket page
+  does not link the classification.
+- Tests: `StandingCalculatorStagesTest`, `AdvancementSeedingTest::testTheCrossRoundKeyOrdersTheSeedAndAStagesStandingAlike`,
+  `StagesStandingTest` (writes, public classification by published stages, qualified group, numbers + ties, hidden
+  after numbering, fragment, organiser JSON, public JSON whitelist, no bracket, form, duplicate, statement cost), canaries
+  `BlocklistCanaryTest::testBlockedPlayerIsNowhereInAStagesStanding`,
+  `PrivateProfileCanaryTest::testAStagesStandingLinksHerProfileForTheFriendOnly`,
+  `DraftCanaryTest::testTheStagesStandingOfADraftIsNotThere`.
+
 ## Deferred to v2 (R §3, docs/TODO.md "Competition toolkit v2")
 
-The `stages` standing classification and `numbered_across_stages` (a final classification across the bracket's stages),
-"drop the worst round" and season standings, a bracket overlay element for the
-displays (the standings element is built - v2 S2; the standings Mercure topic - v2 S4 above).
+"Drop the worst round" and season standings, a bracket overlay element for the displays (the standings element is built -
+v2 S2; the standings Mercure topic - v2 S4; the `stages` classification - v2 S5 above).

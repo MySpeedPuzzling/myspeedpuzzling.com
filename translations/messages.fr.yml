@@ -15585,6 +15585,9 @@ participant_link_suggestions:
         refusal_paid: "sa propre inscription est payée"
         refusal_waitlisted: "sa propre inscription est sur liste d'attente"
         refusal_registered: "sa propre inscription occupe une place"
+        refusal_profile_hidden: "vous ne pouvez pas voir son profil – vérifiez d'abord de qui il s'agit"
+        reason:
+            merge_by_hand: "%name% s'est inscrit lui-même et a une inscription ou une place dans une manche – les deux lignes n'ont pas été fusionnées. Fusionnez-les à la main."
         done: "{0}Personne n'a été relié|{1}1 personne reliée|]1,Inf[%count% personnes reliées"
 event_wizard_more:
     puzzle_search:

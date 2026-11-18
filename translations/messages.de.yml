@@ -15589,6 +15589,9 @@ participant_link_suggestions:
         refusal_paid: "die eigene Anmeldung ist bezahlt"
         refusal_waitlisted: "die eigene Anmeldung steht auf der Warteliste"
         refusal_registered: "die eigene Anmeldung belegt einen Platz"
+        refusal_profile_hidden: "Sie können das Profil nicht sehen – prüfen Sie zuerst, wer es ist"
+        reason:
+            merge_by_hand: "%name% hat sich selbst angemeldet und hat eine Anmeldung oder einen Platz in einer Runde – die beiden Zeilen wurden nicht zusammengeführt. Führen Sie sie von Hand zusammen."
         done: "{0}Niemand verknüpft|{1}1 Person verknüpft|]1,Inf[%count% Personen verknüpft"
 event_wizard_more:
     puzzle_search:

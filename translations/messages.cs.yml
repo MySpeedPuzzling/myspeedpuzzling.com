@@ -15592,6 +15592,9 @@ participant_link_suggestions:
         refusal_paid: "jeho/její vlastní registrace je zaplacená"
         refusal_waitlisted: "jeho/její vlastní registrace je na čekací listině"
         refusal_registered: "jeho/její vlastní registrace drží místo"
+        refusal_profile_hidden: "jeho profil nevidíte – nejdřív ověřte, o koho jde"
+        reason:
+            merge_by_hand: "%name% se přihlásil(a) sám/sama a má registraci nebo místo v kole – řádky nebyly sloučeny. Slučte je ručně."
         done: "{0}Nikdo nepropojen|{1}1 osoba propojena|[2,4]%count% osoby propojeny|[5,Inf[%count% osob propojeno"
 event_wizard_more:
     puzzle_search:

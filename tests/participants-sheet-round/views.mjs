@@ -549,7 +549,14 @@ export default function (test) {
         key(cell(), 'ArrowRight');
         assert.notEqual(grid.active.col, 'puzzles');
 
-        cell().querySelector('[data-puzzles-open]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+        // The icon is its own target, before the text (the text is a block beside the floated icon - CSS), and a click
+        // on its glyph - what a pointer really hits - opens it; a click on the text alone does not
+        const icon = cell().querySelector('[data-puzzles-open]');
+        assert.equal(icon.nextElementSibling?.className, 'sheet-puzzles-text');
+        assert.equal(icon.contains(cell().querySelector('.sheet-puzzles-text')), false);
+        cell().querySelector('.sheet-puzzles-text').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+        assert.equal(root.querySelector('dialog.sheet-round-dialog'), null, 'a single click on the text only selects the cell');
+        icon.querySelector('i').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
         dialog = root.querySelector('dialog.sheet-round-dialog');
         assert.ok(dialog, 'the icon opens it');
         dialog.querySelector('[data-dialog-close]').click();

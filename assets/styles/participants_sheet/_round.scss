@@ -549,15 +549,27 @@
 
 // ---------------------------------------------------------------- the Puzzles cell's popover (competition toolkit v2 C5)
 
+// The icon floats right and the text is its own block formatting context beside it (overflow hidden): the text's
+// ellipsis ends before the icon instead of painting over it, so a click on the icon always reaches it (v2 walk fix)
 .sheet-puzzles-open {
+    position: relative;
+    z-index: 1;
     float: right;
     margin-left: .375rem;
+    padding: 0 .125rem;
     color: $gray-600;
     cursor: pointer;
 
     &:hover {
         color: $sheet-focus;
     }
+}
+
+.sheet-puzzles-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sheet-puzzles-popover {

@@ -439,3 +439,18 @@
         object-fit: contain;
     }
 }
+
+// The 6 align buttons share the panel's width (300 px panel at 1280 clipped the last one - v2 walk fix): one row that
+// never overflows, each button as wide as a sixth of it
+.display-editor__align {
+    display: flex;
+    width: 100%;
+    max-width: 16rem;
+
+    > .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-right: 0;
+        padding-left: 0;
+    }
+}

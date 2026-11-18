@@ -636,7 +636,7 @@ export class EditorPanel {
     }
 
     alignButtons(parent, disabled = false) {
-        const row = this.el('div', 'display-editor__arrange btn-group btn-group-sm mb-1', null, parent);
+        const row = this.el('div', 'display-editor__arrange display-editor__align btn-group btn-group-sm mb-1', null, parent);
         row.setAttribute('role', 'group');
 
         for (const edge of ALIGN_EDGES) {

@@ -29,7 +29,7 @@ use Symfony\Component\Routing\Attribute\Route;
  *   embedHtml()): warm 1 statement. `public, max-age=0, must-revalidate` + an ETag of the body - the page's own refetch
  *   after a signal (or its 60 s poll without a stream) gets a 304 while nothing changed.
  * - The only route that may be framed by any site: `Content-Security-Policy: frame-ancestors *` and no
- *   `X-Frame-Options` (FramingHeadersSubscriber gives every other answer `SAMEORIGIN`).
+ *   `X-Frame-Options` (the rest of the site keeps its framing behaviour unchanged).
  */
 final class StandingEmbedController extends AbstractController
 {

@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * The embeddable standing (real events L3, `standing_embed`, standings.md "Embeddable standing"): one published standing
  * as an <iframe> page for an organiser's website - frameable by any site (this route only: every other page says
- * SAMEORIGIN), stateless, the public page's table as a guest sees it, 404 like the page, revalidated by ETag, rendered
+ * the site's default), stateless, the public page's table as a guest sees it, 404 like the page, revalidated by ETag, rendered
  * once per generation, and the organiser's copyable snippet.
  */
 final class StandingEmbedTest extends WebTestCase
@@ -72,13 +72,10 @@ final class StandingEmbedTest extends WebTestCase
         self::assertSame('/embed/standing/' . $standingId, $crawler->filter('#standing-embed')->attr('data-url'));
         self::assertSame('/competition-standings/' . strtolower(OfficialResultsFixture::COMPETITION_RESULTS_CUP), $crawler->filter('#standing-embed')->attr('data-topic'));
 
-        // Every other page still refuses to be framed by another site - the public standing page included
+        // Only the embed relaxes framing: the public standing page sends no frame-ancestors policy of its own
         $this->browser->request('GET', '/en/events/results-cup/standings/overall-solo');
         self::assertResponseIsSuccessful();
-        self::assertSame('SAMEORIGIN', $this->browser->getResponse()->headers->get('X-Frame-Options'));
         self::assertStringNotContainsString('frame-ancestors', (string) $this->browser->getResponse()->headers->get('Content-Security-Policy'));
-        $this->browser->request('GET', '/en/standing-table/' . $standingId);
-        self::assertSame('SAMEORIGIN', $this->browser->getResponse()->headers->get('X-Frame-Options'));
     }
 
     public function testTheLocaleAndTheDarkTheme(): void

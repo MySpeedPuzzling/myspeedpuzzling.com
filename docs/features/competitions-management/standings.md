@@ -278,10 +278,9 @@ For an organiser's own website (the SPWS Wix site): one published standing as a 
   `embed_v1_{standingId}_{locale}_{theme}_{gen}`, 60 s) - warm 1 statement (the visibility, read on every request before
   anything cached). `Cache-Control: public, max-age=0, must-revalidate` + ETag (sha1 of the body) → 304 while nothing
   changed. Chosen over a short `max-age`: with the signal, a refetch must never be served a stale copy.
-- **Headers:** the only route that may be framed by another site: `Content-Security-Policy: frame-ancestors *`, no
-  `X-Frame-Options`. Every other answer of the site now gets `X-Frame-Options: SAMEORIGIN` (`FramingHeadersSubscriber`,
-  late `kernel.response`; an answer with its own X-Frame-Options or a CSP `frame-ancestors` is left alone) - before L3
-  the app sent no framing header at all. `X-Robots-Tag: noindex, nofollow`.
+- **Headers:** `Content-Security-Policy: frame-ancestors *`, no `X-Frame-Options`, `X-Robots-Tag: noindex, nofollow`.
+  The rest of the site's framing behaviour is unchanged (the app sends no framing header elsewhere; a site-wide
+  `SAMEORIGIN` was considered and left out - it could break pages someone frames today; Jan's call).
 - **404:** unknown or unpublished standing, an event that is not public (drafts, unapproved) - a lean, still frameable
   page "This standing is not available." (`private, no-store`).
 - **Exemptions:** no viewer, so the blocklist does not apply (`BlocklistCanaryTest::testTheStandingEmbedHasNoViewerAndSoNoBlocklist`

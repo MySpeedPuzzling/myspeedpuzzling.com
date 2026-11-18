@@ -118,7 +118,7 @@ ORDER BY {$wooden} (p.image IS NULL), md5(p.id::text || :salt)
 LIMIT :limit
 SQL, $params);
 
-        return array_values(array_map(static fn (mixed $id): string => is_string($id) ? $id : '', $ids));
+        return array_map(static fn (mixed $id): string => is_string($id) ? $id : '', $ids);
     }
 
     /**

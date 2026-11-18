@@ -82,7 +82,7 @@ final class SandboxDemoEventsTest extends KernelTestCase
         self::assertSame(24, $this->rowCount('SELECT COUNT(*) FROM competition_team WHERE round_id = :id', ['id' => $block['id']]));
 
         // Tables on the first block, the same tables copied to the next one
-        self::assertSame(range(1, 24), array_map('intval', $database->fetchFirstColumn('SELECT table_number FROM competition_team WHERE round_id = :id ORDER BY table_number', ['id' => $block['id']])));
+        self::assertSame(range(1, 24), array_map(static fn (mixed $number): int => is_numeric($number) ? (int) $number : 0, $database->fetchFirstColumn('SELECT table_number FROM competition_team WHERE round_id = :id ORDER BY table_number', ['id' => $block['id']])));
         $nextBlock = $this->round($spws, 'Pairs - Challenges 3 + 4');
         self::assertSame(24, $this->rowCount(<<<SQL
 SELECT COUNT(*)
@@ -113,11 +113,13 @@ SQL, ['first' => $block['id'], 'next' => $nextBlock['id']]));
         self::assertSame(['Individual championship', 'Pairs championship', 'Teams championship'], array_column($standings, 'name'));
 
         foreach ($standings as $standing) {
-            self::assertSame([5, 'total_only', 'as_zero_pieces', true, true], [(int) $standing['penalty'], $standing['order_rule'], $standing['missing_rule'], $standing['penalise_finished_missing'], $standing['published']]);
+            self::assertSame([5, 'total_only', 'as_zero_pieces', true, true], [is_numeric($standing['penalty']) ? (int) $standing['penalty'] : null, $standing['order_rule'], $standing['missing_rule'], $standing['penalise_finished_missing'], $standing['published']]);
         }
 
         self::assertSame(['Hall timer screen', 'Stream overlay'], $database->fetchFirstColumn('SELECT name FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $spws]));
-        self::assertStringContainsString('"standings"', (string) $database->fetchOne("SELECT design::text FROM competition_display WHERE competition_id = :id AND name = 'Stream overlay'", ['id' => $spws]));
+        $overlayDesign = $database->fetchOne("SELECT design::text FROM competition_display WHERE competition_id = :id AND name = 'Stream overlay'", ['id' => $spws]);
+        self::assertIsString($overlayDesign);
+        self::assertStringContainsString('"standings"', $overlayDesign);
 
         // Carnival: divisions on the event, the rounds' subsets and the entries
         $divisions = self::getContainer()->get(GetCompetitionDivisions::class)->ofCompetition($carnival);

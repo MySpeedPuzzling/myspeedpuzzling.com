@@ -99,7 +99,7 @@ final readonly class SandboxDemoResultPlanner
 
         // A block running: the middle third has only its first challenge
         if ($published === false && $pick && $index >= intdiv($count, 3)) {
-            $firstSplit = $splits[0] ?? $elapsed;
+            $firstSplit = $splits[0];
             $firstPuzzle = $puzzles[0]['id'] ?? null;
 
             if ($firstPuzzle === null || $firstSplit >= $limit - 20) {

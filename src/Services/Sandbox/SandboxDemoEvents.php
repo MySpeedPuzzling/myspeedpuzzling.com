@@ -349,7 +349,6 @@ final readonly class SandboxDemoEvents
         $lineUp = self::lineUp($event, $players);
         $teamRounds = array_values(array_filter($event->rounds, static fn (SandboxDemoRound $round): bool => $round->category !== RoundCategory::Solo));
 
-        $result = null;
         $path = sys_get_temp_dir() . '/msp-sandbox-demo-' . bin2hex(random_bytes(6)) . '.csv';
         $file = fopen($path, 'wb');
         assert($file !== false);
@@ -483,7 +482,12 @@ final readonly class SandboxDemoEvents
      */
     public static function lineUp(SandboxDemoEvent $event, array $players): array
     {
-        $persons = [];
+        /** @var list<array{externalId: string, name: string, country: null|string, playerId: null|string}> $people */
+        $people = [];
+        /** @var array<int, list<string>> $rounds */
+        $rounds = [];
+        /** @var array<int, array<string, string>> $teams */
+        $teams = [];
         $units = [];
         $usedNames = [];
 
@@ -494,16 +498,14 @@ final readonly class SandboxDemoEvents
                 $pool = [];
 
                 for ($i = 0; $i < $group->units * $group->size; $i++) {
-                    $index = count($persons);
+                    $index = count($people);
                     $player = $players[$index] ?? null;
                     $guest = SandboxPeople::person(1000 + $index);
-                    $persons[] = [
+                    $people[] = [
                         'externalId' => sprintf('demo-%s-%03d', $event->code, $index + 1),
-                        'name' => $player['name'] ?? $guest['name'],
+                        'name' => $player !== null ? $player['name'] : $guest['name'],
                         'country' => $player !== null ? $player['country'] : $guest['country']->name,
-                        'playerId' => $player['id'] ?? null,
-                        'rounds' => [],
-                        'teams' => [],
+                        'playerId' => $player !== null ? $player['id'] : null,
                     ];
                     $pool[] = $index;
                 }
@@ -511,11 +513,11 @@ final readonly class SandboxDemoEvents
 
             $units[$group->key] = [];
 
-            foreach (array_slice(array_chunk($pool, $group->size), 0, $group->units) as $unitIndex => $members) {
+            foreach (array_slice(array_chunk($pool, max(1, $group->size)), 0, $group->units) as $unitIndex => $members) {
                 $name = null;
 
                 if ($group->size > 1) {
-                    $name = self::teamName($group, $groupIndex, $unitIndex, array_map(static fn (int $member): string => $persons[$member]['name'], $members));
+                    $name = self::teamName($group, $groupIndex, $unitIndex, array_map(static fn (int $member): string => $people[$member]['name'] ?? '', $members));
                     $base = $name;
 
                     for ($copy = 2; isset($usedNames[$group->key][$name]); $copy++) {
@@ -530,17 +532,30 @@ final readonly class SandboxDemoEvents
                 foreach ($members as $member) {
                     foreach ($group->roundKeys as $roundKey) {
                         $round = $event->round($roundKey);
-                        $persons[$member]['rounds'][] = $round->name;
+                        $rounds[$member][] = $round->name;
 
                         if ($name !== null) {
-                            $persons[$member]['teams'][$roundKey] = $name;
+                            $teams[$member][$roundKey] = $name;
                         }
                     }
                 }
             }
         }
 
-        return ['persons' => array_values($persons), 'units' => $units];
+        $persons = [];
+
+        foreach ($people as $index => $person) {
+            $persons[] = [
+                'externalId' => $person['externalId'],
+                'name' => $person['name'],
+                'country' => $person['country'],
+                'playerId' => $person['playerId'],
+                'rounds' => $rounds[$index] ?? [],
+                'teams' => $teams[$index] ?? [],
+            ];
+        }
+
+        return ['persons' => $persons, 'units' => $units];
     }
 
     /**
@@ -632,7 +647,7 @@ final readonly class SandboxDemoEvents
             $changes = SandboxDemoResultPlanner::changes(
                 $round,
                 $this->getRoundResultEntries->forRound($roundId),
-                $this->demoData->roundPuzzles($roundId),
+                array_map(static fn (array $roundPuzzle): array => ['id' => $roundPuzzle['id'], 'pieces' => $roundPuzzle['pieces']], $this->demoData->roundPuzzles($roundId)),
             );
 
             if ($changes !== []) {

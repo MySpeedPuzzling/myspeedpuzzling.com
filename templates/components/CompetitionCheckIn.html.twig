@@ -27,6 +27,18 @@
                     {% if participant.playerName and participant.playerName != participant.participantName %}
                         <small class="text-muted d-block">{{ participant.playerName }}</small>
                     {% endif %}
+                    {% if this.claimLinks and participant.playerId is null %}
+                        <div class="small mt-1" data-check-in-not-linked>
+                            <span class="text-muted">{{ 'participant_claim_link.check_in.not_linked'|trans }}</span> ·
+                            <button type="button"
+                                    class="btn btn-link btn-sm p-0 align-baseline"
+                                    data-action="claim-qr#show"
+                                    data-participant-id="{{ participant.participantId }}"
+                                    data-name="{{ participant.participantName }}">
+                                <i class="bi bi-qr-code me-1" aria-hidden="true"></i>{{ 'participant_claim_link.check_in.show_qr'|trans }}
+                            </button>
+                        </div>
+                    {% endif %}
                     <div class="mt-1">
                         {% if status == 'paid' %}
                             <span class="badge bg-success">{{ 'competition_registration.status.paid'|trans }}</span>

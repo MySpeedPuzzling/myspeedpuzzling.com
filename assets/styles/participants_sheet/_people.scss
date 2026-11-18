@@ -988,3 +988,32 @@ button.sheet-request-chip {
 .sheet-person.is-modal .sheet-person-request-actions .btn {
     min-height: 2.75rem;
 }
+
+// A person's personal claim link (participant-linking.md §7.1, §7.4 - assets/participants_sheet/claim_links.js): the
+// sheet's "Show claim QR" and the check-in desk's "Show QR", held up to the person's phone
+.claim-link-dialog {
+    width: min(26rem, calc(100vw - 2rem));
+    padding: 0;
+    border: 0;
+    border-radius: $border-radius-lg;
+    box-shadow: $box-shadow-lg;
+
+    &::backdrop {
+        background-color: rgba($black, .45);
+    }
+
+    .claim-link-dialog__body {
+        padding: 1.25rem;
+    }
+
+    .claim-link-dialog__qr {
+        width: min(16rem, 100%);
+        background-color: $white;
+
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+    }
+}

@@ -12,7 +12,8 @@ use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
  * The counters of the toolkit hub's "Participants & profiles" card (docs/features/competitions-management/
  * participant-linking.md §7.5) - counts only, no identity: the event's people on the list (not removed), how many are
  * linked, how many linked themselves, and the link requests waiting for the organiser. The same numbers as the
- * participants sheet's People filters (ParticipantsSheetState::linkCounts()). One statement.
+ * participants sheet's People filters (ParticipantsSheetState::linkCounts()). And whether a round of the event uses
+ * online timing - the card then hands out the personal links instead of claim links (§5.6). One statement.
  */
 readonly final class GetParticipantLinkSummary
 {
@@ -22,7 +23,7 @@ readonly final class GetParticipantLinkSummary
     }
 
     /**
-     * @return array{people: int, linked: int, notLinked: int, linkedByThemselves: int, requests: int}
+     * @return array{people: int, linked: int, notLinked: int, linkedByThemselves: int, requests: int, usesOnlineTiming: bool}
      */
     public function of(string $competitionId): array
     {
@@ -31,7 +32,7 @@ readonly final class GetParticipantLinkSummary
             array_values(array_filter(ParticipantLinkMethod::cases(), static fn (ParticipantLinkMethod $method): bool => $method->isThePlayersOwn())),
         ));
 
-        /** @var array{people: int|string, linked: int|string, by_themselves: int|string, requests: int|string} $row */
+        /** @var array{people: int|string, linked: int|string, by_themselves: int|string, requests: int|string, uses_online_timing: bool} $row */
         $row = $this->database->fetchAssociative(
             <<<SQL
 SELECT
@@ -41,7 +42,12 @@ SELECT
     (
         SELECT COUNT(*) FROM participant_link_request r
         WHERE r.competition_id = :competitionId AND r.status = :pending
-    ) AS requests
+    ) AS requests,
+    EXISTS (
+        SELECT 1 FROM online_round
+        INNER JOIN competition_round online_timing_round ON online_timing_round.id = online_round.round_id
+        WHERE online_timing_round.competition_id = :competitionId
+    ) AS uses_online_timing
 FROM competition_participant cp
 WHERE cp.competition_id = :competitionId
     AND cp.deleted_at IS NULL
@@ -58,6 +64,7 @@ SQL,
             'notLinked' => $people - $linked,
             'linkedByThemselves' => (int) $row['by_themselves'],
             'requests' => (int) $row['requests'],
+            'usesOnlineTiming' => $row['uses_online_timing'],
         ];
     }
 }

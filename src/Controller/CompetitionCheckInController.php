@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +24,7 @@ final class CompetitionCheckInController extends AbstractController
 {
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
+        private readonly OnlineRoundRepository $onlineRoundRepository,
     ) {
     }
 
@@ -49,6 +52,10 @@ final class CompetitionCheckInController extends AbstractController
 
         $response = $this->render('competition_check_in.html.twig', [
             'competition' => $competition,
+            // "Show QR" of a personal claim link (participant-linking.md §7.4) - an event with online timing hands out
+            // its personal links instead (§5.6)
+            'claim_links' => $this->onlineRoundRepository->ofCompetition($competitionId) === [],
+            'csrf_token_id' => OfficialResultsApi::CSRF_TOKEN_ID,
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 

@@ -86,6 +86,7 @@ import {
     runRegistrationBulk,
     waitlistPositions,
 } from '../registration_actions.js';
+import { COPY, COPY_ONLINE, QR, RENEW, claimLinkActions, copyText, openClaimLinkDialog, requestClaimLink } from '../claim_links.js';
 
 export const NEW_ROW = '__new';
 // A paste or fill touching more rows than this is previewed first (§6)
@@ -2620,8 +2621,105 @@ export class PeopleView {
             items.push({ label: this.say('row_registration'), icon: 'bi-ticket-perforated', run: () => this.openRegistrationMenu(personId, cell) });
         }
 
+        // A person not linked to a profile: their personal claim link (participant-linking.md §7.1) - or, on an event
+        // with online timing, the personal link that does the same (§5.6)
+        for (const action of claimLinkActions(person, { onlineLinks: this.onlineLinksOffered() })) {
+            if (action === COPY) {
+                items.push({ label: this.say('claim_copy'), icon: 'bi-link-45deg', run: () => this.copyClaimLink(personId) });
+            } else if (action === QR) {
+                items.push({ label: this.say('claim_qr'), icon: 'bi-qr-code', run: () => this.showClaimLink(personId) });
+            } else if (action === RENEW) {
+                items.push({ label: this.say('claim_renew'), description: this.say('claim_renew_help'), icon: 'bi-arrow-repeat', run: () => this.renewClaimLink(personId) });
+            } else if (action === COPY_ONLINE) {
+                items.push({ label: this.say('claim_copy_online'), icon: 'bi-link-45deg', run: () => this.copyOnlineLink(personId) });
+            }
+        }
+
         items.push({ label: this.say('row_remove'), icon: 'bi-person-x', danger: true, run: () => this.removeWithCheck([personId]) });
         this.openMenu(cell, items, this.say('row_actions_label', { name: person.name }));
+    }
+
+    // ---------------------------------------------------------------- personal claim links (participant-linking.md §7.1)
+
+    /** The person's claim link from the server (made when they have none, replaced with `renew`) - null when refused (said). */
+    async fetchClaimLink(personId, renew = false) {
+        const result = await requestClaimLink({ url: this.context.urls.claimLink, csrfToken: this.context.csrfToken }, personId, { renew });
+
+        if (!result.ok) {
+            this.notify(result.message ?? this.say('claim_failed'), { kind: 'error' });
+
+            return null;
+        }
+
+        return result;
+    }
+
+    async copyClaimLink(personId) {
+        const name = this.model.person(personId)?.name ?? '';
+        const link = await this.fetchClaimLink(personId);
+
+        if (link === null) {
+            return;
+        }
+
+        if (await copyText(link.url)) {
+            this.notify(this.say('claim_copied', { name }), { kind: 'info' });
+        } else {
+            // The clipboard refused (no user gesture left after the request, an old browser): the dialog to copy from
+            this.openClaimDialog(name, link);
+        }
+    }
+
+    async showClaimLink(personId) {
+        const link = await this.fetchClaimLink(personId);
+
+        if (link !== null) {
+            this.openClaimDialog(this.model.person(personId)?.name ?? '', link);
+        }
+    }
+
+    async renewClaimLink(personId) {
+        const name = this.model.person(personId)?.name ?? '';
+
+        if (!window.confirm(this.say('claim_renew_confirm', { name }))) {
+            return;
+        }
+
+        const link = await this.fetchClaimLink(personId, true);
+
+        if (link !== null) {
+            this.notify(this.say('claim_renewed', { name }), { kind: 'info' });
+            this.openClaimDialog(name, link);
+        }
+    }
+
+    async copyOnlineLink(personId) {
+        const person = this.model.person(personId);
+        const link = person?.online?.link ?? null;
+
+        if (link === null) {
+            return;
+        }
+
+        if (await copyText(link)) {
+            this.notify(this.say('claim_copied', { name: person.name }), { kind: 'info' });
+        } else {
+            this.notify(this.say('claim_copy_online_failed', { link }), { kind: 'warning' });
+        }
+    }
+
+    openClaimDialog(name, link) {
+        openClaimLinkDialog(this.context.root, {
+            name,
+            url: link.url,
+            qr: link.qr,
+            title: this.say('claim_dialog_title'),
+            help: this.say('claim_dialog_help'),
+            copyLabel: this.say('claim_dialog_copy'),
+            copiedLabel: this.say('claim_dialog_copied'),
+            closeLabel: this.t('preview_close'),
+            onClose: () => this.grid?.focusActive({ scroll: false }),
+        });
     }
 
     openRegistrationMenu(personId, cell) {

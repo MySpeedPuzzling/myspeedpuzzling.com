@@ -48,8 +48,14 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
         );
         $this->seedStudioTime(PlayerFixture::PLAYER_REGULAR, self::X, 2900, '2026-09-01 10:00:00');
         $this->seedStudioTime(PlayerFixture::PLAYER_REGULAR, self::X, 2500, '2026-10-10 10:00:00');
+        // The round is not published: its recorded results are ranked live (FU-S) - Hugo's unfinished one among them
+        $database->executeStatement('UPDATE competition_participant_round SET result_seconds = NULL, result_pieces_placed = 600 WHERE id = :id', ['id' => F::ENTRY_B_HUGO]);
 
         $withX = $this->answers($browser);
+        $state = json_decode($withX['state'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($state);
+        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_IVAN, F::ENTRY_B_HUGO], array_column(self::digArray($state, 'results'), 'key'), 'no canary: the live ranking is not there');
+        self::assertNull(self::dig($state, 'results', 2, 'piecesCount'), 'the pieces of an unfinished result would tell the hidden puzzle');
         $xName = $this->studioString('SELECT name FROM puzzle WHERE id = :id', ['id' => self::X]);
         foreach (['state', 'analytics'] as $answer) {
             foreach ([self::X, $xName] as $secret) {

@@ -791,11 +791,6 @@ body.as-body {
     font-variant-numeric: tabular-nums;
 }
 
-.as-result--live .as-result__time,
-.as-result--live .as-result__pieces {
-    color: var(--as-live);
-}
-
 .as-result__rank {
     color: var(--as-muted);
     font-weight: 600;
@@ -1495,17 +1490,6 @@ a.as-person__name:hover {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-}
-
-.as-live__count {
-    margin: 0 0 4px;
-    color: var(--as-live);
-    font-weight: 600;
-}
-
-.as-live__note {
-    margin: 0;
-    font-size: 12px;
 }
 
 .as-live .as-empty {

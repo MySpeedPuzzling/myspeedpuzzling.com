@@ -428,6 +428,14 @@ Decided behaviours, edges:
   push still reached the hub in the runs (290 updates = 190 saves + 100 proposals). The worker stays busy until the
   publish ends, so a stalled hub still costs capacity, not answers.
 - A pre-tap "as insurance" cannot be stopped by software - the judge looks at the puzzle (R §2.4).
+- **Retention (follow-ups FU-M)**: a decided proposal (confirmed, rejected, superseded, withdrawn) is deleted 90 days
+  after its decision (`decided_at`; a decided row without one - none is written so - by `received_at_ms`) by
+  `myspeedpuzzling:prune-decided-time-proposals [days=90]` (cron on lily.srv) → `PruneDecidedTimeProposals` →
+  `CompetitionTimeProposalRepository::deleteDecidedBefore()` - one bulk DQL `DELETE` on the app clock. **Pending
+  proposals are never pruned** (they go with their round, entry or participant - ON DELETE CASCADE). Safe because
+  nothing points at a proposal (no FK; the official result lives on the entry, a replayed change set naming a pruned
+  proposal answers `unknown` - its receipt is pruned after 90 days too) and the judge's card shows decided proposals
+  for 10 minutes only. Test `tests/MessageHandler/PruneDecidedTimeProposalsHandlerTest.php`.
 
 ## Timing you can trust (reliability hardening T2)
 

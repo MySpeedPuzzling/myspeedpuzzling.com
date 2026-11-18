@@ -9,10 +9,10 @@
  * Refusals are the official_results.reason.* keys the server answers with.
  *
  * The shape rules of RoundEntryPuzzles::fromWire() are mirrored by shapeRefusal() (the server answers a record of
- * another shape with `invalid_change`). Two differences of JSON itself stay server-side only
- * (docs/features/competitions-management/round-formats.md "Browser twin"): a whole number written with a fraction
- * (`100.0` - PHP reads a float and refuses it, JavaScript cannot tell it from `100`), and a JSON object PHP decodes into
- * a list (`{}` or keys "0".."n-1" - the browser builds arrays only and refuses any other value here).
+ * another shape with `invalid_change`). Two differences of JSON itself stay server-side only (round-formats.md
+ * "Known edges and open items"): a whole number written with a fraction (`100.0` - PHP reads a float and refuses it,
+ * JavaScript cannot tell it from `100`), and a JSON object PHP decodes into a list (`{}` or keys "0".."n-1" - the
+ * browser builds arrays only and refuses any other value here).
  */
 
 export const MAX_SECONDS = 86399;

@@ -494,7 +494,7 @@ final class DraftCanaryTest extends WebTestCase
             "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category, slug) SELECT :id, c.id, 'Pines round', 60, c.date_from, 'solo', 'pines-round' FROM competition c WHERE c.id = :competition",
             ['id' => $pinesRound, 'competition' => OrganizationFixture::EDITION_QUIET_PINES_1],
         );
-        $answers = ['state', 'analytics', 'predictions'];
+        $answers = ['state', 'analytics', 'predictions', 'round-predictions'];
         // The page (S3) and the organisers' id-based link to it
         $items = [
             [self::COMPETITION, OrganizationFixture::COMPETITION_DRAFT_NIGHT, OrganizationFixture::ROUND_DRAFT_NIGHT, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/analytics-studio/main-round'],

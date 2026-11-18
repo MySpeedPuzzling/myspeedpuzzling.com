@@ -59,6 +59,8 @@ Independent design review 2026-11-17, decisions by the orchestrator:
   entries, each member through `GetPlayerPredictions::forPuzzles()`), cached per player × visible puzzle set in
   `analytics_studio_cache` 15 min via the pool's `get()` callback (stampede lock). No prediction column/sort in the
   list (v2 in `docs/TODO.md`). No `WarmAnalyticsStudioPredictions`, no LockFactory, no messenger routing.
+  *Amended in v2 by R28-R33 ("As built: V2"): a round-wide warm on the `imports` queue + a `round-predictions`
+  answer; still no LockFactory, still never on `async`.*
 - **R4 "As of now" numbers.** Predictions, rating, skill, solved total and best 500 are the player's current values
   (labelled "now"); only the per-puzzle and similar-puzzle history is "before this round" (cut-off).
 - **R5 Date precision.** A history row with a month/year-only date counts as "before" only when its whole period ends
@@ -840,3 +842,47 @@ Where it differs from the sections above:
   `AnalyticsStudioSignalTimingTest` (settle ≥ TTL + 300 ms, type twin), `AnalyticsStudioStateControllerTest` (topics,
   marker), `AnalyticsStudioSecretPuzzleTest::testTheSignalIsTheSameWhicheverPuzzleIsHidden`,
   `SecretPuzzleRoutesTest::testTheAnalyticsStudioSignalCarriesOnlyItsTypeAndRound`, six harness scenarios.
+
+## As built: V2 (round-wide prediction warm + `round-predictions`, 2026-11-18)
+
+Amendments of record (design note `design-v2/studio.md` §2.2, decisions R28-R34, with the orchestrator's queue change):
+
+- **R28 Queue: the existing `imports` transport** (not a new `analytics_studio` one - that needed a consumer change on
+  the servers, ops step O1, now dropped). `WarmAnalyticsStudioPredictions` (`HandledOutsideTransaction`, fields
+  `roundId`, `visibleHash`, `requestedAtMs`, `turn`; no puzzle or player ids) is routed to `imports` in
+  `config/packages/messenger.php`: its own consumer container on production, never `async` (sign-in e-mails), no
+  retries. **Turns of ≤ 8 s** (`WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN`) that queue the next turn -
+  the imports consumer's rule "no job longer than ~10 s", so a spreadsheet import waits at most one short turn behind a
+  warm. At most `MAX_TURNS` = 20 turns, then a warning. Dev `compose.yml` already consumes `async imports`.
+- **R29 Handler** `WarmAnalyticsStudioPredictionsHandler`: a message older than 10 min does nothing; the round and its
+  visible puzzles **now** (`AnalyticsStudioContextLoader`, 2 statements - RoundPuzzlesVisibleNow alone decides the
+  puzzles); another `visibleHash` than the message's, no visible slot or a pair/team round → nothing; the entrants (1)
+  → public members who did not opt out, by player id; those already cached skipped (one multi-get), the rest through
+  `AnalyticsStudioPredictions::forMember()` (the entrant answer's callback and key - the same numbers); memos cleared
+  every 25 computed members. One member failing = one warning + "no prediction" kept for them 15 min
+  (`rememberNoPrediction()`), the others go on; more than 3 in a turn end the warm. Not found → info; any other
+  failure → warning, end of the warm (the warming marker is left to expire - a failing round is not re-warmed for a
+  minute however often its page asks).
+- **R30 No round aggregate**: `AnalyticsStudioPredictions::cachedForMembers()` reads the per-player entries in one
+  PSR-6 `getItems()` (0 statements, never computes); the key is `AnalyticsStudioPredictions::cacheKey()` (shared with
+  the computation, unchanged format).
+- **R31/R32 answer** `analytics_studio_round_predictions` - `GET /analytics-studio/{roundId}/round-predictions?v=`
+  (`AnalyticsStudioRoundPredictionsController` → `AnalyticsStudioRoundPredictionsBuilder`; stateless firewall,
+  `analytics_studio_heavy`, `private, no-store`, `noindex`; `v` is a cache buster only):
+  `{visibleHash, status: ready|warming|none, entrants: {<entryKey>: {members: [...]}}}`, members shaped like
+  `predictions?entries=` (`{}` private/unlinked, `{predictionsOptedOut: true, prediction: null}`, or the values); a member
+  not cached yet is **absent** (the page reads `pending`). `none` = pair/team round or nothing visible (2 statements,
+  nothing sent); otherwise 3 statements whatever is cached. `warming` → the controller sends the warm unless the marker
+  `roundpredictions.warming.{round}.{visibleHash}` (60 s, set after the send) exists. **Every re-queued turn renews
+  the marker** and a chain that ends (done, nothing to do, its last turn) deletes it - one chain per round and visible
+  set at a time.
+- **R33** no LockFactory: two workers racing may both send a warm (the second finds everything cached).
+- **Secrets**: nothing is sent, computed or keyed before a slot is visible; keys only over visible puzzle ids
+  (`WarmAnalyticsStudioPredictionsHandlerTest`, `AnalyticsStudioSecretPuzzleTest` round-predictions X vs Y).
+- **Not built here**: the column and sort in the page (V3). Not measured: the S1 300 × 3 round (no-Docker mode) - the
+  design's estimate stays 3-6 s per round, i.e. one or two turns.
+- Tests: `WarmAnalyticsStudioPredictionsHandlerTest` (equals the entrant numbers, 7 statements cold / 3 cached, opt-out,
+  private, unlinked, pair round, hash mismatch, stale, turn re-queue + the last turn, hidden puzzle never keyed, routing
+  imports vs async), `AnalyticsStudioRoundPredictionsControllerTest`, new rows in `AnalyticsStudioQueryBudgetTest`, the
+  Draft / PrivateProfile / Blocklist canaries, `RobotsTxtTest`.
+

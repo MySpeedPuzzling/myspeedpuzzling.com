@@ -70,7 +70,7 @@ final class RobotsTxtTest extends KernelTestCase
     {
         $router = $this->router();
 
-        foreach (['analytics_studio_state', 'analytics_studio_analytics', 'analytics_studio_predictions'] as $routeName) {
+        foreach (['analytics_studio_state', 'analytics_studio_analytics', 'analytics_studio_predictions', 'analytics_studio_round_predictions'] as $routeName) {
             $path = $router->generate($routeName, ['roundId' => self::SAMPLE_ID]);
             self::assertFalse($this->isAllowed($path), sprintf('robots.txt must disallow %s', $path));
         }

@@ -43,6 +43,7 @@ use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use SpeedPuzzling\Web\Message\StartImportFromGoogleSheet;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
+use SpeedPuzzling\Web\Message\WarmAnalyticsStudioPredictions;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
 return App::config([
@@ -186,6 +187,13 @@ return App::config([
                 AnswerImportPuzzlePile::class => 'imports',
                 // A pairing of an unlisted puzzle with a catalogue puzzle, and its Undo - the same worker, in turns
                 ProcessUnlistedPairing::class => 'imports',
+                // The analytics studio's round-wide time predictions (docs/features/competitions-management/
+                // analytics-studio.md R28): seconds of reads per round, so never on `async` in front of the sign-in
+                // e-mails, and no queue of its own (that would need a consumer change on the servers) - the imports'
+                // consumer takes it, in turns of at most WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN (8 s)
+                // that queue themselves again, so a spreadsheet import never waits long behind a warm. No retries
+                // (the transport's): a lost warm is asked for again by the next page request
+                WarmAnalyticsStudioPredictions::class => 'imports',
                 // "Your import is done" - never in the worker's turn
                 SendImportAddedEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

@@ -111,7 +111,7 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
     }
 
     /**
-     * @return array{state: string, analytics: string, entrant: string, predictions: string}
+     * @return array{state: string, analytics: string, entrant: string, predictions: string, round-predictions: string}
      */
     private function answers(KernelBrowser $browser): array
     {
@@ -119,7 +119,7 @@ final class AnalyticsStudioSecretPuzzleTest extends WebTestCase
         $base = '/analytics-studio/' . F::ROUND_GROUP_B;
         $answers = [];
 
-        foreach (['state' => '/state', 'analytics' => '/analytics', 'entrant' => '/entrant/' . F::ENTRY_B_HUGO, 'predictions' => '/predictions?entries=' . F::ENTRY_B_HUGO] as $name => $path) {
+        foreach (['state' => '/state', 'analytics' => '/analytics', 'entrant' => '/entrant/' . F::ENTRY_B_HUGO, 'predictions' => '/predictions?entries=' . F::ENTRY_B_HUGO, 'round-predictions' => '/round-predictions'] as $name => $path) {
             $browser->request('GET', $base . $path);
             self::assertResponseIsSuccessful($name);
             $answers[$name] = (string) preg_replace('/"serverNowMs":\d+,/', '', (string) $browser->getResponse()->getContent());

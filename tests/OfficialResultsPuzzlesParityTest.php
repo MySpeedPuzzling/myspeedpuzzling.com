@@ -100,7 +100,7 @@ final class OfficialResultsPuzzlesParityTest extends TestCase
             array_fill(0, RoundEntryPuzzles::MAX_ITEMS, ['roundPuzzleId' => $a, 'done' => false]),
         ];
 
-        return array_map(static fn (mixed $items): array => ['items' => $items, 'round' => $round, 'result' => ['seconds' => 100]], $records);
+        return array_values(array_map(static fn (mixed $items): array => ['items' => $items, 'round' => $round, 'result' => ['seconds' => 100]], $records));
     }
 
     /**

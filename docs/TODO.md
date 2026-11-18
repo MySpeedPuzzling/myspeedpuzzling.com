@@ -1945,3 +1945,9 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
 
 - [ ] Browser walk of "Your sheet" / "Change sheet" and an import after a change (desktop + 390 px) - built with Docker off, CI only
 - [ ] Jan: a durable record of who changed the sheet and when (a column, or a history line) - today an info log + the check's byline
+
+## Participant linking (`docs/features/competitions-management/participant-linking.md`)
+
+- [ ] lily.srv Alloy `stage.replace` (Loki): redact claim tokens like the compete ones - `/claim/<token>`,
+      `/<locale>/claim/<token>` and the encoded `%2Fclaim%2F<token>` in the sign-in page's `?return=` (the app's own logs
+      and Sentry are redacted by `OnlineTokenRedactor`, R4). Before organisers hand out claim links at scale.

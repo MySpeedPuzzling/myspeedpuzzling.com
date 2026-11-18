@@ -111,56 +111,6 @@ final class EligibilityScheduleTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
-    public function testAnEventAddedWithoutRecurringKeepsNoSchedule(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/add-event?classic=1');
-        // Typed into "When it happens", then "Recurring" left unticked: an event, no error, nothing kept
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Single Puzzle Night',
-            'competition_form[isOnline]' => '0',
-            'competition_form[location]' => 'Brno',
-            'competition_form[dateFrom]' => '15.06.2027',
-            'competition_form[dateTo]' => '15.06.2027',
-            'competition_form[schedule]' => str_repeat('b', 300),
-            'competition_form[eligibility]' => '18+',
-        ]);
-
-        self::assertResponseRedirects();
-        self::assertSame('18+', $this->connection()->fetchOne('SELECT eligibility FROM competition WHERE name = ?', ['Single Puzzle Night']));
-        self::assertFalse($this->connection()->fetchOne('SELECT 1 FROM competition_series WHERE name = ?', ['Single Puzzle Night']));
-    }
-
-    public function testTheAddEditionFormSavesItsOwnAndADraft(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-
-        $browser->request('GET', '/en/add-edition/' . OrganizationFixture::SERIES_LANTERN_NIGHTS);
-        self::assertSelectorExists('a[data-add-editions-link][href^="/en/add-editions/' . OrganizationFixture::SERIES_LANTERN_NIGHTS . '"]');
-
-        $browser->submitForm('Save as draft', [
-            'edition_form[name]' => 'Lantern Night Halloween',
-            'edition_form[dateFrom]' => '30.10.2027',
-            'edition_form[dateTo]' => '30.10.2027',
-            'edition_form[eligibility]' => '18+, costumes welcome',
-        ]);
-        // A draft lands on its own page - the draft banner offers Publish
-        self::assertResponseRedirects('/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG . '/lantern-night-halloween');
-        self::assertQueuedEmailCount(0);
-
-        /** @var array{eligibility: null|string, is_draft: bool} $row */
-        $row = $this->connection()->fetchAssociative('SELECT eligibility, is_draft FROM competition WHERE name = ?', ['Lantern Night Halloween']);
-        self::assertSame('18+, costumes welcome', $row['eligibility']);
-        self::assertTrue($row['is_draft']);
-
-        $browser->followRedirect();
-        self::assertSelectorTextContains('.alert-success', 'Saved as a draft');
-        self::assertSelectorExists('[data-draft-banner-own] form');
-    }
-
     private function connection(): Connection
     {
         /** @var Connection $connection */

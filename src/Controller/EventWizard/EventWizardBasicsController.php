@@ -68,8 +68,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *   time (SaveEventWizardBasics) - a draft without a round gets it now. Only for a draft on a path with wizard steps -
  *   a published event (or an edition, or several rounds until W3/W5) goes to its edit page.
  *
- * - Several rounds (W5, saveSeveralRounds()): the draft only - no round and no start time (every round's start is typed
+ * - Several rounds (W5, saveWithoutRound()): the draft only - no round and no start time (every round's start is typed
  *   on the Structure step).
+ * - The calendar path ("Something else", saveWithoutRound()): the draft only, no start time; "What kind of event" asked
+ *   up front and required (never "Competition"), an online one may stay undated - then Review.
  *
  * A full-page form: a saved step answers 303 (to the next step, or the draft's page for "Finish later"), a refused one
  * 422.
@@ -141,12 +143,14 @@ final class EventWizardBasicsController extends AbstractController
         }
 
         // Several rounds (W5): no round is created here and no start time asked - the organiser types every round's start
-        // on the Structure step; once the rounds exist a new date moves them along
-        $severalRounds = $progress->path === EventWizardPath::SeveralRounds;
+        // on the Structure step; once the rounds exist a new date moves them along. The calendar path has no round at all
+        $calendar = $progress->path === EventWizardPath::Calendar;
+        $withoutRound = $progress->path === EventWizardPath::SeveralRounds || $calendar;
 
         $form = $this->createForm(EventWizardBasicsFormType::class, $formData, [
             'action' => $request->getRequestUri(),
-            'start_time' => $severalRounds === false,
+            'start_time' => $withoutRound === false,
+            'calendar' => $calendar,
         ]);
 
         // A new event's id travels with the page (kept on a refused submit): a second submit of it creates nothing twice
@@ -164,8 +168,8 @@ final class EventWizardBasicsController extends AbstractController
         $form->handleRequest($request);
         $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
-        if ($form->isSubmitted() && $form->isValid() && $severalRounds) {
-            return $this->saveSeveralRounds($request, $form, $progress, $competition, $player->playerId, $restoredPhotos, $organizationName);
+        if ($form->isSubmitted() && $form->isValid() && $withoutRound) {
+            return $this->saveWithoutRound($request, $form, $progress, $competition, $player->playerId, $restoredPhotos, $organizationName);
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -262,15 +266,17 @@ final class EventWizardBasicsController extends AbstractController
     }
 
     /**
-     * Several rounds (W5): the draft alone (AddCompetition) - its rounds and their starts come from the Structure step.
-     * Saved again, the
-     * event's details change and, once it has rounds, a new first day moves them along (EditCompetition
-     * `moveRoundsWithDate` - only while none has begun, EventDateShift).
+     * Several rounds (W5) and the calendar path: the draft alone (AddCompetition) - several rounds' rounds and their
+     * starts come from the Structure step. Saved again, the event's details change and, once it has rounds, a new first
+     * day moves them along (EditCompetition `moveRoundsWithDate` - only while none has begun, EventDateShift).
+     *
+     * The next step is the saved draft's (nextAfterBasics()): event types without "Competition" on a several-rounds
+     * draft that has no round yet put it on the calendar path.
      *
      * @param FormInterface<CompetitionFormData> $form
      * @param array<string, null|string> $restoredPhotos
      */
-    private function saveSeveralRounds(Request $request, FormInterface $form, EventWizardProgress $progress, null|Competition $competition, string $playerId, array $restoredPhotos, null|string $organizationName): Response
+    private function saveWithoutRound(Request $request, FormInterface $form, EventWizardProgress $progress, null|Competition $competition, string $playerId, array $restoredPhotos, null|string $organizationName): Response
     {
         $data = $form->getData();
 
@@ -298,10 +304,7 @@ final class EventWizardBasicsController extends AbstractController
         } catch (HandlerFailedException | SecretPuzzlesWouldBeRevealed | OnlineTimingInUse | OrganizationNotManaged $failure) {
             // Two submits of the same new page at once: the second one's insert met the first one's draft
             if ($competition === null && EventWizardRefusal::find($failure, UniqueConstraintViolationException::class) !== null && $this->existingDraft($competitionId, $playerId) === true) {
-                return $this->redirectToRoute(EventWizardStep::Structure->route(), array_filter([
-                    'competitionId' => $competitionId,
-                    'structure' => EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value,
-                ]), Response::HTTP_SEE_OTHER);
+                return $this->nextAfterBasics($request, $competitionId, $progress);
             }
 
             if ($this->explain($failure, $form) === false) {
@@ -319,13 +322,23 @@ final class EventWizardBasicsController extends AbstractController
             return $this->redirect($this->competitionDetailUrl->of($competitionId), Response::HTTP_SEE_OTHER);
         }
 
-        if (($progress->state->roundsCount ?? 0) > 0) {
-            return $this->redirectToRoute(EventWizardStep::Structure->route(), ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
-        }
+        return $this->nextAfterBasics($request, $competitionId, $progress);
+    }
 
-        return $this->redirectToRoute(EventWizardStep::Structure->route(), array_filter([
+    /**
+     * The step after Basics of a draft saved without a round, on the path its saved data gives it: Structure (with the
+     * entry screen's template while it has no round) or the calendar path's Review.
+     */
+    private function nextAfterBasics(Request $request, string $competitionId, EventWizardProgress $previous): Response
+    {
+        $state = $this->getEventWizardState->of($competitionId);
+        $next = $this->eventWizardSteps->of($state)->next(EventWizardStep::Basics) ?? EventWizardStep::Review;
+
+        return $this->redirectToRoute($next->route(), array_filter([
             'competitionId' => $competitionId,
-            'structure' => EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value,
+            'structure' => $next === EventWizardStep::Structure && $state->roundsCount === 0 && $previous->path === EventWizardPath::SeveralRounds
+                ? EventWizardStructureTemplate::tryFrom($request->query->getString('structure'))?->value
+                : null,
         ]), Response::HTTP_SEE_OTHER);
     }
 

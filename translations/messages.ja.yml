@@ -4123,9 +4123,6 @@ qr_code:
   "pending_approval_info": "このイベントは管理者の承認待ちで、まだ他のユーザーには表示されていません。"
   "rejected_info": "このイベントは承認されませんでした。"
   "rejection_reason": "理由"
-  "add_event_info": "新しいコンペティションまたはイベントを追加します。公開前に管理者による審査があります。"
-  "managed_event_info": "MySpeedPuzzlingを通じて参加者の登録と支払いを完全に管理することに興味がありますか？<a href=\"mailto:%email%\">%email%</a> までご連絡ください。"
-  "submit_for_approval": "承認のために送信"
   "save_changes": "変更を保存"
   "manage_rounds": "ラウンド管理"
   "manage_editions": "エディション管理"
@@ -4200,7 +4197,6 @@ qr_code:
     "link": "ウェブサイトURL"
     "registration_link": "登録URL"
     "results_link": "結果URL"
-    "links_per_edition": "登録と結果のリンクは、シリーズの作成後にエディションごとに設定します。"
     "location": "場所"
     "location_series_help": "シリーズでは任意です。開催地はエディションごとに設定します。毎回同じ会場で開催される場合のみ入力してください。"
     "country": "国"
@@ -4404,7 +4400,6 @@ qr_code:
       "results_confirmed": "このラウンドにはすでに公式結果があります。先に結果デスクで削除してください。リセットするとラウンドが最初からやり直しになります。"
       "ended_use_reset": "このオンラインラウンドは終了しました。もう一度行うには、ストップウォッチをリセットしてください。"
   "flash":
-    "created": "イベントを承認のために送信しました。"
     "updated": "イベントを更新しました。"
     "approved": "コンペティションを承認しました。"
     "round_added": "ラウンドを追加しました。"
@@ -5668,7 +5663,6 @@ official_results:
     edition_description_past_official: "%name%の結果：ラウンドごとの公式結果と、パズル・参加者を掲載。%date%に開催された%series%のスピードパズル大会。"
   "manage": "シリーズ管理"
   "edit_series": "シリーズを編集"
-  "add_edition": "エディションを追加"
   "upcoming_editions": "今後のエディション"
   "past_editions": "過去のエディション"
   "no_editions": "まだエディションがありません。各エディションはこの定期イベントの1回分です。最初のエディションを追加しましょう。"
@@ -5684,7 +5678,6 @@ official_results:
     "confirm_button": "完全に削除"
 "edition":
   "edit": "エディションを編集"
-  "rounds_hint": "エディション作成後、管理ページからパズルと制限時間付きのラウンドを追加できます。"
   "date_not_set": "日付未定"
   "form":
     "name": "エディション名"
@@ -5698,7 +5691,6 @@ official_results:
     "link": "ウェブサイトURL"
     "link_help": "エディションページの「情報」ボタンとして表示されます。"
   "flash":
-    "created": "エディションを追加しました。"
     "deleted": "エディションを削除しました。"
   "delete":
     "button": "エディションを削除"
@@ -9018,7 +9010,6 @@ organizer_tools:
         delete_organization: "団体を削除"
         approve_organization: "団体を承認"
         reject_organization: "団体を却下…"
-        add_editions: "複数の日程を追加"
         to_organization: "団体にする"
         move_edition: "別のシリーズへ移動"
         move_round: "別のイベントまたはエディションへ移動"
@@ -9038,21 +9029,10 @@ organizer_tools:
         event_types_edition_help: "シリーズの種類が選ばれています。この回だけ異なる場合にのみ変更してください。"
         schedule: "開催スケジュール"
         schedule_help: "シリーズの場合の例：「毎月第4金曜日 20:00」。各回は引き続き、それぞれ独立したエディションです。"
-        save_draft: "下書きとして保存"
-        save_draft_help: "下書きはあなたとチームだけが見られます。準備ができたら公開してください。"
-        submit_add_event: "イベントを追加"
-        submit_add_series: "シリーズを追加"
-        add_info_approved: "新しいコンペティションまたはイベントを追加します。承認済みの団体のもとでは、管理者による審査は不要です。"
     flash:
         saved_as_draft: "下書きとして保存しました。あなたとチームだけが見られます。準備ができたら公開してください。"
         created_published: "追加しました。誰でも見られるようになりました。"
-        editions_added: "エディションを%count%件追加しました。"
-        editions_added_draft: "エディションを下書きとして%count%件追加しました。"
     add_editions:
-        title: "複数の日程を追加"
-        link: "複数の日程をまとめて追加"
-        link_hint: "（毎週、毎月の第2木曜日や最終金曜日、または好きな日付）"
-        intro: "各日程は、それぞれ独立したエディションになります。自動で繰り返されることはありません。会場が日程を変更した場合は、そのエディションを編集してください。"
         how: "方法"
         how_repeat: "繰り返す"
         how_pick: "日付を選ぶ"
@@ -9081,8 +9061,6 @@ organizer_tools:
         show: "日程を表示"
         preview_title: "日程%count%件"
         taken: "すでにエディションがあります"
-        create: "エディションを%count%件作成"
-        create_help: "チェックした日程だけが作成されます。下書きの場合は、1件ずつ公開するまで、あなたとチームだけが見られます。"
 organization_page:
     meta:
         title: "%name% - パズルイベント"
@@ -15111,7 +15089,6 @@ event_wizard:
         series_help: "毎週または毎月の同じイベント - クラブの夜会、毎月のオンラインカップなど。"
         other: "その他"
         other_help: "交流会、パズル交換会、ワークショップ、マラソンなど - ラウンドのない、カレンダー上のイベントです。"
-        classic: "1つのフォームがよい場合は、従来のフォームへ"
         copy_title: "または、自分のイベントをコピー"
         copy_help: "コピーには詳細、設定、ラウンドが引き継がれます。新しい日付はあなたが選びます。"
         copy: "コピー"
@@ -15123,6 +15100,10 @@ event_wizard:
         qualify_every_round_counts_help: "ソロ・ペア・チームのラウンド - タイムはカテゴリごとに合計されます。"
         qualify_empty: "まだ決めていない"
         qualify_empty_help: "ラウンドなしで始めて、1つずつ追加します。"
+    calendar:
+        types_help: "1つ以上選んでください。競技会を開催する場合は、前に戻って競技会の選択肢を選んでください。"
+        types_required: "イベントの種類を少なくとも1つ選んでください。"
+        date_help: "常時開催のオンラインイベントは日付なしのままにできます。"
     basics:
         title: "基本情報"
         under: "%organization%のイベントとして"

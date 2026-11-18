@@ -62,6 +62,27 @@ final class EventWizardStepsTest extends TestCase
         self::assertSame([EventWizardStep::Basics, EventWizardStep::Structure, EventWizardStep::Puzzles, EventWizardStep::Extras, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::SeveralRounds)->steps);
     }
 
+    /**
+     * "Something else" (the calendar path, since the classic create form was retired): a draft without rounds whose
+     * kinds are set and are not "Competition" - Basics, then Review. A round makes it a competition again.
+     */
+    public function testTheCalendarPathIsADraftWithoutRoundsThatIsNoCompetition(): void
+    {
+        $steps = new EventWizardSteps();
+
+        $calendar = $steps->of(self::state(roundsCount: 0, puzzles: 0, calendarEvent: true));
+        self::assertSame(EventWizardPath::Calendar, $calendar->path);
+        self::assertSame([EventWizardStep::Basics, EventWizardStep::Review], $calendar->steps);
+        self::assertSame(EventWizardStep::Review, $calendar->firstNotDone());
+        self::assertSame(EventWizardStep::Review, $calendar->next(EventWizardStep::Basics));
+        self::assertFalse($calendar->has(EventWizardStep::Structure));
+        self::assertSame([EventWizardStep::Basics, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::Calendar)->steps);
+
+        self::assertSame(EventWizardPath::OneRound, $steps->of(self::state(roundsCount: 1, puzzles: 0, calendarEvent: true))->path);
+        self::assertSame(EventWizardPath::SeveralRounds, $steps->of(self::state(roundsCount: 2, puzzles: 0, calendarEvent: true))->path);
+        self::assertSame(EventWizardPath::Series, $steps->of(self::state(roundsCount: 0, puzzles: 0, isEdition: true, calendarEvent: true))->path);
+    }
+
     public function testTheSeriesPathHasNoStepsYet(): void
     {
         $steps = new EventWizardSteps();
@@ -73,7 +94,7 @@ final class EventWizardStepsTest extends TestCase
         self::assertSame([EventWizardStep::Basics, EventWizardStep::Puzzle, EventWizardStep::Extras, EventWizardStep::Review], $steps->forNewEvent(EventWizardPath::OneRound)->steps);
     }
 
-    private static function state(int $roundsCount, int $puzzles, bool $isEdition = false, bool $extrasOn = false, int $roundsWithoutPuzzle = 0): EventWizardState
+    private static function state(int $roundsCount, int $puzzles, bool $isEdition = false, bool $extrasOn = false, int $roundsWithoutPuzzle = 0, bool $calendarEvent = false): EventWizardState
     {
         return new EventWizardState(
             competitionId: '018d0042-0000-0000-0000-000000000099',
@@ -84,6 +105,7 @@ final class EventWizardStepsTest extends TestCase
             roundPuzzlesCount: $puzzles,
             extrasOn: $extrasOn,
             roundsWithoutPuzzle: $roundsWithoutPuzzle,
+            calendarEvent: $calendarEvent,
         );
     }
 }

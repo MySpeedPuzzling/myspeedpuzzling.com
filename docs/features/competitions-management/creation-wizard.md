@@ -4,7 +4,8 @@ Jan: "rework the event creating for competition type to be UX user friendly wiza
 features ... if it is single round not needing to bother the user through multiple clicks ... and especially the
 edition/series creation". Design of record: `toolkit/W-creation-wizard-research.md` (screens, click counts, risks);
 delivery record: `toolkit/STATUS.md` "Creation wizard". **No feature flag** (Jan 2026-11-17): the wizard is every
-signed-in player's "Add event"; the classic forms stay reachable from it until Jan retires them (`docs/TODO.md`).
+signed-in player's "Add event" - and since 2026-11-18 the only way to create an event, series or edition on the web
+(see "Classic create retired"; the classic form stays only as the edit form of an existing event).
 
 ## Principles
 - **The draft is the wizard's state.** The first save creates a real draft (`AddCompetition` / `AddCompetitionSeries`
@@ -28,11 +29,57 @@ signed-in player's "Add event"; the classic forms stay reachable from it until J
 ## Paths (`EventWizardPath`, steps `EventWizardStep`)
 | Path | Steps | Writes |
 |---|---|---|
-| Entry `event_wizard` (`/{_locale}/new-event`) | "What do you want to add?" an event that already happened (Backfill) / one round / several rounds (+ "do competitors qualify?") / a regular series / something else (→ classic form); organization picker for team members; "Copy one of your events" → Duplicate form | - |
+| Entry `event_wizard` (`/{_locale}/new-event`) | "What do you want to add?" an event that already happened (Backfill) / one round / several rounds (+ "do competitors qualify?") / a regular series / something else (→ calendar path); organization picker for team members; "Copy one of your events" → Duplicate form | - |
+| Calendar ("Something else", 2026-11-18) | Basics → Review | Basics (`?path=calendar`) creates the draft alone - no round, no start time; "What kind of event" asked up front and required, never "Competition"; an online event may stay undated (ongoing), in person needs its day. See "Calendar path" |
 | One round | Basics → Puzzle & format → Extras → Review | Basics creates the draft **and its round** (hidden `draftId` makes a double submit idempotent); Puzzle: category, limit, puzzle(s) (catalogue or new), secret + reveal (automatic / when I start the stopwatch / manual), pick K of N |
 | Several rounds | Basics → Structure → Puzzles → Extras → Review | Basics without a start time. Structure templates "Qualification" (stages, top N go on) / "Every round counts" (solo/pairs/teams counts, add up per category) - a GET form listing the generated rounds, each with its name, day (prefilled only for a one-day event) and time (empty, required); "Create the rounds" (POST, the template's answer re-read from the query string) writes rounds + starts + steps/standings in one transaction and goes on to Puzzles - a missing start or one outside the event's days is a row error (422), nothing written before (no rounds with made-up starts in between); then the editable table; read-only once any entry, result or stopwatch run exists (re-checked under the lock). Stages → advancement steps, "add up" → one standing per category (`StandingsPerCategory`, never published). Puzzles grid: one row per round, one secret switch, a row error for a puzzle twice in one round; rounds of one category may share a puzzle (S2) - the grid says "Same puzzle as <round>" under a saved one |
 | Backfill (WB) | The event → Puzzles → Link my results → Done | see "Backfill" below - submitted at once, never a draft |
 | Series | Series Basics → Dates + each date's round → Review | rule (weekly / Nth weekday / picked days, `EditionsPreview` shared with "Add several dates"), start time, a round per date or none; re-sending creates nothing twice; the rule fills the series' "When it happens" in the creator's language while it is empty ("Third Saturday of the month at 7:00 PM", picked days: "At 7:00 PM on each date" - `SeriesScheduleText`, `CompetitionSeries::scheduleFromDatesRule()`, also on "Add the next dates"; a typed text is never replaced); Publish publishes the series and its draft dates. Series page: "Add the next dates" (prefilled from the last dates) and a quick "Add puzzle" per date |
+
+## Classic create retired (2026-11-18)
+
+Jan: "retire now, keep classic only for single updates, i would like the wizzard to be default and no 'Use classic form'
+button - the classic form ever makes sense only for some specific update".
+
+- **Every create entry point is the wizard**: "Add event" on the events page (header, agenda, search results, foot),
+  "You organize", For organizers, an organization's ⋯ menu and its empty "Coming up" (→ `event_wizard` with
+  `?organization=`); a series' manage page, its ⋯ menu and its empty upcoming list (→ `event_wizard_series_next_dates`,
+  one picked day or many - the classic "Add edition" and "Add several dates" buttons are gone). The entry's "Prefer one
+  form? Use the classic form" link is gone (`event_wizard.entry.classic` removed).
+- **Old addresses redirect, never 404** (old bookmarks, e-mails): `add_competition` (`/en/add-event`, `?classic=1` too) →
+  `event_wizard` (`?organization=` kept), `?recurring=1` → `event_wizard_series_basics`; `add_edition` →
+  `event_wizard_series_next_dates`; `add_editions` → the same with its rule's query string (the same fields -
+  `EventWizardDatesFormData` extends `AddEditionsFormData`; `return`/`return_title` dropped). A GET answers 302; a POST
+  (a classic form left open in a tab) answers 303 to the same place and **creates nothing** - the organiser sets it up
+  again in the wizard, nothing is half saved. The controllers (`AddCompetitionController`, `AddEditionController`,
+  `AddEditionsController`) are redirect-only.
+- **Removed as dead**: `add_competition.html.twig`, `add_edition.html.twig`, `add_editions.html.twig`,
+  `approval_note_controller.js`, `EditionFormType` (`EditionFormData` stays - the internal API's edition validation),
+  `CompetitionFormType`'s `draft_button` option and the `data-approved-at-once` option attribute, and 23 keys used only
+  there (all 6 locales). `AddEditionsFormType`/`AddEditionsFormData`/`EditionsPreview`/`checked_count_controller.js`/
+  `_add-editions.scss` stay - the wizard's dates use them.
+- **The classic form stays as the edit form** (`edit_competition`, `edit_competition_series`) - nothing changed there.
+- What the classic create had and the wizard did not: "Something else" (an event without rounds) → the calendar path
+  below; an undated ongoing online event → allowed on the calendar path; several dates at once with their own "Who can
+  enter" / kinds / "Save as draft" → the wizard's dates follow the series (draft only while the series is); a single
+  edition with its own name, end day, links and description → one picked day in "Add the next dates", the rest on its
+  edit page.
+
+### Calendar path ("Something else")
+- Why: "A meetup, puzzle swap, workshop or marathon - an event on the calendar, no rounds" was the only entry answer
+  still opening the classic form. A several-rounds Basics + Structure would ask about rounds such an event never has.
+- `EventWizardPath::Calendar` (`calendar`), steps Basics → Review (no Extras: its switches are a competition's -
+  registration and links are on the edit page and its "Get ready" checklist). Basics = `EventWizardBasicsFormType` with
+  `calendar: true`: no start time, "What kind of event" (`EventTypesType` without `Competition`) shown first and
+  required (`event_wizard.calendar.types_required`), the date optional for an online event
+  (`event_wizard.calendar.date_help`). Saved like several rounds' Basics (`saveWithoutRound()`: `AddCompetition`
+  draft, no round). Review shows the kinds.
+- **No storage - the kinds are the signal**: `GetEventWizardState::$calendarEvent` = `event_types <> '[]' AND NOT
+  event_types @> '["competition"]'`; `EventWizardPath::of()` answers Calendar for a non-edition draft with no round and
+  that flag. So a classic draft of a workshop resumes on Review, and a several-rounds Basics saved with only
+  non-competition kinds goes on as a calendar event: after a no-round Basics the next step is derived from the saved
+  draft (`nextAfterBasics()`), never a Structure page that would send it to the edit page. Adding a round later (edit
+  page) makes it a one-round / several-rounds draft again.
 
 ## Puzzle search (G2, 2026-11-17)
 Every wizard puzzle picker (`EventWizardPuzzleSlotFormType`, the one-round Puzzle step, the Puzzles grid, Backfill's
@@ -58,8 +105,9 @@ Solo rounds count in it"). **Advancement steps are never joined** (group, semifi
 the table says so and links "Set up qualification". The normal "Add round" page is unchanged (the organiser's deep tool;
 standings are managed on their page).
 
-Path rule: an edition → series; a draft with no round that is not an edition → several rounds (the one-round path always
-creates its round with the draft); one round → one round.
+Path rule: an edition → series; a draft with no round whose event types are set and are not "Competition" → calendar; any
+other draft with no round that is not an edition → several rounds (the one-round path always creates its round with the
+draft); one round → one round.
 
 **Extras** (`EventWizardExtras`): registration on MySpeedPuzzling (limit, window, fee), registration/results elsewhere
 (links), judges, and the toolkit rows - QR name tags (mode), competitor pages (+ live results, time proposals),
@@ -194,5 +242,7 @@ S1 one round, one puzzle: 5 (was 8-10) · S2 12 monthly dates with a round each:
 `tests/Controller/EventWizard/*` (paths, Extras, checklist, series), `tests/Services/EventWizard/*`, handler tests
 (`StartEventWizardDraftTwiceTest`, `SetUpEventWizardStructureHandlerTest`, `AddEventWizardEditionsHandlerTest`,
 `PublishEventWizardSeriesHandlerTest`), `DuplicateCompetitionControllerTest`, `EditCompetitionMoveRounds*Test`,
-`LockUntilCommittedMiddlewareTest`, `PuzzleSearchAutocompleteControllerTest`. Backfill: `EventWizardBackfillTest`, `LinkMyResultsEntryTest`, `LinkSolvingTimesToEventHandlerTest`,
+`LockUntilCommittedMiddlewareTest`, `PuzzleSearchAutocompleteControllerTest`. Classic create retired:
+`AddCompetitionControllerTest` (the old addresses' redirects, POSTs create nothing), `EventWizardCalendarTest`,
+`EventWizardNextDatesRuleTest` (the rule/preview tests of the retired "Add several dates", now on "Add the next dates"). Backfill: `EventWizardBackfillTest`, `LinkMyResultsEntryTest`, `LinkSolvingTimesToEventHandlerTest`,
 `WaitingEventLinkCanaryTest`.

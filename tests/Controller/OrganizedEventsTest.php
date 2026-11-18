@@ -109,10 +109,8 @@ final class OrganizedEventsTest extends WebTestCase
         $riverbend = $this->ownActions($this->item($crawler, OrganizationFixture::ORGANIZATION_RIVERBEND));
         self::assertSame(['Edit organization', 'Add event', 'Unpublish…'], $this->labels($riverbend));
         $addEvent = (string) $riverbend->filter('a.ev-action')->eq(1)->attr('href');
-        self::assertStringStartsWith('/en/add-event?', $addEvent);
-        parse_str((string) parse_url($addEvent, PHP_URL_QUERY), $query);
-        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $query['organization'] ?? null);
-        self::assertSame('/en/you-organize', $query['return'] ?? null);
+        // Straight to the event creation wizard with the organization chosen
+        self::assertSame('/en/new-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND, $addEvent);
         self::assertSame('/en/unpublish-organization/' . OrganizationFixture::ORGANIZATION_RIVERBEND, $riverbend->filter('details[data-unpublish] form')->attr('action'));
 
         // Cedar: its creator's empty draft - Publish first, Delete last
@@ -168,7 +166,7 @@ final class OrganizedEventsTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/you-organize');
 
-        self::assertStringStartsWith('/en/add-event?', (string) $crawler->filter('a[data-add-event]')->attr('href'));
+        self::assertSame('/en/new-event', $crawler->filter('a[data-add-event]')->attr('href'));
         self::assertStringStartsWith('/en/add-organization?', (string) $crawler->filter('a[data-add-organization]')->attr('href'));
         self::assertSame('/en/organizations', $crawler->filter('a.ev-organized-directory')->attr('href'));
     }

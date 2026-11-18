@@ -271,11 +271,13 @@ final class EventWizardSeriesTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/new-event/series/' . $seriesId . '/review');
         $this->browser->submit($crawler->filter('[data-event-wizard-publish]')->form());
 
-        // The series page: "Add the next dates" and a quick "Add puzzle" per date (one round, no puzzle)
+        // The series page: "Add the next dates" (the only way to add dates - the classic "Add edition" and "Add several
+        // dates" forms were retired) and a quick "Add puzzle" per date (one round, no puzzle)
         $crawler = $this->browser->request('GET', '/en/manage-series/' . $seriesId);
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-next-dates-link]'));
-        self::assertCount(1, $crawler->filter('[data-add-editions-link]'));
+        self::assertCount(0, $crawler->filter('[data-add-editions-link]'));
+        self::assertCount(0, $crawler->filter('a[href*="/add-edition"]'));
         self::assertCount(12, $crawler->filter('[data-quick-add-puzzle]'));
 
         // Prefilled from the last dates: the third Saturday, after the last one, its round

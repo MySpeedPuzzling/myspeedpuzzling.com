@@ -17,7 +17,7 @@
         <div class="ev-org-empty" data-org-nothing-planned>
             <p class="ev-org-empty-text">{{ 'organization_page.nothing_planned'|trans }}</p>
             {% if can_manage %}
-                <a class="ev-action-button" href="{{ path('add_competition', {organization: organization.id, return: app.request.requestUri, return_title: organization.name}) }}">{{ 'organization_page.add_event'|trans }}</a>
+                <a class="ev-action-button" href="{{ path('event_wizard', {organization: organization.id}) }}">{{ 'organization_page.add_event'|trans }}</a>
             {% endif %}
         </div>
     {% endif %}

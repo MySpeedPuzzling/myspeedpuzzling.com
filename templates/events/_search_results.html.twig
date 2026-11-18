@@ -38,5 +38,5 @@
 <div class="ev-empty ev-search-nothing" data-events-page-target="searchNothing" {{ search_nothing ?? false ? '' : 'hidden' }}>
     <p class="ev-empty-title" data-ev-nothing-title>{{ 'events_page.search.nothing'|trans({'%query%': query}) }}</p>
     <p class="ev-empty-text">{{ 'events_page.search.nothing_hint'|trans }}</p>
-    <a class="btn btn-sm btn-outline-primary ev-add" href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}</a>
+    <a class="btn btn-sm btn-outline-primary ev-add" href="{{ path('event_wizard') }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}</a>
 </div>

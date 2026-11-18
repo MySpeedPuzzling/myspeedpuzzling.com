@@ -5,285 +5,122 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
-use SpeedPuzzling\Web\Tests\UploadsCompetitionLogos;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
+/**
+ * The classic create forms were retired on 2026-11-18 (docs/features/competitions-management/creation-wizard.md
+ * "Classic create retired"): their old addresses - "Add event" (`add_competition`, `?classic=1` too), "Add edition"
+ * (`add_edition`) and "Add several dates" (`add_editions`) - lead to the event creation wizard with the context it takes
+ * (the organization, a series), a GET with 302, a POST of a form left open in a tab with 303 - creating nothing.
+ */
 final class AddCompetitionControllerTest extends WebTestCase
 {
-    use UploadsCompetitionLogos;
+    private const string SERIES = OrganizationFixture::SERIES_LANTERN_NIGHTS;
 
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
         $browser = self::createClient();
+
+        foreach (['/en/add-event', '/en/add-edition/' . self::SERIES, '/en/add-editions/' . self::SERIES] as $url) {
+            $browser->request('GET', $url);
+            self::assertResponseRedirects(null, null, $url);
+            self::assertStringContainsString('/login', (string) $browser->getResponse()->headers->get('Location'), $url);
+        }
+    }
+
+    public function testAddEventLeadsToTheWizardsEntry(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
         $browser->request('GET', '/en/add-event');
+        self::assertResponseRedirects('/en/new-event', 302);
 
-        $this->assertResponseRedirects();
+        // An old bookmark of the classic form
+        $browser->request('GET', '/en/add-event?classic=1');
+        self::assertResponseRedirects('/en/new-event', 302);
+
+        // The organization goes along (the wizard pre-selects it for its team only); the classic return link does not
+        $browser->request('GET', '/en/add-event?classic=1&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND . '&return=/en/events');
+        self::assertResponseRedirects('/en/new-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND, 302);
+
+        // Czech (no locale prefix on the old address) stays Czech
+        $browser->request('GET', '/pridat-udalost');
+        self::assertResponseRedirects('/cs/new-event', 302);
     }
 
-    public function testLoggedInUserCanAccessPage(): void
+    public function testRecurringLeadsToTheSeriesPath(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('GET', '/en/add-event?classic=1&recurring=1&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
+        self::assertResponseRedirects('/en/new-event/series/basics?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND, 302);
+    }
+
+    public function testAPostOfTheClassicFormCreatesNothing(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $events = $this->rowCount('SELECT COUNT(*) FROM competition');
+        $series = $this->rowCount('SELECT COUNT(*) FROM competition_series');
 
-        // "Add event" is the event creation wizard (no flag) - the classic form stays at ?classic=1
-        $browser->request('GET', '/en/add-event');
-        $this->assertResponseRedirects('/en/new-event', 302);
+        $browser->request('POST', '/en/add-event?classic=1', ['competition_form' => [
+            'name' => 'Left Open In A Tab',
+            'isOnline' => '0',
+            'location' => 'Brno',
+            'dateFrom' => '15.06.2027',
+            'dateTo' => '15.06.2027',
+        ]]);
+        self::assertResponseRedirects('/en/new-event', 303);
 
-        $browser->request('GET', '/en/add-event?classic=1');
-        $this->assertResponseIsSuccessful();
+        $browser->request('POST', '/en/add-event?recurring=1', ['competition_form' => ['name' => 'Left Open Series', 'isRecurring' => '1']]);
+        self::assertResponseRedirects('/en/new-event/series/basics', 303);
+
+        self::assertSame($events, $this->rowCount('SELECT COUNT(*) FROM competition'));
+        self::assertSame($series, $this->rowCount('SELECT COUNT(*) FROM competition_series'));
     }
 
-    public function testSubmitWithOnlyRequiredFields(): void
+    public function testAddEditionAndAddSeveralDatesLeadToTheNextDates(): void
     {
         $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $nextDates = '/en/new-event/series/' . self::SERIES . '/next-dates';
+
+        $browser->request('GET', '/en/add-edition/' . self::SERIES . '?return=/en/events');
+        self::assertResponseRedirects($nextDates, 302);
+
+        // A bookmarked rule keeps its preview - without the classic page's own return link
+        $browser->request('GET', '/en/add-editions/' . self::SERIES . '?how=pick&dates=05.03.2028&namePattern=X&return=/en/events&return_title=Events');
+        self::assertResponseRedirects($nextDates . '?how=pick&dates=05.03.2028&namePattern=X', 302);
+
+        // Forms left open in a tab create nothing - 303 to the same place
+        $editions = $this->rowCount('SELECT COUNT(*) FROM competition WHERE series_id = \'' . self::SERIES . '\'');
+        $browser->request('POST', '/en/add-edition/' . self::SERIES, ['edition_form' => ['name' => 'Left Open', 'dateFrom' => '05.03.2028']]);
+        self::assertResponseRedirects($nextDates, 303);
+        $browser->request('POST', '/en/add-editions/' . self::SERIES . '?how=pick&dates=05.03.2028&namePattern=X', ['_token' => 'any', 'selected' => ['2028-03-05']]);
+        self::assertResponseRedirects($nextDates . '?how=pick&dates=05.03.2028&namePattern=X', 303);
+        self::assertSame($editions, $this->rowCount('SELECT COUNT(*) FROM competition WHERE series_id = \'' . self::SERIES . '\''));
+
+        // The next dates page itself checks who may add dates
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/add-event?classic=1');
-        $this->assertResponseIsSuccessful();
-
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Test Puzzle Event',
-            'competition_form[isOnline]' => '0',
-            'competition_form[location]' => 'Prague',
-            'competition_form[dateFrom]' => '15.06.2026',
-            'competition_form[dateTo]' => '17.06.2026',
-        ]);
-
-        $this->assertResponseRedirects();
+        $browser->request('GET', '/en/add-edition/' . self::SERIES);
+        self::assertResponseRedirects($nextDates, 302);
         $browser->followRedirect();
-        $this->assertResponseIsSuccessful();
+        self::assertResponseStatusCodeSame(403);
     }
 
-    public function testSubmitWithAllFields(): void
+    private function rowCount(string $query): int
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
 
-        $browser->request('GET', '/en/add-event?classic=1');
-        $this->assertResponseIsSuccessful();
+        $count = $connection->fetchOne($query);
+        assert(is_int($count) || is_string($count));
 
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Full Puzzle Championship',
-            'competition_form[shortcut]' => 'FPC',
-            'competition_form[description]' => 'A test competition with all fields filled.',
-            'competition_form[location]' => 'Prague',
-            'competition_form[dateFrom]' => '15.06.2026',
-            'competition_form[dateTo]' => '17.06.2026',
-            'competition_form[link]' => 'https://example.com',
-            'competition_form[registrationLink]' => 'https://example.com/register',
-            'competition_form[resultsLink]' => 'https://example.com/results',
-            'competition_form[isOnline]' => '1',
-            'competition_form[isRecurring]' => true,
-        ]);
-
-        $this->assertResponseRedirects();
-        $browser->followRedirect();
-        $this->assertResponseIsSuccessful();
-    }
-
-    public function testAnOnlineEventKeepsTheDatesTyped(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/add-event?classic=1');
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Online Weekend Jam',
-            'competition_form[isOnline]' => '1',
-            'competition_form[location]' => 'Should not be stored',
-            'competition_form[dateFrom]' => '14.11.2026',
-            'competition_form[dateTo]' => '15.11.2026',
-        ]);
-
-        $this->assertResponseRedirects();
-        $row = self::competitionRow('Online Weekend Jam');
-        self::assertTrue($row['is_online']);
-        self::assertNull($row['location']);
-        self::assertIsString($row['date_from']);
-        self::assertIsString($row['date_to']);
-        self::assertStringStartsWith('2026-11-14', $row['date_from']);
-        self::assertStringStartsWith('2026-11-15', $row['date_to']);
-    }
-
-    public function testAnOnlineEventMayBeUndated(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/add-event?classic=1');
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Ongoing Online Jam',
-            'competition_form[isOnline]' => '1',
-        ]);
-
-        $this->assertResponseRedirects();
-        $row = self::competitionRow('Ongoing Online Jam');
-        self::assertNull($row['date_from']);
-        self::assertNull($row['date_to']);
-    }
-
-    public function testTheFormSaysWhereTheLinksOfASeriesGo(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $crawler = $browser->request('GET', '/en/add-event?classic=1');
-
-        // Shown in place of the registration and results fields once "recurring" is ticked
-        self::assertCount(1, $crawler->filter('[data-competition-form-target="editionLinks"] #competition_form_registrationLink'));
-        self::assertCount(1, $crawler->filter('[data-competition-form-target="editionLinks"] #competition_form_resultsLink'));
-        $this->assertSelectorTextContains('[data-competition-form-target="editionLinksNote"]', 'Registration and results links are set for each edition');
-        // The add form never offers the URL - the first one comes from the name
-        self::assertCount(0, $crawler->filter('#competition_form_slug'));
-    }
-
-    public function testWhatWasTypedInFieldsHiddenByRecurringCannotBlockTheSeries(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/add-event?classic=1');
-
-        // Typed before "recurring" was ticked and hid them - an error there would be invisible
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Hidden Fields Series',
-            'competition_form[location]' => 'Prague',
-            'competition_form[isOnline]' => '0',
-            'competition_form[isRecurring]' => true,
-            'competition_form[registrationLink]' => 'not a url',
-            'competition_form[dateFrom]' => '20.06.2026',
-            'competition_form[dateTo]' => '01.06.2026',
-        ]);
-
-        $this->assertResponseRedirects();
-        self::assertNotFalse(self::getContainer()->get(Connection::class)->fetchOne(
-            'SELECT id FROM competition_series WHERE name = :name',
-            ['name' => 'Hidden Fields Series'],
-        ));
-    }
-
-    public function testAnInPersonSeriesCanBeAddedWithoutALocation(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $crawler = $browser->request('GET', '/en/add-event?classic=1');
-        // The help under Location says why a series may leave it empty (shown by competition_form_controller.js)
-        $this->assertSelectorTextContains('[data-competition-form-target="seriesLocationHelp"]', 'each edition has its own location');
-        self::assertCount(1, $crawler->filter('label[data-competition-form-target="locationLabel"][for="competition_form_location"]'));
-
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Wandering Puzzle Nights',
-            'competition_form[isOnline]' => '0',
-            'competition_form[isRecurring]' => true,
-        ]);
-
-        $this->assertResponseRedirects();
-        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
-            'SELECT location, is_online FROM competition_series WHERE name = :name',
-            ['name' => 'Wandering Puzzle Nights'],
-        );
-        self::assertIsArray($row);
-        self::assertNull($row['location']);
-        self::assertFalse($row['is_online']);
-    }
-
-    public function testAnInPersonOneTimeEventStillNeedsALocation(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/add-event?classic=1');
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Placeless Puzzle Open',
-            'competition_form[isOnline]' => '0',
-            'competition_form[dateFrom]' => '14.11.2026',
-            'competition_form[dateTo]' => '14.11.2026',
-        ]);
-
-        $this->assertResponseStatusCodeSame(422);
-        self::assertFalse(self::getContainer()->get(Connection::class)->fetchOne(
-            'SELECT id FROM competition WHERE name = :name',
-            ['name' => 'Placeless Puzzle Open'],
-        ));
-    }
-
-    public function testALogoChosenForARefusedSubmitIsKeptForTheNextOne(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        // The kept logo lives in the kernel's storage - one kernel for both submits
-        $browser->disableReboot();
-
-        $crawler = $browser->request('GET', '/en/add-event?classic=1');
-        $form = $crawler->selectButton('Submit for Approval')->form();
-        $form['competition_form[isOnline]'] = '0';
-        $form['competition_form[location]'] = 'Prague';
-        $form['competition_form[dateFrom]'] = '15.06.2026';
-        $form['competition_form[dateTo]'] = '17.06.2026';
-        self::attachLogo($form);
-        // No name - refused
-        $crawler = $browser->submit($form);
-
-        $this->assertResponseStatusCodeSame(422);
-        self::assertLogoKept($crawler);
-
-        $form = $crawler->selectButton('Submit for Approval')->form();
-        $form['competition_form[name]'] = 'Event With A Kept Logo';
-        $browser->submit($form);
-
-        $this->assertResponseRedirects();
-        $logo = self::getContainer()->get(Connection::class)->fetchOne(
-            'SELECT logo FROM competition WHERE name = :name',
-            ['name' => 'Event With A Kept Logo'],
-        );
-        self::assertIsString($logo);
-        self::assertStringStartsWith('competitions/', $logo);
-    }
-
-    public function testALogoChosenForARefusedSeriesSubmitIsKeptForTheNextOne(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $browser->disableReboot();
-
-        $crawler = $browser->request('GET', '/en/add-event?classic=1');
-        $form = $crawler->selectButton('Submit for Approval')->form();
-        $form['competition_form[isOnline]'] = '1';
-        $form->setValues(['competition_form[isRecurring]' => true]);
-        self::attachLogo($form);
-        // No name - refused
-        $crawler = $browser->submit($form);
-
-        $this->assertResponseStatusCodeSame(422);
-        self::assertLogoKept($crawler);
-
-        $form = $crawler->selectButton('Submit for Approval')->form();
-        $form['competition_form[name]'] = 'Series With A Kept Logo';
-        $browser->submit($form);
-
-        $this->assertResponseRedirects();
-        $logo = self::getContainer()->get(Connection::class)->fetchOne(
-            'SELECT logo FROM competition_series WHERE name = :name',
-            ['name' => 'Series With A Kept Logo'],
-        );
-        self::assertIsString($logo);
-        self::assertStringStartsWith('competitions/', $logo);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private static function competitionRow(string $name): array
-    {
-        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
-            'SELECT location, is_online, date_from, date_to FROM competition WHERE name = :name',
-            ['name' => $name],
-        );
-        self::assertIsArray($row);
-
-        return $row;
+        return (int) $count;
     }
 }

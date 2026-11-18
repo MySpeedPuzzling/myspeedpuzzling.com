@@ -16,7 +16,6 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -27,12 +26,11 @@ use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The event / series form: add (`add_competition` - an event, or a series when "Recurring" is ticked), edit event or
- * edition, edit series. docs/features/organizations/README.md "Forms" adds the "Organization" select
- * (`organization_choices`: the organizations the player is on the team of, admins all - null leaves the field out, as
- * on an edition, which belongs to its series' organization), "Who can enter" (every form), "When it happens"
- * (`schedule_field`: series only - on the add form shown while "Recurring" is ticked) and "Save as draft"
- * (`draft_button`: add forms only).
+ * The event / series form: edit event or edition, edit series, and the parent of the creation wizard's Basics forms
+ * (EventWizardBasicsFormType, EventWizardSeriesBasicsFormType - the classic add form was retired 2026-11-18).
+ * docs/features/organizations/README.md "Forms" adds the "Organization" select (`organization_choices`: the
+ * organizations the player is on the team of, admins all - null leaves the field out, as on an edition, which belongs
+ * to its series' organization), "Who can enter" (every form) and "When it happens" (`schedule_field`: series only).
  *
  * @extends AbstractType<CompetitionFormData>
  */
@@ -163,15 +161,8 @@ final class CompetitionFormType extends AbstractType
 
         if ($organizationChoices !== null) {
             $labels = [];
-            // Under an approved organization a series or event is approved at once (OrganizationApprovalPolicy) - the
-            // add form then says no admin review is needed (approval_note_controller.js)
-            $approvedAtOnce = [];
 
             foreach ($organizationChoices as $choice) {
-                if ($choice->isApproved) {
-                    $approvedAtOnce[$choice->id] = true;
-                }
-
                 $labels[$choice->id] = match (true) {
                     $choice->isDraft => $this->translator->trans('organizer_tools.form.organization_draft', ['%name%' => $choice->name]),
                     $choice->isApproved === false => $this->translator->trans('organizer_tools.form.organization_pending', ['%name%' => $choice->name]),
@@ -186,7 +177,6 @@ final class CompetitionFormType extends AbstractType
                 'choices' => array_keys($labels),
                 'choice_label' => static fn (string $id): string => $labels[$id] ?? $id,
                 'choice_translation_domain' => false,
-                'choice_attr' => static fn (string $id): array => isset($approvedAtOnce[$id]) ? ['data-approved-at-once' => '1'] : [],
                 'required' => false,
                 'placeholder' => 'organizer_tools.form.organization_none',
             ]);
@@ -311,14 +301,6 @@ final class CompetitionFormType extends AbstractType
             ],
         ]);
 
-        // A second submit next to the form's own button: the item is saved as a draft (docs/features/organizations/
-        // README.md "Drafts") - the primary button keeps today's behaviour
-        if ($options['draft_button'] === true) {
-            $builder->add('saveDraft', SubmitType::class, [
-                'label' => 'organizer_tools.form.save_draft',
-            ]);
-        }
-
         $builder->get('maintainers')->addModelTransformer(new CallbackTransformer(
             function (null|array $value): string {
                 if ($value === null || $value === []) {
@@ -347,7 +329,6 @@ final class CompetitionFormType extends AbstractType
             'series' => false,
             'organization_choices' => null,
             'schedule_field' => false,
-            'draft_button' => false,
             'move_rounds_field' => false,
         ]);
 
@@ -355,7 +336,6 @@ final class CompetitionFormType extends AbstractType
         $resolver->setAllowedTypes('series', 'bool');
         $resolver->setAllowedTypes('organization_choices', ['null', 'array']);
         $resolver->setAllowedTypes('schedule_field', 'bool');
-        $resolver->setAllowedTypes('draft_button', 'bool');
         $resolver->setAllowedTypes('move_rounds_field', 'bool');
     }
 

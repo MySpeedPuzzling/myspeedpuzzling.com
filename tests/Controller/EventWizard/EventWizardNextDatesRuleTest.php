@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Tests\Controller;
+namespace SpeedPuzzling\Web\Tests\Controller\EventWizard;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
@@ -17,13 +17,17 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * "Add several dates" (docs/features/organizations/README.md, P15/P16): the rule or the picked days are previewed with a
- * GET (no JavaScript needed), every proposed day checked unless the series already has an edition that day, and one
- * POST creates the checked ones - at most 24, as drafts on request.
+ * The rule of "Add the next dates" (event_wizard_series_next_dates - the classic "Add several dates" page it shares the
+ * rule, preview and names with was retired 2026-11-18, these are its tests moved here; docs/features/organizations/
+ * README.md P15/P16): the rule or the picked days are previewed with a GET (no JavaScript needed), every proposed day
+ * checked unless the series already has an edition that day, and one POST creates the checked ones - at most 24. Every
+ * query says "No rounds - just dates" (`withRounds=0`): the rounds of the dates are EventWizardSeriesTest's.
  */
-final class AddEditionsControllerTest extends WebTestCase
+final class EventWizardNextDatesRuleTest extends WebTestCase
 {
-    private const string URL = '/en/add-editions/' . OrganizationFixture::SERIES_LANTERN_NIGHTS;
+    private const string URL = '/en/new-event/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS . '/next-dates';
+
+    private const array NO_ROUNDS = ['withRounds' => '0'];
 
     public function testOnlyTheSeriesTeam(): void
     {
@@ -45,7 +49,6 @@ final class AddEditionsControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', self::URL);
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('meta[name="robots"][content="noindex, nofollow"]');
         self::assertSame(OrganizationFixture::SERIES_LANTERN_NIGHTS_NAME . ' {date}', $crawler->filter('input[name="namePattern"]')->attr('value'));
         self::assertSame('get', strtolower((string) $crawler->filter('form.ev-add-editions-rule')->attr('method')));
         self::assertCount(0, $crawler->filter('.ev-add-editions-preview'));
@@ -64,11 +67,12 @@ final class AddEditionsControllerTest extends WebTestCase
             'starting' => '01.10.2027',
             'count' => '6',
             'namePattern' => 'Lantern Night {date}',
+            'withRounds' => '0',
         ], 'GET');
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('rule=last_weekday', (string) $browser->getRequest()->getUri());
-        self::assertSame('6 dates', $crawler->filter('#add-editions-preview-title')->text());
+        self::assertSame('6 dates', $crawler->filter('#event-wizard-dates-title')->text());
         self::assertSame(
             ['2027-10-26', '2027-11-30', '2027-12-28', '2028-01-25', '2028-02-29', '2028-03-28'],
             $this->checkedDays($crawler),
@@ -90,7 +94,7 @@ final class AddEditionsControllerTest extends WebTestCase
             'starting' => '01.01.2028',
             'count' => 3,
             'namePattern' => 'First Saturday Night',
-            'eligibility' => 'Residents of Riverbend Valley',
+            ...self::NO_ROUNDS,
         ]));
         // Without {date} the date goes at the end - every edition gets a name of its own
         self::assertSame(['2028-01-01', '2028-02-05', '2028-03-04'], $this->checkedDays($crawler));
@@ -99,41 +103,16 @@ final class AddEditionsControllerTest extends WebTestCase
         // February unchecked
         $this->post($browser, $crawler, ['2028-01-01', '2028-03-04']);
 
-        self::assertResponseRedirects('/en/manage-series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS);
-        $rows = $this->editionsNamed('First Saturday Night%');
+        self::assertResponseRedirects('/en/manage-series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS, 303);
+        $rows = array_map(
+            static fn (array $row): array => [$row['name'], $row['date_from'], $row['date_to'], $row['is_draft'], $row['slug']],
+            $this->editionsNamed('First Saturday Night%'),
+        );
+        // The series is published - so are its new dates
         self::assertSame([
-            ['name' => 'First Saturday Night 1 January 2028', 'date_from' => '2028-01-01 00:00:00', 'date_to' => '2028-01-01 00:00:00', 'is_draft' => false, 'eligibility' => 'Residents of Riverbend Valley', 'slug' => 'first-saturday-night-1-january-2028', 'location' => 'Riverbend'],
-            ['name' => 'First Saturday Night 4 March 2028', 'date_from' => '2028-03-04 00:00:00', 'date_to' => '2028-03-04 00:00:00', 'is_draft' => false, 'eligibility' => 'Residents of Riverbend Valley', 'slug' => 'first-saturday-night-4-march-2028', 'location' => 'Riverbend'],
+            ['First Saturday Night 1 January 2028', '2028-01-01 00:00:00', '2028-01-01 00:00:00', false, 'first-saturday-night-1-january-2028'],
+            ['First Saturday Night 4 March 2028', '2028-03-04 00:00:00', '2028-03-04 00:00:00', false, 'first-saturday-night-4-march-2028'],
         ], $rows);
-
-        $browser->followRedirect();
-        self::assertSelectorTextContains('.alert-success', '2 editions added.');
-    }
-
-    public function testPickedDatesSavedAsDrafts(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query([
-            'how' => 'pick',
-            'dates' => '12.03.2028, 05.03.2028, 2028-03-12',
-            'namePattern' => 'Spring Lantern {date}',
-        ]));
-        // Sorted, each day once
-        self::assertSame(['2028-03-05', '2028-03-12'], $this->checkedDays($crawler));
-
-        $this->post($browser, $crawler, ['2028-03-05', '2028-03-12'], saveDraft: true);
-
-        self::assertResponseRedirects();
-        self::assertQueuedEmailCount(0);
-        $rows = $this->editionsNamed('Spring Lantern%');
-        self::assertCount(2, $rows);
-        self::assertTrue($rows[0]['is_draft']);
-        self::assertTrue($rows[1]['is_draft']);
-
-        $browser->followRedirect();
-        self::assertSelectorTextContains('.alert-success', '2 editions added as drafts.');
     }
 
     public function testADayWithAnEditionIsMarkedAndLeftUnchecked(): void
@@ -150,6 +129,7 @@ final class AddEditionsControllerTest extends WebTestCase
             'how' => 'pick',
             'dates' => $takenDay->format('d.m.Y') . ', ' . $freeDay->format('d.m.Y'),
             'namePattern' => 'Lantern {date}',
+            ...self::NO_ROUNDS,
         ]));
 
         self::assertSame([$freeDay->format('Y-m-d')], $this->checkedDays($crawler));
@@ -163,7 +143,7 @@ final class AddEditionsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}']));
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}', ...self::NO_ROUNDS]));
         $this->post($browser, $crawler, []);
 
         self::assertResponseStatusCodeSame(422);
@@ -177,7 +157,7 @@ final class AddEditionsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}']));
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}', ...self::NO_ROUNDS]));
         // A day the rule never proposed is ignored
         $this->post($browser, $crawler, ['2028-03-05', '2028-04-01']);
 
@@ -190,23 +170,18 @@ final class AddEditionsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028, 12.03.2028', 'namePattern' => 'Twice {date}']));
-        self::assertSame('Create 2 editions', trim($crawler->filter('.ev-add-editions-preview button[name="create"]')->text()));
-
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028, 12.03.2028', 'namePattern' => 'Twice {date}', ...self::NO_ROUNDS]));
         $this->post($browser, $crawler, ['2028-03-05', '2028-03-12']);
         self::assertResponseRedirects();
-        $browser->followRedirect();
-        self::assertSelectorTextContains('.alert-success', '2 editions added.');
+        self::assertCount(2, $this->editionsNamed('Twice %'));
 
-        // The same form again (a double click, the back button): the same ids - nothing new, no flash
+        // The same form again (a double click, the back button): the same ids - nothing new
         $this->post($browser, $crawler, ['2028-03-05', '2028-03-12']);
         self::assertResponseRedirects();
-        $browser->followRedirect();
-        self::assertSelectorNotExists('.alert-success');
         self::assertCount(2, $this->editionsNamed('Twice %'));
 
         // A fresh preview of the same days (new ids): the days hold editions now - still nothing twice
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Again {date}']));
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Again {date}', ...self::NO_ROUNDS]));
         $browser->request('POST', (string) $crawler->filter('.ev-add-editions-preview form')->attr('action'), [
             '_token' => (string) $crawler->filter('.ev-add-editions-preview input[name="_token"]')->attr('value'),
             'selected' => ['2028-03-05'],
@@ -221,7 +196,7 @@ final class AddEditionsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}']));
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}', ...self::NO_ROUNDS]));
         $id = (string) $crawler->filter('input[name="ids[2028-03-05]"]')->attr('value');
         self::assertTrue(Uuid::isValid($id));
 
@@ -236,12 +211,12 @@ final class AddEditionsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '5. 3. 2028, 12. 3. 2028.', 'namePattern' => 'Spaced {date}']));
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '5. 3. 2028, 12. 3. 2028.', 'namePattern' => 'Spaced {date}', ...self::NO_ROUNDS]));
         self::assertResponseIsSuccessful();
         self::assertSame(['2028-03-05', '2028-03-12'], $this->checkedDays($crawler));
 
         // A hand-made URL without `how` repeats
-        $browser->request('GET', self::URL . '?' . http_build_query(['rule' => 'weekly', 'weekday' => '1', 'starting' => '01.01.2028', 'count' => '2', 'namePattern' => 'X {date}']));
+        $browser->request('GET', self::URL . '?' . http_build_query(['rule' => 'weekly', 'weekday' => '1', 'starting' => '01.01.2028', 'count' => '2', 'namePattern' => 'X {date}', ...self::NO_ROUNDS]));
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(2, '.ev-add-editions-preview input[name="selected[]"]');
     }
@@ -260,7 +235,7 @@ final class AddEditionsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $browser->request('POST', self::URL . '?how=pick&dates=05.03.2028&namePattern=X', ['_token' => 'nope', 'selected' => ['2028-03-05']]);
+        $browser->request('POST', self::URL . '?how=pick&dates=05.03.2028&namePattern=X&withRounds=0', ['_token' => 'nope', 'selected' => ['2028-03-05']]);
         self::assertResponseStatusCodeSame(403);
     }
 
@@ -269,11 +244,11 @@ final class AddEditionsControllerTest extends WebTestCase
      */
     public static function provideInvalidRules(): iterable
     {
-        yield 'more than 24' => [['how' => 'repeat', 'rule' => 'weekly', 'weekday' => '1', 'starting' => '01.01.2028', 'count' => '25', 'namePattern' => 'X {date}'], 'Choose 1 to 24 dates.'];
-        yield 'no start' => [['how' => 'repeat', 'rule' => 'weekly', 'weekday' => '1', 'starting' => '', 'count' => '3', 'namePattern' => 'X {date}'], 'Choose the day the dates start from.'];
-        yield 'no picked day' => [['how' => 'pick', 'dates' => '', 'namePattern' => 'X {date}'], 'Pick at least one date.'];
-        yield 'an unreadable day' => [['how' => 'pick', 'dates' => '05.03.2028, next friday', 'namePattern' => 'X {date}'], "Some of the dates can't be read"];
-        yield 'no name' => [['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => ''], 'This value should not be blank.'];
+        yield 'more than 24' => [['how' => 'repeat', 'rule' => 'weekly', 'weekday' => '1', 'starting' => '01.01.2028', 'count' => '25', 'namePattern' => 'X {date}', 'withRounds' => '0'], 'Choose 1 to 24 dates.'];
+        yield 'no start' => [['how' => 'repeat', 'rule' => 'weekly', 'weekday' => '1', 'starting' => '', 'count' => '3', 'namePattern' => 'X {date}', 'withRounds' => '0'], 'Choose the day the dates start from.'];
+        yield 'no picked day' => [['how' => 'pick', 'dates' => '', 'namePattern' => 'X {date}', 'withRounds' => '0'], 'Pick at least one date.'];
+        yield 'an unreadable day' => [['how' => 'pick', 'dates' => '05.03.2028, next friday', 'namePattern' => 'X {date}', 'withRounds' => '0'], "Some of the dates can't be read"];
+        yield 'no name' => [['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => '', 'withRounds' => '0'], 'This value should not be blank.'];
     }
 
     /**
@@ -302,7 +277,7 @@ final class AddEditionsControllerTest extends WebTestCase
             $days[] = sprintf('%02d.01.2028', $day);
         }
 
-        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => implode(', ', $days), 'namePattern' => 'X {date}']));
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => implode(', ', $days), 'namePattern' => 'X {date}', ...self::NO_ROUNDS]));
         self::assertCount(0, $crawler->filter('.ev-add-editions-preview'));
         self::assertStringContainsString('At most 24 dates at once.', $crawler->filter('form.ev-add-editions-rule')->text());
     }
@@ -310,7 +285,7 @@ final class AddEditionsControllerTest extends WebTestCase
     /**
      * @param list<string> $days
      */
-    private function post(KernelBrowser $browser, Crawler $crawler, array $days, bool $saveDraft = false): void
+    private function post(KernelBrowser $browser, Crawler $crawler, array $days): void
     {
         $form = $crawler->filter('.ev-add-editions-preview form');
         self::assertCount(1, $form);
@@ -323,7 +298,6 @@ final class AddEditionsControllerTest extends WebTestCase
         }
 
         $values = ['_token' => (string) $form->filter('input[name="_token"]')->attr('value'), 'selected' => $days, 'ids' => $ids];
-        $values += $saveDraft ? ['saveDraft' => '1'] : ['create' => '1'];
 
         $browser->request('POST', (string) $form->attr('action'), $values);
     }

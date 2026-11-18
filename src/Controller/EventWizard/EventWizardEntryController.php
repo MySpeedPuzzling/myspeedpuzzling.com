@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Controller\EventWizard;
 use SpeedPuzzling\Web\Query\GetEventsToCopy;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
-use SpeedPuzzling\Web\Services\EventWizard\EventWizardSteps;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardEntryChoice;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardPath;
@@ -19,8 +18,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * The event creation wizard's entry, "What are you organizing?" (W-creation-wizard-research.md §3.1) - where "Add event"
- * leads while the wizard is available (AddCompetitionController). The answer comes back to this page as `?kind=` (a GET
+ * The event creation wizard's entry, "What are you organizing?" (W-creation-wizard-research.md §3.1) - where every "Add
+ * event" leads (the classic create form was retired 2026-11-18: its old URL redirects here, AddCompetitionController).
+ * The answer comes back to this page as `?kind=` (a GET
  * form - nothing is saved here) and is sent on by target(), the one place that knows where each answer goes. The
  * organization picker is here, only for a player on an organization's team (preselected from `?organization=`, kept
  * on every link); "Copy one of your events" lists the player's 5 most recent events with a link to their Duplicate
@@ -33,7 +33,6 @@ final class EventWizardEntryController extends AbstractController
         private readonly EventWizardAccess $access,
         private readonly OrganizationSelectChoices $organizationSelectChoices,
         private readonly GetEventsToCopy $getEventsToCopy,
-        private readonly EventWizardSteps $eventWizardSteps,
     ) {
     }
 
@@ -62,14 +61,13 @@ final class EventWizardEntryController extends AbstractController
             'organization_choices' => $organizationChoices,
             'organization_id' => $organizationId,
             'events_to_copy' => $this->getEventsToCopy->forPlayer($player->playerId),
-            'classic_url' => $this->generateUrl('add_competition', array_filter(['classic' => '1', 'organization' => $organizationId])),
         ]);
     }
 
     /**
-     * Where an answer leads: a path with wizard steps opens its first one (the series path its own Basics, W3), any
-     * other answer the classic form. Several rounds (W5) carries the follow-up answer ("Do competitors qualify for later
-     * rounds?") to its Structure step as `structure`.
+     * Where an answer leads: every path opens its first step (the series path its own Basics, W3; the backfill path its
+     * event page; one round, several rounds and "Something else" (the calendar path) the event's Basics). Several rounds
+     * (W5) carries the follow-up answer ("Do competitors qualify for later rounds?") to its Structure step as `structure`.
      */
     private function target(EventWizardEntryChoice $choice, null|string $organizationId, null|EventWizardStructureTemplate $structure = null): string
     {
@@ -83,17 +81,9 @@ final class EventWizardEntryController extends AbstractController
             return $this->generateUrl('event_wizard_series_basics', array_filter(['organization' => $organizationId]));
         }
 
-        if ($path !== null && $this->eventWizardSteps->forNewEvent($path)->steps !== []) {
-            return $this->generateUrl('event_wizard_basics', array_filter([
-                'path' => $path === EventWizardPath::OneRound ? null : $path->value,
-                'structure' => $path === EventWizardPath::SeveralRounds ? ($structure ?? EventWizardStructureTemplate::Qualification)->value : null,
-                'organization' => $organizationId,
-            ]));
-        }
-
-        return $this->generateUrl('add_competition', array_filter([
-            'classic' => '1',
-            'recurring' => $choice === EventWizardEntryChoice::Series ? '1' : null,
+        return $this->generateUrl('event_wizard_basics', array_filter([
+            'path' => $path === EventWizardPath::OneRound ? null : $path->value,
+            'structure' => $path === EventWizardPath::SeveralRounds ? ($structure ?? EventWizardStructureTemplate::Qualification)->value : null,
             'organization' => $organizationId,
         ]));
     }

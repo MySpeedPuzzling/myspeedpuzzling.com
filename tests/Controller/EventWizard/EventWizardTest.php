@@ -32,7 +32,7 @@ final class EventWizardTest extends WebTestCase
         $this->browser = self::createClient();
     }
 
-    public function testEveryOrganiserIsLedFromAddEventToTheWizardAndKeepsTheClassicForm(): void
+    public function testEveryOrganiserIsLedFromAddEventToTheWizardWithoutAClassicForm(): void
     {
         // A normal organiser (not an admin): the wizard is THE way to add an event, no flag
         $this->browser = $this->newClient();
@@ -41,14 +41,14 @@ final class EventWizardTest extends WebTestCase
         $this->browser->request('GET', '/en/add-event');
         self::assertResponseRedirects('/en/new-event', 302);
 
-        $crawler = $this->browser->request('GET', '/en/new-event');
+        $this->browser->request('GET', '/en/new-event');
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('/en/add-event?classic=1', (string) $crawler->filter('[data-event-wizard-classic]')->attr('href'));
+        // No "Use the classic form" (retired 2026-11-18) - its old address leads here too
+        self::assertSelectorNotExists('[data-event-wizard-classic]');
+        self::assertStringNotContainsString('classic=1', (string) $this->browser->getResponse()->getContent());
 
-        // "Prefer one form?" - the classic form stays reachable
         $this->browser->request('GET', '/en/add-event?classic=1');
-        self::assertResponseIsSuccessful();
-        self::assertSelectorExists('form[name="competition_form"]');
+        self::assertResponseRedirects('/en/new-event', 302);
     }
 
     public function testAnAdminHasTheWizardToo(): void
@@ -74,16 +74,16 @@ final class EventWizardTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/new-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
         self::assertResponseIsSuccessful();
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $crawler->filter('select[name="organization"] option[selected]')->attr('value'));
-        self::assertStringContainsString('classic=1', (string) $crawler->filter('[data-event-wizard-classic]')->attr('href'));
-        self::assertStringContainsString('organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND, (string) $crawler->filter('[data-event-wizard-classic]')->attr('href'));
 
         // "Copy one of your events" - the organiser's events, each linking its Duplicate form (W4's GET)
         self::assertGreaterThan(0, $crawler->filter('[data-event-wizard-copy] a[href*="/en/duplicate-event/"]')->count());
         self::assertLessThanOrEqual(5, $crawler->filter('[data-event-wizard-copy] li')->count());
 
-        // A POST of the classic form is never redirected (refused here for missing fields: 422, not a redirect)
-        $this->browser->request('POST', '/en/add-event', ['competition_form' => ['name' => '']]);
-        self::assertResponseStatusCodeSame(422);
+        // A POST of the retired classic form (a tab left open) creates nothing: 303 to the wizard, the organization kept
+        $before = $this->competitionIds();
+        $this->browser->request('POST', '/en/add-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND, ['competition_form' => ['name' => 'Left Open']]);
+        self::assertResponseRedirects('/en/new-event?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND, 303);
+        self::assertSame($before, $this->competitionIds());
     }
 
     public function testAPlayerWithoutEventsHasNothingToCopyNorAnOrganizationPicker(): void
@@ -113,12 +113,13 @@ final class EventWizardTest extends WebTestCase
         $this->browser->request('GET', '/en/new-event?kind=series' . $organization);
         self::assertResponseRedirects('/en/new-event/series/basics?organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
 
-        $this->browser->request('GET', '/en/new-event?kind=other');
-        self::assertResponseRedirects('/en/add-event?classic=1');
+        // "Something else" - the calendar path (no rounds), no longer the classic form
+        $this->browser->request('GET', '/en/new-event?kind=other' . $organization);
+        self::assertResponseRedirects('/en/new-event/basics?path=calendar&organization=' . OrganizationFixture::ORGANIZATION_RIVERBEND);
 
-        // "Recurring" still comes ticked on the classic form's ?recurring=1
-        $crawler = $this->browser->request('GET', '/en/add-event?classic=1&recurring=1');
-        self::assertSame('checked', $crawler->filter('input[name="competition_form[isRecurring]"]')->attr('checked'));
+        // The classic form's "Recurring" (?recurring=1) leads to the series path
+        $this->browser->request('GET', '/en/add-event?classic=1&recurring=1');
+        self::assertResponseRedirects('/en/new-event/series/basics', 302);
     }
 
     public function testBasicsCreatesTheDraftWithItsSingleRound(): void

@@ -3,8 +3,8 @@ import { Controller } from '@hotwired/stimulus';
 import { chooseTranslation } from '../translation_choice.js';
 
 /**
- * Keeps a button's text in step with the ticked boxes of its form - "Create 3 editions" on "Add several dates"
- * (templates/add_editions.html.twig). The server renders the text for the boxes ticked then; this re-chooses it from the
+ * Keeps a button's text in step with the ticked boxes of its form - "Create 3 editions" on the wizard's dates
+ * (templates/event_wizard/series_dates.html.twig). The server renders the text for the boxes ticked then; this re-chooses it from the
  * same translation (browser_translation() + chooseTranslation(), so the plural reads as PHP's) whenever a box changes,
  * and disables the button while nothing is ticked (without JavaScript the server answers that with a 422).
  */

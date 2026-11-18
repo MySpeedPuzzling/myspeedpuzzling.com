@@ -13,8 +13,8 @@ use SpeedPuzzling\Web\Results\SeriesEdition;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
 
 /**
- * The preview of "Add several dates" (docs/features/organizations/README.md, P15/P16) - shared by the classic page
- * (AddEditionsController) and the event creation wizard's Dates step (W3): the proposed days with the name each edition
+ * The preview of "Add several dates" (docs/features/organizations/README.md, P15/P16) - the event creation wizard's
+ * Dates step and "Add the next dates" (W3; the classic page was retired 2026-11-18): the proposed days with the name each edition
  * gets and the id it gets (made with the preview, carried by the page - so a form sent twice creates nothing twice); a
  * day that already holds an edition of the series is marked (and left unchecked by the page).
  */

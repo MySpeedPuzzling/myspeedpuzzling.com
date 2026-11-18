@@ -13,7 +13,7 @@
                     <h1 class="display-5 fw-bold mb-3">{{ 'for_organizers.hero.title'|trans }}</h1>
                     <p class="lead text-muted mb-4">{{ 'for_organizers.hero.lead'|trans }}</p>
                     <div class="d-flex flex-wrap gap-3 mb-4">
-                        <a href="{{ path('add_competition') }}" class="btn btn-primary btn-shadow px-3 py-2 px-md-4 py-md-3">
+                        <a href="{{ path('event_wizard') }}" class="btn btn-primary btn-shadow px-3 py-2 px-md-4 py-md-3">
                             {{ 'for_organizers.hero.cta_start'|trans }}
                         </a>
                         <a href="{{ path('events') }}" class="btn btn-outline-primary px-3 py-2 px-md-4 py-md-3">
@@ -238,7 +238,7 @@
             <div class="text-center col-lg-8 mx-auto">
                 <h2 class="mb-3">{{ 'for_organizers.cta.title'|trans }}</h2>
                 <p class="lead text-muted mb-4">{{ 'for_organizers.cta.description'|trans({'%email%': 'jan@myspeedpuzzling.com'})|raw }}</p>
-                <a href="{{ path('add_competition') }}" class="btn btn-primary btn-lg btn-shadow">
+                <a href="{{ path('event_wizard') }}" class="btn btn-primary btn-lg btn-shadow">
                     {{ 'for_organizers.cta.button'|trans }}
                 </a>
                 <p class="text-muted small mt-3">{{ 'for_organizers.cta.note'|trans }}</p>

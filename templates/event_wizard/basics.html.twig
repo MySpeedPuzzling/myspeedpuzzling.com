@@ -12,9 +12,14 @@
     <div class="card shadow-sm">
         <div class="card-body">
             {{ form_start(form) }}
+            {#- The calendar path ("Something else" - no rounds): what kind of event it is comes first and is required -#}
+            {%- set calendar = progress.path.value == 'calendar' -%}
             <div data-controller="organizer-form" data-action="change->organizer-form#update">
                 {{ form_errors(form) }}
                 <div class="required">{{ form_row(form.name) }}</div>
+                {% if calendar %}
+                    <div class="required" data-event-wizard-calendar-types>{{ form_row(form.eventTypes) }}</div>
+                {% endif %}
 
                 <div class="mb-3">
                     {{ form_label(form.isOnline, 'event_wizard.basics.where'|trans, {label_attr: {class: 'form-label required'}}) }}
@@ -48,6 +53,7 @@
                             <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                         </div>
                         {{ form_errors(form.dateFrom) }}
+                        {% if calendar %}<div class="form-text">{{ 'event_wizard.calendar.date_help'|trans }}</div>{% endif %}
                     </div>
                     {% if form.startTime is defined %}
                         <div class="col-7 col-sm-5 mb-3">
@@ -90,7 +96,7 @@
                             {{ form_row(form.maintainers) }}
                         </div>
                         {{ form_row(form.eligibility) }}
-                        {{ form_row(form.eventTypes) }}
+                        {% if calendar == false %}{{ form_row(form.eventTypes) }}{% endif %}
                     </div>
                 </details>
 

@@ -293,11 +293,11 @@ everything under it):
   (`participants_sheet`), Results (`competition_results_overview`, when it has rounds), Page content
   (`manage_competition_page`), **Move to another series** (editions, for the people who can edit its series -
   `move_edition`), Delete (`delete_competition` / `delete_competition_edition`, owner only).
-- Series: Manage series (`manage_competition_series`), Add edition (`add_edition`), **Add several dates**
-  (`add_editions`), Page content (`manage_series_page`), **Turn into an organization** (no organization yet -
+- Series: Manage series (`manage_competition_series`), **Add the next dates** (`event_wizard_series_next_dates` - "Add
+  edition" / "Add several dates" retired 2026-11-18), Page content (`manage_series_page`), **Turn into an organization** (no organization yet -
   `create_organization_from_series`), Delete series (`delete_competition_series`, owner only).
 - Organization ("You organize" and its own page): Edit organization (`edit_organization`), Add event
-  (`add_competition?organization=<id>`), Delete organization (`delete_organization`, its creator, only while it is
+  (`event_wizard?organization=<id>` - the classic `add_competition` retired 2026-11-18), Delete organization (`delete_organization`, its creator, only while it is
   empty).
 - Waiting for approval, admins: Approve / Reject… (`admin_approve_competition`, `admin_reject_competition`, the
   `_series` and `_organization` routes) - never on a draft, which is submitted by publishing it; Reject asks for the

@@ -27,7 +27,7 @@
             <h1 class="ev-organized-title">{{ title }}{% if total > 0 %} <span class="ev-organized-total">{{ total }}</span>{% endif %}</h1>
             <p class="ev-organized-note">{{ 'organizer_tools.organize.note'|trans }}</p>
             <div class="ev-organized-actions">
-                <a class="btn btn-sm btn-primary" href="{{ path('add_competition', back) }}" data-add-event>+ {{ 'events_page.add_event'|trans }}</a>
+                <a class="btn btn-sm btn-primary" href="{{ path('event_wizard') }}" data-add-event>+ {{ 'events_page.add_event'|trans }}</a>
                 <a class="btn btn-sm btn-outline-primary" href="{{ path('add_organization', back) }}" data-add-organization>+ {{ 'organizer_tools.organize.add_organization'|trans }}</a>
                 <a class="ev-organized-directory" href="{{ path('organizations') }}">{{ 'organizer_tools.organize.directory'|trans }}</a>
             </div>

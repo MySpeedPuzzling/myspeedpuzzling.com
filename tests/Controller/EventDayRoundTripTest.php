@@ -87,20 +87,20 @@ final class EventDayRoundTripTest extends WebTestCase
     }
 
     /**
-     * A one-time event from the add form: stored as typed, shown as that day on its page
+     * A one-time event from the event creation wizard's Basics: stored as typed, shown as that day on its page
      */
     public function testAMondayEventIsThatMondayFromTheAddFormToItsPage(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/add-event?classic=1');
-        $browser->submitForm('Submit for Approval', [
-            'competition_form[name]' => 'Riverbend Jigsaw Association Monday Meetup',
-            'competition_form[isOnline]' => '0',
-            'competition_form[location]' => 'Riverbend',
-            'competition_form[dateFrom]' => '05.10.2026',
-            'competition_form[dateTo]' => '05.10.2026',
+        $crawler = $browser->request('GET', '/en/new-event/basics');
+        $browser->submit($crawler->filter('form[name="event_wizard_basics_form"]')->form(), [
+            'event_wizard_basics_form[name]' => 'Riverbend Jigsaw Association Monday Meetup',
+            'event_wizard_basics_form[isOnline]' => '0',
+            'event_wizard_basics_form[location]' => 'Riverbend',
+            'event_wizard_basics_form[dateFrom]' => '05.10.2026',
+            'event_wizard_basics_form[startTime]' => '18:00',
         ]);
         $this->assertResponseRedirects();
 
@@ -113,36 +113,42 @@ final class EventDayRoundTripTest extends WebTestCase
         self::assertSame('2026-10-05 00:00:00', $event['date_from']);
         self::assertSame('2026-10-05 00:00:00', $event['date_to']);
 
-        // Its creator sees it while it waits for approval
+        // Its creator sees it while it is a draft
         $crawler = $browser->request('GET', '/en/events/' . $event['slug']);
         $this->assertResponseIsSuccessful();
         self::assertStringContainsString('5 Oct 2026', $crawler->filter('.ev-detail-side')->text());
     }
 
     /**
+     * One date through "Add the next dates" (a picked day, no round) - its name is the typed one + the day
+     *
      * @return array{id: string, slug: string, date_from: string, date_to: string}
      */
     private static function addEdition(KernelBrowser $browser, string $name, string $day): array
     {
-        $browser->request('GET', '/en/add-edition/' . CompetitionSeriesFixture::SERIES_OFFLINE);
-        $browser->submitForm('Add Edition', [
-            'edition_form[name]' => $name,
-            'edition_form[dateFrom]' => $day,
-            'edition_form[dateTo]' => $day,
-        ]);
+        $crawler = $browser->request('GET', '/en/new-event/series/' . CompetitionSeriesFixture::SERIES_OFFLINE . '/next-dates?' . http_build_query([
+            'how' => 'pick',
+            'dates' => $day,
+            'namePattern' => $name,
+            'withRounds' => '0',
+        ]));
+        self::assertResponseIsSuccessful();
+        $browser->submit($crawler->filter('#event-wizard-dates-preview form')->form());
         self::assertResponseRedirects();
 
         return self::edition($name);
     }
 
     /**
+     * The edition whose name starts with $name (the date follows it)
+     *
      * @return array{id: string, slug: string, date_from: string, date_to: string}
      */
     private static function edition(string $name): array
     {
         /** @var false|array{id: string, slug: string, date_from: string, date_to: string} $row */
         $row = self::getContainer()->get(Connection::class)->fetchAssociative(
-            'SELECT id, slug, date_from, date_to FROM competition WHERE series_id = :seriesId AND name = :name',
+            "SELECT id, slug, date_from, date_to FROM competition WHERE series_id = :seriesId AND name LIKE :name || '%'",
             ['seriesId' => CompetitionSeriesFixture::SERIES_OFFLINE, 'name' => $name],
         );
         self::assertIsArray($row);

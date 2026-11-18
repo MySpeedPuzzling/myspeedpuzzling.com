@@ -4208,9 +4208,6 @@ qr_code:
   "pending_approval_info": "Tato událost čeká na schválení administrátorem a zatím není viditelná pro ostatní uživatele."
   "rejected_info": "Tato událost nebyla schválena."
   "rejection_reason": "Důvod"
-  "add_event_info": "Přidejte novou soutěž nebo událost. Bude zkontrolována administrátorem před zveřejněním."
-  "managed_event_info": "Máte zájem o kompletní správu registrací účastníků a plateb přes MySpeedPuzzling? Kontaktujte mě na <a href=\"mailto:%email%\">%email%</a>."
-  "submit_for_approval": "Odeslat ke schválení"
   "save_changes": "Uložit změny"
   "manage_rounds": "Spravovat kola"
   "manage_editions": "Spravovat edice"
@@ -4285,7 +4282,6 @@ qr_code:
     "link": "URL webu"
     "registration_link": "URL registrace"
     "results_link": "URL výsledků"
-    "links_per_edition": "Odkazy na registraci a výsledky se zadávají u každé edice zvlášť, jakmile sérii vytvoříte."
     "location": "Místo"
     "location_series_help": "U série nepovinné – každá edice má své vlastní místo. Vyplňte jen tehdy, když se koná vždy na stejném místě."
     "country": "Země"
@@ -4489,7 +4485,6 @@ qr_code:
       "results_confirmed": "Toto kolo už má oficiální výsledky. Nejprve je vymažte na Výsledkovém pultu – reset spustí kolo znovu od začátku."
       "ended_use_reset": "Toto online kolo skončilo – pro nové spuštění resetujte stopky."
   "flash":
-    "created": "Událost odeslána ke schválení."
     "updated": "Událost aktualizována."
     "approved": "Soutěž schválena."
     "round_added": "Kolo přidáno."
@@ -5753,7 +5748,6 @@ official_results:
     edition_description_past_official: "Výsledky %name%: oficiální výsledky kolo po kole, puzzle a účastníci. Speed puzzling závod série %series%, %date%."
   "manage": "Spravovat sérii"
   "edit_series": "Upravit sérii"
-  "add_edition": "Přidat edici"
   "upcoming_editions": "Nadcházející edice"
   "past_editions": "Minulé edice"
   "no_editions": "Zatím žádné edice. Každá edice je jedno konání této pravidelné události — přidejte první."
@@ -5769,7 +5763,6 @@ official_results:
     "deleted": "Série byla smazána."
 "edition":
   "edit": "Upravit edici"
-  "rounds_hint": "Po vytvoření edice můžete přidat kola s puzzlemi a časovými limity ze stránky správy edice."
   "date_not_set": "Datum zatím není určeno"
   "form":
     "name": "Název edice"
@@ -5789,7 +5782,6 @@ official_results:
     "modal_body": "Opravdu chcete smazat „%name%“? Tuto akci nelze vrátit zpět."
     "modal_cancel": "Zrušit"
   "flash":
-    "created": "Edice přidána."
     "deleted": "Edice byla smazána."
 
 # Referral Program
@@ -9118,7 +9110,6 @@ organizer_tools:
         delete_organization: "Smazat organizaci"
         approve_organization: "Schválit organizaci"
         reject_organization: "Zamítnout organizaci…"
-        add_editions: "Přidat více termínů"
         to_organization: "Přeměnit na organizaci"
         move_edition: "Přesunout do jiné série"
         move_round: "Přesunout do jiné události nebo edice"
@@ -9138,21 +9129,10 @@ organizer_tools:
         event_types_edition_help: "Zaškrtnuté jsou typy série – změňte je, jen když je tento termín jiný."
         schedule: "Kdy se koná"
         schedule_help: "U série např. „Čtvrtý pátek v měsíci, 20:00“ – každý termín je přesto samostatná edice."
-        save_draft: "Uložit jako koncept"
-        save_draft_help: "Koncept vidíte jen vy a váš tým – zveřejněte ho, až bude hotový."
-        submit_add_event: "Přidat událost"
-        submit_add_series: "Přidat sérii"
-        add_info_approved: "Přidejte novou soutěž nebo událost. Pod vaší schválenou organizací ji nemusí kontrolovat administrátor."
     flash:
         saved_as_draft: "Uloženo jako koncept – vidíte ho jen vy a váš tým. Zveřejněte ho, až bude hotový."
         created_published: "Přidáno – nyní to vidí každý."
-        editions_added: "Přidána 1 edice.|Přidány %count% edice.|Přidáno %count% edic."
-        editions_added_draft: "1 edice přidána jako koncept.|%count% edice přidány jako koncepty.|%count% edic přidáno jako koncepty."
     add_editions:
-        title: "Přidat více termínů"
-        link: "Přidat více termínů najednou"
-        link_hint: "– každý týden, druhý čtvrtek nebo poslední pátek v měsíci… nebo termíny, které si vyberete."
-        intro: "Každý termín se stane samostatnou edicí. Nic se samo neopakuje: když se termín posune, upravte právě tu jednu edici."
         how: "Jak"
         how_repeat: "Opakovat"
         how_pick: "Vybrat termíny"
@@ -9181,8 +9161,6 @@ organizer_tools:
         show: "Zobrazit termíny"
         preview_title: "1 termín|%count% termíny|%count% termínů"
         taken: "už má edici"
-        create: "Vytvořit 1 edici|Vytvořit %count% edice|Vytvořit %count% edic"
-        create_help: "Vytvoří se jen zaškrtnuté termíny. Jako koncepty je uvidíte jen vy a váš tým, dokud jednotlivé edice nezveřejníte."
 organization_page:
     meta:
         title: "%name% – puzzle události"
@@ -15124,7 +15102,6 @@ event_wizard:
         series_help: "Stejná událost každý týden nebo měsíc – klubové večery, měsíční online poháry."
         other: "Něco jiného"
         other_help: "Setkání, výměna puzzlí, workshop nebo maraton – událost v kalendáři, bez kol."
-        classic: "Raději jeden formulář? Použijte klasický formulář"
         copy_title: "Nebo zkopírujte některou ze svých událostí"
         copy_help: "Kopie si ponechá údaje, nastavení i kola – vy zvolíte její nové datum."
         copy: "Kopírovat"
@@ -15136,6 +15113,10 @@ event_wizard:
         qualify_every_round_counts_help: "Sólová, párová a týmová kola – časy se sčítají v každé kategorii."
         qualify_empty: "Zatím nevím"
         qualify_empty_help: "Začněte bez kol a přidávejte je jedno po druhém."
+    calendar:
+        types_help: "Vyberte jednu nebo více možností. Pořádáte soutěž? Vraťte se a zvolte jednu z odpovědí pro soutěž."
+        types_required: "Vyberte alespoň jeden druh události."
+        date_help: "Online událost, která běží pořád, může zůstat bez data."
     basics:
         title: "Základní údaje"
         under: "Pod organizací %organization%"

@@ -78,14 +78,15 @@ final class EventTypesTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $crawler = $browser->request('GET', '/en/add-event?classic=1');
-        $browser->submit(self::withTypes($crawler->selectButton('Submit for Approval')->form([
-            'competition_form[name]' => 'Single Puzzle Night',
-            'competition_form[isOnline]' => '0',
-            'competition_form[location]' => 'Brno',
-            'competition_form[dateFrom]' => '15.06.2027',
-            'competition_form[dateTo]' => '15.06.2027',
-        ]), ['competition']));
+        // Added through the event creation wizard's Basics (one round)
+        $crawler = $browser->request('GET', '/en/new-event/basics');
+        $browser->submit(self::withTypes($crawler->filter('form[name="event_wizard_basics_form"]')->form([
+            'event_wizard_basics_form[name]' => 'Single Puzzle Night',
+            'event_wizard_basics_form[isOnline]' => '0',
+            'event_wizard_basics_form[location]' => 'Brno',
+            'event_wizard_basics_form[dateFrom]' => '15.06.2027',
+            'event_wizard_basics_form[startTime]' => '18:00',
+        ]), ['competition'], 'event_wizard_basics_form'));
         self::assertResponseRedirects();
 
         $id = $this->connection()->fetchOne('SELECT id FROM competition WHERE name = ?', ['Single Puzzle Night']);
@@ -144,9 +145,9 @@ final class EventTypesTest extends WebTestCase
      *
      * @param list<string> $types
      */
-    private static function withTypes(Form $form, array $types): Form
+    private static function withTypes(Form $form, array $types, string $formName = 'competition_form'): Form
     {
-        $boxes = $form['competition_form[eventTypes]'];
+        $boxes = $form[$formName . '[eventTypes]'];
         self::assertIsArray($boxes);
 
         foreach ($boxes as $box) {

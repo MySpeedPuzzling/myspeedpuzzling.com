@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
  * - Puzzles (several rounds): every round has a puzzle - a row left for later resumes there;
  * - Review: never - publishing ends the wizard.
  *
+ * The calendar path ("Something else") has Basics and Review only.
+ *
  * The series path (W3) works on a draft series (ofSeries()): Basics done once it exists, Dates once it has an edition.
  * An edition itself is not set up in the wizard - of() gives it no steps (its edit page).
  *
@@ -62,7 +64,7 @@ readonly final class EventWizardSteps
 
     public function of(EventWizardState $state): EventWizardProgress
     {
-        $path = EventWizardPath::of($state->isEdition, $state->roundsCount);
+        $path = EventWizardPath::of($state->isEdition, $state->roundsCount, $state->calendarEvent);
         // An edition belongs to its series' wizard (ofSeries()), never one of its own
         $steps = $state->isEdition ? [] : $path->steps();
 

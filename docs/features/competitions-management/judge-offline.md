@@ -122,8 +122,10 @@ names, codes and token would sit in CacheStorage - `ServiceWorkerBehaviourTest`)
   `live_entry_my_tables.js`) = `{[competitionId]: {text, on, savedAt}}`, the newest 5 events kept, normalised on every
   read (`normaliseMyTables()`: the never written array of the first version and anything foreign → `{}`, a broken event
   dropped alone); the page keeps what it wrote even where localStorage refuses (a private window). Offline nothing
-  changes: the filter is read from this phone, the lists from the snapshot + outbox. `scanAfterSave` is a stored
-  default of a deferred feature.
+  changes: the filter is read from this phone, the lists from the snapshot + outbox. `scanAfterSave` (judge-speed J4)
+  = a Save of a scanned entry goes straight back to the scanner, on by default; `v: 2` since J4 - every v1 write
+  stored the old default `false` nobody chose, so a v1 `scanAfterSave` is ignored (an old cached page writing v1 again
+  would reset an "off" to the default).
 - **Device gate** (`assets/live_entry_device.js`, small - the site's `app` bundle imports it): `app.js` runs
   `leftLiveEntryCleanup()` on every `turbo:load` - one localStorage read; when the marker names a player the cookie no
   longer names (signed out, another player), it deletes the whole `msp-live-entry` database (an open live tab closes
@@ -178,7 +180,8 @@ names, codes and token would sit in CacheStorage - `ServiceWorkerBehaviourTest`)
 - The prune after a deploy keeps every file a stored record lists. `/barcode-scanner/` is cache-first like `/build/`.
   `CACHE_VERSION` stays `v7` (a new cache name evicts nothing). The copy holds no user data, so sign-out leaves it.
 - The tag scanner (`assets/official_results_scan.js`) loads zbar from our server first (`.wasm` fetched whole first),
-  jsdelivr only when ours fails within 8 s - the EAN scanner's order.
+  jsdelivr only when ours fails within 8 s - the EAN scanner's order. Continuous scanning (J4) changes nothing offline:
+  the same controller, one reader per page, the warm camera is page-local.
 
 ## Speed (C7)
 
@@ -230,6 +233,9 @@ lever if a cold open ever matters).
   is not in …" + "Open their round" = the round from this phone's other snapshots of the event (`snapshotOfTag()`,
   `?entry=<ref>`), else the tag's own path (the server - or offline the shell - picks the round); an empty table →
   "Nobody sits at table N in …" (no link: a table is per round).
+- Since judge-speed J4 an entry a scan opened goes back to the warm scanner after its Save (`openedByScan` =
+  `{ref, raw}`, not drafted - after a reload the Save goes to Find); the saved tag is ignored while in view
+  ([live-results.md](live-results.md) "Scanning").
 - Offline the shell resolves a scanned or opened tag URL across the event's snapshots (C5 above).
 
 ## Puzzle chips (C10) and proposals panel (C9)

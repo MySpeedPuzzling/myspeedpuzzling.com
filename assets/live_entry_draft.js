@@ -8,7 +8,8 @@
  * - Cleared on Save, Back and Undo (the page goes back to finding); other players' drafts go when the page starts and
  *   after a sign-out (live_entry_device.js).
  * - The referee's preferences: one localStorage key `msp.liveResults.prefs`, the older `msp.liveResults.keyboard`
- *   taken over on the first read; `piecesMode` = Didn't finish counted as Missing (default) or Placed (T1); `myTables`
+ *   taken over on the first read; `scanAfterSave` = a Save of a scanned entry goes back to the scanner (judge-speed J4,
+ *   on by default - v2; v1 stored the old default `false` with every write); `piecesMode` = Didn't finish counted as Missing (default) or Placed (T1); `myTables`
  *   = this phone's tables per event (judge-speed J3, live_entry_my_tables.js).
  *
  * Pure functions over an injected Storage - tests/live-entry-offline-harness.mjs runs them under node.
@@ -21,7 +22,8 @@ export const DRAFT_MAX_AGE_MS = 10 * 60 * 1000;
 export const PREFS_KEY = 'msp.liveResults.prefs';
 export const LEGACY_KEYBOARD_KEY = 'msp.liveResults.keyboard';
 
-const PREFS_DEFAULTS = { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null };
+// v2 (judge-speed J4): scanAfterSave on by default - a v1 value is the old default every write stored, nobody chose it
+const PREFS_DEFAULTS = { v: 2, keyboard: null, autoOpenTable: true, scanAfterSave: true, myTables: {}, piecesMode: null };
 
 export function draftKey(playerId) {
     return DRAFT_KEY_PREFIX + String(playerId).toLowerCase();
@@ -230,10 +232,10 @@ export function readPrefs(storage) {
     }
 
     return {
-        v: 1,
+        v: 2,
         keyboard: stored.keyboard === 'numeric' || stored.keyboard === 'text' ? stored.keyboard : null,
         autoOpenTable: typeof stored.autoOpenTable === 'boolean' ? stored.autoOpenTable : PREFS_DEFAULTS.autoOpenTable,
-        scanAfterSave: typeof stored.scanAfterSave === 'boolean' ? stored.scanAfterSave : PREFS_DEFAULTS.scanAfterSave,
+        scanAfterSave: stored.v === 2 && typeof stored.scanAfterSave === 'boolean' ? stored.scanAfterSave : PREFS_DEFAULTS.scanAfterSave,
         // My tables per event (judge-speed J3, live_entry_my_tables.js): {[competitionId]: {text, on, savedAt}}, newest 5
         myTables: normaliseMyTables(stored.myTables),
         piecesMode: stored.piecesMode === 'missing' || stored.piecesMode === 'placed' ? stored.piecesMode : null,
@@ -246,7 +248,7 @@ export function readPrefs(storage) {
  * @returns {object} the preferences now
  */
 export function writePrefs(storage, changes) {
-    const prefs = { ...readPrefs(storage), ...changes, v: 1 };
+    const prefs = { ...readPrefs(storage), ...changes, v: 2 };
 
     try {
         storage.setItem(PREFS_KEY, JSON.stringify(prefs));

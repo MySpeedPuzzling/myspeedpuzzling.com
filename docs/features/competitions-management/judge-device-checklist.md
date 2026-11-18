@@ -25,12 +25,17 @@ part. There are no native apps - only the website (and its "Add to Home Screen" 
 | 4 | Lock the screen 2 min, unlock | page still there, 3 waiting, the stopwatch shows the right time |
 | 5 | Airplane mode off | all 3 sent within seconds, no duplicate on the desk |
 | 6 | Scan a printed tag of each kind (person, pair/team, table, entry) online, then again in airplane mode | the right entry opens each time (zbar from the phone's cache offline) |
+| 6a | Safari's Camera setting = **Ask** (aA → Website Settings): scan 10 table tags in a row, each Finished now / a time → Save | after each Save the scanner is back at once with "Saved …" + Undo visible over it; **no second camera question**; the tag just saved never reopens while it is still in front of the lens; the next tag opens its card; the desk shows 10 results once each |
+| 6b | The same with Camera = **Allow**; then lock the phone with the scanner open, unlock | the camera light is off while locked; unlocked, the scanner starts again by itself (or "Try again" works) |
+| 6c | Close the scanner (X), wait 90 s with the page open | the camera light goes off; the green dot on the Scan button disappears; the next Scan asks the camera again |
+| 6d | Low Power Mode on, 10 more tags; a phone call or Siri during an open scanner | scanning still works; after the interruption the scanner comes back or shows "Try again" - never a black picture that stays |
 | 7 | Switch to another app for 10 min, come back | page live again, nothing lost |
 | 8 | Low Power Mode on, repeat 3-5 | the same (Low Power slows background fetches; sending resumes when the page is visible) |
 | 9 | "Add to Home Screen", open it | see the iOS notes below - it opens the home page, signed out |
 
 ## Walk - Android, Chrome
-Steps 1-8 as above (airplane mode; Battery Saver instead of Low Power Mode), plus: Chrome "Install app" prompt is
+Steps 1-8 as above (airplane mode; Battery Saver instead of Low Power Mode; 6a-6d with Chrome's site setting Camera =
+Ask / Allow - the native BarcodeDetector reads, no zbar), plus: Chrome "Install app" prompt is
 not needed - the page works in the browser tab.
 
 ## Competitor phone (time proposals)

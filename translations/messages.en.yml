@@ -5442,6 +5442,10 @@ live_results:
         decoder_error: "This browser cannot read QR codes - type the table or name."
         unknown_person: "The person on this name tag is not a participant of this event (any more) - find them by name, or add them."
         no_rounds: "This event has no rounds yet - add a round to enter results."
+        type_instead: "Type a table instead"
+        saved_next: "Saved - point at the next tag"
+        camera_ready: "Scan - camera ready"
+        retry: "Try again"
     recent:
         title: "Recent entries"
         empty: "Results entered on any device show up here."
@@ -5584,6 +5588,7 @@ live_results:
         no_worker: "This app cannot reopen the page without a connection - keep it open, or use the browser."
     prefs:
         auto_open_table: "Open a table as soon as no other table number starts with what is typed (on this phone)"
+        scan_after_save: "After Save, scan the next tag"
     my_tables:
         label: "My tables"
         placeholder: "e.g. 1-20, 41-45"

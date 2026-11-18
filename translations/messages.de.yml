@@ -4880,6 +4880,10 @@ live_results:
     decoder_error: "Dieser Browser kann keine QR-Codes lesen – geben Sie den Tisch oder Namen ein."
     unknown_person: "Die Person auf diesem Namensschild ist (nicht mehr) Teilnehmer dieser Veranstaltung – suchen Sie sie nach Namen oder fügen Sie sie hinzu."
     no_rounds: "Diese Veranstaltung hat noch keine Runden – fügen Sie eine Runde hinzu, um Ergebnisse einzugeben."
+    type_instead: "Stattdessen Tisch eingeben"
+    saved_next: "Gespeichert – auf das nächste Namensschild richten"
+    camera_ready: "Scannen – Kamera bereit"
+    retry: "Erneut versuchen"
   recent:
     title: "Letzte Eingaben"
     empty: "Auf einem beliebigen Gerät eingegebene Ergebnisse erscheinen hier."
@@ -5018,6 +5022,7 @@ live_results:
     no_worker: "Diese App kann die Seite ohne Verbindung nicht erneut öffnen – lassen Sie sie offen oder nutzen Sie den Browser."
   prefs:
     auto_open_table: "Tisch öffnen, sobald keine andere Tischnummer mit dem Eingegebenen beginnt (auf diesem Handy)"
+    scan_after_save: "Nach dem Speichern das nächste Namensschild scannen"
   my_tables:
     label: "Meine Tische"
     placeholder: "z. B. 1-20, 41-45"

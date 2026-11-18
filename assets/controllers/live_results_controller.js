@@ -26,7 +26,8 @@ import {
     uniqueTable,
     withShownFrom,
 } from '../official_results_live.js';
-import { nativeReadsQr, parseCompetitionTagUrl, startQrScan } from '../official_results_scan.js';
+import { detectLoop, nativeReadsQr, openQrCamera, parseCompetitionTagUrl, qrReader } from '../official_results_scan.js';
+import { resumesAfterSave, ScanSession } from '../live_entry_scan_session.js';
 import { prepareOfflineCopy } from '../live_entry_offline_ready.js';
 import { EntriesValidator, fillLink, landingOf, linkNavigation, pageSettings, resolveLanding, roundOptions, stateUrl, UUID_PLACEHOLDER, urlWithoutLanding } from '../live_entry_page.js';
 import { createServerClock, formatCountdown, monotonicNow, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
@@ -127,7 +128,7 @@ export default class extends Controller {
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'piecesSwitch', 'piecesRows', 'piecesLabel', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle', 'missingToggle', 'missingField', 'missingInput', 'missingHint',
         'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList',
-        'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint',
+        'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint', 'scanRetry', 'scanButton', 'scanAfterSaveToggle',
     ];
 
     static values = {
@@ -248,6 +249,13 @@ export default class extends Controller {
         this.offlinePrepared = false;
         this.offlineReadyAt = null;
         this.setupSnapshots();
+        // Continuous scanning (judge-speed J4): one warm camera for the page's scans; the entry a scan opened ({ref, raw})
+        // - its Save goes straight back to the scanner; the tag ignored while it stays in view after that Save
+        this.scanSession = new ScanSession({ openCamera: () => openQrCamera({ mediaDevices: navigator.mediaDevices }), reader: qrReader, loop: detectLoop });
+        this.unsubscribeScan = this.scanSession.subscribe((state, reason) => this.scanStateChanged(state, reason));
+        this.openedByScan = null;
+        this.scanIgnore = null;
+        this.scanRetriedAt = 0;
 
         this.setKeyboard('text');
 
@@ -274,15 +282,36 @@ export default class extends Controller {
                 this.serverClock.shown();
                 this.refreshState();
                 this.flushSoon();
+
+                // Back with the scanner open: the camera again (no tap needed once it is allowed)
+                if (!this.scannerTarget.hidden) {
+                    this.startScanning();
+                }
             } else {
                 this.serverClock.hidden();
                 this.snapshots?.flush();
+                // Never a camera on behind a locked phone or another app; no old "saved tag" ignore armed for later
+                this.scanSession.release('hidden');
+                this.scanIgnore = null;
             }
         };
         // (Back from the back/forward cache, `visibilitychange` says visible again - the clock and the state with it)
         this.onPageHide = () => {
             this.serverClock.hidden();
             this.snapshots?.flush();
+            this.scanSession.release('pagehide');
+        };
+        this.onFreeze = () => this.scanSession.release('freeze');
+        // Safari's back/forward cache: the page comes back without a new connect() - the camera again if the scanner
+        // was open (pagehide released it)
+        this.onPageShow = (event) => {
+            if (event.persisted) {
+                this.serverClock.shown();
+
+                if (!this.scannerTarget.hidden) {
+                    this.startScanning();
+                }
+            }
         };
         this.onFocus = () => {
             // Back from the sign-in tab
@@ -339,7 +368,9 @@ export default class extends Controller {
         window.addEventListener('beforeunload', this.onBeforeUnload);
         window.addEventListener('popstate', this.onPopState);
         window.addEventListener('pagehide', this.onPageHide);
+        window.addEventListener('pageshow', this.onPageShow);
         document.addEventListener('visibilitychange', this.onVisibility);
+        document.addEventListener('freeze', this.onFreeze);
         document.addEventListener('click', this.onLinkClick);
         document.addEventListener('keydown', this.onKeydown);
 
@@ -912,14 +943,17 @@ export default class extends Controller {
         this.snapshots?.flush();
         this.events?.close();
         this.channel?.close();
-        this.stopScan?.();
+        this.scanSession?.release('disconnect');
+        this.unsubscribeScan?.();
 
         window.removeEventListener('online', this.onOnline);
         window.removeEventListener('focus', this.onFocus);
         window.removeEventListener('beforeunload', this.onBeforeUnload);
         window.removeEventListener('popstate', this.onPopState);
         window.removeEventListener('pagehide', this.onPageHide);
+        window.removeEventListener('pageshow', this.onPageShow);
         document.removeEventListener('visibilitychange', this.onVisibility);
+        document.removeEventListener('freeze', this.onFreeze);
         document.removeEventListener('click', this.onLinkClick);
         document.removeEventListener('keydown', this.onKeydown);
         this.historyEntry = false;
@@ -2165,7 +2199,7 @@ export default class extends Controller {
         }
 
         this.showToast(this.t('toastSaved', { '%name%': entry.displayName ?? entry.name ?? '', '%result%': this.describe(value) + choice }), saved);
-        this.backToFind();
+        this.afterSave(entry.ref);
     }
 
     /**
@@ -2628,6 +2662,10 @@ export default class extends Controller {
         writePrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} }, { autoOpenTable: event.currentTarget.checked });
     }
 
+    toggleScanAfterSave(event) {
+        writePrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} }, { scanAfterSave: event.currentTarget.checked });
+    }
+
     toggleKeyboard() {
         const next = this.keyboard === 'numeric' ? 'text' : 'numeric';
         this.setKeyboard(next);
@@ -2720,7 +2758,7 @@ export default class extends Controller {
         }
     }
 
-    openEntry(ref) {
+    openEntry(ref, { scan = null } = {}) {
         const entry = this.entry(ref);
 
         if (entry === null) {
@@ -2729,6 +2767,8 @@ export default class extends Controller {
 
         this.closeOverlays({ keepHistory: true });
         this.openRef = ref;
+        // Only an entry a scan opened goes back to the scanner after its Save (J4)
+        this.openedByScan = scan;
         this.recentAll = false;
         this.pendingValue = null;
         this.shownFrom = shownFromOf(this.serverEntries.get(ref));
@@ -2811,11 +2851,31 @@ export default class extends Controller {
         this.releaseHistory();
     }
 
+    /**
+     * After a Save that closed the card: Find - or, for an entry a scan opened (and the preference not off), the scanner
+     * at once over it with the warm camera, the just-saved tag ignored while it stays in view (judge-speed J4). The
+     * history entry of the card stays the scanner's (no back + push in one tick).
+     */
+    afterSave(ref) {
+        const scan = this.openedByScan;
+
+        if (!resumesAfterSave(scan, ref, this.prefs())) {
+            this.backToFind();
+
+            return;
+        }
+
+        this.showFind({ focus: false });
+        this.scanIgnore = scan.raw;
+        this.showScanner(this.t('scanSavedNext'));
+    }
+
     showFind({ focus = true } = {}) {
         this.closeOverlays({ keepHistory: true });
         // Saved, undone or left: nothing to bring back after a reload
         this.forgetDraft();
         this.openRef = null;
+        this.openedByScan = null;
         this.pendingValue = null;
         this.shownFrom = null;
         this.proposalEditing = null;
@@ -3277,7 +3337,7 @@ export default class extends Controller {
 
         const saved = this.enqueueGroup(entry, withShownFrom(fields, this.shownFrom));
         this.showToast(this.t('toastSaved', { '%name%': entry.displayName ?? entry.name ?? '', '%result%': this.describeField('puzzles', record) }), saved);
-        this.backToFind();
+        this.afterSave(entry.ref);
     }
 
     // ---- Finished now per puzzle (real events W5, live_entry_splits.js) ----
@@ -3628,7 +3688,7 @@ export default class extends Controller {
 
         if (fields.length === 0) {
             this.showToast(this.t('toastNothing'), null);
-            this.backToFind();
+            this.afterSave(entry.ref);
 
             return;
         }
@@ -3649,7 +3709,7 @@ export default class extends Controller {
             '%name%': entry.displayName ?? entry.name ?? '',
             '%result%': (value === null ? this.t('clearResult') : this.describe(value, missingOf(this.pendingMissing ?? this.shownMissing(entry)))) + choice,
         }), item);
-        this.backToFind();
+        this.afterSave(entry.ref);
     }
 
     // ---- Toast + undo ----
@@ -3755,6 +3815,10 @@ export default class extends Controller {
             this.autoOpenToggleTarget.closest('[data-live-results-prefs]').hidden = !this.usesTables();
         }
 
+        if (this.hasScanAfterSaveToggleTarget) {
+            this.scanAfterSaveToggleTarget.checked = this.prefs().scanAfterSave !== false;
+        }
+
         if (this.hasMyTablesInputTarget) {
             this.myTablesInputTarget.value = this.myTables()?.text ?? '';
             this.myTablesInputTarget.classList.remove('is-invalid');
@@ -3771,13 +3835,10 @@ export default class extends Controller {
     closeOverlays({ keepHistory = false } = {}) {
         const wasOpen = !this.sheetTarget.hidden || !this.scannerTarget.hidden;
         this.sheetTarget.hidden = true;
-
-        if (this.stopScan) {
-            this.stopScan();
-            this.stopScan = null;
-        }
-
+        // The camera stays warm for the next scan (released after a while, or when the page is hidden)
+        this.scanSession?.park();
         this.scannerTarget.hidden = true;
+        this.element.classList.remove('lr-scanning');
 
         if (wasOpen && !keepHistory && this.view === 'find') {
             this.releaseHistory();
@@ -3785,29 +3846,77 @@ export default class extends Controller {
         }
     }
 
-    async openScanner() {
+    openScanner() {
         if (!this.ready) {
             return;
         }
 
         this.clearNotice();
+        // A tap on Scan is the judge's own choice - any tag acts, the one saved last too
+        this.scanIgnore = null;
+        this.showScanner(this.t('scanHint'));
+    }
+
+    showScanner(hint) {
         this.scannerTarget.hidden = false;
-        this.scanHintTarget.textContent = this.t('scanHint');
+        // The Saved toast moves to the top while the scanner shows - never over its footer's buttons
+        this.element.classList.add('lr-scanning');
+        this.scanHintTarget.textContent = hint;
         this.claimHistory();
+        this.startScanning();
+    }
 
-        const stop = await startQrScan({
+    startScanning() {
+        this.scanRetryTarget.hidden = true;
+        this.scanSession.scan({
             video: this.videoTarget,
-            onResult: (text) => this.scanned(text),
-            onError: (reason) => {
-                this.scanHintTarget.textContent = this.t(reason === 'decoder' ? 'scanDecoder' : 'scanCamera');
-            },
+            ignore: this.scanIgnore,
+            onCode: (text) => this.scanned(text),
+            onError: (reason) => this.scanFailed(reason),
         });
+    }
 
-        // Closed while the camera was starting
+    scanFailed(reason) {
         if (this.scannerTarget.hidden) {
-            stop();
-        } else {
-            this.stopScan = stop;
+            return;
+        }
+
+        this.scanHintTarget.textContent = this.t(reason === 'decoder' ? 'scanDecoder' : 'scanCamera');
+        this.scanRetryTarget.hidden = false;
+    }
+
+    retryScan() {
+        if (!this.scannerTarget.hidden) {
+            this.scanHintTarget.textContent = this.t('scanHint');
+            this.startScanning();
+        }
+    }
+
+    /**
+     * The camera's state (ScanSession): the Scan button's "camera ready" dot; with the scanner open, a camera turned off
+     * after its idle time closes the scanner, one the browser ended is asked for once more (then "Try again").
+     */
+    scanStateChanged(state, reason) {
+        const warm = state === 'parked' || state === 'scanning';
+
+        if (this.hasScanButtonTarget) {
+            this.scanButtonTarget.classList.toggle('lr-camera-ready', warm);
+            this.scanButtonTarget.setAttribute('aria-label', this.t(warm ? 'scanCameraReady' : 'scanButton'));
+        }
+
+        if (state !== 'cold' || this.scannerTarget.hidden || document.visibilityState !== 'visible') {
+            return;
+        }
+
+        if (reason === 'idle') {
+            this.closeOverlays();
+        } else if (reason === 'ended') {
+            if (Date.now() - this.scanRetriedAt > 5000) {
+                this.scanRetriedAt = Date.now();
+                this.startScanning();
+            } else {
+                this.scanFailed('camera');
+            }
         }
     }
 
@@ -3817,8 +3926,10 @@ export default class extends Controller {
      * round (from this phone's copies of the event's rounds, else the tag's own address picks it).
      */
     async scanned(text) {
-        this.stopScan = null;
         this.scannerTarget.hidden = true;
+        this.element.classList.remove('lr-scanning');
+        // Acted on: the saved tag's ignore is spent (a later wake or retry never re-arms it)
+        this.scanIgnore = null;
         const tag = parseCompetitionTagUrl(text);
         const competitionId = String(this.settings.competitionId ?? '').toLowerCase();
 
@@ -3868,7 +3979,7 @@ export default class extends Controller {
             navigator.vibrate(40);
         }
 
-        this.openEntry(entry.ref);
+        this.openEntry(entry.ref, { scan: { ref: entry.ref, raw: String(text) } });
     }
 
     // ---- Quick add ----

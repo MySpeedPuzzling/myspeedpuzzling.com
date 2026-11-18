@@ -53,6 +53,9 @@
     scanCamera: 'live_results.scan.camera_error'|trans,
     scanDecoder: 'live_results.scan.decoder_error'|trans,
     scanHint: 'live_results.scan.hint'|trans,
+    scanButton: 'live_results.scan.button'|trans,
+    scanCameraReady: 'live_results.scan.camera_ready'|trans,
+    scanSavedNext: 'live_results.scan.saved_next'|trans,
     syncSaved: 'live_results.sync.saved'|trans,
     syncSending: 'live_results.sync.sending'|trans,
     syncSignIn: 'live_results.sync.sign_in'|trans,
@@ -271,7 +274,7 @@
         .lr-confirming .lr-entry-step { display: none !important; }
         .lr-confirm-result { margin: .75rem 0; font-size: 3rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
         .lr-problem { margin: .5rem 0; }
-        .lr-toast { position: fixed; left: .75rem; right: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 1080; display: flex; align-items: center; gap: .75rem; max-width: 38.5rem; margin: 0 auto; padding: .5rem .5rem .5rem 1rem; border-radius: .75rem; background: #212529; color: #fff; box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.25); }
+        .lr-toast { position: fixed; left: .75rem; right: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 1095; display: flex; align-items: center; gap: .75rem; max-width: 38.5rem; margin: 0 auto; padding: .5rem .5rem .5rem 1rem; border-radius: .75rem; background: #212529; color: #fff; box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.25); }
         .lr-toast-text { flex: 1 1 auto; min-width: 0; }
         .lr-toast .btn { min-height: 2.75rem; color: #ffc9c9; font-weight: 600; }
         .lr-overlay { position: fixed; inset: 0; z-index: 1090; display: flex; flex-direction: column; background: var(--bs-body-bg, #fff); overflow-y: auto; }
@@ -279,7 +282,12 @@
         .lr-scanner { background: #000; color: #fff; }
         .lr-scanner .lr-overlay-head { background: rgba(0,0,0,.6); border-color: transparent; }
         .lr-scanner video { flex: 1 1 auto; width: 100%; min-height: 0; object-fit: cover; }
-        .lr-scanner-hint { padding: .75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); text-align: center; }
+        .lr-scanner-foot { padding: .75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); text-align: center; }
+        .lr-scanner-hint { margin-bottom: .75rem; }
+        {# Continuous scanning (judge-speed J4): the camera is warm - the next scan starts at once #}
+        .lr-camera-ready { position: relative; }
+        .lr-scanning .lr-toast { top: calc(3.75rem + env(safe-area-inset-top, 0px)); bottom: auto; }
+        .lr-camera-ready::after { content: ""; position: absolute; top: .25rem; right: .25rem; width: .5rem; height: .5rem; border-radius: 50%; background: #198754; box-shadow: 0 0 0 2px var(--bs-body-bg, #fff); }
         .lr-seg { display: flex; border: 1px solid var(--bs-border-color, #e3e9ef); border-radius: .5rem; overflow: hidden; }
         .lr-seg button { flex: 1 1 0; min-height: 2.75rem; border: 0; background: var(--bs-body-bg, #fff); color: inherit; font-weight: 500; }
         .lr-seg button[aria-pressed="true"] { background: var(--bs-dark, #222934); color: #fff; }
@@ -377,7 +385,7 @@
                        spellcheck="false">
                 <button type="button" class="btn btn-outline-secondary lr-keyboard" data-live-results-target="keyboardToggle" data-action="live-results#toggleKeyboard" hidden
                         aria-label="{{ 'live_results.find.keyboard'|trans }}" title="{{ 'live_results.find.keyboard'|trans }}">{{ 'live_results.find.keyboard_letters'|trans }}</button>
-                <button type="button" class="btn btn-outline-primary" data-action="live-results#openScanner"
+                <button type="button" class="btn btn-outline-primary" data-action="live-results#openScanner" data-live-results-target="scanButton"
                         aria-label="{{ 'live_results.scan.button'|trans }}" title="{{ 'live_results.scan.button'|trans }}">
                     <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
                 </button>
@@ -593,6 +601,13 @@
                 </button>
             </div>
             <div class="lr-section" data-live-results-target="sheetBody"></div>
+            {# Continuous scanning (judge-speed J4) - every round, scanning works without tables #}
+            <div class="lr-section pt-0">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="lr-scan-after-save" data-live-results-target="scanAfterSaveToggle" data-action="change->live-results#toggleScanAfterSave" checked>
+                    <label class="form-check-label small" for="lr-scan-after-save">{{ 'live_results.prefs.scan_after_save'|trans }}</label>
+                </div>
+            </div>
             {# This phone's preferences (localStorage msp.liveResults.prefs) - rounds with table numbers #}
             <div class="lr-section pt-0" data-live-results-prefs hidden>
                 <div class="form-check form-switch">
@@ -620,7 +635,13 @@
                 </button>
             </div>
             <video data-live-results-target="video" muted playsinline></video>
-            <p class="lr-scanner-hint mb-0" data-live-results-target="scanHint" aria-live="polite">{{ 'live_results.scan.hint'|trans }}</p>
+            <div class="lr-scanner-foot">
+                <p class="lr-scanner-hint" data-live-results-target="scanHint" aria-live="polite">{{ 'live_results.scan.hint'|trans }}</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <button type="button" class="btn btn-light" data-live-results-target="scanRetry" data-action="live-results#retryScan" hidden>{{ 'live_results.scan.retry'|trans }}</button>
+                    <button type="button" class="btn btn-outline-light" data-action="live-results#closeOverlays">{{ 'live_results.scan.type_instead'|trans }}</button>
+                </div>
+            </div>
         </div>
 
     </div>

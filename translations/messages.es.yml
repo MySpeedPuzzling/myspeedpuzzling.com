@@ -4881,6 +4881,10 @@ live_results:
     decoder_error: "Este navegador no puede leer códigos QR: escribe la mesa o el nombre."
     unknown_person: "La persona de esta acreditación no es (ya) participante de este evento: búscala por nombre o añádela."
     no_rounds: "Este evento aún no tiene rondas: añade una ronda para introducir resultados."
+    type_instead: "Escribir una mesa"
+    saved_next: "Guardado: apunta a la siguiente acreditación"
+    camera_ready: "Escanear: cámara lista"
+    retry: "Reintentar"
   recent:
     title: "Entradas recientes"
     empty: "Los resultados introducidos en cualquier dispositivo aparecen aquí."
@@ -5019,6 +5023,7 @@ live_results:
     no_worker: "Esta app no puede reabrir la página sin conexión: mantenla abierta o usa el navegador."
   prefs:
     auto_open_table: "Abrir una mesa en cuanto ningún otro número de mesa empiece por lo escrito (en este móvil)"
+    scan_after_save: "Tras guardar, escanear la siguiente acreditación"
   my_tables:
     label: "Mis mesas"
     placeholder: "p. ej. 1-20, 41-45"

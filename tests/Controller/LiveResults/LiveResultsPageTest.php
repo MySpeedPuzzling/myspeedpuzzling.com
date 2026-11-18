@@ -114,6 +114,17 @@ final class LiveResultsPageTest extends WebTestCase
         self::assertCount(1, $root->filter('[data-live-results-prefs] [data-live-results-target="myTablesInput"]'));
         self::assertSame('My tables %tables%', $messages['myTablesChip']);
         self::assertSame(['message' => '{1}+ 1 at another table|[0,Inf[+ %count% at other tables', 'locale' => 'en'], $plurals['otherTables']);
+
+        // Continuous scanning (judge-speed J4): the switch on every round (outside the tables-only preferences), Try
+        // again hidden until the camera fails, "Type a table instead" on the scanner, the texts the controller writes
+        self::assertCount(1, $root->filter('[data-live-results-target="scanAfterSaveToggle"]'));
+        self::assertCount(0, $root->filter('[data-live-results-prefs] [data-live-results-target="scanAfterSaveToggle"]'));
+        self::assertCount(1, $root->filter('[data-live-results-target="scanner"] [data-live-results-target="scanRetry"][hidden]'));
+        self::assertCount(1, $root->filter('[data-live-results-target="scanner"] [data-action="live-results#closeOverlays"]:not(.lr-icon-btn)'));
+        self::assertCount(1, $root->filter('[data-live-results-target="scanButton"][data-action="live-results#openScanner"]'));
+        self::assertSame('Saved - point at the next tag', $messages['scanSavedNext']);
+        self::assertSame('Scan - camera ready', $messages['scanCameraReady']);
+        self::assertSame('Scan a name tag', $messages['scanButton']);
     }
 
     public function testTheStateFillsThePageWithTheRoundsAndTheReader(): void

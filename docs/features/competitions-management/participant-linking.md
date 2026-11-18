@@ -1021,3 +1021,38 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   (generate missing, read again - the OnlineLinkList pattern), `GetParticipantClaimLinks` (1 statement).
 - Not here: e-mail invitations and the `email` column (L4b), bulk "Download claim links" of a selection, the phone
   list's/person editor's claim actions (the desktop row menu only), `hasClaimLink` in the sheet state.
+
+### L3 - find yourself fast (2026-11-18)
+
+- **"Is this you?" card** (§6.1): `GetEventAttendance::forEvent(…, withClaimMatch: true, focusParticipantId:)` from the event
+  and edition pages adds one lateral `claim_match` to its existing statement (+0): active unlinked going participants
+  whose name key equals the viewer's (`GetCompetitionParticipants::sqlNameKey()` - the join page's own SQL key, so the card
+  and the join page always agree; no `ParticipantNameKey::sql()` twin was needed) with a compatible country, no refused
+  pair, the player under `REFUSALS_UNTIL_NO_MORE_CLAIMS`; counted, the card only for exactly one. Only of a publicly
+  visible event, for a signed-in viewer not going and without a pending request (`EventAttendance::$claimCandidate`,
+  `ParticipantClaimCandidate` - the organiser's record only). `_event_claim_card.html.twig` replaces "I'm going" (managed:
+  above the registration card, the picker form with `REGISTER_CSRF_PREFIX`, the release notice / `release_paid` box of the
+  join page for a self-joined waitlisted viewer): [Yes, that's me] = the join POST `participant_id` (open → linked,
+  approval → the waiting state), [No - I'm going as myself] = `self_join` (managed: only while open and not full - the
+  registration card offers the waitlist), "Find my name on the list" = `join_competition?participant=<id>`. The header's
+  "I'm going" links to `#taking-part` while the card shows.
+- **Several matches**: no card; the join page says "N people on the list are called X - pick yours."
+  (`matchNotConnectedParticipantsByName()` - id + count in one statement, replacing the old `LIMIT 2` one).
+- **R11 kept**: the open-policy GET still links a unique name match; no new GET entry point links.
+- **`?participant=` on the join page** (§6.3, R12): pre-selected only when active, going, unlinked and of this event
+  (`GetCompetitionParticipants::isPickable()`, 1 statement only when the parameter is there), else ignored; never links on
+  the GET, whatever the policy.
+- **Participants list "This is me"** (§6.3): `CompetitionParticipants::$viewerMayClaim` (the page passes it from
+  `EventAttendance`, no statement) → a link per unlinked name to the join page with it pre-selected.
+- **Competitor page "This is me"** (§6.4, R9): `CompetitorPageView::$claimable` from the entries statement (+0) - the
+  header's unlinked people of a person (`p`) or line-up (`g`) tag for a signed-in viewer who is not on it (never a guest,
+  a table, an entry tag or a draft); `<details>` confirm → POST `claim_participant`
+  (`ClaimParticipantController`, `/en/claim-participant/{cid}/{pid}`, CSRF `participant-claim-<cid>`, limiter
+  `participant_claim`) → `ClaimParticipant` (the handler decides: linked / requested / dispute / ask the organiser / the
+  switch from the viewer's own row) → 303 + flash back to that competitor page (a paid own registration → the join page
+  with the name pre-selected). JSON `competitor_state` unchanged. `found_via` / `?via=tag` cut (R10).
+- **Scan landing, competitor pages off** (§6.4): `CompetitionTagLanding` sends a signed-in scanner who enters no results,
+  of a person tag nobody is linked to, who is not going (`GetScanClaimTarget`, 1 statement only then), to the event page
+  `?participant=<id>#taking-part` → the card for that person (name not required, same going filter). The golden
+  `live-results-scan-matrix.txt` is unchanged: its puzzler is going at the Results Cup (Hugo) - `ScanClaimLandingTest`
+  pins the new branch.

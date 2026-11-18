@@ -148,6 +148,12 @@ final class DraftCanaryTest extends WebTestCase
         // The analytics studio link of a round (analytics-studio.md §8, S4): its team sees the draft's page, never the link
         yield 'event page (team) - analytics studio link of a draft' => [...$draftNight, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG, PlayerFixture::PLAYER_WITH_STRIPE, '/analytics-studio/main-round'];
 
+        // "Is this you?" of a scanned name tag (participant-linking.md §6.4, `?participant=`): its team sees the draft's page,
+        // never the card - nobody joins or claims a draft
+        yield 'event page (team) - "Is this you?" card of a draft' => [...$draftNight, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '?participant=018d0042-0000-0000-0000-0000000c1a1e', PlayerFixture::PLAYER_WITH_STRIPE, 'data-participant-claim-card', null, [
+            "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES ('018d0042-0000-0000-0000-0000000c1a1e', 'Nora Nightowl', 'cz', '" . OrganizationFixture::COMPETITION_DRAFT_NIGHT . "', 'imported')",
+        ]];
+
         yield 'sitemap - draft one-time event' => [...$draftNight, self::SITEMAP, null, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '<'];
         yield 'sitemap - draft edition' => [...$lanternDraft, self::SITEMAP, null, '/' . OrganizationFixture::EDITION_LANTERN_DRAFT_SLUG . '<'];
         yield 'sitemap - draft series and its editions' => [...$quietPines, self::SITEMAP, null, OrganizationFixture::SERIES_QUIET_PINES_DRAFT_SLUG];

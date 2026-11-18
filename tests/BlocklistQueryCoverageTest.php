@@ -53,6 +53,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetCompetitionLineupTags' => self::ORGANISER,
         'GetRoundEntryTags' => self::ORGANISER,
         'GetCompetitionParticipantsForManagement' => self::ORGANISER,
+        'GetEventAttendance' => 'The "Is this you?" match (participant-linking.md §6.1, §8.3) reads only the viewer\'s own player row (name and country) - the candidates are the organiser\'s participant records, no other player\'s identity.',
+        'GetScanClaimTarget' => 'A scanned name tag\'s "Is this you?" (participant-linking.md §6.4): whether the scanner\'s own player is going - returns a boolean, no other player.',
         'GetCompetitionReferees' => self::ORGANISER,
         'GetLiveResultsEventPeople' => self::ORGANISER,
         'GetCompetitionSeries' => 'The organiser\'s name is part of a public event, not a player listing.',

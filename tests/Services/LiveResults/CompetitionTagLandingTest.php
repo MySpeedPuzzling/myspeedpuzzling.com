@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\LiveResults;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use SpeedPuzzling\Web\Query\GetScanClaimTarget;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\CompetitionTagLanding;
@@ -17,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Value\CompetitionLineupId;
 use SpeedPuzzling\Web\Value\CompetitionTag;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -87,6 +89,8 @@ final class CompetitionTagLandingTest extends KernelTestCase
             $container->get(UrlGeneratorInterface::class),
             $container->get(RequestStack::class),
             $container->get(TranslatorInterface::class),
+            $container->get(Security::class),
+            $container->get(GetScanClaimTarget::class),
         );
 
         $response = $landing->redirect($competitionId, $tag, $locale);

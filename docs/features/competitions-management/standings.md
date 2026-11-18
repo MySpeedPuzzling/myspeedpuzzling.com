@@ -392,6 +392,13 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §4.3; A-round-form
   (`public_standing_state`) rows gain `stage`, `stageName`, `stageRoundId`, `stageRank`, `qualifiedForStage` and the
   standing `numberedAcrossStages` - only for `stages` (a sum's JSON unchanged); the displays' `standings` element rows
   `stage`, `stageName` ("✓ " in front for a "qualified for" row - the renderer's `stage` column) and `stageRank`.
+  **Displays (v2 S5b):** the display standing adds `stages: {classified, total, numbered}` (snapshot keys
+  `stagesClassified` / `stagesTotal`, `stages` only) and the text `standingStagesOf`; `assets/displays/render.js` shows
+  a `stages` standing as the public page does - the place = `rank` when numbered, else `stageRank` ("–" for a
+  qualified row), the podium in the last stage only, "(n.)" = the round place under the result when numbered, no
+  column per round, no "x of y rounds" under a name, the subtitle "after 1 of 2 stages" (final: "Final - all N rounds"
+  like the public page), each stage named on its first row when the `stage` column is off. A sum renders as before
+  (`display-render-harness.mjs` stages scenarios, `DisplayStandingsTest::testAStagesStandingCarriesItsStagesAndEachRowsStagePlace`).
 - **Live:** `GetCompetitionStandingsPresence` counts every round of a published `stages` standing's category (its round
   list is empty) - a round of the category outside the bracket only costs a needless generation. Sitemap: a `stages`
   standing with a published round of its category.

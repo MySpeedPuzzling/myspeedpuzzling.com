@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
-use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
@@ -14,7 +12,6 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -22,7 +19,8 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
  * Changes only the fields sent. The round's slug never changes (shared result links keep working). A category change
- * that would put one of its puzzles into two rounds of the same category is refused (409).
+ * may make the round share a puzzle with another round of the new category - accepted, the answer's `sharedWithRounds`
+ * says so per puzzle.
  *
  * Any change that moves the round's automatic reveal (start + `revealDelayMinutes`) EARLIER - by the start, the delay or
  * both, the net moment decides - lets its secret puzzles with an automatic reveal out earlier than planned: refused
@@ -60,38 +58,28 @@ final class UpdateCompetitionRoundController extends AbstractController
 
         assert($data->name !== null && $data->minutesLimit !== null && $data->timezone !== null);
 
-        try {
-            $this->messageBus->dispatch(new EditCompetitionRound(
-                roundId: $round->id->toString(),
-                competitionId: $round->competition->id->toString(),
-                name: $data->name,
-                minutesLimit: $data->minutesLimit,
-                startsAt: $startsAt,
-                timezone: $data->timezone,
-                badgeBackgroundColor: $data->badgeBackgroundColor,
-                badgeTextColor: $data->badgeTextColor,
-                category: $data->category,
-                resultsLink: $data->resultsLink,
-                // An automatic reveal moved earlier (start and/or delay) needs an explicit yes (409 otherwise)
-                refuseToReveal: $confirmReveal === false,
-                // What the body leaves out is kept as the round has it under the handler's lock - the values above
-                // for those fields were read before it and are ignored
-                keepFields: self::keptFields($input),
-                // Left out = null = the round's delay as it is under the handler's lock
-                revealDelayMinutes: $input->has('revealDelayMinutes') ? $data->revealDelayMinutes : null,
-                // Left out = kept as the round has it under the handler's lock; `null` takes it away
-                teamSize: $input->has('teamSize') ? $data->teamSize : null,
-                clearTeamSize: $input->has('teamSize') && $data->teamSize === null,
-            ));
-        } catch (HandlerFailedException $exception) {
-            $previous = $exception->getPrevious();
-
-            if ($previous instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                throw new PuzzleInTwoRoundsOfCategory($data->category->value, $previous->conflictingRoundName, $exception);
-            }
-
-            throw $exception;
-        }
+        $this->messageBus->dispatch(new EditCompetitionRound(
+            roundId: $round->id->toString(),
+            competitionId: $round->competition->id->toString(),
+            name: $data->name,
+            minutesLimit: $data->minutesLimit,
+            startsAt: $startsAt,
+            timezone: $data->timezone,
+            badgeBackgroundColor: $data->badgeBackgroundColor,
+            badgeTextColor: $data->badgeTextColor,
+            category: $data->category,
+            resultsLink: $data->resultsLink,
+            // An automatic reveal moved earlier (start and/or delay) needs an explicit yes (409 otherwise)
+            refuseToReveal: $confirmReveal === false,
+            // What the body leaves out is kept as the round has it under the handler's lock - the values above
+            // for those fields were read before it and are ignored
+            keepFields: self::keptFields($input),
+            // Left out = null = the round's delay as it is under the handler's lock
+            revealDelayMinutes: $input->has('revealDelayMinutes') ? $data->revealDelayMinutes : null,
+            // Left out = kept as the round has it under the handler's lock; `null` takes it away
+            teamSize: $input->has('teamSize') ? $data->teamSize : null,
+            clearTeamSize: $input->has('teamSize') && $data->teamSize === null,
+        ));
 
         // After the commit (competition toolkit D5)
         $this->displayLiveUpdates->roundChanged($round->id->toString());

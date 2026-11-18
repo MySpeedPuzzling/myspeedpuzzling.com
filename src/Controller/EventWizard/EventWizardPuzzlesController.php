@@ -9,7 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRound;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
@@ -26,7 +26,6 @@ use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\SetUpEventWizardPuzzles;
 use SpeedPuzzling\Web\Message\SetUpEventWizardRound;
-use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\GetRoundPuzzlesForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -69,8 +68,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * One submit for the whole grid, one transaction (SetUpEventWizardPuzzles = W1's SetUpEventWizardRound per row). Checked
  * up front, said on the row - never a 500, never half written:
- * - the one-puzzle-per-category invariant (PuzzleAlreadyInCompetitionRoundCategory, pain 9): the same puzzle in two
- *   rounds of one category - chosen twice on the grid or already in another round;
+ * - a round lists each puzzle once (PuzzleAlreadyInCompetitionRound): chosen twice on one row, or already in that round.
+ *   Rounds of one category may share a puzzle (shared-puzzles-and-divisions.md - a solving time's round then follows
+ *   from each player's entry); the grid says so under a saved puzzle ("Same puzzle as …");
  * - the secret puzzle contract of W1's step, per row: the round's automatic reveal the page showed travels with the form
  *   (`automatic_reveal_at[<round id>]`) and a secret puzzle is added only while the round still has it; another
  *   organiser's secret puzzle is refused (SecretPuzzleAccess);
@@ -92,7 +92,6 @@ final class EventWizardPuzzlesController extends AbstractController
         private readonly CompetitionRepository $competitionRepository,
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetRoundPuzzlesForManagement $getRoundPuzzlesForManagement,
-        private readonly GetCompetitionRounds $getCompetitionRounds,
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
         private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
@@ -123,7 +122,7 @@ final class EventWizardPuzzlesController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
-            $this->checkUpFront($form, $request, $competitionId, $rounds);
+            $this->checkUpFront($form, $request, $rounds);
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -210,17 +209,15 @@ final class EventWizardPuzzlesController extends AbstractController
 
     /**
      * The checks that need the rounds as they are now - added as row errors, so the form is invalid and nothing is
-     * written: the one-puzzle-per-category invariant, a moved automatic reveal of a row with a secret puzzle, another
+     * written: a puzzle twice in one round, a moved automatic reveal of a row with a secret puzzle, another
      * organiser's secret puzzle (refused outright), K out of range.
      *
      * @param FormInterface<EventWizardPuzzlesFormData> $form
      * @param list<CompetitionRound> $rounds
      */
-    private function checkUpFront(FormInterface $form, Request $request, string $competitionId, array $rounds): void
+    private function checkUpFront(FormInterface $form, Request $request, array $rounds): void
     {
         $data = $form->getData();
-        /** @var array<string, string> $chosenIn "category puzzle" => the round it was chosen for on this grid */
-        $chosenIn = [];
 
         foreach ($rounds as $round) {
             $roundId = $round->id->toString();
@@ -234,6 +231,9 @@ final class EventWizardPuzzlesController extends AbstractController
             $existing = $this->getRoundPuzzlesForManagement->ofRound($roundId);
             $existingIds = array_map(static fn ($puzzle): string => strtolower($puzzle->puzzleId), $existing);
 
+            /** @var array<string, true> $inRound the round's puzzles - saved, or chosen on an earlier slot of the row */
+            $inRound = array_fill_keys($existingIds, true);
+
             foreach ($row->puzzles as $index => $slot) {
                 $puzzleId = $slot->catalogueId();
 
@@ -244,19 +244,16 @@ final class EventWizardPuzzlesController extends AbstractController
                 // Another organiser's secret puzzle is not theirs to use (the picker never offers it)
                 $this->secretPuzzleAccess->assertVisible($puzzleId, alsoWhileImageHidden: true);
 
-                $key = $round->category->value . ' ' . $puzzleId;
-                $conflict = $chosenIn[$key] ?? (in_array($puzzleId, $existingIds, true) ? $round->name : null)
-                    ?? $this->getCompetitionRounds->roundWithPuzzleInCategory($competitionId, [$puzzleId], $round->category);
-
-                if ($conflict !== null) {
-                    $rowForm->get('puzzles')->get((string) $index)->get('puzzle')->addError(new FormError($this->translator->trans('event_wizard.puzzles.same_puzzle_in_category', [
-                        '%round%' => $conflict,
+                // A round lists each puzzle once - another row of the same category may have it (shared puzzles)
+                if (isset($inRound[$puzzleId])) {
+                    $rowForm->get('puzzles')->get((string) $index)->get('puzzle')->addError(new FormError($this->translator->trans('competition.round_puzzles.already_in_round', [
+                        '%round%' => $round->name,
                     ])));
 
                     continue;
                 }
 
-                $chosenIn[$key] = $round->name;
+                $inRound[$puzzleId] = true;
             }
 
             $chosen = count($row->chosen());
@@ -446,9 +443,9 @@ final class EventWizardPuzzlesController extends AbstractController
      */
     private function explain(\Throwable $failure, FormInterface $form): bool
     {
-        $inCategory = EventWizardRefusal::find($failure, PuzzleAlreadyInCompetitionRoundCategory::class);
-        if ($inCategory !== null) {
-            $form->addError(new FormError($this->translator->trans('event_wizard.puzzles.same_puzzle_in_category', ['%round%' => $inCategory->conflictingRoundName])));
+        $inRound = EventWizardRefusal::find($failure, PuzzleAlreadyInCompetitionRound::class);
+        if ($inRound !== null) {
+            $form->addError(new FormError($this->translator->trans('competition.round_puzzles.already_in_round', ['%round%' => $inRound->roundName])));
 
             return true;
         }

@@ -9,7 +9,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\FormData\PastPuzzlesFormData;
 use SpeedPuzzling\Web\FormType\PastPuzzlesFormType;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
@@ -22,7 +21,6 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardDefaults;
-use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardSteps;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -31,22 +29,19 @@ use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The backfill path's "What did you solve there?" (docs/features/competitions-management/creation-wizard.md
  * "Backfill"): rows of solo / pairs / teams + puzzle (W1's picker - a catalogue puzzle or a new one), and the rounds are
- * made from them - one round per row (the one-round-per-category-per-puzzle invariant), on the event's day with its
+ * made from them - one round per row (a puzzle listed twice for one category is one round), on the event's day with its
  * start time not known (noon in the event's zone, pages show no time), no time limit, named after its category (+ the
  * puzzle when the event has more than one round of that category). One transaction (SetUpPastEventRounds). A row whose
  * puzzle already is in a round of its category is left out (a resent page creates nothing twice). Nothing filled =
@@ -66,7 +61,6 @@ final class EventWizardPastPuzzlesController extends AbstractController
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
         private readonly EventWizardDefaults $defaults,
         private readonly MessageBusInterface $messageBus,
-        private readonly TranslatorInterface $translator,
         private readonly RoundPuzzleFormType $roundPuzzleFormType,
         private readonly ClockInterface $clock,
     ) {
@@ -98,19 +92,7 @@ final class EventWizardPastPuzzlesController extends AbstractController
             $message = $this->message($form->getData(), $competition, $rounds, $user->getUserIdentifier());
 
             if ($message->rounds !== []) {
-                try {
-                    $this->messageBus->dispatch($message);
-                } catch (HandlerFailedException $failure) {
-                    $conflict = EventWizardRefusal::find($failure, PuzzleAlreadyInCompetitionRoundCategory::class);
-
-                    if ($conflict === null) {
-                        throw $failure;
-                    }
-
-                    $form->addError(new FormError($this->translator->trans('event_wizard.puzzles.same_puzzle_in_category', ['%round%' => $conflict->conflictingRoundName])));
-
-                    return $this->page($form, $competitionId, $this->competitionRoundRepository->ofCompetition($this->competitionRepository->get($competitionId)));
-                }
+                $this->messageBus->dispatch($message);
             }
 
             return $this->redirectToRoute('event_wizard_link_results', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);

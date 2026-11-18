@@ -12,7 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRound;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
@@ -315,10 +315,10 @@ final class EventWizardPuzzleController extends AbstractController
      */
     private function explain(\Throwable $failure, FormInterface $form, CompetitionRound $round): bool
     {
-        $inCategory = EventWizardRefusal::find($failure, PuzzleAlreadyInCompetitionRoundCategory::class);
-        if ($inCategory !== null) {
-            $form->get('puzzle')->addError(new FormError($this->translator->trans('competition.round.form.puzzle_already_in_category', [
-                '%round%' => $inCategory->conflictingRoundName,
+        $inRound = EventWizardRefusal::find($failure, PuzzleAlreadyInCompetitionRound::class);
+        if ($inRound !== null) {
+            $form->get('puzzle')->addError(new FormError($this->translator->trans('competition.round_puzzles.already_in_round', [
+                '%round%' => $inRound->roundName,
             ])));
 
             return true;

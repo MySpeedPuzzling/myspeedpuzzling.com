@@ -8,6 +8,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 
 readonly final class AdminRoundPuzzle
 {
+    /**
+     * @param list<string> $sharedWithRounds
+     */
     public function __construct(
         public string $roundPuzzleId,
         public bool $hideUntilRoundStarts,
@@ -22,6 +25,8 @@ readonly final class AdminRoundPuzzle
         // of its place - effectiveLabel in the JSON)
         public int $position = 0,
         public null|string $label = null,
+        // Other rounds of the competition in the same category with this puzzle (shared puzzles), by start
+        public array $sharedWithRounds = [],
     ) {
     }
 
@@ -41,6 +46,7 @@ readonly final class AdminRoundPuzzle
             'position' => $this->position,
             'label' => $this->label,
             'effectiveLabel' => RoundPuzzleLabel::effective($this->label, $this->position),
+            'sharedWithRounds' => $this->sharedWithRounds,
         ];
     }
 }

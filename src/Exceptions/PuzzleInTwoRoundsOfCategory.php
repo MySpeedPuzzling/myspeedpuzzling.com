@@ -7,15 +7,17 @@ namespace SpeedPuzzling\Web\Exceptions;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * The internal API's answer to a change that would put a puzzle into two rounds of one category of a competition -
- * the invariant behind round results (PuzzleAlreadyInCompetitionRoundCategory is the handlers' own exception).
+ * A round move (MoveRoundToCompetition) refused: the target competition has one of the round's puzzles in a round of
+ * the same category already. Rounds of one category may share a puzzle otherwise (a solving time's round then follows
+ * from each player's entry - shared-puzzles-and-divisions.md), but a moved round has no entries, so its times would be
+ * re-derived there by weaker evidence than they have now.
  */
 final class PuzzleInTwoRoundsOfCategory extends ConflictHttpException
 {
     public function __construct(string $category, string $conflictingRoundName, null|\Throwable $previous = null)
     {
         parent::__construct(sprintf(
-            'A puzzle can be in only one %s round of a competition - one of them is already in round "%s". Nothing was changed.',
+            'The target already has one of these puzzles in its %s round "%s" - a moved round would share it with that round. Nothing was changed.',
             $category,
             $conflictingRoundName,
         ), $previous);

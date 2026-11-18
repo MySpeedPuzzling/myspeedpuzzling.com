@@ -66,9 +66,10 @@ explicit `action:` in frames).
    page, seating per round, table layout (admin only). A new organiser cannot tell what exists or what is "on".
 8. **The add form shows 17 fields to everybody**; registration/results links are irrelevant once managed registration
    or official results are used; shortcut, eligibility, event types and maintainers are rarely needed at creation.
-9. **The one-round-per-category invariant** (`PuzzleAlreadyInCompetitionRoundCategory`): the same puzzle cannot be in
-   two solo rounds of one event. A "groups solve the same puzzle" set-up has to be modelled differently (one round with
-   seating groups, or different puzzles) - a wizard must know this instead of failing at the last step.
+9. **The one-round-per-category invariant** (`PuzzleAlreadyInCompetitionRoundCategory`): the same puzzle could not be
+   in two solo rounds of one event. **Lifted 2026-11 (shared puzzles, S2 of `../shared-puzzles-and-divisions.md`):**
+   rounds of one category may share a puzzle - a solving time's round then follows from each player's entry, else the
+   player chooses it; the grid says "Same puzzle as <round>".
 
 ### 1.3 Step / click counts today (4 scenarios)
 
@@ -320,7 +321,8 @@ Template "Every round counts" (S4):
   desk action of today; `CreateCompetitionStanding` per category (the "one per category" preset logic of
   `CreateStandingsPerCategoryController`).
 - Same-puzzle groups (pain 9): if the organiser says "all groups solve the same puzzle", the wizard proposes *one round
-  with seating groups* instead, or explains the rule - to be validated with organisers (Q3).
+  with seating groups* instead, or explains the rule - to be validated with organisers (Q3). *(2026-11: rounds of one
+  category may share a puzzle now - S2.)*
 
 **As built (W5, 2026-11-17):**
 - Path: a draft without any round (not an edition) is on the several-rounds path (`EventWizardPath::of()`) - the
@@ -363,7 +365,7 @@ transaction); per row W1's picker (brand + puzzle autocomplete, the brands hande
 "+ another puzzle" (up to 4 pickers per submit through `<template>`s; without JavaScript, or after the fourth, it saves
 and comes back to the row), "each competitor solves K" (toolkit or a round already `pick`; empty = all), "Change for
 this round" (as above / not secret / a reveal). Checked up front as row errors (422, nothing written): the same puzzle
-twice in one category (chosen twice or already in a round), the automatic reveal shown (`automatic_reveal_at[<round>]`)
+twice in one round (chosen twice on its row or already in it - other rows of the category may share it since S2), the automatic reveal shown (`automatic_reveal_at[<round>]`)
 vs the round's now, K above the round's puzzles; another organiser's secret puzzle refused (`SecretPuzzleAccess`).
 Done when every round has a puzzle.
 
@@ -480,7 +482,7 @@ Toolkit rows are shown only for whom `COMPETITION_TOOLKIT_MANAGE` grants, exactl
 | Basics | `AddCompetition` / `AddCompetitionSeries` (`isDraft: true`), later `EditCompetition` / `EditCompetitionSeries` | draft = wizard state; no admin e-mail until publish |
 | Puzzle & format | `AddCompetitionRoundWithPuzzles` (exists) or composite of `AddCompetitionRound` + `AddPuzzleToCompetitionRound` + `ChangeRoundPuzzleReveal` + `EditCompetitionRound` | composite handler = one transaction like `AddCompetitionRoundWithPuzzles` |
 | Structure | `AddCompetitionRound` × n, `CreateCompetitionAdvancementStep` × stages-1, `CreateCompetitionStanding` × categories | re-entering the step after rounds exist edits (`EditCompetitionRound`, `DeleteCompetitionRound`) - only while no entries/results |
-| Puzzles | `SetCompetitionRoundPuzzles` (whole list per round, invariant checked first) for plain ones, `AddPuzzleToCompetitionRound` for secret/new ones, `ChangeRoundPuzzleReveal` | `shownAutomaticRevealAt` must be the moment the wizard showed - the existing safety contract |
+| Puzzles | `SetCompetitionRoundPuzzles` (whole list per round) for plain ones, `AddPuzzleToCompetitionRound` for secret/new ones, `ChangeRoundPuzzleReveal` | `shownAutomaticRevealAt` must be the moment the wizard showed - the existing safety contract |
 | Dates + round | `AddEditions` + `AddCompetitionRound` per edition | idempotent ids from the preview |
 | Extras | `ChangeCompetitionRegistrationSettings`, `AddCompetitionReferee`, `ChangeCompetitorPageSettings`, `AddCompetitionDisplay`, `CreateCompetitionStanding` | each only when switched on |
 | Review | `PublishCompetition` / `PublishCompetitionSeries` | |
@@ -504,7 +506,7 @@ No new entity, column or table is required for v1. Resume needs no storage: the 
 | **Translations ×6**: estimate 150-200 new keys (steps, templates, toggles, checklist, help) | English while building, all 6 locales before the PR (CLAUDE.md); avoid fixed words listed in `.claude/rules/translations.md` (never "rival", say "needs verification"); plural keys tested like `OnlinePluralMessagesTest` |
 | **Mobile**: schedule tables and stage builder at 375 px | stack rows into cards on phones, one stage per card, date/time native-feel pickers; browser walk at 375/768/1280 in 6 locales (button overflow recipe from memory) |
 | Turbo: multi-step full-page POSTs | each step redirects (303) to the next step URL, 422 on errors; no 200 answers |
-| Same-puzzle invariant breaks a template | Structure step validates before writing (`PuzzleAlreadyInCompetitionRoundCategory` checked up front) and explains |
+| Same-puzzle invariant breaks a template | Gone since S2 (2026-11): rounds of one category may share a puzzle |
 | Series edition dated by its rounds vs edition dates | round start always derived from the edition date + start time, never typed twice |
 | Scope creep into a "settings editor" | wizard creates; deep editing (display editor, seating, advancement edge cases) stays on existing pages |
 

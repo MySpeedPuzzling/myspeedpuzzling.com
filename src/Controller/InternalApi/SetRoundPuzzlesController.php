@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
-use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetAdminPuzzles;
@@ -14,14 +12,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 
 /**
- * The round's puzzles become exactly `puzzleIds` (SetCompetitionRoundPuzzles): one round per category per puzzle per
- * competition, else 409 and nothing changes. New puzzles are attached unhidden, so a hidden puzzle is refused (409);
+ * The round's puzzles become exactly `puzzleIds` (SetCompetitionRoundPuzzles). Another round of the same category may
+ * have the same puzzle (shared puzzles - the answer names those rounds per puzzle, `sharedWithRounds`; a solving time's
+ * round then follows from each player's entry). New puzzles are attached unhidden, so a hidden puzzle is refused (409);
  * removing a secret puzzle needs `"confirmReveal": true` (409, `revealedPuzzles`) only when that reveals it right away
  * - another round has revealed it already; one no other round holds stays hidden (its hide dates are kept).
  */
@@ -57,21 +55,11 @@ final class SetRoundPuzzlesController extends AbstractController
             throw new NotFoundHttpException(sprintf('Unknown puzzle ids: %s.', implode(', ', $unknownPuzzleIds)));
         }
 
-        try {
-            $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
-                roundId: $round->roundId,
-                puzzleIds: $puzzleIds,
-                refuseToReveal: $confirmReveal === false,
-            ));
-        } catch (HandlerFailedException $exception) {
-            $previous = $exception->getPrevious();
-
-            if ($previous instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                throw new PuzzleInTwoRoundsOfCategory($round->category, $previous->conflictingRoundName, $exception);
-            }
-
-            throw $exception;
-        }
+        $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
+            roundId: $round->roundId,
+            puzzleIds: $puzzleIds,
+            refuseToReveal: $confirmReveal === false,
+        ));
 
         // After the commit (competition toolkit D5)
         $this->displayLiveUpdates->puzzlesChanged($round->roundId);

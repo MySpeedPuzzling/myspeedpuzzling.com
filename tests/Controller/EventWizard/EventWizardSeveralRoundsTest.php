@@ -22,7 +22,7 @@ use Symfony\Component\DomCrawler\Form;
  * W-creation-wizard-research.md §3.1, §3.5, §3.6, §3.9): the entry's follow-up question, Basics without a round,
  * Structure (templates whose rounds the organiser schedules, schedule table, read-only once entries exist, the toolkit's
  * advancement steps and standings),
- * the Puzzles grid (secret switch, the one-puzzle-per-category invariant, pick K) and Review.
+ * the Puzzles grid (secret switch, shared puzzles, a puzzle once per round, pick K) and Review.
  */
 final class EventWizardSeveralRoundsTest extends WebTestCase
 {
@@ -401,33 +401,46 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertFalse($this->database()->fetchOne('SELECT is_draft FROM competition WHERE id = :id', ['id' => $competitionId]));
     }
 
-    public function testTheSamePuzzleInTwoSoloRoundsIsARowErrorAndNothingIsWritten(): void
+    public function testTheSamePuzzleInTwoSoloRoundsIsSharedAndTheGridSaysSo(): void
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
         $competitionId = $this->startDraftWithRounds([]);
-        $ids = $this->roundIds($competitionId);
+        $rounds = $this->rounds($competitionId);
+        $ids = array_column($rounds, 'id');
 
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
         // The stopwatch reveal is offered to every organiser (no toolkit flag)
         self::assertSelectorExists('input[name="event_wizard_puzzles[revealMode]"][value="stopwatch"]');
 
-        $crawler = $this->submitGrid($crawler, [], [
+        // Rounds of one category may share a puzzle (shared-puzzles-and-divisions.md S2) - chosen on two rows of the grid
+        $this->submitGrid($crawler, [], [
             $ids[0] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]],
             $ids[1] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_02]],
             $ids[2] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]],
         ]);
-        self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('This puzzle is already in Group A', $crawler->filter('#round-' . $ids[2])->text());
-        self::assertSame(0, $this->puzzlesCount($competitionId));
-
-        // Already in a round of the event: refused the same way
-        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
-        $this->submitGrid($crawler, [], [$ids[0] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]]]);
         self::assertResponseRedirects();
+        self::assertSame(3, $this->puzzlesCount($competitionId));
+
+        // The grid names the other round under each saved copy
         $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
-        $this->submitGrid($crawler, [], [$ids[3] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]]]);
+        self::assertStringContainsString('Same puzzle as ' . $rounds[2]['name'], $crawler->filter('#round-' . $ids[0] . ' [data-event-wizard-puzzles-shared]')->text());
+        self::assertStringContainsString('Same puzzle as ' . $rounds[0]['name'], $crawler->filter('#round-' . $ids[2] . ' [data-event-wizard-puzzles-shared]')->text());
+        self::assertCount(0, $crawler->filter('#round-' . $ids[1] . ' [data-event-wizard-puzzles-shared]'));
+
+        // Still one copy per round: the puzzle again on a row that has it is a row error, nothing written
+        $crawler = $this->submitGrid($crawler, [], [$ids[0] => [[ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_01]]]);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame(1, $this->puzzlesCount($competitionId));
+        self::assertStringContainsString('This puzzle is already in ' . $rounds[0]['name'], $crawler->filter('#round-' . $ids[0])->text());
+
+        // ...and so is the same puzzle twice on one row
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
+        $crawler = $this->submitGrid($crawler, [], [$ids[3] => [
+            [ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_03],
+            [ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleFixture::PUZZLE_500_03],
+        ]]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('This puzzle is already in ' . $rounds[3]['name'], $crawler->filter('#round-' . $ids[3])->text());
+        self::assertSame(3, $this->puzzlesCount($competitionId));
     }
 
     public function testARowPicksTwoOfThreePuzzlesForTheToolkit(): void

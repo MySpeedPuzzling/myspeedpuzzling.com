@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class SetCompetitionRoundPuzzlesHandlerTest extends KernelTestCase
@@ -43,22 +41,19 @@ final class SetCompetitionRoundPuzzlesHandlerTest extends KernelTestCase
         self::assertSame($keptRoundPuzzleId, $this->roundPuzzleIdOf(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1000_01));
     }
 
-    public function testAPuzzleInAnotherRoundOfTheCategoryChangesNothing(): void
+    public function testAPuzzleInAnotherRoundOfTheCategoryIsAccepted(): void
     {
-        $before = $this->puzzleIdsOf(CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        // PUZZLE_500_01 is in the solo Qualification Round already - the solo Final may share it (shared puzzles, S2)
+        $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
+            roundId: CompetitionRoundFixture::ROUND_WJPC_FINAL,
+            puzzleIds: [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_01],
+        ));
 
-        try {
-            // PUZZLE_500_01 is in the solo Qualification Round already
-            $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
-                roundId: CompetitionRoundFixture::ROUND_WJPC_FINAL,
-                puzzleIds: [PuzzleFixture::PUZZLE_500_01],
-            ));
-            self::fail('The round invariant must refuse the list.');
-        } catch (HandlerFailedException $exception) {
-            self::assertInstanceOf(PuzzleAlreadyInCompetitionRoundCategory::class, $exception->getPrevious());
-        }
-
-        self::assertEqualsCanonicalizing($before, $this->puzzleIdsOf(CompetitionRoundFixture::ROUND_WJPC_FINAL));
+        self::assertEqualsCanonicalizing(
+            [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_01],
+            $this->puzzleIdsOf(CompetitionRoundFixture::ROUND_WJPC_FINAL),
+        );
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, $this->puzzleIdsOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION));
     }
 
     /**

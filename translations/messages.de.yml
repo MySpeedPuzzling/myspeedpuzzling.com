@@ -4182,7 +4182,6 @@ qr_code:
       "category_help": "Solo — jeder Teilnehmer puzzelt allein. Paar — zu zweit. Team — in Gruppen. Bei Paar- und Team-Runden können Sie nach dem Erstellen der Runde die Teamzuordnung verwalten."
       "results_link": "URL der offiziellen Ergebnisse"
       "results_link_help": "Link zu den Ergebnissen dieser Runde auf der Website des Veranstalters, falls dieser Ergebnisse pro Runde veröffentlicht."
-      "puzzle_already_in_category": "Dieses Puzzle ist bereits in der Runde \"%round%\" derselben Kategorie. Ein Puzzle kann pro Kategorie einer Veranstaltung nur in einer Runde sein."
       "invalid_local_time": "Diese Uhrzeit wird bei der Zeitumstellung in dieser Zeitzone übersprungen oder wiederholt – bitte wählen Sie eine andere."
       "reveal_delay_minutes": "Automatische Enthüllung geheimer Puzzles (Minuten nach dem Beginn)"
       "reveal_delay_minutes_help": "Geheime Puzzles mit automatischer Enthüllung werden so viele Minuten nach Rundenbeginn enthüllt – 0 heißt direkt zum Beginn, höchstens %max%. Geben Sie als Beginn den tatsächlichen Rundenbeginn an. Ein Puzzle kann auf der Puzzleseite der Runde auch einen eigenen Enthüllungszeitpunkt bekommen."
@@ -4237,6 +4236,10 @@ qr_code:
       saved_off: "Diese Runde ist nicht mehr ohne Schachtelbild."
       confirm_off: "Die Bilder der Puzzles dieser Runde werden zur normalen Enthüllung angezeigt – sofort, wenn sie schon vorbei ist. Fortfahren?"
       badge: "Ohne Schachtelbild"
+    shared_notice: "Auch verwendet in %rounds% - Zeiten werden der Runde über den Eintrag jedes Spielers zugeordnet; Spieler können die Runde bei ihrem Ergebnis wählen."
+    shared_with: "Gleiches Puzzle wie %rounds%"
+    shared_hide_differs: "Diese Runden halten das Puzzle unterschiedlich geheim. Solange eine davon es noch auf der ganzen Website geheim hält, bleibt es auch überall sonst verborgen; eine Runde, die es enthüllt, zeigt es nur auf den Seiten ihrer Veranstaltung."
+    already_in_round: "Dieses Puzzle ist schon in %round% - eine Runde führt jedes Puzzle nur einmal."
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Dieses Puzzle bis zur Enthüllung geheim halten"
@@ -15079,7 +15082,6 @@ event_wizard:
         change_secret: "Für diese Runde ändern"
         automatic_at: "Automatische Enthüllung dieser Runde: %time%"
         to_solve_too_many: "Die Runde wird %count% Puzzles haben – wählen Sie so viele oder weniger."
-        same_puzzle_in_category: "Dieses Puzzle ist bereits in %round% – ein Puzzle kann pro Kategorie (Solo, Paare, Teams) nur in einer Runde sein. Wählen Sie ein anderes Puzzle oder lassen Sie diese Teilnehmer es in einer Runde legen."
         reveal_changed: "Der Beginn einer Runde hat sich inzwischen geändert – prüfen Sie unten die Enthüllungszeiten und speichern Sie erneut."
         no_rounds: "Diese Veranstaltung hat noch keine Runden – fügen Sie sie zuerst hinzu:"
         decide_later: "Noch nicht entschieden? Leer lassen – Sie können es später hinzufügen."

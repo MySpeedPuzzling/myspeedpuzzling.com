@@ -300,15 +300,6 @@ final class RoundsInternalApiTest extends WebTestCase
         $roundsBefore = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024)['roundsCount'];
 
         self::callInternalApi($browser, 'POST', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/rounds', [
-            'name' => 'Second Solo Round',
-            'startsAt' => '2026-01-10T10:00:00Z',
-            'minutesLimit' => 60,
-            // In the solo Qualification Round already
-            'puzzleIds' => [PuzzleFixture::PUZZLE_500_01],
-        ]);
-        self::assertResponseStatusCodeSame(409);
-
-        self::callInternalApi($browser, 'POST', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/rounds', [
             'name' => 'Round Of Unknowns',
             'startsAt' => '2026-01-10T10:00:00Z',
             'minutesLimit' => 60,
@@ -356,16 +347,17 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testACategoryChangeMayNotPutAPuzzleIntoTwoRoundsOfOneCategory(): void
+    public function testACategoryChangeMayMakeTheRoundShareAPuzzle(): void
     {
         $browser = self::createClient();
         $pairs = $this->createRound($browser, ['category' => 'duo', 'puzzleIds' => [PuzzleFixture::PUZZLE_500_01]]);
+        self::assertSame([], self::roundPuzzle($pairs, PuzzleFixture::PUZZLE_500_01)['sharedWithRounds']);
 
-        $answer = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . self::string($pairs['roundId']), ['category' => 'solo']);
+        $round = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . self::string($pairs['roundId']), ['category' => 'solo']);
 
-        self::assertResponseStatusCodeSame(409);
-        self::assertStringContainsString('Qualification Round', self::string($answer['error']));
-        self::assertSame('duo', self::round($browser, self::string($pairs['roundId']))['category']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('solo', $round['category']);
+        self::assertSame(['Qualification Round'], self::roundPuzzle($round, PuzzleFixture::PUZZLE_500_01)['sharedWithRounds']);
     }
 
     public function testSetsTheRoundPuzzlesAndReconcilesItsResults(): void
@@ -395,23 +387,29 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertSame([], $emptied['puzzles']);
     }
 
-    public function testAPuzzleIsInOnlyOneRoundPerCategoryOfACompetition(): void
+    public function testRoundsOfOneCategoryMayShareAPuzzle(): void
     {
         $browser = self::createClient();
         $final = CompetitionRoundFixture::ROUND_WJPC_FINAL;
 
-        // PUZZLE_500_01 is in the solo Qualification Round already
-        $answer = self::callInternalApi($browser, 'PUT', '/internal-api/rounds/' . $final . '/puzzles', [
-            'puzzleIds' => [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_500_01],
+        // PUZZLE_500_01 is in the solo Qualification Round already - the solo Final may use it too (shared puzzles)
+        $round = self::callInternalApi($browser, 'PUT', '/internal-api/rounds/' . $final . '/puzzles', [
+            'puzzleIds' => [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_01],
         ]);
 
-        self::assertResponseStatusCodeSame(409);
-        self::assertStringContainsString('Qualification Round', self::string($answer['error']));
-        // Nothing changed - not even the removal of PUZZLE_1000_02
+        self::assertResponseIsSuccessful();
         self::assertEqualsCanonicalizing(
-            [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02],
-            array_column(self::list(self::round($browser, $final)['puzzles']), 'puzzleId'),
+            [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02, PuzzleFixture::PUZZLE_500_01],
+            array_column(self::list($round['puzzles']), 'puzzleId'),
         );
+        self::assertSame(['Qualification Round'], self::roundPuzzle($round, PuzzleFixture::PUZZLE_500_01)['sharedWithRounds']);
+        self::assertSame([], self::roundPuzzle($round, PuzzleFixture::PUZZLE_1000_01)['sharedWithRounds']);
+        // ...and the other round says so too
+        self::assertSame(['Final Round'], self::roundPuzzle(self::round($browser, CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION), PuzzleFixture::PUZZLE_500_01)['sharedWithRounds']);
+
+        // A new round of the category with the same puzzle is created, naming both
+        $created = $this->createRound($browser, ['name' => 'Third Solo Round', 'startsAt' => '2030-01-10T10:00:00Z', 'puzzleIds' => [PuzzleFixture::PUZZLE_500_01]]);
+        self::assertSame(['Qualification Round', 'Final Round'], self::roundPuzzle($created, PuzzleFixture::PUZZLE_500_01)['sharedWithRounds']);
     }
 
     public function testRoundPuzzlesRefuseUnknownPuzzlesAndRounds(): void

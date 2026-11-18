@@ -278,9 +278,10 @@ readonly final class PuzzleSolvingTimeRepository
 
     /**
      * The times that belong to the round, in its current competition: linked to it (competition_round_id), or - not
-     * linked yet - solved in its category on one of its puzzles, the rule of SolvingTimeRoundResolver /
-     * RoundResultsReconciler (a puzzle is in at most one round per category per competition, so such a time can only
-     * belong to this round). MoveRoundToCompetition moves them all with the round.
+     * linked yet - solved in its category on one of its puzzles when this round is their only candidate (no other round
+     * of the competition in that category has the puzzle). An unlinked time on a puzzle shared with another round of the
+     * category is not this round's to take (SolvingTimeRoundMatch could not place it - it stays with the competition).
+     * MoveRoundToCompetition moves them all with the round.
      *
      * Explicit links only: a series pick's edition follows the matching rule, not the round - the reconcile both
      * competitions get after the move re-matches it (docs/features/events-page/high-frequency-series.md P29).
@@ -298,11 +299,16 @@ readonly final class PuzzleSolvingTimeRepository
             ->andWhere(
                 'time.competitionRound = :round OR (time.competitionRound IS NULL AND time.puzzlingType = :category AND time.puzzle IN ('
                 . 'SELECT IDENTITY(roundPuzzle.puzzle) FROM ' . CompetitionRoundPuzzle::class . ' roundPuzzle WHERE roundPuzzle.round = :round'
+                . ') AND NOT EXISTS ('
+                . 'SELECT otherRoundPuzzle.id FROM ' . CompetitionRoundPuzzle::class . ' otherRoundPuzzle JOIN otherRoundPuzzle.round otherRound'
+                . ' WHERE otherRound.competition = :competition AND otherRound.category = :roundCategory'
+                . ' AND otherRound.id <> :round AND otherRoundPuzzle.puzzle = time.puzzle'
                 . '))',
             )
             ->setParameter('competition', $round->competition->id->toString())
             ->setParameter('round', $round->id->toString())
             ->setParameter('category', PuzzlingType::from($round->category->value))
+            ->setParameter('roundCategory', $round->category)
             ->orderBy('time.id')
             ->getQuery()
             ->getResult();

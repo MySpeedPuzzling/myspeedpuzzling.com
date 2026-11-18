@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Value;
 
 /**
  * Why a round cannot move to another competition (MoveRoundToCompetition, docs/features/organizations/README.md
- * "Restructuring tools"). The one-round-per-category invariant of the target has its own exception
- * (PuzzleInTwoRoundsOfCategory).
+ * "Restructuring tools"). A target that has one of the round's puzzles in a round of its category already has its own
+ * exception (PuzzleInTwoRoundsOfCategory - the move keeps that refusal although rounds may share a puzzle otherwise).
  */
 enum RoundNotMovableReason: string
 {

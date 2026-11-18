@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AddPuzzleToRoundControllerTest extends WebTestCase
@@ -58,24 +59,36 @@ final class AddPuzzleToRoundControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
-    public function testPuzzleAlreadyInAnotherRoundOfTheSameCategoryIsAFormError(): void
+    public function testAPuzzleOfAnotherRoundOfTheSameCategoryIsSharedWithANotice(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $crawler = $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_FINAL);
-        $form = $crawler->filter('form')->last()->form();
-        $prefix = (string) $crawler->filter('input[name$="[puzzle]"]')->attr('name');
-        $prefix = substr($prefix, 0, (int) strpos($prefix, '['));
+        // PUZZLE_500_01 is already in the (solo) qualification round of the same competition - the final may share it
+        $this->submitPuzzle($browser, PuzzleFixture::PUZZLE_500_01);
 
-        // PUZZLE_500_01 is already in the (solo) qualification round of the same competition
-        $browser->submit($form, [
-            $prefix . '[brand]' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            $prefix . '[puzzle]' => PuzzleFixture::PUZZLE_500_01,
-        ]);
+        $this->assertResponseRedirects('/en/manage-round-puzzles/' . CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $crawler = $browser->followRedirect();
+        $this->assertSelectorTextContains('.alert-info', 'Also used in Qualification Round - times are matched to the round by each player\'s entry');
+        self::assertStringContainsString('Same puzzle as Qualification Round', $crawler->filter('[data-shared-round-puzzle]')->text());
+        // Both rounds keep it public - nothing to explain about secrets
+        self::assertCount(0, $crawler->filter('[data-shared-round-puzzle-hide]'));
+
+        // The qualification round's page names the final
+        $crawler = $browser->request('GET', '/en/manage-round-puzzles/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        self::assertStringContainsString('Same puzzle as Final Round', $crawler->filter('[data-shared-round-puzzle]')->text());
+    }
+
+    public function testThePuzzleTwiceInOneRoundIsAFormError(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        // PUZZLE_1000_01 is in the final already
+        $this->submitPuzzle($browser, PuzzleFixture::PUZZLE_1000_01);
 
         $this->assertResponseStatusCodeSame(422);
-        $this->assertSelectorTextContains('main', 'already in round "Qualification Round"');
+        $this->assertSelectorTextContains('main', 'This puzzle is already in Final Round');
     }
 
     public function testANewPuzzlesCodeFollowsTheRuleOfEveryForm(): void
@@ -100,5 +113,18 @@ final class AddPuzzleToRoundControllerTest extends WebTestCase
         $this->assertSelectorTextContains('main', '6000-5533');
         // What was typed stays
         $this->assertSelectorExists(sprintf('input[name="%s[puzzleEans][0]"][value="6000-5533"]', $prefix));
+    }
+
+    private function submitPuzzle(KernelBrowser $browser, string $puzzleId): void
+    {
+        $crawler = $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $form = $crawler->filter('form')->last()->form();
+        $prefix = (string) $crawler->filter('input[name$="[puzzle]"]')->attr('name');
+        $prefix = substr($prefix, 0, (int) strpos($prefix, '['));
+
+        $browser->submit($form, [
+            $prefix . '[brand]' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            $prefix . '[puzzle]' => $puzzleId,
+        ]);
     }
 }

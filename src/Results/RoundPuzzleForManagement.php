@@ -11,6 +11,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
 
 readonly final class RoundPuzzleForManagement
 {
+    /**
+     * @param list<string> $sharedWithRounds
+     */
     public function __construct(
         public string $roundPuzzleId,
         public string $puzzleId,
@@ -41,6 +44,10 @@ readonly final class RoundPuzzleForManagement
         public int $position = 0,
         public string $label = '',
         public null|string $customLabel = null,
+        // Other rounds of the competition in the same category with this puzzle (shared puzzles), by start - and
+        // whether one of them keeps it secret differently (the page explains the effect, SharedRoundPuzzle)
+        public array $sharedWithRounds = [],
+        public bool $sharedHideDiffers = false,
     ) {
     }
 }

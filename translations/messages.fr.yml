@@ -4249,7 +4249,6 @@ competition:
       "category_help": "Solo — chaque participant résout seul. Duo — en binôme. Équipe — en groupe. Pour les manches duo et équipe, vous pourrez gérer l'attribution des équipes après la création de la manche."
       "results_link": "URL des résultats officiels"
       "results_link_help": "Lien vers les résultats de cette manche sur le site de l'organisateur, s'il publie les résultats par manche."
-      "puzzle_already_in_category": "Ce puzzle est déjà dans la manche \"%round%\" de la même catégorie. Un puzzle ne peut figurer que dans une seule manche par catégorie d'un événement."
       "invalid_local_time": "Cette heure est sautée ou répétée lors du changement d’heure dans ce fuseau horaire – choisissez-en une autre."
       "reveal_delay_minutes": "Révélation automatique des puzzles secrets (minutes après le début)"
       "reveal_delay_minutes_help": "Les puzzles secrets à révélation automatique sont révélés ce nombre de minutes après le début de la manche – 0 signifie dès le début, %max% au maximum. Indiquez comme début le vrai début de la manche. Un puzzle peut aussi avoir sa propre heure de révélation sur la page des puzzles de la manche."
@@ -4304,6 +4303,10 @@ competition:
       saved_off: "Cette manche n'est plus sans boîte."
       confirm_off: "Les images des puzzles de cette manche seront affichées à leur dévoilement normal – tout de suite s'il est passé. Continuer ?"
       badge: "Sans boîte"
+    shared_notice: "Aussi utilisé dans %rounds% - les temps sont rattachés à la manche selon l'inscription de chaque joueur ; les joueurs peuvent choisir la manche sur leur résultat."
+    shared_with: "Même puzzle que %rounds%"
+    shared_hide_differs: "Ces manches gardent ce puzzle secret différemment. Tant que l'une d'elles le garde secret sur tout le site, il reste caché partout ailleurs aussi ; une manche qui le révèle ne le montre que sur les pages de son événement."
+    already_in_round: "Ce puzzle est déjà dans %round% - une manche contient chaque puzzle une seule fois."
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Garder ce puzzle secret jusqu’à sa révélation"
@@ -15075,7 +15078,6 @@ event_wizard:
         change_secret: "Modifier pour cette manche"
         automatic_at: "Révélation automatique de cette manche : %time%"
         to_solve_too_many: "La manche aura %count% puzzles - choisissez ce nombre ou moins."
-        same_puzzle_in_category: "Ce puzzle est déjà dans %round% - un puzzle ne peut figurer que dans une seule manche de chaque catégorie (solo, duos, équipes). Choisissez un autre puzzle, ou faites assembler celui-ci par ces concurrents dans une seule manche."
         reveal_changed: "Le début d'une manche a changé entre-temps - vérifiez les heures de révélation ci-dessous et enregistrez à nouveau."
         no_rounds: "Cet événement n'a pas encore de manches - ajoutez-les d'abord :"
         decide_later: "Pas encore décidé ? Laissez vide - vous pourrez l'ajouter plus tard."

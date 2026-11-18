@@ -9,8 +9,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * Every round and its puzzle run nested in this handler's transaction: a refused puzzle (the one-round-per-category
- * invariant, a secret puzzle of somebody else) rolls every row back.
+ * Every round and its puzzle run nested in this handler's transaction: a refused puzzle (a secret puzzle of somebody
+ * else, a placeholder hidden by hand) rolls every row back.
  */
 #[AsMessageHandler]
 readonly final class SetUpPastEventRoundsHandler

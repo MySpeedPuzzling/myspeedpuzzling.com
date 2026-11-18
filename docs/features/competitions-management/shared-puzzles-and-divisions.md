@@ -707,3 +707,32 @@ in, otherwise divisions are set in the sheet or through the internal API.
   add / unfinished add / edit, evidence, NotIdentified, the hint, ChooseSolvingTimeRound owner/member/stranger/
   non-candidate), `tests/Controller/SharedPuzzleRoundPagesTest.php` (Add to my profile into the second sharing round,
   LinkToRound + its POST, guests, the result detail picker in the modal, forged token).
+
+## As built: S2 (lift the invariant, 2026-11-18)
+
+- **Refusal removed** (rows 10-13): `PuzzleAlreadyInCompetitionRoundCategory` deleted; `AddPuzzleToCompetitionRoundHandler`,
+  `EditCompetitionRoundHandler`, `SetCompetitionRoundPuzzlesHandler` no longer check other rounds; the controllers' catches,
+  the internal API 409s (create / `PUT …/puzzles` / `PATCH`) and the wizard's checks are gone, and
+  `event_wizard.puzzles.same_puzzle_in_category` + `competition.round.form.puzzle_already_in_category` are removed from all
+  6 locales. **Kept on purpose:** the old check also stopped the same puzzle twice in ONE round (no unique index) - now
+  `PuzzleAlreadyInCompetitionRound` in the add handler (round page, wizard puzzle steps: `competition.round_puzzles.already_in_round`);
+  the wizard grid's up-front check keeps "twice on one row / already in this round" as a row error. The backfill path
+  (`EventWizardPastPuzzlesController`) keeps skipping a row whose puzzle is in a round of its category already (one round
+  per row, resend-safe) - its catch was unreachable and is gone.
+- **Row 9/18**: `MoveRoundToCompetitionHandler` + `MoveCompetitionRoundController` keep `PuzzleInTwoRoundsOfCategory`
+  (message reworded for the move); `framework.php` / `ClientErrorLogLevelTest` unchanged.
+- **Row 8**: `PuzzleSolvingTimeRepository::findByCompetitionRound()` takes an unlinked time only when no other round of the
+  competition in the category has the puzzle (DQL `NOT EXISTS`).
+- **Row 14**: `GetCompetitionRounds::roundsSharingPuzzleInCategory()` → `list<string>` names by start (the move reads `[0]`).
+- **Notices**: info flash `competition.round_puzzles.shared_notice` after adding a puzzle on the round page (and after a
+  round form category change that makes a puzzle shared). One snippet `Value/SharedRoundPuzzle` (no extra statement -
+  columns of the existing ones): `sqlSharingRoundNames()` → `RoundPuzzleForManagement::$sharedWithRounds` (round puzzles
+  page "Same puzzle as …", the wizard grid's line under a saved puzzle) and `AdminRoundPuzzle::$sharedWithRounds`
+  (internal API `sharedWithRounds`, additive, `[]` when none; `internal-api.md` + openapi). **A8**: `sqlHideDiffers()` -
+  another sharing round keeps it secret differently (public vs secret, name vs picture only) → `competition.round_puzzles.shared_hide_differs`
+  on the round puzzles page and the wizard line.
+- Tests: flipped `SetCompetitionRoundPuzzlesHandlerTest`, `RoundResultsLinkingTest` (shared accepted, category change
+  accepted, twice in one round refused), `RoundsInternalApiTest` (create/PUT/PATCH accepted + `sharedWithRounds`),
+  `AddPuzzleToRoundControllerTest` (flash + line, twice refused), `EventWizardSeveralRoundsTest` (two rows share, grid
+  line, row errors); new `tests/Controller/SharedPuzzleCarnivalSetUpTest.php` (3 team rounds, one puzzle - round pages and
+  internal API). `MoveRoundToCompetitionHandlerTest` unchanged.

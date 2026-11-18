@@ -9,18 +9,15 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
-use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\AddCompetitionRoundWithPuzzles;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetAdminPuzzles;
 use SpeedPuzzling\Web\Results\AdminPuzzle;
-use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -29,7 +26,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -38,7 +34,9 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 /**
  * Adds a round to a competition (its slug is generated from the name and never changes afterwards), optionally with
  * its puzzles (`puzzleIds`, the same as PUT /internal-api/rounds/{roundId}/puzzles right after). The puzzles are
- * checked before the round is created - a refused list must not leave a round without its puzzles behind.
+ * checked before the round is created - a refused list must not leave a round without its puzzles behind. A puzzle
+ * another round of the category has too is accepted (shared puzzles) - the answer names those rounds per puzzle
+ * (`sharedWithRounds`).
  *
  * `revealDelayMinutes` (default 10): minutes after the start when its secret puzzles with an automatic reveal come out.
  */
@@ -49,7 +47,6 @@ final class CreateCompetitionRoundController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly GetAdminCompetitions $getAdminCompetitions,
         private readonly GetAdminPuzzles $getAdminPuzzles,
-        private readonly GetCompetitionRounds $getCompetitionRounds,
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly CompetitionRepository $competitionRepository,
         private readonly ClockInterface $clock,
@@ -111,16 +108,6 @@ final class CreateCompetitionRoundController extends AbstractController
                     implode(', ', $hiddenPuzzleIds),
                 ));
             }
-
-            $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
-                competitionId: $competition->competitionId,
-                puzzleIds: $puzzleIds,
-                category: $data->category,
-            );
-
-            if ($conflictingRound !== null) {
-                throw new PuzzleInTwoRoundsOfCategory($data->category->value, $conflictingRound);
-            }
         }
 
         $roundId = Uuid::uuid7();
@@ -149,15 +136,6 @@ final class CreateCompetitionRoundController extends AbstractController
             throw new RoundPuzzlesNotAttachable(sprintf('The round was not created - %s', $exception->getMessage()), $exception);
         } catch (PuzzleNotFound $exception) {
             throw new NotFoundHttpException('A puzzle of the list no longer exists. Nothing was created.', $exception);
-        } catch (HandlerFailedException $exception) {
-            // Nested twice (this message, then SetCompetitionRoundPuzzles inside it)
-            for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
-                if ($cause instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                    throw new PuzzleInTwoRoundsOfCategory($data->category->value, $cause->conflictingRoundName, $exception);
-                }
-            }
-
-            throw $exception;
         }
 
         // After the commit: the event's displays pick their round again (competition toolkit D5)

@@ -857,8 +857,8 @@ paths:
       summary: Update the fields of a round sent
       operationId: updateCompetitionRound
       description: |
-        The slug never changes. A category change that would put one of the round's
-        puzzles into two rounds of one category of the competition is refused (409).
+        The slug never changes. A category change may make one of the round's puzzles
+        shared with another round of the new category - accepted (`sharedWithRounds`).
         A field left out keeps its value - `startsAt` and `revealDelayMinutes` too.
 
         A change that moves the round's automatic reveal (`startsAt` +
@@ -1236,9 +1236,9 @@ paths:
       description: |
         The round's puzzles become exactly `puzzleIds` (`[]` removes all); puzzles
         kept keep their secret reveal, new ones are not hidden - so a hidden puzzle
-        (a competition's secret one, a placeholder) is refused (409). A puzzle is in
-        only one round per category of a competition - a list breaking that is
-        refused (409). Removing a secret puzzle that comes out right away by it
+        (a competition's secret one, a placeholder) is refused (409). Several rounds
+        of one category may share a puzzle - each round puzzle names the others in
+        `sharedWithRounds`. Removing a secret puzzle that comes out right away by it
         (another round revealed it already) is refused (409, `revealedPuzzles`)
         unless `confirmReveal` is true; one no other round holds stays hidden. A refusal
         changes nothing. Solving times are re-linked to rounds right after (round
@@ -4288,6 +4288,10 @@ components:
                   hidesEverywhere:
                     type: boolean
                     description: The round keeps the puzzle secret on the whole site, not only on its event pages
+                  sharedWithRounds:
+                    type: array
+                    items: { type: string }
+                    description: Names of the other rounds of the competition in the same category with this puzzle, by start (shared puzzles) - [] when none
 
     OnlineTiming:
       type: object

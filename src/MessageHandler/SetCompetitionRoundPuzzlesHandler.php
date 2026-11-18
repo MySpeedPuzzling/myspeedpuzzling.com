@@ -7,16 +7,13 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
-use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
-use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -35,7 +32,6 @@ readonly final class SetCompetitionRoundPuzzlesHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
         private PuzzleRepository $puzzleRepository,
-        private GetCompetitionRounds $getCompetitionRounds,
         private SecretPuzzleHides $secretPuzzleHides,
         private SecretRevealPreview $secretRevealPreview,
         private IsPuzzleKeptSecret $isPuzzleKeptSecret,
@@ -48,7 +44,6 @@ readonly final class SetCompetitionRoundPuzzlesHandler
     /**
      * @throws CompetitionRoundNotFound
      * @throws PuzzleNotFound
-     * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws PuzzleHiddenByHand
      * @throws PuzzleIsStillSecret
      * @throws SecretPuzzlesWouldBeRevealed
@@ -90,18 +85,6 @@ readonly final class SetCompetitionRoundPuzzlesHandler
             }
 
             $puzzlesToAttach[] = $puzzle;
-        }
-
-        // Like AddPuzzleToCompetitionRoundHandler, but for the whole list and before anything changes
-        $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
-            competitionId: $round->competition->id->toString(),
-            puzzleIds: array_map(static fn (Puzzle $puzzle): string => $puzzle->id->toString(), $puzzlesToAttach),
-            category: $round->category,
-            exceptRoundId: $round->id->toString(),
-        );
-
-        if ($conflictingRound !== null) {
-            throw new PuzzleAlreadyInCompetitionRoundCategory($conflictingRound);
         }
 
         $rowsToRemove = array_values(array_filter(

@@ -108,6 +108,12 @@
                                         <span class="text-truncate">{{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}</span>
                                         {% if round_puzzle.hideUntilRoundStarts %}<span class="badge bg-dark ms-auto flex-shrink-0"><i class="ci-locked me-1"></i>{{ ('event_wizard.puzzles.secret_' ~ round_puzzle.revealMode.value)|trans }}</span>{% endif %}
                                     </li>
+                                    {#- Another round of the category has the same puzzle (shared puzzles) -#}
+                                    {% if round_puzzle.sharedWithRounds is not empty %}
+                                        <li class="form-text mt-0 mb-1" data-event-wizard-puzzles-shared>
+                                            {{ 'competition.round_puzzles.shared_with'|trans({'%rounds%': round_puzzle.sharedWithRounds|join(', ')}) }}{% if round_puzzle.sharedHideDiffers %} - {{ 'competition.round_puzzles.shared_hide_differs'|trans }}{% endif %}
+                                        </li>
+                                    {% endif %}
                                 {% endfor %}
                             </ul>
                             <a class="small d-inline-block mb-2" href="{{ path('manage_round_puzzles', {roundId: round_id}) }}">{{ 'event_wizard.puzzle.manage_existing'|trans }}</a>

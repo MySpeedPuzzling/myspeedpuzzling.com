@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRound;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -107,19 +107,30 @@ final class RoundResultsLinkingTest extends KernelTestCase
         self::assertNull($this->roundOf(PuzzleSolvingTimeFixture::TIME_09));
     }
 
-    public function testSamePuzzleCannotBeInTwoRoundsOfOneCategory(): void
+    public function testSamePuzzleMayBeInTwoRoundsOfOneCategory(): void
     {
-        try {
-            $this->messageBus->dispatch($this->attachPuzzle(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_500_01));
-            self::fail('Adding a puzzle to a second solo round must be rejected');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(PuzzleAlreadyInCompetitionRoundCategory::class, $previous);
-            self::assertSame('Qualification Round', $previous->conflictingRoundName);
-        }
+        // Shared puzzles (shared-puzzles-and-divisions.md S2): a second solo round may use the qualification puzzle
+        $this->messageBus->dispatch($this->attachPuzzle(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_500_01));
+
+        self::assertSame(1, $this->roundPuzzleCount(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_500_01));
+        self::assertSame(1, $this->roundPuzzleCount(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_01));
     }
 
-    public function testChangingCategoryIntoAConflictIsRejected(): void
+    public function testTheSamePuzzleTwiceInOneRoundIsRefused(): void
+    {
+        try {
+            $this->messageBus->dispatch($this->attachPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_01));
+            self::fail('A round lists each puzzle once');
+        } catch (HandlerFailedException $e) {
+            $previous = $e->getPrevious();
+            self::assertInstanceOf(PuzzleAlreadyInCompetitionRound::class, $previous);
+            self::assertSame('Qualification Round', $previous->roundName);
+        }
+
+        self::assertSame(1, $this->roundPuzzleCount(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_01));
+    }
+
+    public function testChangingCategoryIntoASharedPuzzleIsAccepted(): void
     {
         // The final round becomes a duo round that shares the qualification puzzle...
         $this->database->executeStatement("UPDATE competition_round SET category = 'duo' WHERE id = :id", ['id' => CompetitionRoundFixture::ROUND_WJPC_FINAL]);
@@ -128,10 +139,10 @@ final class RoundResultsLinkingTest extends KernelTestCase
             ['id' => Uuid::uuid7()->toString(), 'round' => CompetitionRoundFixture::ROUND_WJPC_FINAL, 'puzzle' => PuzzleFixture::PUZZLE_500_01],
         );
 
-        // ...so the qualification round cannot become duo as well
-        $this->expectException(HandlerFailedException::class);
-
+        // ...and the qualification round may become duo as well - both duo rounds share it
         $this->editRound(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, RoundCategory::Duo);
+
+        self::assertSame('duo', $this->database->fetchOne('SELECT category FROM competition_round WHERE id = :id', ['id' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION]));
     }
 
     public function testChangingCategoryReconcilesTheRound(): void
@@ -230,6 +241,18 @@ final class RoundResultsLinkingTest extends KernelTestCase
             badgeTextColor: null,
             category: $category,
         ));
+    }
+
+    private function roundPuzzleCount(string $roundId, string $puzzleId): int
+    {
+        $count = $this->database->fetchOne(
+            'SELECT COUNT(*) FROM competition_round_puzzle WHERE round_id = :round AND puzzle_id = :puzzle',
+            ['round' => $roundId, 'puzzle' => $puzzleId],
+        );
+
+        self::assertIsNumeric($count);
+
+        return (int) $count;
     }
 
     private function roundOf(string $timeId): null|string

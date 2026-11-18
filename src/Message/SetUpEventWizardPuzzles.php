@@ -10,7 +10,7 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 /**
  * The event creation wizard's "Puzzles" grid on the several-rounds path (W-creation-wizard-research.md §3.6, §4): one
  * SetUpEventWizardRound per row that changes (W1's composite - its puzzles with the automatic reveal each row showed,
- * the reveal switched, the round's format) in one transaction - the one-puzzle-per-category invariant, a moved reveal or
+ * the reveal switched, the round's format) in one transaction - a puzzle twice in one round, a moved reveal or
  * a K out of range refused in any row rolls every row back. Takes the event's participants lock; the nested ones pass
  * through it (LockUntilCommittedMiddleware).
  */

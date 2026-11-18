@@ -41,6 +41,7 @@ import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzl
 import { finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, splitStep } from '../live_entry_splits.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
+import { myTablesOf, parseTables, recentMine, splitMine, todo, withMyTables } from '../live_entry_my_tables.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
@@ -121,6 +122,7 @@ export default class extends Controller {
     static targets = [
         'roundSelect', 'organiserLink', 'addTitle', 'addNameLabel', 'addMembersField', 'addTableField', 'addNote', 'addPeopleTitle', 'pill', 'pillText', 'stopwatch', 'tables', 'banner',
         'bannerBelow', 'findView', 'findInput', 'keyboardToggle', 'findNotice', 'readiness', 'matches', 'addButton', 'recentBlock', 'recent', 'recentTitle', 'missingButton', 'proposalsButton',
+        'myTablesRow', 'myTablesChip', 'todoBlock', 'todoTitle', 'todoList', 'recentMore', 'myTablesInput', 'myTablesError',
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems', 'puzzles', 'splits', 'proposal',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'piecesSwitch', 'piecesRows', 'piecesLabel', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmResult', 'confirmNote', 'saveButton', 'autoOpenToggle', 'missingToggle', 'missingField', 'missingInput', 'missingHint',
@@ -199,6 +201,11 @@ export default class extends Controller {
         // "Puzzle missing" list on/off
         this.choice = [];
         this.missingOnly = false;
+        // My tables on this phone (judge-speed J3): this event's {text, on, ranges} or null, read once per event; Recent
+        // of every table after a tap on "+ N at other tables" (until a card opens)
+        this.myTablesFor = undefined;
+        this.myTablesPref = null;
+        this.recentAll = false;
         // Didn't finish (reliability hardening T1): Missing | Placed, the pick round's puzzles not finished and their counts
         this.piecesPref = MISSING;
         this.openPuzzles = [];
@@ -1743,10 +1750,22 @@ export default class extends Controller {
         const typed = this.query.trim() !== '';
         const tableNumbersOff = !this.usesTables();
 
+        const byEntry = outboxByEntry(items);
         this.recentBlockTarget.hidden = typed;
 
+        // My tables (judge-speed J3): only the empty state looks at them - typing, the unique-table open and scans never
+        const mine = typed ? null : this.myTables();
+        const ranges = mine !== null && mine.on ? mine.ranges : null;
+        this.myTablesRowTarget.hidden = mine === null;
+
+        if (mine !== null) {
+            this.setText(this.myTablesChipTarget, this.t('myTablesChip', { '%tables%': mine.text }));
+            this.myTablesChipTarget.setAttribute('aria-pressed', String(mine.on));
+            this.myTablesChipTarget.classList.toggle('active', mine.on);
+        }
+
         // A pick round: entries with a result but no puzzle chosen (toolkit C10) - a filter in place of the recent ones
-        const missing = typed ? [] : missingChoice(this.allEntries(), pickFormat(this.round), outboxByEntry(items));
+        const missing = typed ? [] : missingChoice(this.allEntries(), pickFormat(this.round), byEntry);
         this.missingOnly = this.missingOnly && missing.length > 0;
         this.missingButtonTarget.hidden = missing.length === 0;
         this.setText(this.missingButtonTarget, this.t('puzzleMissing', { '%count%': missing.length }));
@@ -1764,24 +1783,56 @@ export default class extends Controller {
         this.missingButtonTarget.setAttribute('aria-pressed', String(this.missingOnly));
         this.missingButtonTarget.classList.toggle('active', this.missingOnly);
         this.recentTitleTarget.hidden = this.missingOnly || this.proposalsOnly;
+        this.recentMoreTarget.hidden = true;
+
+        // To do at my tables: no result shown yet, table order - the next table on top after every Save
+        const todoOn = ranges !== null && !this.missingOnly && !this.proposalsOnly;
+        this.todoBlockTarget.hidden = !todoOn;
+
+        if (todoOn) {
+            const open = todo(this.allEntries(), ranges, byEntry);
+            this.setText(this.todoTitleTarget, this.t('myTablesTodo', { '%count%': open.count }));
+            this.todoListTarget.innerHTML = open.count > 0
+                ? rowsOf(open.entries.map((entry) => ({ entry })), byEntry).map((row) => this.rowHtml(row)).join('')
+                : `<p class="text-muted small mb-0">${escapeHtml(this.t('myTablesTodoEmpty'))}</p>`;
+        }
 
         if (this.proposalsOnly) {
             const now = this.serverNow();
             this.matchesTarget.innerHTML = '';
-            this.recentTarget.innerHTML = waiting.map(({ proposal, entry }) => this.rowHtml({
+            // Never hidden by My tables (D-4): mine first, then every other table
+            this.recentTarget.innerHTML = this.mineFirstHtml(waiting, ranges, ({ proposal, entry }) => this.rowHtml({
                 entry,
                 exact: false,
                 result: { value: proposalValue(proposal) },
                 sync: '',
                 note: `${this.age(proposal.receivedAtMs, now)}${waitingNote(proposal) ? ` · ${this.t(waitingNote(proposal))}` : ''}`,
-            })).join('');
+            }));
 
             return;
         }
 
-        const { rows } = this.missingOnly
-            ? { rows: rowsOf(missing.map((entry) => ({ entry })), outboxByEntry(items)) }
-            : findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue });
+        if (this.missingOnly) {
+            this.matchesTarget.innerHTML = '';
+            this.recentTarget.innerHTML = this.mineFirstHtml(rowsOf(missing.map((entry) => ({ entry })), byEntry), ranges, (row) => this.rowHtml(row));
+
+            return;
+        }
+
+        if (!typed && ranges !== null && !this.recentAll) {
+            // Recent of my tables, the other tables' ones counted - one tap shows them all
+            const { mine: recent, others } = recentMine(this.allEntries(), items.filter((item) => item.roundId === this.roundIdValue), ranges);
+            this.matchesTarget.innerHTML = '';
+            this.recentTarget.innerHTML = recent.length > 0
+                ? rowsOf(recent.map(({ entry }) => ({ entry })), byEntry).map((row) => this.rowHtml(row)).join('')
+                : (others === 0 ? `<p class="text-muted small mb-0">${escapeHtml(this.t('recentEmpty'))}</p>` : '');
+            this.recentMoreTarget.hidden = others === 0;
+            this.setText(this.recentMoreTarget, this.plural('otherTables', others));
+
+            return;
+        }
+
+        const { rows } = findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue });
 
         if (typed) {
             this.matchesTarget.innerHTML = rows.length > 0
@@ -1793,6 +1844,18 @@ export default class extends Controller {
                 ? rows.map((row) => this.rowHtml(row)).join('')
                 : `<p class="text-muted small mb-0">${escapeHtml(this.t('recentEmpty'))}</p>`;
         }
+    }
+
+    // Rows of a list My tables never shortens (D-4): mine first, then "Other tables" with the rest; as given without them
+    mineFirstHtml(rows, ranges, html) {
+        if (ranges === null) {
+            return rows.map(html).join('');
+        }
+
+        const { mine, others } = splitMine(rows, ranges);
+
+        return mine.map(html).join('')
+            + (others.length > 0 ? `<h3 class="lr-recent-title" data-my-tables-divider>${escapeHtml(this.t('myTablesOthers'))}</h3>${others.map(html).join('')}` : '');
     }
 
     rowHtml({ entry, exact, result, sync: mark, note = null }) {
@@ -2489,6 +2552,78 @@ export default class extends Controller {
         }
     }
 
+    // ---- My tables (judge-speed J3) ----
+
+    // This event's tables on this phone, null on a round without table numbers (or none set)
+    myTables() {
+        const competitionId = this.competition?.id ?? null;
+
+        if (this.myTablesFor !== competitionId) {
+            this.myTablesFor = competitionId;
+            this.myTablesPref = myTablesOf(this.prefs(), competitionId);
+        }
+
+        return this.usesTables() ? this.myTablesPref : null;
+    }
+
+    saveMyTables(change) {
+        const competitionId = this.competition?.id;
+
+        if (typeof competitionId !== 'string') {
+            return;
+        }
+
+        const storage = webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        const prefs = writePrefs(storage, { myTables: withMyTables(this.prefs().myTables, competitionId, change, Date.now()) });
+        // Kept for this page even where the browser stores nothing (a private window)
+        this.myTablesFor = competitionId;
+        this.myTablesPref = myTablesOf(prefs, competitionId);
+        this.recentAll = false;
+        this.renderFind();
+    }
+
+    toggleMyTables() {
+        const mine = this.myTables();
+
+        if (mine !== null) {
+            this.saveMyTables({ text: mine.text, on: !mine.on });
+        }
+    }
+
+    editMyTables() {
+        this.openSheet();
+
+        if (this.hasMyTablesInputTarget && !this.sheetTarget.hidden) {
+            this.myTablesInputTarget.scrollIntoView({ block: 'center' });
+            this.myTablesInputTarget.focus();
+        }
+    }
+
+    setMyTables(event) {
+        event.preventDefault();
+        const input = this.myTablesInputTarget;
+        const parsed = parseTables(input.value);
+        const invalid = parsed.error !== undefined;
+
+        input.classList.toggle('is-invalid', invalid);
+        input.setAttribute('aria-invalid', String(invalid));
+        this.myTablesErrorTarget.hidden = !invalid;
+
+        if (invalid) {
+            this.setText(this.myTablesErrorTarget, this.t({ syntax: 'myTablesErrorSyntax', range: 'myTablesErrorRange', too_many: 'myTablesErrorTooMany' }[parsed.error]));
+
+            return;
+        }
+
+        input.value = parsed.text;
+        this.saveMyTables({ text: parsed.text, on: true });
+    }
+
+    showOtherTables() {
+        this.recentAll = true;
+        this.renderFind();
+    }
+
     toggleAutoOpen(event) {
         writePrefs(webStorage('localStorage') ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} }, { autoOpenTable: event.currentTarget.checked });
     }
@@ -2594,6 +2729,7 @@ export default class extends Controller {
 
         this.closeOverlays({ keepHistory: true });
         this.openRef = ref;
+        this.recentAll = false;
         this.pendingValue = null;
         this.shownFrom = shownFromOf(this.serverEntries.get(ref));
         this.entryNowHtml = null;
@@ -3617,6 +3753,13 @@ export default class extends Controller {
         if (this.hasAutoOpenToggleTarget) {
             this.autoOpenToggleTarget.checked = this.prefs().autoOpenTable !== false;
             this.autoOpenToggleTarget.closest('[data-live-results-prefs]').hidden = !this.usesTables();
+        }
+
+        if (this.hasMyTablesInputTarget) {
+            this.myTablesInputTarget.value = this.myTables()?.text ?? '';
+            this.myTablesInputTarget.classList.remove('is-invalid');
+            this.myTablesInputTarget.removeAttribute('aria-invalid');
+            this.myTablesErrorTarget.hidden = true;
         }
 
         this.renderSheet();

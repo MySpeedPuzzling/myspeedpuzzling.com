@@ -8,18 +8,20 @@
  * - Cleared on Save, Back and Undo (the page goes back to finding); other players' drafts go when the page starts and
  *   after a sign-out (live_entry_device.js).
  * - The referee's preferences: one localStorage key `msp.liveResults.prefs`, the older `msp.liveResults.keyboard`
- *   taken over on the first read; `piecesMode` = Didn't finish counted as Missing (default) or Placed (T1).
+ *   taken over on the first read; `piecesMode` = Didn't finish counted as Missing (default) or Placed (T1); `myTables`
+ *   = this phone's tables per event (judge-speed J3, live_entry_my_tables.js).
  *
  * Pure functions over an injected Storage - tests/live-entry-offline-harness.mjs runs them under node.
  */
 
 import { DRAFT_KEY_PREFIX, samePlayer } from './live_entry_device.js';
+import { normaliseMyTables } from './live_entry_my_tables.js';
 
 export const DRAFT_MAX_AGE_MS = 10 * 60 * 1000;
 export const PREFS_KEY = 'msp.liveResults.prefs';
 export const LEGACY_KEYBOARD_KEY = 'msp.liveResults.keyboard';
 
-const PREFS_DEFAULTS = { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [], piecesMode: null };
+const PREFS_DEFAULTS = { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null };
 
 export function draftKey(playerId) {
     return DRAFT_KEY_PREFIX + String(playerId).toLowerCase();
@@ -213,7 +215,7 @@ export function readPrefs(storage) {
             legacy = null;
         }
 
-        const prefs = { ...PREFS_DEFAULTS, myTables: [], keyboard: legacy === 'numeric' || legacy === 'text' ? legacy : null };
+        const prefs = { ...PREFS_DEFAULTS, myTables: {}, keyboard: legacy === 'numeric' || legacy === 'text' ? legacy : null };
 
         if (legacy !== null) {
             try {
@@ -232,7 +234,8 @@ export function readPrefs(storage) {
         keyboard: stored.keyboard === 'numeric' || stored.keyboard === 'text' ? stored.keyboard : null,
         autoOpenTable: typeof stored.autoOpenTable === 'boolean' ? stored.autoOpenTable : PREFS_DEFAULTS.autoOpenTable,
         scanAfterSave: typeof stored.scanAfterSave === 'boolean' ? stored.scanAfterSave : PREFS_DEFAULTS.scanAfterSave,
-        myTables: Array.isArray(stored.myTables) ? stored.myTables.filter((table) => Number.isInteger(table) && table > 0).slice(0, 200) : [],
+        // My tables per event (judge-speed J3, live_entry_my_tables.js): {[competitionId]: {text, on, savedAt}}, newest 5
+        myTables: normaliseMyTables(stored.myTables),
         piecesMode: stored.piecesMode === 'missing' || stored.piecesMode === 'placed' ? stored.piecesMode : null,
     };
 }

@@ -187,6 +187,13 @@
     proposalRejectWaiting: 'live_results.proposals.reject_waiting'|trans,
     proposalRejected: 'live_results.proposals.rejected'|trans,
     proposalsWaiting: 'live_results.proposals.waiting'|trans,
+    myTablesChip: 'live_results.my_tables.chip'|trans,
+    myTablesTodo: 'live_results.my_tables.todo_title'|trans,
+    myTablesTodoEmpty: 'live_results.my_tables.todo_empty'|trans,
+    myTablesOthers: 'live_results.my_tables.others_divider'|trans,
+    myTablesErrorSyntax: 'live_results.my_tables.error_syntax'|trans,
+    myTablesErrorRange: 'live_results.my_tables.error_range'|trans,
+    myTablesErrorTooMany: 'live_results.my_tables.error_too_many'|trans,
     proposalAgeSeconds: 'live_results.proposals.age_seconds'|trans,
     proposalAgeMinutes: 'live_results.proposals.age_minutes'|trans,
     fieldProposal: 'live_results.proposals.field'|trans,
@@ -327,6 +334,7 @@
              forbiddenRounds: browser_translation('live_results.banner.forbidden_rounds'),
              discardAllConfirm: browser_translation('live_results.problem.discard_all_confirm'),
              missingPieces: browser_translation('finished_missing.missing_short'),
+             otherTables: browser_translation('live_results.my_tables.other_tables'),
          }|json_encode|e('html_attr') }}"
     >
         <div class="lr-bar">
@@ -390,12 +398,22 @@
             </button>
 
             <div data-live-results-target="recentBlock">
+                {# My tables on this phone (judge-speed J3, rounds with table numbers): shown by the controller once set #}
+                <div class="d-flex flex-wrap align-items-center gap-1 mt-3" data-live-results-target="myTablesRow" hidden>
+                    <button type="button" class="btn btn-outline-primary btn-sm text-start text-break" data-live-results-target="myTablesChip" data-action="live-results#toggleMyTables" aria-pressed="true"></button>
+                    <button type="button" class="btn btn-link btn-sm" data-action="live-results#editMyTables">{{ 'live_results.my_tables.edit'|trans }}</button>
+                </div>
                 {# A pick round's entries with a result but no puzzle chosen (toolkit C10): shown by the controller #}
                 {# Time proposals waiting for a judge (toolkit C9) - rows open the entry: shown by the controller #}
                 <button type="button" class="btn btn-outline-success btn-sm mt-3 me-1" data-live-results-target="proposalsButton" data-action="live-results#toggleProposals" aria-pressed="false" hidden></button>
                 <button type="button" class="btn btn-outline-warning btn-sm mt-3" data-live-results-target="missingButton" data-action="live-results#toggleMissing" aria-pressed="false" hidden></button>
+                <div data-live-results-target="todoBlock" hidden>
+                    <h2 class="lr-recent-title" data-live-results-target="todoTitle"></h2>
+                    <div class="lr-list" data-live-results-target="todoList"></div>
+                </div>
                 <h2 class="lr-recent-title" data-live-results-target="recentTitle">{{ 'live_results.recent.title'|trans }}</h2>
                 <div class="lr-list" data-live-results-target="recent"></div>
+                <button type="button" class="btn btn-link btn-sm px-0 mt-1" data-live-results-target="recentMore" data-action="live-results#showOtherTables" hidden></button>
             </div>
 
             {# Organisers only (referees get no organiser tools): shown by the controller #}
@@ -579,6 +597,15 @@
                     <input class="form-check-input" type="checkbox" role="switch" id="lr-auto-open" data-live-results-target="autoOpenToggle" data-action="change->live-results#toggleAutoOpen" checked>
                     <label class="form-check-label small" for="lr-auto-open">{{ 'live_results.prefs.auto_open_table'|trans }}</label>
                 </div>
+                {# My tables (judge-speed J3): per event, only on this phone #}
+                <form class="mt-3" novalidate data-action="submit->live-results#setMyTables">
+                    <label class="form-label small mb-1" for="lr-my-tables">{{ 'live_results.my_tables.label'|trans }}</label>
+                    <input type="text" class="form-control" id="lr-my-tables" maxlength="200" inputmode="text" autocomplete="off" enterkeyhint="done"
+                           placeholder="{{ 'live_results.my_tables.placeholder'|trans }}" aria-describedby="lr-my-tables-help lr-my-tables-error"
+                           data-live-results-target="myTablesInput" data-action="change->live-results#setMyTables">
+                    <div class="invalid-feedback" id="lr-my-tables-error" data-live-results-target="myTablesError" role="alert" hidden></div>
+                    <div class="form-text" id="lr-my-tables-help">{{ 'live_results.my_tables.help'|trans }}</div>
+                </form>
             </div>
         </div>
 

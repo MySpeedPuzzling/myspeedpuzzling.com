@@ -235,6 +235,7 @@ review each; "Review amendments" binding): [shared-puzzles-and-divisions.md](../
 | S2 | #432 | Rounds of one category may share a puzzle (refusal lifted; notices; internal API `sharedWithRounds`) |
 | D1+D2 | #421 | Divisions: event list + round subsets, division per round entry, organiser page + hub card, internal API (list + bulk entry divisions), division ranks on the desk + export |
 | D5 | #444 | Divisions on the public round page (`?division=`, division ranks before hidden rows are dropped), competitor page, tags/tents |
+| L1 | - | Results desk at 375 px: compact record chips (label, ✓ split, own time wrap inside a rounded chip; title = whole text), Country/Entered folded into the row on a phone |
 | DM | #445 | `myspeedpuzzling:sandbox:demo-events` - the two demo events on the sandbox (below) |
 | TR | in each PR | cs/de/es/fr/ja for every new key |
 

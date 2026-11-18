@@ -4,7 +4,7 @@
 // desk's `?entry=<ref>` deep link from the participants sheet's Puzzles popover (v2 C5).
 
 import assert from 'node:assert/strict';
-import { consistentRecord, deskEntryFromQuery, deskEntryRef, deskEntryUrl, editorOutcome, editorRows, ownTimesLine, puzzleOptions, recordChips, recordText, rowOwnTimes } from '../../assets/official_results_desk_puzzles.js';
+import { consistentRecord, deskEntryFromQuery, deskRecordChips, deskEntryRef, deskEntryUrl, editorOutcome, editorRows, ownTimesLine, puzzleOptions, recordChips, recordText, rowOwnTimes } from '../../assets/official_results_desk_puzzles.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
 
 const A = 'rp-a';
@@ -108,6 +108,22 @@ export default function (test) {
         assert.equal(recordText(FORMAT, record, { pieces: '%placed% pcs' }), 'C ✓ 0:41:10 · Blue box ✓ 1:22:03');
         assert.equal(recordText(FORMAT, [{ roundPuzzleId: B, done: false, piecesPlaced: 312 }], { pieces: '%placed% pcs' }), 'B 312 pcs');
         assert.equal(recordText(FORMAT, null, {}), '');
+    });
+
+    test('desk row chips (real events L1): own time only on K >= 2 and not the first, the whole text as the title', () => {
+        const texts = { pieces: '%placed% pcs', own: 'own %time%' };
+        const record = [{ roundPuzzleId: C, done: true, atSeconds: 602 }, { roundPuzzleId: A, done: true, atSeconds: 614 }];
+
+        assert.deepEqual(deskRecordChips(FORMAT, record, texts).map((chip) => [chip.own, chip.title]), [
+            [null, 'C ✓ 0:10:02'],
+            [12, 'Blue box Lighthouse ✓ 0:10:14 (own 0:00:12)'],
+        ]);
+        assert.deepEqual(deskRecordChips({ ...FORMAT, toSolve: 1 }, record, texts).map((chip) => chip.own), [null, null]);
+        assert.deepEqual(deskRecordChips(FORMAT, [{ roundPuzzleId: B, done: true, atSeconds: 600 }, { roundPuzzleId: A, done: false, piecesPlaced: 312 }], texts).map((chip) => [chip.own, chip.title]), [
+            [null, 'B ✓ 0:10:00'],
+            [null, 'Blue box Lighthouse 312 pcs'],
+        ]);
+        assert.deepEqual(deskRecordChips(FORMAT, null, texts), []);
     });
 
     test('the sheet\'s consistent record: kept choice, recomputed, cleared only when nothing fits', () => {

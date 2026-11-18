@@ -66,6 +66,35 @@ export function recordChips(format, value) {
 }
 
 /**
+ * A desk row's chips (real events L1): recordChips() + `own` - the own time shown next to the split (a round of K ≥ 2,
+ * not the first chip: its own time is its split; real events W4) - and `title`, the chip's whole text in one line for
+ * its tooltip, as a phone-width chip cuts a long label short ("Challenge 1 Puzzle 18 ✓ 0:10:14 (own 0:00:12)").
+ *
+ * @param {{pieces: string, own: string, done: string}} texts `pieces` with %placed%, `own` with %time%, `done` the ✓'s word
+ * @returns {{id: string, label: string, name: string|null, done: boolean, atSeconds: number|null, duration: number|null, piecesPlaced: number|null, own: number|null, title: string}[]}
+ */
+export function deskRecordChips(format, value, texts) {
+    const toSolve = Number.isInteger(format?.toSolve) ? format.toSolve : 1;
+
+    return recordChips(format, value).map((chip, index) => {
+        const own = chip.done && toSolve >= 2 && index > 0 && chip.duration !== null ? chip.duration : null;
+        const parts = [chip.name !== null ? `${chip.label} ${chip.name}` : chip.label];
+
+        if (chip.done) {
+            parts.push(chip.atSeconds !== null ? `✓ ${formatResultTime(chip.atSeconds)}` : '✓');
+        } else if (chip.piecesPlaced !== null) {
+            parts.push(String(texts?.pieces ?? '%placed%').replace('%placed%', String(chip.piecesPlaced)));
+        }
+
+        if (own !== null) {
+            parts.push(`(${String(texts?.own ?? '%time%').replace('%time%', formatResultTime(own))})`);
+        }
+
+        return { ...chip, own, title: parts.join(' ') };
+    });
+}
+
+/**
  * The record in one line - "B ✓ 0:41:10 · A 312 pcs" (labels only - a sheet cell and a conflict line). Empty = none.
  *
  * @param {{pieces: string}} texts `pieces` with %placed%

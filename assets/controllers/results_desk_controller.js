@@ -15,7 +15,7 @@ import {
     saveEditor as saveEditorValue,
 } from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
-import { deskEntryFromQuery, editorOutcome, editorRows, ownTimesLine, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
+import { deskEntryFromQuery, deskRecordChips, editorOutcome, editorRows, ownTimesLine, pickFormat, puzzleOptions, recordText } from '../official_results_desk_puzzles.js';
 import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 
@@ -469,16 +469,21 @@ export default class extends Controller {
             </td>`);
         }
 
-        cells.push(`<td>${this.entrantHtml(entry)}${this.takeOutHtml(entry)}</td>`);
-        cells.push(`<td class="text-nowrap">${this.flagsHtml(entry.countries ?? [])}</td>`);
+        // Phone width (real events L1): the Country and Entered columns are hidden below sm / md so the result column
+        // shows without a sideways scroll - the flags go next to the name, "entered by" under the result
+        const flags = this.flagsHtml(entry.countries ?? []);
+        cells.push(`<td>${flags !== '' ? `<span class="d-sm-none float-end ms-1">${flags}</span>` : ''}${this.entrantHtml(entry)}${this.takeOutHtml(entry)}</td>`);
+        cells.push(`<td class="text-nowrap d-none d-sm-table-cell">${flags}</td>`);
+        const entered = this.enteredHtml(this.entries.get(entry.ref));
         cells.push(`<td>
             <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none text-nowrap results-desk-cell results-desk-result" data-action="results-desk#editResult" data-ref="${ref}" data-focus-key="result:${ref}" aria-label="${escapeHtml(this.t('edit_result_label', { name }))}">${entry.result === null ? `<span class="text-body-secondary">${escapeHtml(this.t('add_result'))}</span>` : escapeHtml(this.formatResult(entry.result, this.shown(entry, MISSING_PIECES)))}</button>
             ${this.recordHtml(entry)}
             ${this.cellState(entry, RESULT)}
             ${this.pickFormat() !== null ? this.cellState(entry, PUZZLES) : ''}
             ${this.pending.get(entry.ref, MISSING_PIECES) !== null ? this.cellState(entry, MISSING_PIECES) : ''}
+            ${entered !== '' ? `<div class="d-md-none small text-body-secondary mt-1">${entered}</div>` : ''}
         </td>`);
-        cells.push(`<td class="small text-body-secondary">${this.enteredHtml(this.entries.get(entry.ref))}</td>`);
+        cells.push(`<td class="small text-body-secondary d-none d-md-table-cell">${entered}</td>`);
         cells.push(`<td class="text-center">
             <label class="results-desk-check d-inline-flex align-items-center justify-content-center">
                 <input type="checkbox" class="form-check-input m-0" data-action="change->results-desk#toggleQualified" data-ref="${ref}" data-focus-key="qualified:${ref}" ${entry.qualified ? 'checked' : ''} aria-label="${escapeHtml(this.t('qualified_label', { name }))}">
@@ -567,7 +572,7 @@ export default class extends Controller {
             return '';
         }
 
-        return `<button type="button" class="btn btn-sm btn-link p-0 small text-body-secondary results-desk-take-out" data-action="results-desk#takeOut" data-ref="${escapeHtml(entry.ref)}" data-focus-key="take-out:${escapeHtml(entry.ref)}">
+        return `<button type="button" class="btn btn-sm btn-link p-0 small text-body-secondary text-start text-wrap results-desk-take-out" data-action="results-desk#takeOut" data-ref="${escapeHtml(entry.ref)}" data-focus-key="take-out:${escapeHtml(entry.ref)}">
             <i class="bi bi-box-arrow-left me-1" aria-hidden="true"></i>${escapeHtml(this.t('take_out'))}
         </button>`;
     }
@@ -730,28 +735,31 @@ export default class extends Controller {
             return '';
         }
 
-        const chips = recordChips(format, this.shown(entry, PUZZLES));
+        const chips = deskRecordChips(format, this.shown(entry, PUZZLES), { pieces: this.t('pieces_placed'), own: this.t('puzzles_own_time') });
 
         if (chips.length === 0) {
             return '';
         }
 
-        const html = chips.map((chip, index) => {
+        // Compact at 375 px (real events L1): label | ✓ split | own time are three pieces that wrap one under the other
+        // only when the column is narrow; a long label is cut short with the whole text in the chip's title
+        const html = chips.map((chip) => {
             const name = chip.name !== null ? ` <span class="text-body-secondary">${escapeHtml(chip.name)}</span>` : '';
             let state = '';
+            let own = '';
 
             if (chip.done) {
-                state = ` <i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">${escapeHtml(this.t('puzzles_status_done'))}</span>${chip.atSeconds !== null ? ` ${escapeHtml(formatResultTime(chip.atSeconds))}` : ''}`;
+                state = `<span class="text-nowrap"><i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">${escapeHtml(this.t('puzzles_status_done'))}</span>${chip.atSeconds !== null ? ` ${escapeHtml(formatResultTime(chip.atSeconds))}` : ''}</span>`;
 
                 // Its own time next to the split (real events W4) - K ≥ 2, not the first (its own time is its split)
-                if (format.toSolve >= 2 && index > 0 && chip.duration !== null) {
-                    state += ` <span class="text-body-secondary" data-record-own="${chip.duration}">(${escapeHtml(this.t('puzzles_own_time', { time: formatResultTime(chip.duration) }))})</span>`;
+                if (chip.own !== null) {
+                    own = `<span class="text-nowrap text-body-secondary" data-record-own="${chip.own}">(${escapeHtml(this.t('puzzles_own_time', { time: formatResultTime(chip.own) }))})</span>`;
                 }
             } else if (chip.piecesPlaced !== null) {
-                state = ` ${escapeHtml(this.t('pieces_placed', { placed: chip.piecesPlaced }))}`;
+                state = `<span class="text-nowrap">${escapeHtml(this.t('pieces_placed', { placed: chip.piecesPlaced }))}</span>`;
             }
 
-            return `<span class="badge rounded-pill text-bg-light border fw-normal text-wrap text-start" data-record-chip>${escapeHtml(chip.label)}${name}${state}</span>`;
+            return `<span class="badge text-bg-light border fw-normal text-start results-desk-chip" data-record-chip title="${escapeHtml(chip.title)}"><span class="results-desk-chip-label">${escapeHtml(chip.label)}${name}</span>${state}${own}</span>`;
         });
 
         return `<div class="d-flex flex-wrap gap-1 mt-1 small" data-record aria-label="${escapeHtml(this.t('puzzles_record_label'))}">${html.join('')}</div>`;

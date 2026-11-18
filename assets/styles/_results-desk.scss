@@ -39,3 +39,30 @@
     width: 5rem;
   }
 }
+
+// A `pick` round's record chips under the result (real events L1): label | ✓ split | own time wrap one under the other
+// only when the column is narrow (a phone), never inside a word; a rounded rectangle, not a pill, so a chip of two or
+// three lines keeps its text off the border; below md a long label is cut short (the whole text is the chip's title)
+.results-desk-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  column-gap: .25rem;
+  row-gap: .125rem;
+  max-width: 100%;
+  border-radius: var(--bs-border-radius-lg);
+  white-space: normal;
+
+  .results-desk-chip-label {
+    white-space: nowrap;
+  }
+
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+
+    .results-desk-chip-label {
+      max-width: 7.5em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}

@@ -382,7 +382,8 @@
         {% endif %}
 
         {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
-           without it they widen the page at 375 px (browser verification) #}
+           without it they widen the page at 375 px (browser verification). Country (< sm) and Entered (< md) are
+           hidden at phone width - the row shows them inside the entrant and result cells (real events L1) #}
         <div class="table-responsive position-relative">
             <table class="table table-sm align-middle results-desk-table">
                 <caption class="visually-hidden">{{ 'results_desk.table.caption'|trans({'%round%': round.overview.name}) }}</caption>
@@ -394,9 +395,9 @@
                         {% endif %}
                         <th scope="col" data-results-desk-target="tableColumn" {{ competition.isOnline or round.overview.tableNumbersOff ? 'hidden' }}>{{ 'results_desk.table.table'|trans }}</th>
                         <th scope="col">{{ (round.overview.category == 'solo' ? 'results_desk.table.entrant' : 'results_desk.table.team')|trans }}</th>
-                        <th scope="col">{{ 'results_desk.table.country'|trans }}</th>
+                        <th scope="col" class="d-none d-sm-table-cell">{{ 'results_desk.table.country'|trans }}</th>
                         <th scope="col">{{ 'results_desk.table.result'|trans }}</th>
-                        <th scope="col">{{ 'results_desk.table.entered'|trans }}</th>
+                        <th scope="col" class="d-none d-md-table-cell">{{ 'results_desk.table.entered'|trans }}</th>
                         <th scope="col" class="text-center">{{ 'official_results.qualified'|trans }}</th>
                     </tr>
                 </thead>

@@ -15602,7 +15602,7 @@ event_wizard:
         timer_screen: "Try the timer screen on the hall's TV"
         stopwatch_test: "Test run: start the stopwatch without \"Reveal the puzzles\" ticked"
         participant_links: "Help people link their profiles"
-        participant_links_note: "{1}1 person on your list has no MySpeedPuzzling profile linked yet - hand out claim links or review the suggestions.|]1,Inf[%count% people on your list have no MySpeedPuzzling profile linked yet - hand out claim links or review the suggestions."
+        participant_links_note: "{1}1 person on your list has no MySpeedPuzzling profile linked yet - hand out claim links or review the suggestions.|[0,Inf[%count% people on your list have no MySpeedPuzzling profile linked yet - hand out claim links or review the suggestions."
         continue: "Continue setting up"
         continue_text: "This draft is not finished yet - the wizard takes you to the next step."
         link:
@@ -16173,7 +16173,7 @@ participant_link_suggestions:
         editor_title: "May already have a profile - check the #code, the country and the dates first:"
         editor_link: "Link"
         card: "May be %player%"
-        card_several: "{1}1 profile may fit|]1,Inf[%count% profiles may fit"
+        card_several: "{1}1 profile may fit|[0,Inf[%count% profiles may fit"
 event_wizard_more:
     puzzle_search:
         label: "Find the puzzle"

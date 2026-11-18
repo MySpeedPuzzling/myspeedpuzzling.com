@@ -15341,7 +15341,7 @@ event_wizard:
         timer_screen: "会場のテレビでタイマー画面を試す"
         stopwatch_test: "テスト実行：「パズルを公開」にチェックを入れずにストップウォッチを開始"
         participant_links: "参加者がプロフィールを紐付けられるようにしましょう"
-        participant_links_note: "{1}リストの1人にまだMySpeedPuzzlingのプロフィールが紐付いていません。紐付けリンクを配るか、候補を確認してください。|]1,Inf[リストの%count%人にまだMySpeedPuzzlingのプロフィールが紐付いていません。紐付けリンクを配るか、候補を確認してください。"
+        participant_links_note: "{1}リストの1人にまだMySpeedPuzzlingのプロフィールが紐付いていません。紐付けリンクを配るか、候補を確認してください。|[0,Inf[リストの%count%人にまだMySpeedPuzzlingのプロフィールが紐付いていません。紐付けリンクを配るか、候補を確認してください。"
         continue: "設定を続ける"
         continue_text: "この下書きはまだ完成していません。ウィザードで次のステップに進めます。"
         link:
@@ -15876,7 +15876,7 @@ participant_link_suggestions:
         editor_title: "すでにプロフィールがあるかもしれません。まず#コード、国、日付を確認してください:"
         editor_link: "紐付ける"
         card: "%player% かもしれません"
-        card_several: "{1}1件のプロフィールが当てはまる可能性があります|]1,Inf[%count%件のプロフィールが当てはまる可能性があります"
+        card_several: "{1}1件のプロフィールが当てはまる可能性があります|[0,Inf[%count%件のプロフィールが当てはまる可能性があります"
 event_wizard_more:
     puzzle_search:
         label: "パズルを探す"

@@ -15352,7 +15352,7 @@ event_wizard:
         timer_screen: "Prueba la pantalla de cronómetro en el televisor de la sala"
         stopwatch_test: "Prueba: inicia el cronómetro sin marcar «Revelar los puzzles»"
         participant_links: "Ayuda a la gente a vincular sus perfiles"
-        participant_links_note: "{1}1 persona de tu lista aún no tiene un perfil de MySpeedPuzzling vinculado: reparte enlaces para vincular o revisa las sugerencias.|]1,Inf[%count% personas de tu lista aún no tienen un perfil de MySpeedPuzzling vinculado: reparte enlaces para vincular o revisa las sugerencias."
+        participant_links_note: "{1}1 persona de tu lista aún no tiene un perfil de MySpeedPuzzling vinculado: reparte enlaces para vincular o revisa las sugerencias.|[0,Inf[%count% personas de tu lista aún no tienen un perfil de MySpeedPuzzling vinculado: reparte enlaces para vincular o revisa las sugerencias."
         continue: "Seguir configurando"
         continue_text: "Este borrador aún no está terminado: el asistente te lleva al siguiente paso."
         link:
@@ -15915,7 +15915,7 @@ participant_link_suggestions:
         editor_title: "Puede que ya tenga un perfil; comprueba primero el #código, el país y las fechas:"
         editor_link: "Vincular"
         card: "Puede ser %player%"
-        card_several: "{1}Puede encajar 1 perfil|]1,Inf[Pueden encajar %count% perfiles"
+        card_several: "{1}Puede encajar 1 perfil|[0,Inf[Pueden encajar %count% perfiles"
 event_wizard_more:
     puzzle_search:
         label: "Buscar el puzzle"

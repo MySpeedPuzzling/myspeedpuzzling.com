@@ -15347,7 +15347,7 @@ event_wizard:
         timer_screen: "Tester l'écran de chronomètre sur la télévision de la salle"
         stopwatch_test: "Essai : démarrez le chronomètre sans cocher « Révéler les puzzles »"
         participant_links: "Aidez les gens à relier leur profil"
-        participant_links_note: "{1}1 personne de votre liste n'a pas encore de profil MySpeedPuzzling relié – distribuez les liens de rattachement ou consultez les suggestions.|]1,Inf[%count% personnes de votre liste n'ont pas encore de profil MySpeedPuzzling relié – distribuez les liens de rattachement ou consultez les suggestions."
+        participant_links_note: "{1}1 personne de votre liste n'a pas encore de profil MySpeedPuzzling relié – distribuez les liens de rattachement ou consultez les suggestions.|[0,Inf[%count% personnes de votre liste n'ont pas encore de profil MySpeedPuzzling relié – distribuez les liens de rattachement ou consultez les suggestions."
         continue: "Poursuivre la configuration"
         continue_text: "Ce brouillon n'est pas encore terminé - l'assistant vous mène à l'étape suivante."
         link:
@@ -15910,7 +15910,7 @@ participant_link_suggestions:
         editor_title: "A peut-être déjà un profil – vérifiez d'abord le #code, le pays et les dates :"
         editor_link: "Relier"
         card: "Peut-être %player%"
-        card_several: "{1}1 profil pourrait convenir|]1,Inf[%count% profils pourraient convenir"
+        card_several: "{1}1 profil pourrait convenir|[0,Inf[%count% profils pourraient convenir"
 event_wizard_more:
     puzzle_search:
         label: "Trouver le puzzle"

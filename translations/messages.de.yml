@@ -15351,7 +15351,7 @@ event_wizard:
         timer_screen: "Timer-Bildschirm auf dem Fernseher in der Halle testen"
         stopwatch_test: "Testlauf: Stoppuhr ohne angehaktes „Puzzles enthüllen“ starten"
         participant_links: "Helfen Sie den Leuten, ihre Profile zu verknüpfen"
-        participant_links_note: "{1}1 Person auf Ihrer Liste hat noch kein MySpeedPuzzling-Profil verknüpft – verteilen Sie Verknüpfungslinks oder prüfen Sie die Vorschläge.|]1,Inf[%count% Personen auf Ihrer Liste haben noch kein MySpeedPuzzling-Profil verknüpft – verteilen Sie Verknüpfungslinks oder prüfen Sie die Vorschläge."
+        participant_links_note: "{1}1 Person auf Ihrer Liste hat noch kein MySpeedPuzzling-Profil verknüpft – verteilen Sie Verknüpfungslinks oder prüfen Sie die Vorschläge.|[0,Inf[%count% Personen auf Ihrer Liste haben noch kein MySpeedPuzzling-Profil verknüpft – verteilen Sie Verknüpfungslinks oder prüfen Sie die Vorschläge."
         continue: "Weiter einrichten"
         continue_text: "Dieser Entwurf ist noch nicht fertig – der Assistent führt Sie zum nächsten Schritt."
         link:
@@ -15914,7 +15914,7 @@ participant_link_suggestions:
         editor_title: "Hat vielleicht schon ein Profil – prüfen Sie zuerst #Code, Land und Daten:"
         editor_link: "Verknüpfen"
         card: "Vielleicht %player%"
-        card_several: "{1}1 Profil könnte passen|]1,Inf[%count% Profile könnten passen"
+        card_several: "{1}1 Profil könnte passen|[0,Inf[%count% Profile könnten passen"
 event_wizard_more:
     puzzle_search:
         label: "Puzzle finden"

@@ -241,13 +241,10 @@ final class ParticipantClaimPageTest extends WebTestCase
      */
     public function testASignedInPlayerIsCountedByPlayerNotByAddress(): void
     {
-        // The limiter's test storage lives in the kernel - keep the one kernel across the requests
-        $this->browser->disableReboot();
+        // Every request resets the limiter's in-memory test storage - each case sets its limit before its one request
         $address = '203.0.113.48';
-        /** @var RateLimiterFactoryInterface $byAddress */
-        $byAddress = self::getContainer()->get('limiter.participant_claim_page');
-        /** @var RateLimiterFactoryInterface $byPlayer */
-        $byPlayer = self::getContainer()->get('limiter.participant_claim_page_player');
+        $byAddress = $this->claimPageLimiter('limiter.participant_claim_page');
+        $byPlayer = $this->claimPageLimiter('limiter.participant_claim_page_player');
         $byAddress->create($address)->reset();
         $byAddress->create($address)->consume(100000);
         $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->reset();
@@ -257,20 +254,49 @@ final class ParticipantClaimPageTest extends WebTestCase
             // The address is used up - the signed-in player is not
             $this->browser->request('GET', self::PAGE, server: ['REMOTE_ADDR' => $address]);
             self::assertResponseIsSuccessful();
+        } finally {
+            $byAddress->create($address)->reset();
+        }
+    }
 
-            $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->consume(100000);
+    public function testASignedInPlayerWhoUsedUpTheirLimitIsStoppedOnAnyAddress(): void
+    {
+        $byPlayer = $this->claimPageLimiter('limiter.participant_claim_page_player');
+        $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->reset();
+        $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->consume(100000);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_PRIVATE);
+
+        try {
             $page = $this->browser->request('GET', self::PAGE, server: ['REMOTE_ADDR' => '203.0.113.49']);
             self::assertResponseStatusCodeSame(Response::HTTP_TOO_MANY_REQUESTS);
             self::assertSame('too_many', $page->filter('[data-claim-state]')->attr('data-claim-state'));
+        } finally {
+            $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->reset();
+        }
+    }
 
-            // The button counts the same way
+    public function testTheButtonOfAPlayerWhoUsedUpTheirLimitChangesNothing(): void
+    {
+        $byPlayer = $this->claimPageLimiter('limiter.participant_claim_page_player');
+        $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->reset();
+        $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->consume(100000);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_PRIVATE);
+
+        try {
             $this->browser->request('POST', self::PAGE, ['_token' => 'csrf-token'], server: ['REMOTE_ADDR' => '203.0.113.49', 'HTTP_ORIGIN' => 'http://localhost']);
             self::assertResponseRedirects(self::PAGE, Response::HTTP_SEE_OTHER);
             self::assertNull($this->linkedPlayer());
         } finally {
-            $byAddress->create($address)->reset();
             $byPlayer->create(PlayerFixture::PLAYER_PRIVATE)->reset();
         }
+    }
+
+    private function claimPageLimiter(string $service): RateLimiterFactoryInterface
+    {
+        $limiter = self::getContainer()->get($service);
+        assert($limiter instanceof RateLimiterFactoryInterface);
+
+        return $limiter;
     }
 
     /**

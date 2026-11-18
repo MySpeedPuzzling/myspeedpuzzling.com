@@ -953,10 +953,13 @@ it may go back to draft - is checked before anything of it is written.
 `puzzleIds` (`[]` removes all): a puzzle no longer listed is removed, a new one attached, the others keep their secret
 reveal (new ones are not hidden - a secret puzzle and its reveal are set on the round's page in the UI). A hidden
 puzzle - a competition's secret one, or a placeholder hidden by hand - is never attached unhidden: the event page
-would show it (`409`, nothing changes; on create, no round is created). A puzzle may be in only **one round
-per category per competition** (that is what lets a solving time's round follow from its competition + puzzle,
-[round-results.md](./competitions-management/round-results.md)): a list breaking it is a `409` naming the other
-round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction). Creating a round with `puzzleIds` checks them before the round is created, and creates the round and attaches them in one transaction (`AddCompetitionRoundWithPuzzles`): a puzzle that changes in the very same moment still refuses the list (`409`, or `404` for one deleted meanwhile) - and then no round is created either. A round `PATCH` changing the category is refused the same way. Unknown puzzle ids are a
+would show it (`409`, nothing changes; on create, no round is created). **Several rounds of one category may share a
+puzzle** (a team challenge and an open round on one puzzle - since 2026-11,
+[shared-puzzles-and-divisions.md](./competitions-management/shared-puzzles-and-divisions.md)): a solving time's round
+then follows from each player's entry in those rounds ([round-results.md](./competitions-management/round-results.md)),
+and every round puzzle of an answer carries `sharedWithRounds` - the names of the other rounds of the competition in
+its category with the same puzzle, by start (`[]` when none; additive). Earlier such a list or category change was a
+`409`. `SetCompetitionRoundPuzzles` is one transaction. Creating a round with `puzzleIds` checks them before the round is created, and creates the round and attaches them in one transaction (`AddCompetitionRoundWithPuzzles`): a puzzle that changes in the very same moment still refuses the list (`409`, or `404` for one deleted meanwhile) - and then no round is created either. Moving a round into an event that has one of its puzzles in a round of its category already stays refused (`409`). Unknown puzzle ids are a
 `404` listing them. Solving times follow automatically: every attach/removal reconciles the competition's round results
 (`CompetitionRoundsChanged` → `RoundResultsReconciler`), so `resultsCount` is current in the answer.
 
@@ -1123,7 +1126,8 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
       "hidesEverywhere": false,
       "position": 1,
       "label": null,
-      "effectiveLabel": "A"
+      "effectiveLabel": "A",
+      "sharedWithRounds": []
     }]
   }],
   "puzzles": []

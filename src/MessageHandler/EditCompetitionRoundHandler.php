@@ -14,10 +14,7 @@ use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
-use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
@@ -33,7 +30,6 @@ readonly final class EditCompetitionRoundHandler
 {
     public function __construct(
         private CompetitionRoundRepository $competitionRoundRepository,
-        private GetCompetitionRounds $getCompetitionRounds,
         private SecretPuzzleHides $secretPuzzleHides,
         private ClockInterface $clock,
         private SecretRevealPreview $secretRevealPreview,
@@ -49,7 +45,6 @@ readonly final class EditCompetitionRoundHandler
      * the change stays in the entity manager and a later flush in the same request would write it.
      *
      * @throws CompetitionRoundNotFound a round of another event
-     * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws SecretPuzzlesWouldBeRevealed
      * @throws OfficialResultsProtected
      * @throws OnlineTimingInUse a round using online timing changed away from solo
@@ -136,22 +131,6 @@ readonly final class EditCompetitionRoundHandler
 
             if (SecretRevealPreview::refuses($revealed, $message->refuseToReveal, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
-            }
-        }
-
-        if ($category !== $round->category) {
-            $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
-                competitionId: $round->competition->id->toString(),
-                puzzleIds: array_values(array_map(
-                    static fn (CompetitionRoundPuzzle $roundPuzzle): string => $roundPuzzle->puzzle->id->toString(),
-                    $round->roundPuzzles->toArray(),
-                )),
-                category: $category,
-                exceptRoundId: $round->id->toString(),
-            );
-
-            if ($conflictingRound !== null) {
-                throw new PuzzleAlreadyInCompetitionRoundCategory($conflictingRound);
             }
         }
 

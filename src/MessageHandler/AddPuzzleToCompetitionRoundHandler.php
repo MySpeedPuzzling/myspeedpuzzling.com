@@ -11,13 +11,12 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRound;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
-use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -44,7 +43,6 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private SecretPuzzleHides $secretPuzzleHides,
         private ImageOptimizer $imageOptimizer,
         private PuzzleImageNamer $puzzleImageNamer,
-        private GetCompetitionRounds $getCompetitionRounds,
         private IsPuzzleKeptSecret $isPuzzleKeptSecret,
         private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
@@ -55,7 +53,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
      * picture behind).
      *
      * @throws AutomaticRevealChangedMeanwhile
-     * @throws PuzzleAlreadyInCompetitionRoundCategory
+     * @throws PuzzleAlreadyInCompetitionRound the round lists the puzzle already (other rounds of its category may share it)
      * @throws PuzzleHiddenByHand
      * @throws PuzzleNameAlreadyPublic
      */
@@ -111,14 +109,12 @@ readonly final class AddPuzzleToCompetitionRoundHandler
                 throw new PuzzleNameAlreadyPublic();
             }
 
-            $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
-                competitionId: $round->competition->id->toString(),
-                puzzleIds: [$puzzle->id->toString()],
-                category: $round->category,
-            );
-
-            if ($conflictingRound !== null) {
-                throw new PuzzleAlreadyInCompetitionRoundCategory($conflictingRound);
+            // A round lists each puzzle once - other rounds of the category may share it (a solving time's round then
+            // follows from each player's entry, SolvingTimeRoundMatch)
+            foreach ($round->roundPuzzles as $roundPuzzle) {
+                if ($roundPuzzle->puzzle->id->equals($puzzle->id)) {
+                    throw new PuzzleAlreadyInCompetitionRound($round->name);
+                }
             }
         }
 

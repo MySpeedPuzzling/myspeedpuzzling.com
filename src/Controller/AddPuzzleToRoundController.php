@@ -16,13 +16,14 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRound;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -54,6 +55,7 @@ final class AddPuzzleToRoundController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
         private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private readonly GetCompetitionRounds $getCompetitionRounds,
     ) {
     }
 
@@ -155,7 +157,7 @@ final class AddPuzzleToRoundController extends AbstractController
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
 
-                if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                if (!$nested instanceof PuzzleAlreadyInCompetitionRound) {
                     throw $e;
                 }
 
@@ -163,8 +165,8 @@ final class AddPuzzleToRoundController extends AbstractController
 
                 // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
                 $form->get('puzzle')->addError(new FormError($this->translator->trans(
-                    'competition.round.form.puzzle_already_in_category',
-                    ['%round%' => $nested->conflictingRoundName],
+                    'competition.round_puzzles.already_in_round',
+                    ['%round%' => $nested->roundName],
                 )));
 
                 return $this->page($form, $competition, $round, $restoredPhotos, $playerId);
@@ -178,6 +180,18 @@ final class AddPuzzleToRoundController extends AbstractController
             }
 
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_added'));
+
+            // Other rounds of the category may have the same puzzle (a challenge and an open round on one puzzle) - said
+            // once, so the organiser knows how solving times find their round
+            if (Uuid::isValid($data->puzzle)) {
+                $sharedWith = $this->getCompetitionRounds->roundsSharingPuzzleInCategory($competitionId, [$data->puzzle], $round->category, $roundId);
+
+                if ($sharedWith !== []) {
+                    $this->addFlash('info', $this->translator->trans('competition.round_puzzles.shared_notice', [
+                        '%rounds%' => implode(', ', $sharedWith),
+                    ]));
+                }
+            }
 
             // Opened from a page that wants the organiser back (the series page's quick "Add puzzle", W3)
             $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));

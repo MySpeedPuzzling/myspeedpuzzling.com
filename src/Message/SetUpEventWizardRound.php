@@ -18,7 +18,7 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  * 4. $format - EditCompetitionRound with the round's puzzle format (pick K of N) once its puzzles exist, every other
  *    field kept.
  *
- * Whatever any of them refuses (the one-round-per-category invariant, the reveal moment moved meanwhile, K out of
+ * Whatever any of them refuses (a puzzle the round has already, the reveal moment moved meanwhile, K out of
  * range...) rolls everything back - no half-written round. Takes the event's participants lock like
  * EditCompetitionRound; the nested ones pass through it (LockUntilCommittedMiddleware).
  */

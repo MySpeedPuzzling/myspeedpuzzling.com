@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Results\AdminPuzzle;
 use SpeedPuzzling\Web\Results\AdminRoundPuzzle;
 use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\SharedRoundPuzzle;
 
 /**
  * Competitions as the internal API shows them to an admin: every competition - approved, pending, rejected, a draft,
@@ -325,6 +326,7 @@ ORDER BY cr.starts_at, cr.name, cr.id
 SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
 
         $revealAt = RoundPuzzleReveal::sqlRevealAt('crp', 'cr');
+        $sharedWithRounds = SharedRoundPuzzle::sqlSharingRoundNames('crp', 'cr');
 
         /**
          * @var list<array{
@@ -347,6 +349,7 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
          *     puzzle_hide_image_until: null|string,
          *     position: null|int,
          *     label: null|string,
+         *     shared_with_rounds: null|string,
          * }> $puzzleRows
          */
         $puzzleRows = $this->database->fetchAllAssociative(<<<SQL
@@ -369,7 +372,8 @@ SELECT
     p.identification_number AS puzzle_identification_number,
     p.approved AS puzzle_approved,
     p.hide_until AS puzzle_hide_until,
-    p.hide_image_until AS puzzle_hide_image_until
+    p.hide_image_until AS puzzle_hide_image_until,
+    {$sharedWithRounds} AS shared_with_rounds
 FROM competition_round_puzzle crp
 INNER JOIN competition_round cr ON cr.id = crp.round_id
 INNER JOIN puzzle p ON p.id = crp.puzzle_id
@@ -407,6 +411,7 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
                 puzzle: AdminPuzzle::fromDatabaseRow($puzzleRow),
                 position: $positions[$puzzleRow['round_puzzle_id']],
                 label: $puzzleRow['label'],
+                sharedWithRounds: SharedRoundPuzzle::names($puzzleRow['shared_with_rounds']),
             );
         }
 

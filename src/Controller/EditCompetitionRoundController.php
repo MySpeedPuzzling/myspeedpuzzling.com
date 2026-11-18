@@ -11,13 +11,13 @@ use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleFormatRefused;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetRoundTeamSizes;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -38,7 +38,6 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -63,6 +62,7 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly GetRoundTeamSizes $getRoundTeamSizes,
         private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
         private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
+        private readonly GetCompetitionRounds $getCompetitionRounds,
     ) {
     }
 
@@ -129,6 +129,7 @@ final class EditCompetitionRoundController extends AbstractController
             assert($revealDelayMinutes !== null);
 
             $previousStartsAt = $round->startsAt;
+            $previousCategory = $round->category;
             $previousPuzzleFormat = [$round->puzzleFormat, $round->puzzlesToSolve];
             $previousAutomaticRevealAt = $round->automaticRevealAt();
             $startsAt = null;
@@ -205,6 +206,25 @@ final class EditCompetitionRoundController extends AbstractController
                         $revealedEarlier,
                     );
 
+                    // A new category may make the round share a puzzle with another round of it - allowed, said once
+                    if ($updatedRound->category !== $previousCategory) {
+                        $sharedWith = $this->getCompetitionRounds->roundsSharingPuzzleInCategory(
+                            $competitionId,
+                            array_values(array_map(
+                                static fn (CompetitionRoundPuzzle $roundPuzzle): string => $roundPuzzle->puzzle->id->toString(),
+                                $updatedRound->roundPuzzles->toArray(),
+                            )),
+                            $updatedRound->category,
+                            $roundId,
+                        );
+
+                        if ($sharedWith !== []) {
+                            $this->addFlash('info', $this->translator->trans('competition.round_puzzles.shared_notice', [
+                                '%rounds%' => implode(', ', $sharedWith),
+                            ]));
+                        }
+                    }
+
                     // Back where the organiser came from - the round's puzzles page links to the reveal minutes
                     $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
 
@@ -223,7 +243,7 @@ final class EditCompetitionRoundController extends AbstractController
                         ? 'competition.reveal.form.confirm_reveal_changed'
                         : 'competition.reveal.form.confirm_reveal_required');
                 } catch (OfficialResultsProtected $protected) {
-                    // The round's category stays while it has official results - read the round again, like below
+                    // The round's category stays while it has official results - read the round again
                     $round = $this->competitionRoundRepository->get($roundId);
                     $form->get('category')->addError(new FormError($this->translator->trans($protected->translationKey())));
                 } catch (RoundPuzzleFormatRefused $refused) {
@@ -236,21 +256,6 @@ final class EditCompetitionRoundController extends AbstractController
                     // A round using online timing stays solo (docs/features/online-competitions/) - read it again too
                     $round = $this->competitionRoundRepository->get($roundId);
                     $form->get('category')->addError(new FormError($this->translator->trans($inUse->translationKey(), $inUse->translationParameters())));
-                } catch (HandlerFailedException $e) {
-                    $nested = $e->getPrevious() ?? $e;
-
-                    if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                        throw $e;
-                    }
-
-                    // The handler cleared the entity manager (SecretPuzzleHides::lock()) - read the round again
-                    $round = $this->competitionRoundRepository->get($roundId);
-
-                    // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
-                    $form->get('category')->addError(new FormError($this->translator->trans(
-                        'competition.round.form.puzzle_already_in_category',
-                        ['%round%' => $nested->conflictingRoundName],
-                    )));
                 }
             }
         }

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundPuzzleOwnership;
 use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
+use SpeedPuzzling\Web\Value\SharedRoundPuzzle;
 
 readonly final class GetRoundPuzzlesForManagement
 {
@@ -32,6 +33,8 @@ readonly final class GetRoundPuzzlesForManagement
         $mayKeepHiddenEverywhere = RoundPuzzleOwnership::sqlMayKeepHiddenEverywhere('crp', 'p', 'cr');
         $shownByAnotherRound = RoundPuzzleOwnership::sqlShownByAnotherRound('crp');
         $otherHidden = RoundPuzzleReveal::sqlHidden('name_crp', 'name_cr');
+        $sharedWithRounds = SharedRoundPuzzle::sqlSharingRoundNames('crp', 'cr');
+        $sharedHideDiffers = SharedRoundPuzzle::sqlHideDiffers('crp', 'cr');
         $query = <<<SQL
 SELECT
     crp.id AS round_puzzle_id,
@@ -60,6 +63,8 @@ SELECT
     crp.hides_everywhere,
     crp.position,
     crp.label,
+    {$sharedWithRounds} AS shared_with_rounds,
+    {$sharedHideDiffers} AS shared_hide_differs,
     cr.starts_at AS round_starts_at,
     cr.reveal_delay_minutes AS round_reveal_delay_minutes,
     p.id AS puzzle_id,
@@ -121,6 +126,8 @@ SQL;
              *     name_held_by_another_round: bool|string,
              *     puzzle_hide_image_until: null|string,
              *     label: null|string,
+             *     shared_with_rounds: null|string,
+             *     shared_hide_differs: bool|string,
              * } $row
              */
             $position = $positions[$row['round_puzzle_id']];
@@ -167,6 +174,8 @@ SQL;
                 position: $position,
                 label: RoundPuzzleLabel::effective($row['label'], $position),
                 customLabel: $row['label'],
+                sharedWithRounds: SharedRoundPuzzle::names($row['shared_with_rounds']),
+                sharedHideDiffers: self::bool($row['shared_hide_differs']),
             );
         }, $data);
     }

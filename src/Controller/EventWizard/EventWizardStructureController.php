@@ -16,7 +16,6 @@ use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\FormData\EventWizardRoundStartFormData;
 use SpeedPuzzling\Web\FormData\EventWizardRoundStartsFormData;
@@ -603,11 +602,6 @@ final class EventWizardStructureController extends AbstractController
 
         if (EventWizardRefusal::find($failure, CompetitionRoundHasResults::class) !== null) {
             return $this->translator->trans('event_wizard.structure.round_has_results');
-        }
-
-        $inCategory = EventWizardRefusal::find($failure, PuzzleAlreadyInCompetitionRoundCategory::class);
-        if ($inCategory !== null) {
-            return $this->translator->trans('competition.round.form.puzzle_already_in_category', ['%round%' => $inCategory->conflictingRoundName]);
         }
 
         $protected = EventWizardRefusal::find($failure, OfficialResultsProtected::class);

@@ -120,6 +120,15 @@
                                 <div>
                                     <div class="fw-semibold">{{ puzzle.puzzleName }}</div>
                                     <div class="small text-muted">{{ puzzle.manufacturerName ?? '-' }} · {{ puzzle.piecesCount }} {{ 'competition.puzzle.pieces'|trans|lower }}</div>
+                                    {# Other rounds of the category with the same puzzle (shared puzzles) - and, when they keep it secret differently, what that does #}
+                                    {% if puzzle.sharedWithRounds is not empty %}
+                                        <div class="small text-info-emphasis mt-1" data-shared-round-puzzle>
+                                            <i class="bi bi-link-45deg me-1"></i>{{ 'competition.round_puzzles.shared_with'|trans({'%rounds%': puzzle.sharedWithRounds|join(', ')}) }}
+                                        </div>
+                                        {% if puzzle.sharedHideDiffers %}
+                                            <div class="small text-muted mt-1" data-shared-round-puzzle-hide>{{ 'competition.round_puzzles.shared_hide_differs'|trans }}</div>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
 
                                 <div class="d-flex flex-wrap gap-2">

@@ -107,12 +107,14 @@ readonly final class MoveRoundToCompetitionHandler
             $round->roundPuzzles->toArray(),
         ));
 
-        // One round per category per puzzle per competition - what lets a time's round follow from its competition
-        $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
+        // Refused when the target has one of its puzzles in a round of the category already: other rounds of a category
+        // may share a puzzle, but a moved round has no entries (refused above), so its times would be re-derived there
+        // by weaker evidence than they have now (shared-puzzles-and-divisions.md §2.4 row 9). Restructuring is rare.
+        $conflictingRound = $this->getCompetitionRounds->roundsSharingPuzzleInCategory(
             competitionId: $target->id->toString(),
             puzzleIds: $puzzleIds,
             category: $round->category,
-        );
+        )[0] ?? null;
 
         if ($conflictingRound !== null) {
             throw new PuzzleInTwoRoundsOfCategory($round->category->value, $conflictingRound);

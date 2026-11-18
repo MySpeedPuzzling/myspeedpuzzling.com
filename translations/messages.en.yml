@@ -4741,7 +4741,6 @@ competition:
             category_help: "Solo — each participant solves individually. Pair — two people together. Team — in groups. For pair and team rounds, you can manage team assignments after creating the round."
             results_link: "Official results URL"
             results_link_help: "Link to this round's results on the organiser's website, if they publish results per round."
-            puzzle_already_in_category: "This puzzle is already in round \"%round%\" of the same category. A puzzle can be in only one round per category of an event."
             invalid_local_time: "This time is skipped or repeated when the clocks change in this time zone – please pick another."
             reveal_delay_minutes: "Automatic reveal of secret puzzles (minutes after the start)"
             reveal_delay_minutes_help: "Secret puzzles with an automatic reveal come out this many minutes after the round starts – 0 means right at the start, %max% at most. Keep the start time the round's real start. A puzzle can also get its own reveal time on the round's puzzles page."
@@ -4796,6 +4795,10 @@ competition:
             saved_off: "This round is not unboxed any more."
             confirm_off: "The pictures of this round's puzzles will be shown at their normal reveal – right away if it has passed. Continue?"
             badge: "Unboxed"
+        shared_notice: "Also used in %rounds% - times are matched to the round by each player's entry; players can choose the round on their result."
+        shared_with: "Same puzzle as %rounds%"
+        shared_hide_differs: "These rounds keep this puzzle secret differently. While any of them still keeps it secret on the whole site, it stays hidden everywhere else too; a round that reveals it shows it on its own event pages only."
+        already_in_round: "This puzzle is already in %round% - a round lists each puzzle once."
     round_puzzle:
         form:
             hide_until_round_starts: "Keep this puzzle secret until it is revealed"
@@ -15325,7 +15328,6 @@ event_wizard:
         change_secret: "Change for this round"
         automatic_at: "The automatic reveal of this round: %time%"
         to_solve_too_many: "The round will have %count% puzzles - choose that many or fewer."
-        same_puzzle_in_category: "This puzzle is already in %round% - one puzzle can be in only one round of each category (solo, pairs, teams). Choose another puzzle, or let these competitors solve it in one round."
         reveal_changed: "A round's start changed meanwhile - check the reveal times below and save again."
         no_rounds: "This event has no rounds yet - add them first:"
         decide_later: "Not decided yet? Leave it empty - you can add it later."

@@ -112,14 +112,14 @@ final class MoveCompetitionRoundController extends AbstractController
             $field = $form->get('competitionId');
 
             // Asked before the move, so the refusal can name the round there (the handler decides again)
-            $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
+            $conflictingRound = $this->getCompetitionRounds->roundsSharingPuzzleInCategory(
                 competitionId: $targetId,
                 puzzleIds: array_values(array_map(
                     static fn (CompetitionRoundPuzzle $roundPuzzle): string => $roundPuzzle->puzzle->id->toString(),
                     $round->roundPuzzles->toArray(),
                 )),
                 category: $round->category,
-            );
+            )[0] ?? null;
 
             if ($conflictingRound !== null) {
                 $field->addError(new FormError($this->translator->trans('restructure.move_round.refused.category', [

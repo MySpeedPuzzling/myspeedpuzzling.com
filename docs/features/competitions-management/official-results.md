@@ -285,7 +285,9 @@ A round whose results are published leads its public page (`event_round_results`
   person/people you puzzled with" (or "A pair is two people") on the form, everything typed and the photos kept like
   any refused save. So an empty picker or a skipped "Which one are you?" never saves a pair/team result as a solo time.
   A form whose puzzle or competition was changed is no longer that entry. The save is an ordinary time: first try,
-  duplicates, secret puzzles and privacy run as for any other.
+  duplicates, secret puzzles and privacy run as for any other. Since rounds of one category may share a puzzle (S2,
+  `shared-puzzles-and-divisions.md`), the save names the entry's round (S3) - the time goes into this round, never
+  into another round on the same puzzle.
 - **Event and edition pages**: `CompetitionEvent::$hasPublishedOfficialResults` (an EXISTS in `GetCompetitionEvents::byId()`,
   the statement every competition page runs anyway) turns on the official counts in `CountCompetitionResults::forCompetition()`
   / `perRound()` - folded into their existing statements, so even an event with official results pays no extra

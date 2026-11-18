@@ -82,33 +82,40 @@ SQL;
     }
 
     /**
-     * Name of another round of the competition that already has one of these puzzles in the given category,
-     * null when there is none. A puzzle may be in only one round per category per competition.
+     * Names of the other rounds of the competition that have one of these puzzles in the given category, by start (an
+     * empty list when there is none). Several rounds of one category may share a puzzle (a team challenge and an open
+     * round on one puzzle - docs/features/competitions-management/shared-puzzles-and-divisions.md): a solving time's
+     * round then follows from each player's entry (SolvingTimeRoundMatch). Used for the notices that say so, and by the
+     * round move, which still refuses to bring a puzzle into a competition that has it in the category already.
      *
      * @param array<string> $puzzleIds
+     * @return list<string>
      */
-    public function roundWithPuzzleInCategory(
+    public function roundsSharingPuzzleInCategory(
         string $competitionId,
         array $puzzleIds,
         RoundCategory $category,
         null|string $exceptRoundId = null,
-    ): null|string {
+    ): array {
         if ($puzzleIds === []) {
-            return null;
+            return [];
         }
 
-        $name = $this->database
+        /** @var list<string> $names */
+        $names = $this->database
             ->executeQuery(
                 <<<SQL
 SELECT cr.name
 FROM competition_round cr
-INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id
 WHERE cr.competition_id = :competitionId
     AND cr.category = :category
-    AND crp.puzzle_id IN (:puzzleIds)
     AND (CAST(:exceptRoundId AS UUID) IS NULL OR cr.id <> CAST(:exceptRoundId AS UUID))
-ORDER BY cr.starts_at
-LIMIT 1
+    AND EXISTS (
+        SELECT 1 FROM competition_round_puzzle crp
+        WHERE crp.round_id = cr.id
+            AND crp.puzzle_id IN (:puzzleIds)
+    )
+ORDER BY cr.starts_at, cr.name, cr.id
 SQL,
                 [
                     'competitionId' => $competitionId,
@@ -118,9 +125,9 @@ SQL,
                 ],
                 ['puzzleIds' => ArrayParameterType::STRING],
             )
-            ->fetchOne();
+            ->fetchFirstColumn();
 
-        return is_string($name) ? $name : null;
+        return $names;
     }
 
     public function hasParticipantsAssignedToRounds(string $competitionId): bool

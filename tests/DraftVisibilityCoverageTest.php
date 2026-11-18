@@ -61,6 +61,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetFastestPairs.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestPlayers.php' => self::VIA_SOLVING_TIMES,
         'Query/GetNotifications.php' => self::NOTIFICATION . ' Partner requests are sent only to events PartnerFinderEligibility qualifies (publicly visible, drafts never). Participant linking notices (participant-linking.md §9.2): requests are taken only on a publicly visible event, "you are on the list" is written only while Competition::isPubliclyVisible().',
+        'Query/GetParticipantLinkSuggestions.php' => self::ORGANISER . ' The link suggestions of one event\'s list (participant-linking.md §8.4) read the other editions of its series / organization only to find people linked there - names of the organiser\'s own events, shown to its team.',
         'Query/GetParticipantsSheetState.php' => self::ORGANISER,
         'Query/GetParticipantsSheetVersion.php' => self::ORGANISER,
         'Query/GetPlayerDuplicateCases.php' => self::VIA_SOLVING_TIMES,

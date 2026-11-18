@@ -195,6 +195,31 @@ final class ParticipantImportFlowTest extends WebTestCase
         $this->assertResponseRedirects(self::PARTICIPANTS_URL);
     }
 
+    /**
+     * participant-linking.md §7.2: after the import the sheet says how many people may already have a profile, with the
+     * way to the People tab's "Suggestions" - only when somebody may.
+     */
+    public function testTheSummarySaysWhoMayAlreadyHaveAProfile(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "INSERT INTO player (id, code, name, country, is_private, registered_at) VALUES (:id, 'ottavio1', 'Ottavio Flashcase', 'it', false, " . TestClock::SQL_NOW . ')',
+            ['id' => Uuid::uuid7()->toString()],
+        );
+        $token = $this->stash(self::COMPETITION, "Name,Country\nOttavio Flashcase,it\nAlex Example,gb\n");
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+
+        $this->browser->submit($this->confirmForm($this->browser->request('GET', $this->previewUrl($token))));
+
+        $crawler = $this->browser->followRedirect();
+        $flash = $crawler->filter('[data-link-suggestions-flash]');
+        self::assertCount(1, $flash);
+        // Ottavio at least (the event's list may hold other people a profile fits)
+        self::assertMatchesRegularExpression('/^\\d+ (person|people) may already have a MySpeedPuzzling profile\\./', trim($flash->text()));
+        self::assertStringContainsString('filter=suggestions', (string) $flash->filter('a')->attr('href'));
+        self::assertStringContainsString('tab=people', (string) $flash->filter('a')->attr('href'));
+    }
+
     public function testFullSyncNeedsTheCheckbox(): void
     {
         $token = $this->stash(self::COMPETITION);

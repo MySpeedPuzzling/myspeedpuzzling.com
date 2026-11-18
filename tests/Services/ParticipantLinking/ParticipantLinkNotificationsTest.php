@@ -287,7 +287,7 @@ final class ParticipantLinkNotificationsTest extends KernelTestCase
         self::assertFalse($this->notMe(PlayerFixture::PLAYER_ADMIN, Wjpc::PARTICIPANT_CONNECTED));
 
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $this->linkedPlayer(Wjpc::PARTICIPANT_CONNECTED));
-        self::assertSame(0, (int) $this->database->fetchOne("SELECT COUNT(*) FROM participant_link_log WHERE action = 'not_me'"));
+        self::assertEquals(0, $this->database->fetchOne("SELECT COUNT(*) FROM participant_link_log WHERE action = 'not_me'"));
     }
 
     public function testNotMeOfARowThePlayerLinkedThemselvesIsRefused(): void
@@ -416,6 +416,7 @@ final class ParticipantLinkNotificationsTest extends KernelTestCase
     }
 
     /**
+     * @phpstan-impure
      * @return list<array{string, string}>
      */
     private function unreadNotifications(): array

@@ -158,7 +158,9 @@ final class StagesStandingTest extends WebTestCase
         self::assertSame([2, 2, 2, 2, 1, 1, 1], array_column($state['rows'], 'stage'));
         self::assertSame(['Final', 'Final', 'Final', 'Final', 'Group A / Group B', 'Group A / Group B', 'Group A / Group B'], array_column($state['rows'], 'stageName'));
         self::assertSame([1, 2, 3, null, 2, 3, 4], array_column($state['rows'], 'stageRank'));
-        self::assertSame('did_not_start', $state['rows'][3]['perRound'][0]['status']);
+        /** @var list<array{status: string}> $bensRounds */
+        $bensRounds = $state['rows'][3]['perRound'];
+        self::assertSame('did_not_start', $bensRounds[0]['status']);
         self::assertSame([[1, 'Group A / Group B', true], [2, 'Final', true]], array_map(static fn (array $stage): array => [$stage['number'], $stage['name'], $stage['classified']], $state['stages']));
 
         // The organiser's pages render it
@@ -330,14 +332,14 @@ final class StagesStandingTest extends WebTestCase
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{standing: array<string, mixed>, rows: list<array<string, mixed>>, stages: list<array<string, mixed>>} `stages`: the organiser's JSON only
      */
     private function json(string $url): array
     {
         $this->browser->request('GET', $url);
         self::assertResponseIsSuccessful();
 
-        /** @var array<string, mixed> $data */
+        /** @var array{standing: array<string, mixed>, rows: list<array<string, mixed>>, stages: list<array<string, mixed>>} $data */
         $data = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         return $data;

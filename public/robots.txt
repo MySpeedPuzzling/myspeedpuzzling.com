@@ -248,9 +248,12 @@ User-agent: Amazonbot
 Disallow: /
 
 # --- AI *training-only* crawlers: blocked. AI *search/citation* agents
-#     (OAI-SearchBot, ChatGPT-User, PerplexityBot, Claude-User) stay allowed -
-#     they send users and citations our way. Google-Extended only opts out of
-#     Gemini training and does not affect Google Search. ---
+#     (OAI-SearchBot, ChatGPT-User, PerplexityBot) are not disallowed here -
+#     but the bot blocker middleware refuses ChatGPT-User and PerplexityBot by
+#     user agent anyway. Anthropic's agents are all disallowed (operator's
+#     decision, 2026-11-18): Claude-SearchBot crawled every locale of every page
+#     and kept retrying ~64,000 times a day while banned. Google-Extended only
+#     opts out of Gemini training and does not affect Google Search. ---
 
 User-agent: GPTBot
 Disallow: /
@@ -259,6 +262,12 @@ User-agent: CCBot
 Disallow: /
 
 User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-SearchBot
+Disallow: /
+
+User-agent: Claude-User
 Disallow: /
 
 User-agent: meta-externalagent

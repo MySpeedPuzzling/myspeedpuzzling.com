@@ -75,7 +75,8 @@ whatever the mode**:
      current round `?notice=tag_unknown`. No round at all: organiser → rounds page, referee → event page, both with a
      "no rounds" flash.
   2. **Anybody else, competitor pages on** and the tag known → `competitor_page` (`CompetitorPageUrl::of()`); a tag of
-     nobody in the event (any more) → `competitor_list` `?notice=tag_unknown` (toolkit v2 D2, "Competitor list" below).
+     nobody in the event (any more) → `competitor_list` `?notice=tag_unknown` (toolkit v2 D2, "Competitor list" below)
+     when the event is publicly visible or the viewer is its team - else the event page.
   3. Otherwise the event page; a draft (for anybody off its team) or unknown event → events list.
   Pages off = exactly as before the toolkit.
 - On the judge side the one parser is `parseCompetitionTagUrl()` (`assets/official_results_scan.js`, C8,
@@ -180,8 +181,10 @@ somebody without a printed tag.
 
 - **Route** `competitor_list` (`CompetitorListController`): `/en/competitor/{competitionId}` (cs `/soutezici/…`, es
   `/es/competidor/…`, fr `/fr/concurrent/…`, de `/de/teilnehmer/…`, ja `/ja/competitor/…` - the page route's prefixes
-  without kind/id). The same 404s as the pages (`CompetitorPageLoader::list()`): pages off (organisers too), an unknown
-  event, a draft (or an edition of a draft series) for anybody off its team. `private, no-store`, `noindex, nofollow`,
+  without kind/id). 404s (`CompetitorPageLoader::list()`): pages off (organisers too), an unknown event, and - a
+  public listing of people - **any event that is not publicly visible** (`IsCompetitionPubliclyVisible::SQL_CONDITION`:
+  a draft, an edition of a draft series, waiting for approval, rejected) for anybody off its team. The scan landing
+  and the event page's link offer the list only where it answers the viewer; else the event page, as before. `private, no-store`, `noindex, nofollow`,
   no canonical/hreflang. `?notice=tag_unknown` (only that value is read) shows "This tag is not in the event (any
   more) - find yourself below." - where a public scan of an unknown tag lands (`CompetitionTagLanding`, D2).
 - **Read model** `GetCompetitorList::of()` → `CompetitorListView` (`CompetitorListPerson`, `CompetitorListLineup`):
@@ -205,7 +208,7 @@ somebody without a printed tag.
 - **Tests**: `CompetitorListControllerTest` (off/unknown/draft 404, order, masking, blocklist + own pair, waitlist,
   removed member, every row's link 200, notice, links from the event and competitor pages), `CompetitorListScriptTest`
   (+ `tests/competitor-list-harness.mjs`), the list cases in `BlocklistCanaryTest`, `PrivateProfileCanaryTest`,
-  `DraftCanaryTest`, `SecretPuzzleRoutesTest` (no puzzle at all), `DetailPagesQueryBudgetTest` (+0 with pages on),
+  `DraftCanaryTest` (drafts + an event waiting for approval / rejected), `SecretPuzzleRoutesTest` (no puzzle at all), `DetailPagesQueryBudgetTest` (+0 with pages on),
   `CompetitionTagLandingTest` + the "on" goldens (only the unknown-tag rows of signed out / puzzler changed).
 
 ## Live clock (B5)

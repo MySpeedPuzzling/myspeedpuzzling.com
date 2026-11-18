@@ -18,7 +18,8 @@ readonly final class CompetitorListView
     public function __construct(
         public string $competitionId,
         public CompetitionReference $competition,
-        public bool $isDraft,
+        // Not publicly visible (a draft, waiting for approval, rejected) - only its team sees the list
+        public bool $isHidden,
         public array $people,
         public array $lineups,
     ) {

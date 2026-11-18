@@ -22,7 +22,9 @@ use SpeedPuzzling\Web\Value\SearchText;
  * design-v2 competitors-splits.md §2.1) - who a phone at the venue can open the competitor page of:
  *
  * - **Only while the event has competitor pages on** - else CompetitorPageNotFound, for organisers too (as the pages).
- *   A draft comes back marked (isDraft): CompetitorPageLoader answers 404 to anybody but its team.
+ *   An event that is not publicly visible (IsCompetitionPubliclyVisible: a draft, waiting for approval, rejected) comes
+ *   back marked (isHidden): CompetitorPageLoader answers 404 to anybody but its team - a public listing of people
+ *   exists only for a public event.
  * - People: everybody going (CompetitionParticipantGoing - not removed, not on the waitlist), in no round too.
  * - Pairs/teams as line-ups: the exact member set of a pair/team (members = people not removed from the event), the same
  *   rule GetCompetitorPage resolves a `g` tag by - so every listed line-up has its page. Named by its latest round's team
@@ -55,14 +57,16 @@ readonly final class GetCompetitorList
         $competitionId = strtolower($competitionId);
         $viewerPlayerId = $viewerPlayerId !== null ? strtolower($viewerPlayerId) : null;
 
-        /** @var false|array{name: string, slug: null|string, competitor_pages: bool, is_draft: bool, series_name: null|string, series_slug: null|string} $competition */
+        $publiclyVisible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
+        /** @var false|array{name: string, slug: null|string, competitor_pages: bool, is_hidden: bool, series_name: null|string, series_slug: null|string} $competition */
         $competition = $this->database->fetchAssociative(
             <<<SQL
 SELECT
     c.name,
     c.slug,
     c.competitor_pages,
-    (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft,
+    (NOT COALESCE({$publiclyVisible}, false)) AS is_hidden,
     cs.name AS series_name,
     cs.slug AS series_slug
 FROM competition c
@@ -162,7 +166,7 @@ SQL,
                 seriesName: $competition['series_name'],
                 seriesSlug: $competition['series_slug'],
             ),
-            isDraft: $competition['is_draft'],
+            isHidden: $competition['is_hidden'],
             people: $listedPeople,
             lineups: $listedLineups,
         );

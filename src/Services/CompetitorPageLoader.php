@@ -19,7 +19,9 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  * A competitor page for the current viewer (docs/features/competitions-management/competitor-pages.md) - shared by the
  * page and its `competitor_state` JSON, so both answer the same 404s: the route's kind letter and id (the frozen tag
  * kinds p|g|t|e, CompetitorPageUrl), a draft for anybody but its team, and everything GetCompetitorPage refuses.
- * The event's competitor list (list()) answers the same 404s: competitor pages off, an unknown event, a draft.
+ * The event's competitor list (list()) answers the same 404s - competitor pages off, an unknown event - and, a public
+ * listing of people, a 404 for any event that is not publicly visible (a draft, waiting for approval, rejected) to
+ * anybody but its team.
  */
 final readonly class CompetitorPageLoader
 {
@@ -69,20 +71,21 @@ final readonly class CompetitorPageLoader
     public function list(string $competitionId): CompetitorListView
     {
         $view = $this->getCompetitorList->of($competitionId, $this->retrieveLoggedUserProfile->getProfile()?->playerId);
-        $this->assertVisible($view->isDraft, $view->competitionId);
+        $this->assertVisible($view->isHidden, $view->competitionId);
 
         return $view;
     }
 
     /**
-     * A draft exists only for its team and admins (docs/features/organizations/README.md "Drafts") - the voter is asked
-     * only for a draft, so a public page pays no statement for it
+     * A draft (for the list: any event not publicly visible) exists only for its team and admins
+     * (docs/features/organizations/README.md "Drafts") - the voter is asked only then, so a public page pays no
+     * statement for it
      *
      * @throws CompetitorPageNotFound
      */
-    private function assertVisible(bool $isDraft, string $competitionId): void
+    private function assertVisible(bool $isHidden, string $competitionId): void
     {
-        if ($isDraft && $this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
+        if ($isHidden && $this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
             throw new CompetitorPageNotFound();
         }
     }

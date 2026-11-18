@@ -399,9 +399,11 @@
 
             <div data-live-results-target="recentBlock">
                 {# My tables on this phone (judge-speed J3, rounds with table numbers): shown by the controller once set #}
-                <div class="d-flex flex-wrap align-items-center gap-1 mt-3" data-live-results-target="myTablesRow" hidden>
-                    <button type="button" class="btn btn-outline-primary btn-sm text-start text-break" data-live-results-target="myTablesChip" data-action="live-results#toggleMyTables" aria-pressed="true"></button>
-                    <button type="button" class="btn btn-link btn-sm" data-action="live-results#editMyTables">{{ 'live_results.my_tables.edit'|trans }}</button>
+                <div data-live-results-target="myTablesRow" hidden>
+                    <div class="d-flex flex-wrap align-items-center gap-1 mt-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm text-start text-break" data-live-results-target="myTablesChip" data-action="live-results#toggleMyTables" aria-pressed="true"></button>
+                        <button type="button" class="btn btn-link btn-sm" data-action="live-results#editMyTables">{{ 'live_results.my_tables.edit'|trans }}</button>
+                    </div>
                 </div>
                 {# A pick round's entries with a result but no puzzle chosen (toolkit C10): shown by the controller #}
                 {# Time proposals waiting for a judge (toolkit C9) - rows open the entry: shown by the controller #}

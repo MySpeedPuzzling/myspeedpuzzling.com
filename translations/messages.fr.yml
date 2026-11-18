@@ -14386,6 +14386,7 @@ competition_display:
         delete: "Supprimer"
         delete_confirm: "Supprimer l'affichage « %name% » ? Son lien cessera de fonctionner."
         limit: "Un événement peut avoir au maximum %max% affichages."
+        live_control: "Contrôle en direct"
     flash:
         added: "Affichage ajouté."
         saved: "Réglages de l'affichage enregistrés."
@@ -14537,6 +14538,7 @@ competition_display:
             category: "Solo"
             puzzle: "Puzzle d'exemple"
             standing: "Championnat individuel"
+            message: "Pause - prochaine manche à 14:30"
         group:
             clock: "Chronomètre"
             text: "Texte"
@@ -14560,6 +14562,8 @@ competition_display:
             finished_count: "Nombre d'arrivées"
             ticker: "Dernières arrivées"
             standings: "Classement"
+            message: "Message en direct"
+            spotlight: "Projecteur"
         section:
             general: "Élément"
             position: "Position et taille (% de l'écran)"
@@ -14644,6 +14648,15 @@ competition_display:
             clock:
                 seconds: "Afficher les secondes"
                 format: "Format horaire"
+            maxLines: "Lignes au maximum"
+            message:
+                whenEmpty: "Sans message"
+                emptyText: "Texte sans message"
+            pick: "Affiche"
+            spotlight:
+                show: "Afficher"
+                whenEmpty: "Personne sous le projecteur"
+                emptyText: "Texte quand personne n’est sous le projecteur"
         style:
             font: "Police"
             fontSize: "Taille de police (px en 1080p)"
@@ -14757,6 +14770,42 @@ competition_display:
             500: "Moyen"
             700: "Gras"
             900: "Extra-gras"
+            chosen: "Qui vous choisissez dans le contrôle en direct"
+            latest_finisher: "Le dernier à avoir terminé"
+competition_display_control:
+    title: "Contrôle en direct"
+    round: "Manche"
+    no_displays: "Cet événement n’a pas encore d’affichage - ajoutez-en un d’abord."
+    offline: "Pas de connexion - rien n’a été modifié. Réessayez."
+    open: "Contrôle en direct"
+    stopwatch_card: "Projecteur sur les affichages"
+    no_elements:
+        message: "Aucun affichage ne montre encore de message - ajoutez l’élément Message en direct à un modèle d’affichage."
+        spotlight: "Aucun affichage ne montre encore le projecteur - ajoutez l’élément Projecteur à un modèle d’affichage."
+    spotlight:
+        title: "Projecteur"
+        current: "Sous le projecteur"
+        none: "Personne"
+        gone: "N’est plus dans cette manche"
+        clear: "Retirer le projecteur"
+        filter: "Table ou nom"
+        just_finished: "Viennent de terminer"
+        empty: "Personne n’est encore inscrit dans cette manche."
+        unknown_entry: "Cette inscription n’est plus dans la manche. Choisissez-en une autre."
+        failed: "Le projecteur n’a pas pu être modifié. Réessayez."
+    message:
+        title: "Message sur les affichages"
+        label: "Nouveau message"
+        placeholder: "Pause - prochaine manche à 14:30"
+        set: "Afficher"
+        clear: "Retirer"
+        none: "Aucun message sur les affichages."
+        recent: "Récents - touchez pour réafficher"
+        too_long: "Un message peut contenir au maximum %max% caractères."
+        failed: "Le message n’a pas pu être modifié. Réessayez."
+    preview:
+        title: "Aperçu"
+        show: "Afficher l’aperçu"
 time_proposal:
     reason:
         sign_in_required: "Connectez-vous pour proposer votre temps."

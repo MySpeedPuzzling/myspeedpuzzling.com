@@ -14390,6 +14390,7 @@ competition_display:
         delete: "Löschen"
         delete_confirm: "Die Anzeige „%name%“ löschen? Ihr Link funktioniert dann nicht mehr."
         limit: "Eine Veranstaltung kann höchstens %max% Anzeigen haben."
+        live_control: "Live-Steuerung"
     flash:
         added: "Anzeige hinzugefügt."
         saved: "Einstellungen der Anzeige gespeichert."
@@ -14541,6 +14542,7 @@ competition_display:
             category: "Solo"
             puzzle: "Beispielpuzzle"
             standing: "Einzel-Meisterschaft"
+            message: "Pause - nächste Runde 14:30"
         group:
             clock: "Uhr"
             text: "Text"
@@ -14564,6 +14566,8 @@ competition_display:
             finished_count: "Anzahl Fertige"
             ticker: "Zuletzt fertig"
             standings: "Gesamtwertung"
+            message: "Live-Nachricht"
+            spotlight: "Spotlight"
         section:
             general: "Element"
             position: "Position und Größe (% des Bildschirms)"
@@ -14648,6 +14652,15 @@ competition_display:
             clock:
                 seconds: "Sekunden zeigen"
                 format: "Uhr"
+            maxLines: "Höchstens Zeilen"
+            message:
+                whenEmpty: "Ohne Nachricht"
+                emptyText: "Text ohne Nachricht"
+            pick: "Zeigt"
+            spotlight:
+                show: "Anzeigen"
+                whenEmpty: "Niemand im Spotlight"
+                emptyText: "Text, wenn niemand im Spotlight ist"
         style:
             font: "Schriftart"
             fontSize: "Schriftgröße (px bei 1080p)"
@@ -14761,6 +14774,42 @@ competition_display:
             500: "Mittel"
             700: "Fett"
             900: "Extrafett"
+            chosen: "Wen Sie in der Live-Steuerung wählen"
+            latest_finisher: "Wer zuletzt fertig wurde"
+competition_display_control:
+    title: "Live-Steuerung"
+    round: "Runde"
+    no_displays: "Diese Veranstaltung hat noch keine Anzeigen - fügen Sie zuerst eine hinzu."
+    offline: "Keine Verbindung - nichts wurde geändert. Versuchen Sie es erneut."
+    open: "Live-Steuerung"
+    stopwatch_card: "Spotlight auf den Anzeigen"
+    no_elements:
+        message: "Noch keine Anzeige zeigt eine Nachricht - fügen Sie einem Anzeige-Design das Element Live-Nachricht hinzu."
+        spotlight: "Noch keine Anzeige zeigt den Spotlight - fügen Sie einem Anzeige-Design das Element Spotlight hinzu."
+    spotlight:
+        title: "Spotlight"
+        current: "Jetzt im Spotlight"
+        none: "Niemand"
+        gone: "Nicht mehr in dieser Runde"
+        clear: "Spotlight leeren"
+        filter: "Tisch oder Name"
+        just_finished: "Gerade fertig"
+        empty: "In dieser Runde ist noch niemand eingetragen."
+        unknown_entry: "Dieser Eintrag ist nicht mehr in der Runde. Wählen Sie einen anderen."
+        failed: "Der Spotlight konnte nicht geändert werden. Versuchen Sie es erneut."
+    message:
+        title: "Nachricht auf den Anzeigen"
+        label: "Neue Nachricht"
+        placeholder: "Pause - nächste Runde 14:30"
+        set: "Anzeigen"
+        clear: "Leeren"
+        none: "Keine Nachricht auf den Anzeigen."
+        recent: "Zuletzt - tippen, um sie erneut zu zeigen"
+        too_long: "Eine Nachricht darf höchstens %max% Zeichen haben."
+        failed: "Die Nachricht konnte nicht geändert werden. Versuchen Sie es erneut."
+    preview:
+        title: "Vorschau"
+        show: "Vorschau zeigen"
 time_proposal:
     reason:
         sign_in_required: "Melden Sie sich an, um Ihre Zeit vorzuschlagen."

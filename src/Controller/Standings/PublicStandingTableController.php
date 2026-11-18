@@ -24,7 +24,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * - Guests: the HTML is rendered once per generation of the event's snapshots and locale (PublicStandingSnapshots::
  *   guestHtml()) - warm 1 statement (the visibility), so a signal answered by hundreds of open pages within seconds costs
  *   one render. Signed in: rendered for the viewer every time.
- * - `Cache-Control: private, no-cache`, never indexed.
+ * - `Cache-Control: private, max-age=0, no-cache` (never shared by an edge cache), never indexed.
  */
 final class PublicStandingTableController extends AbstractController
 {
@@ -57,8 +57,11 @@ final class PublicStandingTableController extends AbstractController
             ? $this->snapshots->guestHtml($standingId, $competitionId, $request->getLocale(), $render)
             : $render();
 
+        // Explicit max-age: AnonymousCacheHeadersSubscriber leaves a response with its own Cache-Control alone - without
+        // it a guest's answer was turned into `public, s-maxage=60` (an edge cache sharing it)
         $response = new Response($html);
         $response->setPrivate();
+        $response->setMaxAge(0);
         $response->headers->addCacheControlDirective('no-cache');
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
 

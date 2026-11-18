@@ -105,7 +105,7 @@ readonly final class StandingPageBuilder
                 name: $standing->name,
                 slug: $standing->slug,
                 category: $standing->category,
-                roundIds: array_values(array_map(strtolower(...), $standing->roundIds)),
+                roundIds: array_map(strtolower(...), $standing->roundIds),
             ),
             table: $this->getStandingResults->publicView($standing, $viewer?->playerId),
             roundRoute: $head->seriesSlug !== null ? 'edition_round_results' : 'event_round_results',

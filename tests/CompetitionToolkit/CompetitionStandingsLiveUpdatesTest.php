@@ -178,13 +178,19 @@ final class CompetitionStandingsLiveUpdatesTest extends KernelTestCase
     }
 
     /**
+     * @phpstan-impure
+     *
      * @return list<Update>
      */
     private static function standingsUpdates(NullMercureHub $hub): array
     {
         return array_values(array_filter(
             $hub->getPublishedUpdates(),
-            static fn (Update $update): bool => str_starts_with($update->getTopics()[0] ?? '', '/competition-standings/'),
+            static function (Update $update): bool {
+                $topic = $update->getTopics()[0] ?? null;
+
+                return is_string($topic) && str_starts_with($topic, '/competition-standings/');
+            },
         ));
     }
 }

@@ -198,7 +198,7 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §4.2. As built 202
   `StandingPageBuilder::buildById()` (unknown, unpublished, not public - drafts for their team too); visibility read on
   every request. **Guests** (nobody signed in): the HTML cached per generation and locale
   (`PublicStandingSnapshots::guestHtml()`, `html_v1_{standingId}_{locale}_{gen}`, 60 s) - warm 1 statement; **signed in**:
-  rendered for the viewer (blocklist, allow list, own row) every time. `Cache-Control: private, no-cache`, `noindex`.
+  rendered for the viewer (blocklist, allow list, own row) every time. `Cache-Control: private, max-age=0, no-cache` (the explicit max-age keeps `AnonymousCacheHeadersSubscriber` from making a guest answer `public, s-maxage=60`), `noindex`.
   Unsignalled edits (a participant renamed, a player turning private, the results import) can stay up to 60 s in the
   guests' HTML - the same window as the snapshot behind the JSON; signed-in viewers see them at once.
 - **Client:** the page wraps the table part in `<div data-controller="standing-live">` (url, topic, hub) + an

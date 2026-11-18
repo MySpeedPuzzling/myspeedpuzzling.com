@@ -33,7 +33,6 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Contracts\Translation\LocaleAwareInterface;
 use Twig\Environment;
 
 /**
@@ -378,9 +377,7 @@ final class PublicStandingsTest extends WebTestCase
         $request->setLocale('en');
         $request->attributes->set('_locale', 'en');
         $container->get(RequestStack::class)->push($request);
-        $translator = $container->get('translator');
-        self::assertInstanceOf(LocaleAwareInterface::class, $translator);
-        $translator->setLocale('en');
+        $container->get('translator')->setLocale('en');
 
         // renderBlock() runs no top-level `set` of the template: its variables come with the context
         $context = [
@@ -422,8 +419,12 @@ final class PublicStandingsTest extends WebTestCase
         $crawler = $this->browser->request('GET', $fragment);
         self::assertResponseIsSuccessful();
         $response = $this->browser->getResponse();
-        self::assertStringContainsString('private', (string) $response->headers->get('Cache-Control'));
-        self::assertStringContainsString('no-cache', (string) $response->headers->get('Cache-Control'));
+        // Never shared: AnonymousCacheHeadersSubscriber must leave a guest's fragment alone (no public, no s-maxage)
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        self::assertStringContainsString('private', $cacheControl);
+        self::assertStringContainsString('no-cache', $cacheControl);
+        self::assertStringNotContainsString('public', $cacheControl);
+        self::assertStringNotContainsString('s-maxage', $cacheControl);
         self::assertSame('noindex, nofollow', $response->headers->get('X-Robots-Tag'));
         self::assertCount(1, $crawler->filter('turbo-frame#standing-table[target="_top"]'));
         self::assertSame([['1', 'Dora', '00:40:00'], ['2', 'Bob', '00:45:00'], ['3', 'Alice', '00:50:00'], ['4', 'Cyril', '00:55:00']], self::pageRows($crawler));

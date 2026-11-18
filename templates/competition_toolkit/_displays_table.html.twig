@@ -11,6 +11,10 @@
 {% if displays is empty %}
     <p class="small mb-3" data-displays-empty>{{ 'competition_display.list.empty'|trans }}</p>
 {% else %}
+    {#- The live control: message + spotlight on every display at once (competition toolkit v2 L1/L2) -#}
+    <a href="{{ path('competition_display_control', {competitionId: displays|first.competitionId}) }}" class="btn btn-sm btn-primary mb-2" data-display-control-link>
+        <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'competition_display.list.live_control'|trans }}
+    </a>
     <ul class="list-unstyled mb-3" data-displays-list>
         {% for display in displays %}
             {# The display's address: /display/{token}, no locale - the token is the capability #}

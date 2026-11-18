@@ -58,11 +58,13 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * - **Standings** (v2 S2): for a shown `standings` element the published standing as a guest sees it (DisplayStandings,
  *   cached per generation of the event's standings - 0 statements warm).
  *
+ * - **Live control** (v2 L1/L2): for a shown `message` element the event's live message (read with the display).
+ *
  * Three statements (display + event, rounds, visible puzzles), a fourth for the results entries only when the design
  * shows results that may be shown now.
  *
  * @phpstan-type Round array{id: string, name: string, slug: null|string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable}
- * @phpstan-type Display array{id: string, competition_id: string, token: string, kind: string, locale: string, design: array<string, mixed>, design_version: int, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|list<string>, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string}
+ * @phpstan-type Display array{id: string, competition_id: string, token: string, kind: string, locale: string, design: array<string, mixed>, design_version: int, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|list<string>, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string, control_message: null|string}
  */
 readonly final class GetCompetitionDisplayState
 {
@@ -134,6 +136,14 @@ readonly final class GetCompetitionDisplayState
             $display['token'],
         );
 
+        // The live control (v2 L1, displays-standings.md §5.2) - only for a design with a shown message element, read
+        // with the display itself (statement 1): every other design's answer stays as it was
+        $control = null;
+
+        if (DisplayDesignSanitizer::showsMessage($design)) {
+            $control = ['message' => $display['control_message'], 'spotlight' => null];
+        }
+
         // The design's own uploads by the display preset (original until lily's imgproxy has it - DisplayImages)
         $images = [];
         foreach (DisplayDesignSanitizer::imagePaths($design) as $path) {
@@ -190,6 +200,7 @@ readonly final class GetCompetitionDisplayState
             ),
             roundSlug: $round['slug'] ?? null,
             standings: $standings,
+            control: $control,
         );
     }
 
@@ -253,11 +264,13 @@ SELECT
     cs.name AS series_name,
     cs.slug AS series_slug,
     cs.location_country_code AS series_country_code,
-    o.logo AS organization_logo
+    o.logo AS organization_logo,
+    dc.message AS control_message
 FROM competition_display d
 INNER JOIN competition c ON c.id = d.competition_id
 LEFT JOIN competition_series cs ON cs.id = c.series_id
 LEFT JOIN organization o ON o.id = COALESCE(c.organization_id, cs.organization_id)
+LEFT JOIN competition_display_control dc ON dc.competition_id = d.competition_id
 WHERE d.token = :token
 SQL,
             ['token' => $token],
@@ -267,7 +280,7 @@ SQL,
             throw new CompetitionDisplayNotFound();
         }
 
-        /** @var array{id: string, competition_id: string, token: string, kind: string, locale: string, design: string, design_version: int|string, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|string, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string} $row */
+        /** @var array{id: string, competition_id: string, token: string, kind: string, locale: string, design: string, design_version: int|string, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|string, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string, control_message: null|string} $row */
         $followRoundIds = null;
 
         if ($row['follow_round_ids'] !== null) {

@@ -13,7 +13,7 @@ use Symfony\Component\Mercure\Update;
 /**
  * Tells an event's open displays (timer screens, stream overlays) that something they show changed - competition toolkit
  * D5, D-displays-overlays.md §7.3, R-review-and-plan.md §1.6. One private Mercure update on the event's display topic
- * (OfficialResultsSubscription::displayTopic()): `{"type": "display.signal", "what": "results|puzzles|round|design",
+ * (OfficialResultsSubscription::displayTopic()): `{"type": "display.signal", "what": "results|puzzles|round|design|control",
  * "roundId"?: "…", "displayId"?: "…"}` - no data, a leaked display token learns only that something changed; the open
  * displays answer it with a debounced state fetch (assets/displays/runtime.js), which reads everything through the
  * public rules (RoundPuzzlesVisibleNow, the results gating of GetCompetitionDisplayState).
@@ -108,6 +108,37 @@ final readonly class CompetitionDisplayLiveUpdates
     public function displayChanged(string $competitionId, string $displayId): void
     {
         $this->publish($competitionId, ['type' => self::TYPE, 'what' => 'design', 'displayId' => strtolower($displayId)]);
+    }
+
+    /**
+     * The live control changed (competition toolkit v2 L1/L2, displays-standings.md §5.1) - the event's message, or the
+     * spotlight of a round ($roundId): `{"what": "control"}`, which an open display answers with a state fetch at once (no
+     * debounce - a tap on a phone should reach the stream within a second). Only for an event with displays.
+     */
+    public function controlChanged(string $competitionId, null|string $roundId = null): void
+    {
+        try {
+            $presence = $this->presence->forCompetition($competitionId);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Could not tell whether an event has displays', [
+                'competition_id' => $competitionId,
+                'exception' => $exception,
+            ]);
+
+            return;
+        }
+
+        if ($presence->displays === false) {
+            return;
+        }
+
+        $signal = ['type' => self::TYPE, 'what' => 'control'];
+
+        if ($roundId !== null) {
+            $signal['roundId'] = strtolower($roundId);
+        }
+
+        $this->publish($competitionId, $signal);
     }
 
     /**

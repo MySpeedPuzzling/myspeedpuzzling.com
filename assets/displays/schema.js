@@ -14,7 +14,7 @@ export const MAX_BYTES = 65536;
 
 export const ELEMENT_TYPES = [
     'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings',
+    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message',
 ];
 // The standings element's columns (competition toolkit v2 S2) - `stage` shows only once a standing has stages
 export const STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
@@ -175,6 +175,13 @@ export const PROP_SPECS = {
         },
         { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
         { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
+    ],
+    // The live control's message (competition toolkit v2 L1, displays-standings.md §5.2) - the text is set on the live
+    // control page, never in the design
+    message: [
+        { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+        { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
+        { key: 'maxLines', kind: 'int', min: 1, max: 4, default: 2 },
     ],
 };
 

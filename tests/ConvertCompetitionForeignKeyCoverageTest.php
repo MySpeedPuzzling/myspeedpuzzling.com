@@ -31,6 +31,9 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
         // Timer screens and stream overlays (competition toolkit) - SeriesConversionBlocker::Displays (their designs,
         // pictures and links would cascade away)
         'competition_display.competition_id' => self::REFUSED,
+        // The live control's message of the displays (competition toolkit v2 L1) - live state of the event's displays,
+        // nothing worth keeping: goes with the event (an event with displays is refused anyway)
+        'competition_display_control.competition_id' => self::CASCADES,
         // SeriesConversionBlocker::PageSections
         'competition_page_section.competition_id' => self::REFUSED,
         // Divisions (shared-puzzles-and-divisions.md D1) are the event's list for its rounds - an event with rounds is

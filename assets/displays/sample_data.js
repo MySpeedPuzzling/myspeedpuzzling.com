@@ -151,7 +151,7 @@ export function sampleStanding(name = 'Solo championship') {
  * The state the preview renders, and the "now" it renders at.
  * Options: mode ('sample' | 'display'), phase (PREVIEW_PHASES), published, revealed, nowMs, design (QR placeholders
  * for QR elements the server has not drawn yet), images (pictures uploaded in this session: path → URL), labels
- * ({round, category, puzzle, standing} for the sample round, puzzles and standing), standingTexts (the standings
+ * ({round, category, puzzle, standing, message} for the sample round, puzzles, standing and live message), standingTexts (the standings
  * element's texts for the sample standing's numbers, in the display's language).
  */
 export function previewState(base, options) {
@@ -194,6 +194,13 @@ export function previewState(base, options) {
         // The display's language, for the sample's own numbers (the editor page's `standingTexts`)
         state.texts = { ...state.texts, ...standingTexts };
     }
+
+    // The live control (v2 L1/L2): a sample message for every message element - the organiser sets the real one on the
+    // live control page
+    if ((design?.elements ?? []).some((element) => element.type === 'message')) {
+        state.control = { message: labels.message ?? 'Break - next round 14:30', spotlight: null };
+    }
+
     state.puzzles = revealed
         ? [
             { name: `${labels.puzzle ?? 'Sample puzzle'} A`, brand: 'Ravensburger', pieces: 500, imageUrl: null },

@@ -241,6 +241,38 @@ await check('one fetch in flight: a signal meanwhile fetches once more after it'
     equal(env.fetches - before, 2, 'once more after it');
 });
 
+await check('a live control signal fetches at once - also right after a fetch in flight (v2 L1)', async () => {
+    const env = world();
+    env.runtime.start();
+    env.events.live = true;
+    await flush();
+    const before = env.fetches;
+
+    // A results signal waits for the debounce, a control signal does not - and takes the pending results fetch with it
+    env.events.options.onMessage({ type: 'display.signal', what: 'results' });
+    env.events.options.onMessage({ type: 'display.signal', what: 'control', roundId: 'r1' });
+    await flush();
+    equal(env.fetches - before, 1, 'fetched at once');
+    await env.advance(SIGNAL_DEBOUNCE_MS);
+    equal(env.fetches - before, 1, 'the debounced results fetch rode on it');
+
+    // A control signal while a fetch runs: the next fetch follows at once, not after the debounce
+    let resolve;
+    env.pending = new Promise((done) => {
+        resolve = done;
+    });
+    env.runtime.refresh();
+    await flush();
+    env.events.options.onMessage({ type: 'display.signal', what: 'control' });
+    await flush();
+    equal(env.fetches - before, 2, 'one in flight');
+    env.pending = null;
+    resolve({ status: 'ok', state: env.serverState(), sentAtMs: env.now, receivedAtMs: env.now });
+    await flush();
+    equal(env.fetches - before, 3, 'once more at once');
+    assert(!('signal' in env.runtime.timers), 'no debounced fetch left');
+});
+
 await check('polling: every 5 s while the stream is down, every 60 s while live', async () => {
     const env = world();
     env.runtime.start();

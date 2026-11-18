@@ -425,6 +425,22 @@ export function standingIncompleteText(row, standing, texts) {
     return template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(row.roundsScored, 0), '%count%': number(standing.roundsCounted, 0) });
 }
 
+// ---- live control (competition toolkit v2 L1/L2)
+
+/**
+ * The live message the element shows: the organiser's message, else its own text when it has one for "no message",
+ * else '' (the element shows nothing at all).
+ */
+export function messageText(props, state) {
+    const message = state.control?.message;
+
+    if (typeof message === 'string' && message !== '') {
+        return message;
+    }
+
+    return props.whenEmpty === 'text' && typeof props.emptyText === 'string' ? props.emptyText : '';
+}
+
 /**
  * The visibility of an element: not hidden, shown in the phase, and its results / puzzle conditions.
  */
@@ -691,6 +707,14 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                 break;
             case 'qr':
                 view.refs.signature = null;
+                break;
+            case 'message':
+                // At most maxLines lines, cut with an ellipsis - "shrink" (style.fit) makes a long one smaller first
+                view.refs.text = el('span', 'msp-el__text msp-el__message', body);
+                view.refs.text.style.display = '-webkit-box';
+                view.refs.text.style.webkitBoxOrient = 'vertical';
+                view.refs.text.style.webkitLineClamp = String(number(element.props.maxLines, 2));
+                view.refs.text.style.overflow = 'hidden';
                 break;
             case 'standings':
                 body.style.flexDirection = 'column';
@@ -1434,6 +1458,13 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                 case 'standings':
                     updateStandings(view, element, state);
                     break;
+                case 'message': {
+                    const text = messageText(element.props, state);
+                    setText(view, 'text', view.refs.text, text);
+                    // No message and no own text: nothing at all - not even the element's panel
+                    setStyle(view.node, 'visibility', text === '' ? 'hidden' : '');
+                    break;
+                }
                 default:
                     break;
             }

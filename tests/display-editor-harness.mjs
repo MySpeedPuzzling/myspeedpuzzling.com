@@ -451,6 +451,15 @@ check('sample data: every standings element gets the 12-row sample standing with
     assert(CATALOGUE.find((group) => group.group === 'results').types.includes('standings'), 'in the results group');
 });
 
+check('preview: a sample live message for message elements only (v2 L1)', () => {
+    const now = 1_763_380_000_000;
+    const design = { elements: [{ id: 'mesg0001', type: 'message' }] };
+    const { state } = previewState(BASE, { mode: 'sample', phase: 'running', published: false, revealed: false, nowMs: now, design, labels: { message: 'Pauza' } });
+    equal(state.control, { message: 'Pauza', spotlight: null }, 'sample message in the display language');
+    equal(previewState(BASE, { mode: 'sample', phase: 'running', published: false, revealed: false, nowMs: now, design: { elements: [] } }).state.control, undefined, 'none without an element');
+    assert(CATALOGUE.find((group) => group.group === 'text').types.includes('message'), 'in the text group');
+});
+
 check('preview: uploaded pictures merged, unsaved QR codes get a placeholder, display mode keeps the real state', () => {
     const design = { elements: [{ id: 'qr000001', type: 'qr' }] };
     const extra = { 'competition-displays/x.png': 'https://img.example/x.png' };

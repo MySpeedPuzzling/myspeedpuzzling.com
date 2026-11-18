@@ -443,6 +443,7 @@ function evilState(standingIds = []) {
         qr: Object.fromEntries(Array.from({ length: 60 }, (_, index) => [`xss${String(index).padStart(5, '0')}`, { rows: [EVIL] }])),
         texts: Object.fromEntries(Object.keys(baseState().texts).map((key) => [key, EVIL])),
         standings: Object.fromEntries(standingIds.map((id) => [id, evilStanding()])),
+        control: { message: EVIL, spotlight: evilRow },
     });
 }
 
@@ -637,6 +638,48 @@ check('xss: a standing fed evil data in every string', () => {
     assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
     assert(window.document.querySelectorAll('script').length === 0, 'no script');
     equal([...root.querySelectorAll('.fi')].map((flag) => flag.className), ['fi fi-cz', 'fi fi-cz'], 'flags');
+});
+
+// ---- live control (competition toolkit v2 L1/L2)
+
+check('message: the live message, else the own text, else nothing at all (not even the panel)', () => {
+    const { document, root } = dom();
+    const elements = [
+        element('ms000001', 'message', { whenEmpty: 'text', emptyText: 'Enjoy the round', maxLines: 3 }, { style: { background: '#000000' } }),
+        element('ms000002', 'message'),
+    ];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'overlay' });
+    const [first, second] = root.querySelectorAll('.msp-el');
+
+    // An old answer without `control` and a cleared message look the same
+    for (const state of [baseState(), baseState({ control: { message: null, spotlight: null } })]) {
+        renderer.render(state, START);
+        equal(first.textContent, 'Enjoy the round', 'own text');
+        equal(first.style.visibility, '', 'shown');
+        equal(second.textContent, '', 'nothing');
+        equal(second.style.visibility, 'hidden', 'the panel too');
+    }
+
+    renderer.render(baseState({ control: { message: 'Break - next round 14:30', spotlight: null } }), START);
+    equal(first.textContent, 'Break - next round 14:30', 'message');
+    equal(second.textContent, 'Break - next round 14:30', 'message');
+    equal(second.style.visibility, '', 'shown');
+    equal(first.querySelector('.msp-el__message').style.overflow, 'hidden', 'cut at maxLines');
+    equal(renderer.nextChangeMs(baseState({ control: { message: 'x', spotlight: null } }), START), null, 'no timer of its own');
+});
+
+check('xss: a message fed evil data', () => {
+    const { document, root, window } = dom();
+    const elements = [element('ms000001', 'message', { whenEmpty: 'text', emptyText: EVIL }), element('ms000002', 'message')];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    renderer.render(evilState(), START);
+    renderer.render(baseState(), START);
+    renderer.render(baseState({ control: EVIL }), START);
+    renderer.render(evilState(), START + 1_000);
+    const problem = injected(root);
+    assert(problem === null, problem);
+    assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
+    assert(window.document.querySelectorAll('script').length === 0, 'no script');
 });
 
 check('no innerHTML / outerHTML / insertAdjacentHTML / document.write in the display scripts', () => {

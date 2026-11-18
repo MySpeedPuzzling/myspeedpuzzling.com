@@ -129,6 +129,27 @@ final class CompetitionDisplayLiveUpdatesTest extends WebTestCase
         self::assertSame([['type' => 'display.signal', 'what' => 'design', 'displayId' => '018d0020-0000-0000-0000-0000000000aa']], self::signals());
     }
 
+    public function testALiveControlSignalGoesOnlyToAnEventWithDisplays(): void
+    {
+        self::bootKernel();
+        $signals = self::getContainer()->get(CompetitionDisplayLiveUpdates::class);
+
+        // No display yet: nothing (a write is refused by its handler then anyway)
+        $signals->controlChanged(self::CUP);
+        self::assertSame([], self::hub()->getPublishedUpdates());
+
+        // Any display - a message element or not, the display's state decides what it shows
+        self::createDisplay(self::CUP, [['type' => 'timer']]);
+        self::getContainer()->get(CompetitionDisplaysPresence::class)->changed(self::CUP);
+
+        $signals->controlChanged(self::CUP);
+        $signals->controlChanged(strtoupper(self::CUP), strtoupper(self::ROUND));
+        self::assertSame([
+            ['type' => 'display.signal', 'what' => 'control'],
+            ['type' => 'display.signal', 'what' => 'control', 'roundId' => self::ROUND],
+        ], self::signals());
+    }
+
     public function testAHubThatIsDownNeverFailsTheWrite(): void
     {
         self::bootKernel();

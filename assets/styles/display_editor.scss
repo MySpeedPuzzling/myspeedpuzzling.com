@@ -275,6 +275,11 @@
         right: 0;
         height: 1px;
     }
+
+    // A guide of another element's edge or centre (canvas guides stay blue)
+    &--sibling {
+        background: #d63384;
+    }
 }
 
 .display-editor__live-chip {

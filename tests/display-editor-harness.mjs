@@ -1,5 +1,5 @@
 // The display editor's pure modules (competition toolkit D6, D-displays-overlays.md §8.2, §11.2):
-// - assets/displays/geometry.js: move, resize from each of the 8 handles, grid + canvas centre/edge snapping, clamping,
+// - assets/displays/geometry.js: move, resize from each of the 8 handles, grid + canvas centre/edge + sibling snapping, clamping,
 //   keyboard nudges, the kept ratio of pictures and QR codes, from-centre resizing, the hit test;
 // - assets/displays/editor_state.js: add / duplicate / remove / reorder / hide / lock, undo and redo (coalesced steps,
 //   the 100-step bound), the unsaved flag, the save payload = normaliseDesign()'s output, adopting the server's design;
@@ -8,7 +8,8 @@
 
 import { readFileSync } from 'node:fs';
 import {
-    HANDLES, clampFrame, hitTest, keepsRatio, moveFrame, nudgeFrame, placeFrame, resizeFrame, stackOrder, toPercent,
+    HANDLES, clampFrame, frameLines, hitTest, keepsRatio, moveFrame, nudgeFrame, placeFrame, resizeFrame, snapLines,
+    stackOrder, toPercent,
 } from '../assets/displays/geometry.js';
 import { CATALOGUE, EditorState, UNDO_LIMIT } from '../assets/displays/editor_state.js';
 import { ELEMENT_TYPES, PROP_SPECS, STYLE_SPEC, normaliseDesign } from '../assets/displays/schema.js';
@@ -487,6 +488,103 @@ check('a layer is named by its own name or type, with what it shows', () => {
     equal(label('image', 'Sponsor', { source: 'upload' }), { title: 'Sponsor', detail: 'Picture' }, 'own name first, type as the hint');
     equal(label('qr', 'Event page QR', { target: 'event_page' }), { title: 'Event page QR', detail: 'QR code · Event page' }, 'own name + type + target');
     equal(label('text', 'Welcome', { text: 'Welcome' }), { title: 'Welcome', detail: 'Text' }, 'no repeat of the name');
+});
+
+// ---- sibling snapping (v2 E1)
+
+const el = (id, x, y, w, h, extra = {}) => ({ id, type: 'text', frame: frame(x, y, w, h), z: 0, hidden: false, locked: false, ...extra });
+
+check('snap lines: 3 per axis of every visible element but the moving ones, locked counted, distinct and sorted', () => {
+    equal(frameLines(frame(10, 20, 30, 40)), { x: [10, 25, 40], y: [20, 40, 60] }, 'frame lines');
+    const elements = [
+        el('a', 10, 10, 20, 20),
+        el('b', 30, 10, 10, 20, { locked: true }),
+        el('c', 60, 60, 10, 10, { hidden: true }),
+        el('m', 70, 70, 5, 5),
+    ];
+    equal(snapLines(elements, ['m']), { x: [10, 20, 30, 35, 40], y: [10, 20, 30] }, 'lines');
+    equal(snapLines([el('a', 10.004, 0, 33.333, 10)], []).x, [10, 26.67, 43.34], 'rounded to 2 decimals');
+});
+
+check('sibling snap: an edge meets a sibling edge with a sibling guide', () => {
+    const lines = snapLines([el('a', 30, 70, 20, 10)]);
+    // left edge 30.3 → 30 (the sibling's left edge)
+    const { frame: moved, guides } = moveFrame(frame(10, 10, 15, 15), 20.3, 0.1, { snap: true, threshold: 0.5, lines });
+    equal(moved, frame(30, 10, 15, 15), 'moved onto the line');
+    equal(guides.filter((guide) => guide.axis === 'x'), [{ axis: 'x', at: 30, sibling: true }], 'x guide');
+});
+
+check('sibling snap: centre to a sibling centre and an edge to a sibling centre', () => {
+    const lines = snapLines([el('a', 20, 70, 20, 10)]); // centre x 30
+    const centred = moveFrame(frame(0, 10, 10, 10), 24.8, 0.1, { snap: true, threshold: 0.5, lines });
+    equal(centred.frame.x, 25, 'centre 29.8 → 30');
+    equal(centred.guides[0], { axis: 'x', at: 30, sibling: true }, 'centre guide');
+    const edge = moveFrame(frame(0, 10, 10, 10), 30.2, 0.1, { snap: true, threshold: 0.5, lines });
+    equal(edge.frame.x, 30, 'left edge 30.2 → the sibling centre 30');
+});
+
+check('sibling snap: the nearest line wins, the canvas wins a tie', () => {
+    const lines = { x: [48.8, 51.1], y: [] };
+    // right edge at 49 (0.2 from 48.8), left edge 39: nothing else → 48.8
+    const near = moveFrame(frame(0, 10, 10, 10), 39, 0, { snap: true, threshold: 0.5, lines });
+    equal(near.frame.x, 38.8, 'nearest sibling');
+    // centre 50.3: canvas centre 0.3 away, sibling 51.1 0.8 away (out) → canvas
+    const canvas = moveFrame(frame(0, 10, 10, 10), 45.3, 0, { snap: true, threshold: 1, lines });
+    equal([canvas.frame.x, canvas.guides[0]], [45, { axis: 'x', at: 50 }], 'canvas nearer');
+    // tie: left edge 50.2 is 0.2 from the canvas centre and 0.2 from a sibling at 50.4
+    const tie = moveFrame(frame(0, 10, 10, 10), 50.2, 0, { snap: true, threshold: 0.5, lines: { x: [50.4], y: [] } });
+    equal([tie.frame.x, tie.guides[0]], [50, { axis: 'x', at: 50 }], 'canvas on a tie');
+});
+
+check('sibling snap: hidden siblings ignored, the moving element itself excluded', () => {
+    const elements = [el('self', 10, 10, 10, 10), el('hidden', 33, 50, 10, 10, { hidden: true })];
+    const lines = snapLines(elements, ['self']);
+    equal(lines, { x: [], y: [] }, 'no lines');
+    const { frame: moved, guides } = moveFrame(elements[0].frame, 23.2, 0, { snap: true, threshold: 0.5, lines });
+    equal([moved.x, guides], [33, []], 'grid only');
+});
+
+check('sibling snap: other sibling lines the frame now sits on are reported too', () => {
+    // A: x 20..40, B: x 60..80 - a 40 wide frame whose left meets A's left has its right on B's left
+    const lines = snapLines([el('a', 20, 70, 20, 10), el('b', 60, 70, 20, 10)]);
+    const { frame: moved, guides } = moveFrame(frame(0, 10, 40, 10), 20.2, 0.3, { snap: true, threshold: 0.5, lines });
+    equal(moved.x, 20, 'snapped');
+    equal(guides.filter((guide) => guide.axis === 'x'), [
+        { axis: 'x', at: 20, sibling: true },
+        { axis: 'x', at: 40, sibling: true },
+        { axis: 'x', at: 60, sibling: true },
+    ], 'every line it sits on (its centre is on A right edge too)');
+});
+
+check('sibling snap: no lines = the old result exactly', () => {
+    const cases = [
+        [frame(10, 10, 20, 20), 30.3, 29.8],
+        [frame(10, 10, 20, 20), 69.7, -9.6],
+        [frame(10, 10, 20, 20), 3.3, 4.6],
+    ];
+
+    for (const [start, dx, dy] of cases) {
+        equal(moveFrame(start, dx, dy, { snap: true, threshold: 0.5, lines: { x: [], y: [] } }), moveFrame(start, dx, dy, { snap: true, threshold: 0.5 }), `move ${dx}`);
+    }
+
+    equal(resizeFrame(frame(20, 20, 20, 20), 'e', 9.8, 0, { snap: true, threshold: 0.5, lines: { x: [], y: [] } }), resizeFrame(frame(20, 20, 20, 20), 'e', 9.8, 0, { snap: true, threshold: 0.5 }), 'resize');
+    equal(moveFrame(frame(10, 10, 20, 20), 30.3, 0.37, { lines: { x: [40], y: [] } }).guides, [], 'snap off ignores lines');
+});
+
+check('sibling snap: a resized edge meets a sibling line; the canvas keeps a tie', () => {
+    const lines = { x: [33], y: [71.5] };
+    const { frame: resized, guides } = resizeFrame(frame(20, 20, 10, 10), 'se', 2.8, 41.3, { snap: true, threshold: 0.5, lines });
+    equal(resized, frame(20, 20, 13, 51.5), 'right → 33, bottom → 71.5');
+    equal(guides, [{ axis: 'x', at: 33, sibling: true }, { axis: 'y', at: 71.5, sibling: true }], 'guides');
+    const tie = resizeFrame(frame(20, 20, 20, 20), 'e', 10.2, 0, { snap: true, threshold: 0.5, lines: { x: [50.4], y: [] } });
+    equal([tie.frame.w, tie.guides[0]], [30, { axis: 'x', at: 50 }], 'canvas centre on a tie');
+});
+
+check('sibling snap: a ratio-kept resize keeps only the guides of edges that survived', () => {
+    // A QR from se: the right edge snaps to 33 (width leads), the bottom edge does not survive the ratio
+    const { frame: resized, guides } = resizeFrame(frame(20, 20, 10, 20), 'se', 2.9, 1.1, { snap: true, threshold: 0.5, keepRatio: true, lines: { x: [33], y: [41.3] } });
+    equal(resized, frame(20, 20, 13, 26), 'ratio kept');
+    equal(guides, [{ axis: 'x', at: 33, sibling: true }], 'only the surviving edge');
 });
 
 check('no innerHTML in the editor modules', () => {

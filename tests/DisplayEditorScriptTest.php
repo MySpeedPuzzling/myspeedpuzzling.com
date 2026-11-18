@@ -30,7 +30,7 @@ final class DisplayEditorScriptTest extends TestCase
         /** @var array<string, string> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
-        self::assertGreaterThanOrEqual(30, count($results));
+        self::assertGreaterThanOrEqual(46, count($results));
 
         foreach ($results as $scenario => $result) {
             self::assertSame('ok', $result, $scenario);

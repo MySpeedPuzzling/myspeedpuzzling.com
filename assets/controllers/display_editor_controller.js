@@ -4,9 +4,12 @@ import { createRenderer } from '../displays/render.js';
 import { EditorState } from '../displays/editor_state.js';
 import { EditorPanel, translator } from '../displays/editor_panel.js';
 import { previewState } from '../displays/sample_data.js';
-import { HANDLES, hitTest, keepsRatio, moveFrame, nudgeFrame, resizeFrame, toPercent } from '../displays/geometry.js';
+import { HANDLES, hitTest, keepsRatio, moveFrame, nudgeFrame, resizeFrame, snapLines, toPercent } from '../displays/geometry.js';
 import { RESULTS_TYPES } from '../displays/schema.js';
 import '../styles/display_editor.scss';
+
+// Screen pixels a pointer moves before a press becomes a drag
+const DEAD_ZONE = 3;
 
 /**
  * The display design editor (templates/competition_toolkit/display_editor.html.twig, D-displays-overlays.md §8.2,
@@ -261,7 +264,7 @@ export default class extends Controller {
 
         for (const guide of this.drag?.guides ?? []) {
             const line = document.createElement('div');
-            line.className = `display-editor__guide display-editor__guide--${guide.axis}`;
+            line.className = `display-editor__guide display-editor__guide--${guide.axis}${guide.sibling ? ' display-editor__guide--sibling' : ''}`;
             line.style[guide.axis === 'x' ? 'left' : 'top'] = `${guide.at}%`;
             overlay.appendChild(line);
         }
@@ -312,8 +315,11 @@ export default class extends Controller {
             startY: event.clientY,
             rect,
             key: `drag:${this.dragCount}`,
+            // The others' edges and centres, once - they do not move during the drag
+            lines: snapLines(this.state.design.elements, [element.id]),
             guides: [],
             pending: null,
+            moved: false,
         };
     }
 
@@ -324,10 +330,16 @@ export default class extends Controller {
             return;
         }
 
+        // A 3 px dead zone: the jitter of a plain click neither moves nor snaps anything (no undo step)
+        if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < DEAD_ZONE) {
+            return;
+        }
+
+        drag.moved = true;
         const delta = toPercent(event.clientX - drag.startX, event.clientY - drag.startY, drag.rect);
         const snap = this.snapTarget.checked;
         // 6 screen pixels of snapping distance, whatever the zoom
-        const options = { snap, thresholdX: (6 / drag.rect.width) * 100, thresholdY: (6 / drag.rect.height) * 100 };
+        const options = { snap, thresholdX: (6 / drag.rect.width) * 100, thresholdY: (6 / drag.rect.height) * 100, lines: drag.lines };
         const result = drag.handle === null
             ? moveFrame(drag.start, delta.x, delta.y, options)
             : resizeFrame(drag.start, drag.handle, delta.x, delta.y, {

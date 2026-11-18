@@ -241,6 +241,8 @@ final class ParticipantClaimPageTest extends WebTestCase
      */
     public function testASignedInPlayerIsCountedByPlayerNotByAddress(): void
     {
+        // The limiter's test storage lives in the kernel - keep the one kernel across the requests
+        $this->browser->disableReboot();
         $address = '203.0.113.48';
         /** @var RateLimiterFactoryInterface $byAddress */
         $byAddress = self::getContainer()->get('limiter.participant_claim_page');

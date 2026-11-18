@@ -96,7 +96,6 @@ final class ParticipantClaimTokensTest extends KernelTestCase
             $this->messageBus->dispatch(new RegenerateParticipantClaimToken(self::EVENT, Wjpc::PARTICIPANT_CONNECTED));
             self::fail('A linked participant got a claim link');
         } catch (ParticipantAlreadyLinked) {
-            $this->addToAssertionCount(1);
         }
 
         try {
@@ -111,6 +110,9 @@ final class ParticipantClaimTokensTest extends KernelTestCase
             self::fail('Another event\'s participant got a claim link');
         } catch (CompetitionParticipantNotFound) {
         }
+
+        // None of the refused ones got a link
+        self::assertNull($this->token(Wjpc::PARTICIPANT_CONNECTED));
     }
 
     public function testTheLinkLinksAtOnceWithItsMethodAndALogRow(): void

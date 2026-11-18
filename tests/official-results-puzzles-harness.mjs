@@ -2,11 +2,17 @@
 // tests/OfficialResultsPuzzlesParityTest.php hands over on stdin, and prints what it says about each as JSON.
 
 import { readFileSync } from 'node:fs';
-import { consistencyRefusal, duration, itemsRefusal, total, unfinishedMaximum, validate } from '../assets/official_results_puzzles.js';
+import { consistencyRefusal, duration, itemsRefusal, shapeRefusal, total, unfinishedMaximum, validate } from '../assets/official_results_puzzles.js';
 
 const { cases } = JSON.parse(readFileSync(0, 'utf8'));
 
-process.stdout.write(JSON.stringify(cases.map(({ items, round, result }) => ({
+// A record of another shape is refused before anything else (the server never reads it further)
+process.stdout.write(JSON.stringify(cases.map(({ items, round, result }) => (shapeRefusal(items) !== null ? {
+    shape: shapeRefusal(items),
+    items: itemsRefusal(items, round),
+    validate: validate(items, round, result),
+} : {
+    shape: null,
     items: itemsRefusal(items, round),
     consistency: consistencyRefusal(result, items, round),
     validate: validate(items, round, result),

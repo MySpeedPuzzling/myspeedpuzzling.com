@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -109,5 +110,26 @@ readonly final class CompetitionTimeProposalRepository
     public function save(CompetitionTimeProposal $proposal): void
     {
         $this->entityManager->persist($proposal);
+    }
+
+    /**
+     * A bulk prune of decided proposals (a cron, PruneDecidedTimeProposalsHandler) - rows that must not be loaded one by
+     * one. Aged by the decision; a decided row without a decision time (none is written so) by its receipt. Pending
+     * proposals are never deleted.
+     */
+    public function deleteDecidedBefore(DateTimeImmutable $before): int
+    {
+        /** @var int $deleted */
+        $deleted = $this->entityManager->createQueryBuilder()
+            ->delete(CompetitionTimeProposal::class, 'proposal')
+            ->where('proposal.status <> :pending')
+            ->andWhere('(proposal.decidedAt IS NOT NULL AND proposal.decidedAt < :before) OR (proposal.decidedAt IS NULL AND proposal.receivedAtMs < :beforeMs)')
+            ->setParameter('pending', TimeProposalStatus::Pending->value)
+            ->setParameter('before', $before)
+            ->setParameter('beforeMs', $before->getTimestamp() * 1000)
+            ->getQuery()
+            ->execute();
+
+        return $deleted;
     }
 }

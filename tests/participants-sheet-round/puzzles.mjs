@@ -9,9 +9,10 @@ import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
 import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, smallState, team } from '../participants-sheet-core/fixture.mjs';
 
-const A = 'rp-a';
-const B = 'rp-b';
-const C = 'rp-c';
+// Round puzzle ids are UUIDs, as on the server (official_results_puzzles.js refuses any other shape like the server)
+const A = '018d0020-0000-0000-0000-00000000a00a';
+const B = '018d0020-0000-0000-0000-00000000a00b';
+const C = '018d0020-0000-0000-0000-00000000a00c';
 const FORMAT = {
     mode: 'pick',
     toSolve: 2,

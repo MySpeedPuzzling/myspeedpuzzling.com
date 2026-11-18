@@ -86,7 +86,7 @@ Design: `toolkit/A-round-formats.md` §2.2-2.5, §6.2-6.3; binding `toolkit/R-re
 - **Write:** `RecordRoundResults` change `field: "puzzles"` (three-way `from`/`to`, receipts, conflicts carry the current value). Rules 1-5 per change (`puzzles_not_used`, `unknown_round_puzzle`, `puzzle_listed_twice`, `too_many_puzzles`, `invalid_split`, `splits_out_of_order`, `invalid_pieces_placed`), rule 6 on the entry as the whole set leaves it (`puzzles_mismatch` - DNS = no record; finished = K items all done, last split = the time; unfinished = Σ pieces of done items + `piecesPlaced` of the others, ≥ 1 not done), rule 7: a `result` + `puzzles` change of one entry in one set apply together or not at all (`group_refused` on the partner). Referees (`resultsOnly`) may send `puzzles`. An unfinished result without a record on a `pick` round is bound by K × the biggest puzzle − 1. Only a set with a `puzzles` change, or a `result` change on a `pick` round, reads the round's format FOR SHARE and its puzzles FOR KEY SHARE (`PickRoundRecords::lockForRecording()`); every other set runs today's statements (`RecordRoundResultsStatementPinTest` unchanged).
 - **Read:** entries of a `pick` round carry `puzzles` in their JSON (`GetRoundResultEntries`, +1 statement for a `pick` round only); every other entry's JSON is unchanged (`RoundResultsStateGoldenTest`). Ranking stays `OfficialResultsRanking` on the total. The advancement seed divides an unfinished result by the entry's own puzzles once all K are recorded, else by the round's K biggest (`RoundResultEntry::$piecesCount`).
 - **Round-side guards** (`RoundPuzzleFormatRefused`): removing a round puzzle a record names (`puzzle_in_results`; remove: row locked FOR UPDATE then checked; set puzzles: under the round's FOR NO KEY UPDATE), and a format/K change that would break a record (`conflicts_with_results`; `pick → total` with any record). Both only on `pick` rounds - a `total` round's removals keep their statements.
-- **Browser:** `assets/official_results_puzzles.js` (`itemsRefusal`, `consistencyRefusal`, `validate`, `total`, `duration`, `unfinishedMaximum`) is the twin of `RoundEntryPuzzles`, pinned by `OfficialResultsPuzzlesParityTest` - judge page, desk and competitor page import it, never re-implement it.
+- **Browser:** `assets/official_results_puzzles.js` (`shapeRefusal`, `itemsRefusal`, `consistencyRefusal`, `validate`, `total`, `duration`, `unfinishedMaximum`) is the twin of `RoundEntryPuzzles`, pinned by `OfficialResultsPuzzlesParityTest` - judge page, desk and competitor page import it, never re-implement it.
 - Tests: `tests/CompetitionToolkit/RoundEntryPuzzlesRecordingTest.php`, `tests/Value/RoundEntryPuzzlesTest.php`, `tests/OfficialResultsPuzzlesParityTest.php`.
 
 ## Results desk, participants sheet and export of `pick` rounds (competition toolkit A4)
@@ -267,9 +267,18 @@ Design: [world-series-rules.md](world-series-rules.md) §7 + review amendments W
   chosen: every reader would have to handle that state. Copying the puzzles themselves is not trivial: secret puzzles
   would need their reveal moments shifted by the date shift and re-synced site-wide (`SecretPuzzleHides`), so a copy
   could hide a public puzzle again or keep one hidden by the old date - left out on purpose.
-- The JS twin `official_results_puzzles.js` checks the item and consistency rules but not every shape rule the PHP value
-  object enforces (malformed JSON from a hand-made request) - the server stays the judge (docs/TODO.md "Competition
-  toolkit v2").
+- The JS twin `official_results_puzzles.js` checks the shape rules of `RoundEntryPuzzles::fromWire()` too
+  (`shapeRefusal()`, follow-ups FU-M: a list of at most 50 items, only the keys `roundPuzzleId` / `done` / `atSeconds` /
+  `piecesPlaced`, a UUID id as Ramsey's `Uuid::isValid()` reads it (urn:/uuid: prefixes and braces included), `done` a
+  boolean, integer `atSeconds` only on a done item and `piecesPlaced` only on one not done) and answers
+  `invalid_change` like the server (`RoundResultChangesParser`); `itemsRefusal()` / `validate()` check the shape first.
+  Pinned by the shape cases of `OfficialResultsPuzzlesParityTest`. **Two differences stay server-only on purpose,
+  because they are properties of JSON parsing, not rules the browser could apply to its own values:** a whole number
+  written with a fraction (`100.0` - PHP's `json_decode()` gives a float, which `fromWire()` refuses; JavaScript's
+  `JSON.parse()` gives the number `100`, indistinguishable from an integer), and a JSON object that PHP's associative
+  decode turns into a list (`{}` = an empty array = no record; keys `"0".."n-1"` = a list) - the browser builds real
+  arrays only and refuses any non-array record. Neither can come from the judge page, desk or sheet; a hand-made
+  request with one is refused by the server (`invalid_change`).
 - A puzzle's `pieces_count` changed in the catalogue after a record was stored can make an existing unfinished record
   inconsistent (`puzzles_mismatch` on the next edit of that entry) - clear the record on the desk ("Clear per-puzzle
   record") and enter it again.

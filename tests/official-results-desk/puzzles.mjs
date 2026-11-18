@@ -7,9 +7,10 @@ import assert from 'node:assert/strict';
 import { consistentRecord, deskEntryFromQuery, deskRecordChips, deskEntryRef, deskEntryUrl, editorOutcome, editorRows, ownTimesLine, puzzleOptions, recordChips, recordText, rowOwnTimes } from '../../assets/official_results_desk_puzzles.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
 
-const A = 'rp-a';
-const B = 'rp-b';
-const C = 'rp-c';
+// Round puzzle ids are UUIDs, as on the server (official_results_puzzles.js refuses any other shape like the server)
+const A = '018d0020-0000-0000-0000-00000000a00a';
+const B = '018d0020-0000-0000-0000-00000000a00b';
+const C = '018d0020-0000-0000-0000-00000000a00c';
 const FORMAT = {
     mode: 'pick',
     toSolve: 2,
@@ -98,7 +99,7 @@ export default function (test) {
 
     test('editor rows: K rows filled from the record', () => {
         assert.deepEqual(editorRows(FORMAT, null), [row(''), row('')]);
-        assert.deepEqual(editorRows(FORMAT, [{ roundPuzzleId: 'RP-B', done: true, atSeconds: 10 }]), [row(B, true, 10), row('')]);
+        assert.deepEqual(editorRows(FORMAT, [{ roundPuzzleId: B.toUpperCase(), done: true, atSeconds: 10 }]), [row(B, true, 10), row('')]);
     });
 
     test('chips and the one-line text: solving order, own time, pieces, hidden by label only', () => {

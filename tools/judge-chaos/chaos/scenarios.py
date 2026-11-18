@@ -1078,10 +1078,41 @@ def split_started(db):
     return started.replace(tzinfo=__import__('datetime').timezone.utc).timestamp()
 
 
-def tap_split(browser):
-    """The first "Finished now" of the card's per-puzzle rows (real events W5) - the time of the tap."""
-    browser.click('[data-live-results-target="splits"] [data-action="live-results#finishPuzzle"]')
-    return time.time()
+# Clicks the first ENABLED "Finished now" of the card's per-puzzle rows, never puzzle `arguments[0]`'s, found and
+# clicked in one step (the rows are re-rendered as a whole - a button found earlier may be gone by the click)
+SPLIT_TAP_JS = r"""
+const box = document.querySelector('[data-live-results-target="splits"]');
+if (!box || box.hidden) { return false; }
+const button = [...box.querySelectorAll('[data-action="live-results#finishPuzzle"]')]
+    .find((el) => !el.disabled && el.offsetParent !== null && el.dataset.id !== arguments[0]);
+if (!button) { return false; }
+button.click();
+return true;
+"""
+
+
+def tap_split(browser, after=None, timeout=15):
+    """The first "Finished now" of the card's per-puzzle rows (real events W5) - the time of the tap.
+
+    Waits for the card to offer it instead of reading the card once: until the outbox is read (IndexedDB - after a
+    reload or a re-open) every row is painted waiting with its button disabled, and a click on a disabled button is
+    lost. `after` = the puzzle whose split must show on the card first (✓, its own button gone) - a tap before that
+    could still land on a card painted before the split did."""
+    if after is not None:
+        browser.wait(lambda: '✓' in (splits_text(browser) or '') and browser.js(
+            'return !document.querySelector(\'[data-live-results-target="splits"] [data-action="live-results#finishPuzzle"][data-id="\' + arguments[0] + \'"]\')', after),
+            timeout=timeout, interval=0.1, message='the split of %s on the card' % after)
+    tapped = []
+
+    def tap():
+        at = time.time()
+        if browser.js(SPLIT_TAP_JS, after or ''):
+            tapped.append(at)
+            return True
+        return False
+
+    browser.wait(tap, timeout=timeout, interval=0.1, message='an enabled "Finished now" on the card')
+    return tapped[0]
 
 
 def toast_text(browser):
@@ -1180,7 +1211,7 @@ def s14_puzzle_splits(context):
     time.sleep(3)
     if not browser.info()['entry']:
         browser.open_table(SPLIT_TABLE)
-    tapped_2 = tap_split(browser)
+    tapped_2 = tap_split(browser, after=SPLIT_PUZZLE_1)
     browser.wait(lambda: browser.info()['confirm'], timeout=15, message='confirm after puzzle 2\'s Finished now')
     shots.append(browser.shot('s14-4-puzzle2-confirm'))
     browser.save()

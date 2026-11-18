@@ -51,6 +51,16 @@ QR tag kinds: [judge-offline.md](judge-offline.md) (toolkit C1-C8).
    sync state (✓ saved / clock = not sent / ⚠ needs you). The "recommended: give every entry a table number" hint
    shows while not everybody is seated and the round's seating step holds (`tablesReadiness`, the one rule of
    [seating.md](seating.md#the-seating-step-one-rule) - a round under way or over never nags), with the seating link.
+   **My tables** (judge-speed J3, `assets/live_entry_my_tables.js`, rounds with table numbers only): the sheet's field
+   "My tables" (`1-20, 41-45`; en dash, commas, semicolons, spaces; 1-9999, ≤ 20 ranges, inline error) is stored **per
+   phone and per event** (`myTables` in the preferences, newest 5 events). Once set, Find's empty state shows a chip
+   "My tables 1-20, 41-45" (tap = on/off, the text kept; Edit opens the sheet at the field), **"To do at my tables
+   (N)"** (my tables' entries with no result shown - the server's or this device's waiting value - in table order,
+   ≤ 30 rows; after a Save the next table is on top; at time's up the cards open in Didn't finish), Recent of my tables
+   only + "+ N at other tables" (the other-table rows of the usual 15; a tap shows them all until a card opens).
+   **"Proposals waiting" and "Puzzle missing" never hide anything** (their counts are every entry's; the list shows
+   mine first, then "Other tables"). Typed search, the unique-table open, scans and landings ignore the filter; an
+   entry without a table number is never mine. No server part (organiser-assigned ranges: v3).
 2. **Entry card** - table, name, members/#code, "Saved: 1:23:45 · Eva · 10:42" (or "Not sent yet: …"), problems of
    this entry (conflict, refused, failing) with their actions. While the round's stopwatch counts down to a scheduled
    start the status line says "Starts in 0:00:09" and there is no Finished now. While it runs **Finished now** comes

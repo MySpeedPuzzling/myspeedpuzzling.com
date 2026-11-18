@@ -118,8 +118,12 @@ names, codes and token would sit in CacheStorage - `ServiceWorkerBehaviourTest`)
   younger than 10 min, when the page was not opened for a landing; a "Finished now" comes back with "tapped at …",
   never re-measured. Another round's draft stays for that round's page.
 - **Preferences**: one localStorage key `msp.liveResults.prefs` `{v, keyboard, autoOpenTable, scanAfterSave,
-  myTables}` (the older `msp.liveResults.keyboard` taken over once). Only `keyboard` and `autoOpenTable` are used;
-  `scanAfterSave` / `myTables` are stored defaults of deferred features (R §3).
+  myTables, piecesMode}` (the older `msp.liveResults.keyboard` taken over once). `myTables` (judge-speed J3,
+  `live_entry_my_tables.js`) = `{[competitionId]: {text, on, savedAt}}`, the newest 5 events kept, normalised on every
+  read (`normaliseMyTables()`: the never written array of the first version and anything foreign → `{}`, a broken event
+  dropped alone); the page keeps what it wrote even where localStorage refuses (a private window). Offline nothing
+  changes: the filter is read from this phone, the lists from the snapshot + outbox. `scanAfterSave` is a stored
+  default of a deferred feature.
 - **Device gate** (`assets/live_entry_device.js`, small - the site's `app` bundle imports it): `app.js` runs
   `leftLiveEntryCleanup()` on every `turbo:load` - one localStorage read; when the marker names a player the cookie no
   longer names (signed out, another player), it deletes the whole `msp-live-entry` database (an open live tab closes

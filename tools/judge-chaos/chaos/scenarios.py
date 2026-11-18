@@ -1084,6 +1084,13 @@ def tap_split(browser):
     return time.time()
 
 
+def toast_text(browser):
+    """The toast's text while it shows. Not `info()['toast']`: the toast is `position: fixed`, whose `offsetParent` is
+    always null, so lib's `shown()` never sees it."""
+    return browser.js('const el = document.querySelector(\'[data-live-results-target="toast"]\'); '
+                      'return el && !el.hidden ? el.textContent.replace(/\\s+/g, " ").trim() : null')
+
+
 def splits_text(browser):
     return browser.js('const el = document.querySelector(\'[data-live-results-target="splits"]\'); '
                       'return el && !el.hidden ? el.textContent.replace(/\\s+/g, " ").trim() : null')
@@ -1115,7 +1122,7 @@ def s14_puzzle_splits(context):
 
     network_down(proxy, browser)
     tapped_1 = tap_split(browser)
-    browser.wait(lambda: (browser.info()['toast'] or '').find('Challenge 1') != -1, timeout=10, message='toast of puzzle 1')
+    browser.wait(lambda: 'Challenge 1' in (toast_text(browser) or ''), timeout=10, message='toast of puzzle 1')
     shots.append(browser.shot('s14-2-puzzle1-offline'))
     waiting = browser.outbox()
     context['evidence']['outbox_offline'] = waiting

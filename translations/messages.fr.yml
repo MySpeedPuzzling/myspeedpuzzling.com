@@ -4947,6 +4947,10 @@ live_results:
     decoder_error: "Ce navigateur ne peut pas lire les codes QR - saisissez la table ou le nom."
     unknown_person: "La personne de ce badge n'est pas (ou plus) participante de cet événement - retrouvez-la par son nom, ou ajoutez-la."
     no_rounds: "Cet événement n'a pas encore de manches - ajoutez une manche pour saisir des résultats."
+    type_instead: "Saisir une table"
+    saved_next: "Enregistré - visez le badge suivant"
+    camera_ready: "Scanner - caméra prête"
+    retry: "Réessayer"
   recent:
     title: "Dernières saisies"
     empty: "Les résultats saisis sur n'importe quel appareil apparaissent ici."
@@ -5085,6 +5089,7 @@ live_results:
     no_worker: "Cette application ne peut pas rouvrir la page sans connexion - gardez-la ouverte, ou utilisez le navigateur."
   prefs:
     auto_open_table: "Ouvrir une table dès qu'aucun autre numéro de table ne commence par ce qui est saisi (sur ce téléphone)"
+    scan_after_save: "Après l’enregistrement, scanner le badge suivant"
   my_tables:
     label: "Mes tables"
     placeholder: "p. ex. 1-20, 41-45"

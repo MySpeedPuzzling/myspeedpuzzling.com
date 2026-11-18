@@ -4955,6 +4955,10 @@ live_results:
     decoder_error: "Tento prohlížeč neumí číst QR kódy - zadejte stůl nebo jméno."
     unknown_person: "Člověk na této jmenovce (už) není účastníkem této události - najděte ho podle jména, nebo ho přidejte."
     no_rounds: "Tato událost zatím nemá žádná kola - pro zadávání výsledků přidejte kolo."
+    type_instead: "Zadat stůl"
+    saved_next: "Uloženo - namiřte na další jmenovku"
+    camera_ready: "Skenovat - kamera připravena"
+    retry: "Zkusit znovu"
   recent:
     title: "Poslední zadání"
     empty: "Zde se objeví výsledky zadané na jakémkoli zařízení."
@@ -5093,6 +5097,7 @@ live_results:
     no_worker: "Tato aplikace neumí stránku znovu otevřít bez připojení - nechte ji otevřenou, nebo použijte prohlížeč."
   prefs:
     auto_open_table: "Otevřít stůl, jakmile žádné jiné číslo stolu nezačíná tím, co je napsáno (na tomto telefonu)"
+    scan_after_save: "Po uložení skenovat další jmenovku"
   my_tables:
     label: "Moje stoly"
     placeholder: "např. 1-20, 41-45"

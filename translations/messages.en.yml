@@ -5164,6 +5164,8 @@ competition:
                 status: "Status"
                 email: "E-mail (private, for the claim invitation)"
                 division: "Division"
+                member_name: "Team member (one column per member)"
+                ticket_type: "Ticket type (which round)"
             confirm:
                 nothing_saved_yet: "Nothing has been saved yet."
                 button: "Confirm import"
@@ -8337,6 +8339,34 @@ entry_divisions:
         no_team: "Row %row%: %name% has no pair or team in %round% - a pair's or team's division is set on the pair or team."
         members_disagree: "Members of %team% are in different divisions in %round% - the pair's or team's division is left as it is."
 # end entry_divisions
+
+team_tickets:
+    mapping:
+        name_with_members: "With team member columns every row is a team - choose “Ignore” for the Name, First name and Last name columns."
+        per_person_column: "“%field%” holds one value per person, but a row of team members has several people - choose “Ignore” for it."
+        too_many_member_columns: "At most %max% columns can hold team members."
+    plan:
+        ticket_skipped: "Row %row%: the ticket type “%ticket%” is not imported."
+        ticket_without_round: "Choose a round for the ticket type “%ticket%” (rows %rows%)."
+        too_many_members: "Row %row%: %count% people for “%team%” in %round%, which has teams of %size% - the row is not imported. Check the row, or change the team size of the round."
+        too_few_members: "Row %row%: only %count% of %size% people for “%team%” in %round%."
+        person_in_two_teams: "Row %row%: %name% is in more than one team in %round% (rows %rows%) - these rows are not imported."
+        blocker:
+            rows_not_imported: "1 row of the file is not imported (row %rows%)|%count% rows of the file are not imported (rows %rows%)"
+    preview:
+        tickets_title: "Ticket types"
+        tickets_intro: "Choose which round each ticket type is for. “Do not import” leaves its rows out."
+        ticket_type: "Ticket type"
+        imported_into: "Imported into"
+        ticket_rows: "1 row|%count% rows"
+        choose_round: "Choose a round…"
+        skip: "Do not import"
+        guessed: "Chosen by its name - change it if it is wrong."
+        no_team: "No team"
+        no_round: "No round"
+        people: "1 person|%count% people"
+        member: "Member %number%"
+# end team_tickets
 
 participants_sheet_core:
     loading: "Loading the participants…"

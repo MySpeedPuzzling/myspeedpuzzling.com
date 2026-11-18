@@ -4680,6 +4680,8 @@ qr_code:
         "status": "Status"
         email: "E-mail (soukromý, pro pozvánku k propojení)"
         division: "Divize"
+        member_name: "Člen týmu (jeden sloupec na člena)"
+        ticket_type: "Typ vstupenky (které kolo)"
       "confirm":
         "nothing_saved_yet": "Zatím se nic neuložilo."
         "button": "Potvrdit import"
@@ -7810,6 +7812,32 @@ entry_divisions:
         conflict_in_file: "Řádky %name% uvádějí v kole %round% různé divize - divize zůstává beze změny."
         no_team: "Řádek %row%: %name% nemá v kole %round% dvojici ani tým - divize dvojice nebo týmu se nastavuje u dvojice nebo týmu."
         members_disagree: "Členové %team% jsou v kole %round% v různých divizích - divize dvojice nebo týmu zůstává beze změny."
+team_tickets:
+    mapping:
+        name_with_members: "Se sloupci členů týmu je každý řádek tým – u sloupců Jméno, Křestní jméno a Příjmení zvolte „Přeskočit“."
+        per_person_column: "„%field%“ obsahuje jednu hodnotu na osobu, ale řádek se členy týmu má více lidí – zvolte u něj „Přeskočit“."
+        too_many_member_columns: "Členy týmu může obsahovat nejvýše %max% sloupců."
+    plan:
+        ticket_skipped: "Řádek %row%: typ vstupenky „%ticket%“ se neimportuje."
+        ticket_without_round: "Zvolte kolo pro typ vstupenky „%ticket%“ (řádky %rows%)."
+        too_many_members: "Řádek %row%: %count% lidí pro „%team%“ v kole %round%, které má týmy po %size% – řádek se neimportuje. Zkontrolujte řádek, nebo změňte velikost týmu v kole."
+        too_few_members: "Řádek %row%: jen %count% z %size% lidí pro „%team%“ v kole %round%."
+        person_in_two_teams: "Řádek %row%: %name% je v kole %round% ve více než jednom týmu (řádky %rows%) – tyto řádky se neimportují."
+        blocker:
+            rows_not_imported: "{0}%count% řádků souboru se neimportuje (řádky %rows%)|{1}1 řádek souboru se neimportuje (řádek %rows%)|[2,4]%count% řádky souboru se neimportují (řádky %rows%)|[5,Inf[%count% řádků souboru se neimportuje (řádky %rows%)"
+    preview:
+        tickets_title: "Typy vstupenek"
+        tickets_intro: "Zvolte, pro které kolo je který typ vstupenky. „Neimportovat“ jeho řádky vynechá."
+        ticket_type: "Typ vstupenky"
+        imported_into: "Importovat do"
+        ticket_rows: "{0}%count% řádků|{1}1 řádek|[2,4]%count% řádky|[5,Inf[%count% řádků"
+        choose_round: "Zvolte kolo…"
+        skip: "Neimportovat"
+        guessed: "Zvoleno podle názvu – pokud je to špatně, změňte to."
+        no_team: "Bez týmu"
+        no_round: "Bez kola"
+        people: "{0}%count% lidí|{1}1 člověk|[2,4]%count% lidé|[5,Inf[%count% lidí"
+        member: "Člen %number%"
 
 participants_sheet_core:
     loading: "Načítání účastníků…"

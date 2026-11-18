@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Participant import - team rows (`docs/features/competitions-management/participant-import-preview.md` "As built: team rows", 2026-11-18)
+- [ ] Check the real Ticket Tailor export of St. Paul (column names, how an unanswered question is written - "", "-", "N/A") against the made-up one in `tests/Services/ParticipantImport/fixtures/`
+- [ ] Per-member references (`member N msp` / `member N email`) - today members are matched by name (+ the row's country) only
+- [ ] "Do not import" ticket types block full sync - decide whether their people should rather be kept on the event
+
 ## Divisions - after D1/D2 (`docs/features/competitions-management/shared-puzzles-and-divisions.md` "As built: D1 + D2", 2026-11-17)
 - [ ] Results desk: a "Division" cell to put an entry into a division in place (A11 - today: the divisions page's internal API `PUT /internal-api/rounds/{id}/entry-divisions`, the sheet column comes with D3)
 - [ ] The desk renders the Division column only when the round had divisions at page load - divisions added while it is open show after a reload

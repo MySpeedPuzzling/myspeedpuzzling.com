@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Results\ParticipantImportRemovals;
 use SpeedPuzzling\Web\Results\ParticipantImportRow;
 use SpeedPuzzling\Web\Results\ParticipantImportRowProfile;
 use SpeedPuzzling\Web\Results\RoundDivision;
+use SpeedPuzzling\Web\Value\ColumnMapping;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\DivisionMatch;
 use SpeedPuzzling\Web\Value\ParticipantEmail;
@@ -43,6 +44,11 @@ use Symfony\Component\Translation\TranslatableMessage;
  *   to that round only; empty leaves the division as it is; a value naming no division of the event is an error of the
  *   row (the rest of the row is imported); a pair/team gets the division its members' rows agree on (they disagree →
  *   a warning, the team keeps its own)
+ * - team rows (participant-import-preview.md "As built: team rows"): a row of member columns is one person per filled
+ *   member cell, planned as rows of their own (so matching is today's) in the row's team - its Team cell, else
+ *   "Team of <first member>" - and rounds (the round columns, the ticket type's round); more members than the round's
+ *   team size, or a person in two team rows of one round, keeps the whole row out (and full sync off), fewer is a
+ *   warning; a ticket type without a round is an error of the plan
  *
  * The rules the participants sheet follows too - one linked player per active participant, the usual team size, the
  * results guard - live in ParticipantRules and SiteSnapshot, so a file and the sheet never disagree.
@@ -172,6 +178,33 @@ final class PlanBuilder
     /** @var array<string, string> team key ("t:…" / "n:…") => the division the import gives the pair/team */
     private array $teamDivisionChanges = [];
 
+    /** @var array<int, int> planning row number => the file's row, for the people of team rows (ColumnMapping::MEMBER_ROW_FACTOR) */
+    private array $fileRowOf = [];
+
+    /** @var array<int, string> team row => its first member's name ("Team of <name>" when the row names no team) */
+    private array $teamLead = [];
+
+    /** @var array<int, int> team row => the planning row of its first person - the row the team's messages are on */
+    private array $firstMemberRow = [];
+
+    /** @var array<int, array{name: null|string, rounds: list<string>}> team row => its team and the rounds it is in */
+    private array $teamRowBlocks = [];
+
+    /** @var array<int, list<TranslatableMessage>> team row => what the organiser should know (it is imported) */
+    private array $teamRowMessages = [];
+
+    /** @var array<int, list<TranslatableMessage>> team row => why nothing of it is imported */
+    private array $blockedTeamRows = [];
+
+    /** @var array<string, list<int>> ticket type as written => file rows - nobody said which round it means */
+    private array $ticketsWithoutRound = [];
+
+    /** @var array<int, TranslatableMessage> row of a file of people => why it is not imported (its ticket type is skipped) */
+    private array $skippedTicketRows = [];
+
+    /** @var list<TranslatableMessage> nothing can be imported while there are any */
+    private array $errors = [];
+
     public function __construct(
         private readonly SiteSnapshot $site,
         private readonly ParticipantImportRows $file,
@@ -236,6 +269,10 @@ final class PlanBuilder
         }
 
         foreach ($file->rows as $row) {
+            if ($row->teamRow !== null) {
+                $this->fileRowOf[$row->rowNumber] = $row->teamRow;
+            }
+
             foreach (array_keys($row->teamsByRound) as $roundId) {
                 if (isset($this->roundsById[$roundId]) && $this->roundsById[$roundId]->hasTeams()) {
                     $this->ownTeamColumnRounds[$roundId] = true;
@@ -247,9 +284,30 @@ final class PlanBuilder
     public function build(): BuiltPlan
     {
         $this->resolvePlayerReferences();
+        $this->planTeamRows();
 
         foreach ($this->file->rows as $row) {
+            if ($row->teamRow !== null && isset($this->blockedTeamRows[$row->teamRow])) {
+                $this->skipBlockedTeamMember($row);
+
+                continue;
+            }
+
+            if (isset($this->skippedTicketRows[$row->rowNumber])) {
+                $planRow = new PlanRow($row->rowNumber, $row->name);
+                $planRow->messages[] = $this->skippedTicketRows[$row->rowNumber];
+                $this->rows[$row->rowNumber] = $planRow;
+
+                continue;
+            }
+
             $this->planRow($row);
+
+            if ($row->teamRow !== null && ($this->firstMemberRow[$row->teamRow] ?? null) === $row->rowNumber) {
+                foreach ($this->teamRowMessages[$row->teamRow] ?? [] as $message) {
+                    $this->rows[$row->rowNumber]->messages[] = $message;
+                }
+            }
         }
 
         $this->planRoundsAndTeams();
@@ -270,6 +328,8 @@ final class PlanBuilder
     {
         $rowNum = $data->rowNumber;
         $row = new PlanRow($rowNum, $data->name);
+        $row->teamRow = $data->teamRow;
+        $row->member = $data->member;
         $this->rows[$rowNum] = $row;
 
         $name = $data->name;
@@ -318,7 +378,7 @@ final class PlanBuilder
                 $row->messages[] = self::message('linking.code_changed_owner', $parameters);
             } elseif (isset($this->playerInFileTwice[$rowNum])) {
                 $row->messages[] = self::message('linking.player_in_file_twice', $parameters + [
-                    '%rows%' => implode(', ', $this->playerInFileTwice[$rowNum]),
+                    '%rows%' => implode(', ', $this->fileRows($this->playerInFileTwice[$rowNum])),
                 ]);
             } else {
                 $validPlayerId = $reference['playerId'];
@@ -470,6 +530,11 @@ final class PlanBuilder
 
         $teamName = $this->cleanTeamName($data->team ?? '', $row);
 
+        // A team row naming no team: the team is called after its first member
+        if ($teamName === null && $data->teamRow !== null && trim($data->team ?? '') === '' && isset($this->teamLead[$data->teamRow])) {
+            $teamName = self::generatedTeamName($this->teamLead[$data->teamRow]);
+        }
+
         /** @var array<string, null|string> $rowTeams round id => the row's own team cell of that round */
         $rowTeams = [];
         foreach ($data->teamsByRound as $roundId => $cell) {
@@ -499,6 +564,14 @@ final class PlanBuilder
 
             $rowRounds[$round->id] = $round;
             $person->roundsListed[$round->id] = true;
+        }
+
+        // The round the organiser chose for the row's ticket type
+        $ticketRound = $data->ticketRound !== null ? ($this->roundsById[$data->ticketRound] ?? null) : null;
+        if ($ticketRound !== null) {
+            $rowRounds[$ticketRound->id] = $ticketRound;
+            $person->roundsListed[$ticketRound->id] = true;
+            $person->listsRounds = true;
         }
 
         $this->collectDivisions($data, $person, $row, $rowRounds);
@@ -554,6 +627,219 @@ final class PlanBuilder
                 ]);
             }
         }
+    }
+
+    /**
+     * The team rows of the file, before any of their people is planned: the ticket type's round, the number of members
+     * against the round's team size, one person in two team rows of a round (by the name key - the people are matched
+     * only later). A row with a problem is kept out whole (blockedTeamRows), never half a team.
+     */
+    private function planTeamRows(): void
+    {
+        /** @var array<int, non-empty-list<ParticipantImportRowData>> $groups */
+        $groups = [];
+        foreach ($this->file->rows as $row) {
+            if ($row->teamRow !== null) {
+                $groups[$row->teamRow][] = $row;
+            } elseif ($row->ticketType !== null && $row->ticketType !== '') {
+                // A file of people with a Ticket type column: the same choices, per row
+                if ($row->ticketRound === ColumnMapping::TICKET_SKIP) {
+                    $this->skippedTicketRows[$row->rowNumber] = self::teamMessage('plan.ticket_skipped', ['%row%' => $row->rowNumber, '%ticket%' => $row->ticketType]);
+                } elseif ($row->ticketRound === null || !isset($this->roundsById[$row->ticketRound])) {
+                    $this->ticketsWithoutRound[$row->ticketType][] = $row->rowNumber;
+                }
+            }
+        }
+
+        /** @var array<string, array<string, array<int, string>>> $teamsOfPerson name key => round id => team row => name */
+        $teamsOfPerson = [];
+
+        foreach ($groups as $teamRow => $members) {
+            $first = $members[0];
+            $this->firstMemberRow[$teamRow] = $first->rowNumber;
+
+            $people = array_values(array_filter($members, static fn (ParticipantImportRowData $member): bool => $member->name !== ''));
+            if ($people !== []) {
+                $this->teamLead[$teamRow] = $people[0]->name;
+            }
+
+            $rounds = $this->roundsOfTeamRow($first);
+            $teamName = CompetitionTeam::cleanName($first->team) ?? (isset($this->teamLead[$teamRow]) ? self::generatedTeamName($this->teamLead[$teamRow]) : null);
+            $this->teamRowBlocks[$teamRow] = [
+                'name' => array_filter($rounds, static fn (ParticipantImportRound $round): bool => $round->hasTeams()) !== [] ? $teamName : null,
+                'rounds' => array_values(array_map(static fn (ParticipantImportRound $round): string => $round->name, $rounds)),
+            ];
+
+            $ticket = $first->ticketType;
+            if ($ticket !== null && $ticket !== '') {
+                if ($first->ticketRound === ColumnMapping::TICKET_SKIP) {
+                    $this->blockedTeamRows[$teamRow][] = self::teamMessage('plan.ticket_skipped', ['%row%' => $first->rowNumber, '%ticket%' => $ticket]);
+
+                    continue;
+                }
+
+                if ($first->ticketRound === null || !isset($this->roundsById[$first->ticketRound])) {
+                    $this->ticketsWithoutRound[$ticket][] = $teamRow;
+                }
+            }
+
+            $count = count($people);
+            foreach ($rounds as $round) {
+                $size = $round->category === RoundCategory::Duo ? 2 : ($round->category === RoundCategory::Team ? $round->teamSize : null);
+
+                if ($size === null || $count === 0) {
+                    continue;
+                }
+
+                $parameters = ['%row%' => $first->rowNumber, '%team%' => (string) $teamName, '%round%' => $round->name, '%count%' => $count, '%size%' => $size];
+
+                if ($count > $size) {
+                    $this->blockedTeamRows[$teamRow][] = self::teamMessage('plan.too_many_members', $parameters);
+                } elseif ($count < $size) {
+                    $this->teamRowMessages[$teamRow][] = self::teamMessage('plan.too_few_members', $parameters);
+                }
+            }
+
+            foreach ($people as $person) {
+                foreach (array_keys($rounds) as $roundId) {
+                    $teamsOfPerson[ParticipantNameKey::of($person->name)][$roundId][$teamRow] = $person->name;
+                }
+            }
+        }
+
+        foreach ($teamsOfPerson as $byRound) {
+            foreach ($byRound as $roundId => $teamRows) {
+                if (count($teamRows) < 2) {
+                    continue;
+                }
+
+                $firstRows = array_map(fn (int $teamRow): int => $this->firstMemberRow[$teamRow], array_keys($teamRows));
+                foreach ($teamRows as $teamRow => $name) {
+                    $this->blockedTeamRows[$teamRow][] = self::teamMessage('plan.person_in_two_teams', [
+                        '%row%' => $this->firstMemberRow[$teamRow],
+                        '%name%' => $name,
+                        '%round%' => $this->roundsById[$roundId]->name,
+                        '%rows%' => $this->listRowNumbers($firstRows),
+                    ]);
+                }
+            }
+        }
+
+        foreach ($this->ticketsWithoutRound as $ticket => $teamRows) {
+            $this->errors[] = self::teamMessage('plan.ticket_without_round', [
+                '%ticket%' => (string) $ticket,
+                '%count%' => count($teamRows),
+                '%rows%' => self::listFileRows($teamRows),
+            ]);
+        }
+    }
+
+    /**
+     * A person of a team row kept out: the row is shown, nothing of it is planned. The reasons are on its first person.
+     */
+    private function skipBlockedTeamMember(ParticipantImportRowData $data): void
+    {
+        $row = new PlanRow($data->rowNumber, $data->name);
+        $row->teamRow = $data->teamRow;
+        $row->member = $data->member;
+        $this->rows[$data->rowNumber] = $row;
+
+        if ($data->teamRow !== null && ($this->firstMemberRow[$data->teamRow] ?? null) === $data->rowNumber) {
+            $row->messages = $this->blockedTeamRows[$data->teamRow];
+        }
+    }
+
+    /**
+     * The rounds a team row names - its round columns (unknown names are reported by planRow()) and its ticket type's
+     * round. Reads only.
+     *
+     * @return array<string, ParticipantImportRound>
+     */
+    private function roundsOfTeamRow(ParticipantImportRowData $data): array
+    {
+        $names = $data->roundNames !== null ? $this->splitRoundNames($data->roundNames) : [];
+        if ($data->roundName !== null && $data->roundName !== '') {
+            $names[] = $data->roundName;
+        }
+
+        $rounds = [];
+        foreach ($names as $name) {
+            $round = $this->roundsByKey[self::roundKey($name)] ?? null;
+
+            if ($round !== null) {
+                $rounds[$round->id] = $round;
+            }
+        }
+
+        if ($data->ticketRound !== null && isset($this->roundsById[$data->ticketRound])) {
+            $rounds[$data->ticketRound] = $this->roundsById[$data->ticketRound];
+        }
+
+        return $rounds;
+    }
+
+    private static function generatedTeamName(string $firstMember): string
+    {
+        return mb_substr('Team of ' . $firstMember, 0, CompetitionTeam::NAME_MAX_LENGTH);
+    }
+
+    /**
+     * Planning row numbers as the organiser sees them: a team row's people are its row (once).
+     *
+     * @param list<int> $rowNumbers
+     * @return list<int>
+     */
+    private function fileRows(array $rowNumbers): array
+    {
+        if ($this->fileRowOf === []) {
+            return $rowNumbers;
+        }
+
+        return array_values(array_unique(array_map(fn (int $rowNumber): int => $this->fileRowOf[$rowNumber] ?? $rowNumber, $rowNumbers)));
+    }
+
+    /**
+     * @param list<int> $fileRows
+     */
+    private static function listFileRows(array $fileRows): string
+    {
+        $shown = array_slice($fileRows, 0, 10);
+
+        return implode(', ', $shown) . (count($fileRows) > count($shown) ? ', …' : '');
+    }
+
+    /**
+     * A message naming a person's planning row (`%row%`) names the file's row of their team row instead.
+     */
+    private function relabel(TranslatableMessage $message): TranslatableMessage
+    {
+        $parameters = $message->getParameters();
+        $row = $parameters['%row%'] ?? null;
+
+        if (!is_int($row) || !isset($this->fileRowOf[$row])) {
+            return $message;
+        }
+
+        $parameters['%row%'] = $this->fileRowOf[$row];
+
+        return new TranslatableMessage($message->getMessage(), $parameters, $message->getDomain());
+    }
+
+    /**
+     * @param list<TranslatableMessage> $messages
+     * @return list<TranslatableMessage>
+     */
+    private function relabelAll(array $messages): array
+    {
+        return $this->fileRowOf === [] ? $messages : array_map($this->relabel(...), $messages);
+    }
+
+    /**
+     * @param array<string, int|string> $parameters
+     */
+    private static function teamMessage(string $key, array $parameters): TranslatableMessage
+    {
+        return new TranslatableMessage('team_tickets.' . $key, $parameters);
     }
 
     /**
@@ -1131,7 +1417,7 @@ final class PlanBuilder
 
             $this->warnings[] = self::message('warning.name_spellings', [
                 '%names%' => self::quotedList(array_map(strval(...), array_keys($variants))),
-                '%rows%' => self::listRowNumbers($rows),
+                '%rows%' => $this->listRowNumbers($rows),
             ]);
         }
 
@@ -1289,7 +1575,11 @@ final class PlanBuilder
                     rowNumber: $rowNumber,
                     name: $row->name,
                     action: ParticipantImportRowAction::Skipped,
-                    messages: $row->messages,
+                    messages: $this->relabelAll($row->messages),
+                    teamRow: $row->teamRow,
+                    member: $row->member,
+                    teamName: $this->teamRowName($row),
+                    teamRounds: $this->teamRowRounds($row),
                 );
 
                 continue;
@@ -1322,11 +1612,15 @@ final class PlanBuilder
                 roundsRemoved: $first ? $this->roundsRemovedOf($person) : [],
                 teams: $teams,
                 teamsBefore: $teamsBefore,
-                messages: $row->messages,
+                messages: $this->relabelAll($row->messages),
                 removedAt: $first && $person->isRestored() ? $person->deletedAt : null,
                 roundsRestored: $first && $person->isRestored() ? $this->roundsRestoredOf($person) : [],
                 profile: $this->profileOf($rowNumber, $person, $first),
                 divisions: $row->divisionChanges,
+                teamRow: $row->teamRow,
+                member: $row->member,
+                teamName: $this->teamRowName($row),
+                teamRounds: $this->teamRowRounds($row),
             );
         }
 
@@ -1340,7 +1634,7 @@ final class PlanBuilder
         foreach ($this->unknownRounds as $unknownRoundName => $rowNumbers) {
             $warnings[] = self::message('unknown_round', [
                 '%round%' => (string) $unknownRoundName,
-                '%rows%' => self::listRowNumbers($rowNumbers),
+                '%rows%' => $this->listRowNumbers($rowNumbers),
                 '%count%' => count($rowNumbers),
                 '%rounds%' => $this->site->rounds === []
                     ? self::message('no_rounds_yet')
@@ -1350,7 +1644,7 @@ final class PlanBuilder
 
         return new BuiltPlan(
             rows: $rows,
-            warnings: [...$warnings, ...$this->warnings],
+            warnings: $this->relabelAll([...$warnings, ...$this->warnings]),
             removals: new ParticipantImportRemovals(
                 participants: $this->removedParticipants,
                 selfJoined: $this->removedSelfJoined,
@@ -1376,10 +1670,27 @@ final class PlanBuilder
                 entryDivisions: $entryDivisions,
                 teamDivisions: $teamDivisions,
             ),
-            syncBlockers: $this->syncBlockers(),
+            syncBlockers: $this->relabelAll($this->syncBlockers()),
             activeParticipantsBefore: count(array_filter($this->site->participants, static fn (array $participant): bool => $participant['deletedAt'] === null)),
             resultsGuard: $this->resultsGuard(),
+            errors: $this->errors,
         );
+    }
+
+    /**
+     * The pair/team of the team row a row of the plan belongs to (null for a row per person).
+     */
+    private function teamRowName(PlanRow $row): null|string
+    {
+        return $row->teamRow !== null ? ($this->teamRowBlocks[$row->teamRow]['name'] ?? null) : null;
+    }
+
+    /**
+     * @return list<string> the rounds of the team row a row of the plan belongs to (none for a row per person)
+     */
+    private function teamRowRounds(PlanRow $row): array
+    {
+        return $row->teamRow !== null ? ($this->teamRowBlocks[$row->teamRow]['rounds'] ?? []) : [];
     }
 
     /**
@@ -1394,14 +1705,14 @@ final class PlanBuilder
         if ($this->missingNameRows !== []) {
             $blockers[] = self::message('plan.blocker.missing_name', [
                 '%count%' => count($this->missingNameRows),
-                '%rows%' => self::listRowNumbers($this->missingNameRows),
+                '%rows%' => $this->listRowNumbers($this->missingNameRows),
             ]);
         }
 
         if ($this->ambiguousRows !== []) {
             $blockers[] = self::message('plan.blocker.ambiguous_name', [
                 '%count%' => count($this->ambiguousRows),
-                '%rows%' => self::listRowNumbers($this->ambiguousRows),
+                '%rows%' => $this->listRowNumbers($this->ambiguousRows),
             ]);
         }
 
@@ -1414,6 +1725,17 @@ final class PlanBuilder
 
         foreach ($this->roundCollisions as $collision) {
             $blockers[] = self::message('plan.blocker.round_case_collision', ['%rounds%' => self::quotedList($collision)]);
+        }
+
+        // A row kept out (too many members, a person in two teams, a skipped ticket type) - full sync would take its
+        // people off the event
+        if ($this->blockedTeamRows !== [] || $this->skippedTicketRows !== []) {
+            $teamRows = [...array_keys($this->blockedTeamRows), ...array_keys($this->skippedTicketRows)];
+            sort($teamRows);
+            $blockers[] = self::teamMessage('plan.blocker.rows_not_imported', [
+                '%count%' => count($teamRows),
+                '%rows%' => self::listFileRows($teamRows),
+            ]);
         }
 
         if ($this->foreignParticipantIds > 3) {
@@ -1971,8 +2293,9 @@ final class PlanBuilder
     /**
      * @param list<int> $rowNumbers
      */
-    private static function listRowNumbers(array $rowNumbers): string
+    private function listRowNumbers(array $rowNumbers): string
     {
+        $rowNumbers = $this->fileRows($rowNumbers);
         $shown = array_slice($rowNumbers, 0, 10);
         $list = implode(', ', $shown);
 

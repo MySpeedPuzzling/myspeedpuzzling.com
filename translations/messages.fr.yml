@@ -4672,6 +4672,8 @@ competition:
         "status": "Statut"
         email: "E-mail (privé, pour l'invitation de rattachement)"
         division: "Division"
+        member_name: "Membre de l'équipe (une colonne par membre)"
+        ticket_type: "Type de billet (quelle manche)"
       "confirm":
         "nothing_saved_yet": "Rien n'est encore enregistré."
         "button": "Confirmer l'importation"
@@ -7803,6 +7805,32 @@ entry_divisions:
         conflict_in_file: "Les lignes de %name% indiquent des divisions différentes dans %round% - la division est laissée telle quelle."
         no_team: "Ligne %row% : %name% n'a ni duo ni équipe dans %round% - la division d'un duo ou d'une équipe se définit sur le duo ou l'équipe."
         members_disagree: "Les membres de %team% sont dans des divisions différentes dans %round% - la division du duo ou de l'équipe est laissée telle quelle."
+team_tickets:
+    mapping:
+        name_with_members: "Avec des colonnes de membres d'équipe, chaque ligne est une équipe – choisissez « Ignorer » pour les colonnes Nom, Prénom et Nom de famille."
+        per_person_column: "« %field% » contient une valeur par personne, mais une ligne de membres d'équipe compte plusieurs personnes – choisissez « Ignorer » pour cette colonne."
+        too_many_member_columns: "Au plus %max% colonnes peuvent contenir des membres d'équipe."
+    plan:
+        ticket_skipped: "Ligne %row% : le type de billet « %ticket% » n'est pas importé."
+        ticket_without_round: "Choisissez une manche pour le type de billet « %ticket% » (lignes %rows%)."
+        too_many_members: "Ligne %row% : %count% personnes pour « %team% » en %round%, dont les équipes comptent %size% personnes – la ligne n'est pas importée. Vérifiez la ligne ou modifiez la taille des équipes de la manche."
+        too_few_members: "Ligne %row% : seulement %count% personnes sur %size% pour « %team% » en %round%."
+        person_in_two_teams: "Ligne %row% : %name% est dans plus d'une équipe en %round% (lignes %rows%) – ces lignes ne sont pas importées."
+        blocker:
+            rows_not_imported: "{0}%count% ligne du fichier n'est pas importée (lignes %rows%)|{1}1 ligne du fichier n'est pas importée (ligne %rows%)|]1,Inf[%count% lignes du fichier ne sont pas importées (lignes %rows%)"
+    preview:
+        tickets_title: "Types de billets"
+        tickets_intro: "Choisissez la manche de chaque type de billet. « Ne pas importer » laisse ses lignes de côté."
+        ticket_type: "Type de billet"
+        imported_into: "Importer dans"
+        ticket_rows: "{0}%count% ligne|{1}1 ligne|]1,Inf[%count% lignes"
+        choose_round: "Choisissez une manche…"
+        skip: "Ne pas importer"
+        guessed: "Choisie d'après son nom – modifiez-la si elle est incorrecte."
+        no_team: "Aucune équipe"
+        no_round: "Aucune manche"
+        people: "{0}%count% personne|{1}1 personne|]1,Inf[%count% personnes"
+        member: "Membre %number%"
 
 participants_sheet_core:
   loading: "Chargement des participants…"

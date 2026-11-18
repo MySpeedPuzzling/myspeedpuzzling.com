@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Value;
 /**
  * What a column of an uploaded participant list holds. `TeamInRound` and `DivisionInRound` are the only fields that may
  * be mapped more than once - once per round (the round's id travels next to it in ColumnMapping). `Division` and
- * `DivisionInRound` exist only for an event with divisions (shared-puzzles-and-divisions.md §3.5).
+ * `DivisionInRound` exist only for an event with divisions (shared-puzzles-and-divisions.md §3.5). `MemberName` may be
+ * mapped to several columns (one per team member, in column order): then a row of the file is a team ticket - one
+ * person per filled member cell (participant-import-preview.md "As built: team rows").
  */
 enum ParticipantImportField: string
 {
@@ -34,4 +36,8 @@ enum ParticipantImportField: string
     case Division = 'division';
     // The entry's division in one round (`division_in_round:<round id>`)
     case DivisionInRound = 'division_in_round';
+    // One member of the row's team ("Player 1 name" … "Player 12 name") - a row is then one team ticket
+    case MemberName = 'member_name';
+    // The ticket type of a registration export - which round it means is chosen per value on the preview
+    case TicketType = 'ticket_type';
 }

@@ -17,6 +17,7 @@ readonly final class BuiltPlan
      * @param list<ParticipantImportRow> $rows
      * @param list<TranslatableMessage> $warnings
      * @param list<TranslatableMessage> $syncBlockers
+     * @param list<TranslatableMessage> $errors nothing can be imported while there are any (a ticket type without a round)
      */
     public function __construct(
         public array $rows,
@@ -27,6 +28,7 @@ readonly final class BuiltPlan
         public int $activeParticipantsBefore,
         /** sha256 of what full sync keeps because of results */
         public string $resultsGuard,
+        public array $errors = [],
     ) {
     }
 }

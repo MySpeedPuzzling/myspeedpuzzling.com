@@ -36,6 +36,14 @@ readonly final class ParticipantImportRowData
         /** The Division cell - the division in every round of the row that uses it; null = no column mapped */
         public null|string $division = null,
         public array $divisionsByRound = [],
+        /** A team row of the file (member columns mapped): its row number as the organiser sees it - null = a row per person */
+        public null|int $teamRow = null,
+        /** The member column of the team row this person comes from (1 = the first member column) */
+        public null|int $member = null,
+        /** The Ticket type cell; null = no column mapped */
+        public null|string $ticketType = null,
+        /** The round the organiser chose for the ticket type (ColumnMapping::TICKET_SKIP = not imported), null = none chosen */
+        public null|string $ticketRound = null,
     ) {
     }
 
@@ -60,6 +68,9 @@ readonly final class ParticipantImportRowData
             // Only when mapped: an event without divisions hashes its rows exactly as before
             ...($this->division !== null ? ['division' => $this->division] : []),
             ...($this->divisionsByRound !== [] ? ['divisionsByRound' => $this->divisionsByRound] : []),
+            // Only for a file of team rows / with a ticket type column: every other file hashes exactly as before
+            ...($this->teamRow !== null ? ['teamRow' => $this->teamRow, 'member' => $this->member] : []),
+            ...($this->ticketType !== null ? ['ticketType' => $this->ticketType, 'ticketRound' => $this->ticketRound] : []),
         ];
     }
 }

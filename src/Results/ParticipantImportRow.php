@@ -26,6 +26,7 @@ readonly final class ParticipantImportRow
      *        after the file's rounds took out what it does not list)
      * @param array<string, array{before: null|string, after: string}> $divisions round name => the division the row gives
      *        the entry (before = the one it had, null = none) - only rounds whose division the import changes
+     * @param list<string> $teamRounds a team row's rounds (round names) - shown once above its people
      */
     public function __construct(
         public int $rowNumber,
@@ -45,7 +46,22 @@ readonly final class ParticipantImportRow
         /** The MySpeedPuzzling profile line - when the file names a player or the import links one */
         public null|ParticipantImportRowProfile $profile = null,
         public array $divisions = [],
+        /** The file's row of the team row this person comes from (member columns mapped) - null = a row per person */
+        public null|int $teamRow = null,
+        /** The member column of that team row (1 = the first) */
+        public null|int $member = null,
+        /** The team row's pair/team in its pair/team rounds - its Team cell or "Team of <first member>" */
+        public null|string $teamName = null,
+        public array $teamRounds = [],
     ) {
+    }
+
+    /**
+     * The row number the organiser sees in the file - a team row's for its people.
+     */
+    public function fileRow(): int
+    {
+        return $this->teamRow ?? $this->rowNumber;
     }
 
     public function hasWarning(): bool

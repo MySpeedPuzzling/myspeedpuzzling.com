@@ -66,10 +66,10 @@
         </div>
     {% endif %}
 
-    {# Rows of the file - the ones that change something first, unchanged and repeated rows folded #}
-    {% set quiet_actions = ['unchanged', 'same_person'] %}
-    {% set changing_rows = plan.rows|filter(row => row.action.value not in quiet_actions) %}
-    {% set quiet_rows = plan.rows|filter(row => row.action.value in quiet_actions) %}
+    {# Rows of the file - the ones that change something first, unchanged and repeated rows folded (a team row's people together) #}
+    {% set row_tables = preview.rowTables %}
+    {% set changing_rows = row_tables.changing %}
+    {% set quiet_rows = row_tables.quiet %}
 
     {% macro rows_table(rows, action_badges) %}
         {% set prefix = 'competition.participants.import.preview.' %}
@@ -84,8 +84,33 @@
                 </thead>
                 <tbody>
                     {% for row in rows %}
-                        <tr data-row="{{ row.rowNumber }}">
-                            <td class="text-muted">{{ row.rowNumber }}</td>
+                        {% set previous = loop.first ? null : rows[loop.index0 - 1] %}
+                        {% if row.teamRow is not null and (previous is null or previous.teamRow != row.teamRow) %}
+                            {# A team row of the file: its team and rounds once, its people below #}
+                            {% set team_row = row.teamRow %}
+                            {% set people_count = rows|filter(member => member.teamRow == team_row and member.name is not empty)|length %}
+                            <tr class="table-light" data-team-row="{{ row.teamRow }}">
+                                <td class="text-muted">{{ row.teamRow }}</td>
+                                <td colspan="2" class="text-break">
+                                    <i class="bi bi-people me-1"></i>
+                                    {% if row.teamName is not null %}
+                                        <strong>{{ row.teamName }}</strong>
+                                    {% else %}
+                                        <span class="fst-italic">{{ 'team_tickets.preview.no_team'|trans }}</span>
+                                    {% endif %}
+                                    <span class="text-muted">·
+                                        {{ row.teamRounds is empty ? 'team_tickets.preview.no_round'|trans : row.teamRounds|join(', ') }}
+                                        · {{ 'team_tickets.preview.people'|trans({'%count%': people_count}) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endif %}
+                        <tr data-row="{{ row.rowNumber }}"{% if row.teamRow is not null %} data-team-member-of="{{ row.teamRow }}"{% endif %}>
+                            {% if row.teamRow is not null %}
+                                <td class="text-muted small ps-3 text-nowrap">{{ 'team_tickets.preview.member'|trans({'%number%': row.member}) }}</td>
+                            {% else %}
+                                <td class="text-muted">{{ row.rowNumber }}</td>
+                            {% endif %}
                             <td class="text-break">
                                 <span class="badge {{ action_badges[row.action.value] }} me-1">{{ (prefix ~ 'action.' ~ row.action.value)|trans }}</span>
                                 {% if row.name is empty %}

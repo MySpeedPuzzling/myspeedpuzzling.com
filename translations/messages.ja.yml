@@ -4595,6 +4595,8 @@ qr_code:
         "status": "ステータス"
         email: "メールアドレス（非公開、連携の招待用）"
         division: "部門"
+        member_name: "チームメンバー（メンバーごとに1列）"
+        ticket_type: "チケットの種類（どのラウンドか）"
       "confirm":
         "nothing_saved_yet": "まだ何も保存されていません。"
         "button": "インポートを確定"
@@ -7710,6 +7712,32 @@ entry_divisions:
         conflict_in_file: "%name%の行で%round%の部門が食い違っているため、部門は変更しません。"
         no_team: "%row% 行目: %name%には%round%のペアもチームもありません。ペアやチームの部門は、ペアまたはチームで設定します。"
         members_disagree: "%team%のメンバーは%round%で部門が異なるため、ペアまたはチームの部門は変更しません。"
+team_tickets:
+    mapping:
+        name_with_members: "チームメンバーの列がある場合、各行が1つのチームになります。名前・名・姓の列には「無視」を選んでください。"
+        per_person_column: "「%field%」は1人につき1つの値ですが、チームメンバーの行には複数の人がいます。この列には「無視」を選んでください。"
+        too_many_member_columns: "チームメンバーを入れられる列は最大%max%列です。"
+    plan:
+        ticket_skipped: "%row% 行目: チケットの種類「%ticket%」はインポートされません。"
+        ticket_without_round: "チケットの種類「%ticket%」のラウンドを選んでください（%rows% 行目）。"
+        too_many_members: "%row% 行目: %round%の「%team%」に%count%人いますが、このラウンドのチームは%size%人です。この行はインポートされません。行を確認するか、ラウンドのチーム人数を変更してください。"
+        too_few_members: "%row% 行目: %round%の「%team%」は%size%人中%count%人しかいません。"
+        person_in_two_teams: "%row% 行目: %name%は%round%で複数のチームに入っています（%rows% 行目）。これらの行はインポートされません。"
+        blocker:
+            rows_not_imported: "{0}ファイルの%count%行はインポートされません（%rows% 行目）|]0,Inf[ファイルの%count%行はインポートされません（%rows% 行目）"
+    preview:
+        tickets_title: "チケットの種類"
+        tickets_intro: "各チケットの種類がどのラウンド用かを選んでください。「インポートしない」を選ぶと、その行は除外されます。"
+        ticket_type: "チケットの種類"
+        imported_into: "インポート先"
+        ticket_rows: "{0}%count%行|]0,Inf[%count%行"
+        choose_round: "ラウンドを選択…"
+        skip: "インポートしない"
+        guessed: "名前から選びました。違う場合は変更してください。"
+        no_team: "チームなし"
+        no_round: "ラウンドなし"
+        people: "{0}%count%人|]0,Inf[%count%人"
+        member: "メンバー %number%"
 
 participants_sheet_core:
   loading: "参加者を読み込んでいます…"

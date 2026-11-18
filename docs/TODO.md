@@ -1958,12 +1958,15 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
 
 ## Participant linking (`docs/features/competitions-management/participant-linking.md`)
 
-- [ ] lily.srv Alloy `stage.replace` (Loki): redact claim tokens like the compete ones - `/claim/<token>`,
+- [x] lily.srv Alloy `stage.replace` (Loki): redact claim tokens like the compete ones - `/claim/<token>`,
       `/<locale>/claim/<token>` and the encoded `%2Fclaim%2F<token>` in the sign-in page's `?return=` (the app's own logs
-      and Sentry are redacted by `OnlineTokenRedactor`, R4). Before organisers hand out claim links at scale.
-- [ ] Link suggestions (L5): `EXPLAIN ANALYZE` of `GetParticipantLinkSuggestions` on lily (read-only) for the biggest
+      and Sentry are redacted by `OnlineTokenRedactor`, R4). Done 2026-11-18 (lily.srv `bb0e6bf`, journal) - verified in
+      Loki: `/claim/[redacted]`, `/en/claim/[redacted]`, `?return=%2Fen%2Fclaim%2F[redacted]`.
+- [x] Link suggestions (L5): `EXPLAIN ANALYZE` of `GetParticipantLinkSuggestions` on lily (read-only) for the biggest
       event list - target < 150 ms for 800 people (§8.4); it also runs inside the toolkit hub's summary statement. Check
-      the plan uses `custom_player_name_key` for the "Name and country" tier.
+      the plan uses `custom_player_name_key` for the "Name and country" tier. Done 2026-11-18 on production
+      (read-only): WJPC 2024 (812 without a profile) 7.9 ms, WJPC 2026 (702) 16.7 ms, the hub's count 6-7 ms; tier 3
+      = `custom_player_name_key` index scan per person (702 loops, all buffer hits).
 - [ ] Link suggestions on the phone list and in the person editor (L5 built them on the desktop People grid only).
 - [ ] The sheet's setup checklist row "Help people link their profiles" (§7.5) - not built in L5.
 

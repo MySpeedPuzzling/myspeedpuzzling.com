@@ -380,3 +380,11 @@ Note for Jan: the studio needs no sign-in, so a running round's judge-entered ti
 Verified with Docker back (2026-11-18): judge-chaos `all` on main with #468-#471 - 18/18 PASS, incl.
 `s14_puzzle_splits` (split 1 at 602 s for a tap at 603, sent 30 s later after an outage) and `s12c` (10 min frozen,
 caught up at once).
+
+**Round 2 (Jan's answers, 2026-11-18, PR FU-R2):** the studio's live ranking of an unpublished round follows the event's
+competitor-pages live-results setting (pages + live results on → live ranking and result signals; off → nothing until
+publish, no result signal; switch in the state cache key). UI fixes from the walks: studio names readable at 1280 px
+(list column grows, names wrap); the person editor opened from a round tab pages through that round's people; the People
+grid re-measures the sticky first column on resize (Name no longer covers Country); the place reads "City, Country"
+without a stray " ," and wraps in the series About box / Next card. Walked both ways at 375 + 1280 px
+(`cm-delivery/shots/fu/r2/`).

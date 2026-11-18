@@ -36,6 +36,14 @@ final class OnlineTokenRedactorTest extends TestCase
         yield 'not a token' => ['/api/compete/not-a-token/state', '/api/compete/not-a-token/state'];
         yield 'longer than a token' => ['/api/compete/' . self::TOKEN . 'x/state', '/api/compete/' . self::TOKEN . 'x/state'];
         yield 'another path' => ['/en/puzzle/' . self::TOKEN, '/en/puzzle/' . self::TOKEN];
+        // A personal claim link (participant-linking.md §6.5, R4)
+        yield 'the claim page' => ['https://myspeedpuzzling.com/en/claim/' . self::TOKEN, 'https://myspeedpuzzling.com/en/claim/[redacted]'];
+        yield 'the claim page in Czech' => ['/cs/claim/' . self::TOKEN . '?x=1', '/cs/claim/[redacted]?x=1'];
+        yield 'the claim link without a language' => ['https://myspeedpuzzling.com/claim/' . self::TOKEN, 'https://myspeedpuzzling.com/claim/[redacted]'];
+        yield 'the claim page as a sign-in return' => ['/en/login?return=%2Fen%2Fclaim%2F' . self::TOKEN, '/en/login?return=%2Fen%2Fclaim%2F[redacted]'];
+        yield 'the claim page JSON-escaped' => ['{"url":"https:\/\/x\/de\/claim\/' . self::TOKEN . '"}', '{"url":"https:\/\/x\/de\/claim\/[redacted]"}'];
+        yield 'a router message of the claim page' => ['No route found for "POST http://localhost/claim/' . self::TOKEN . '"', 'No route found for "POST http://localhost/claim/[redacted]"'];
+        yield 'another claim path' => ['/en/claim-oauth2-credentials/' . self::TOKEN, '/en/claim-oauth2-credentials/' . self::TOKEN];
     }
 
     #[DataProvider('texts')]
@@ -61,6 +69,20 @@ final class OnlineTokenRedactorTest extends TestCase
             ['route' => 'compete_api_state', 'route_parameters' => ['token' => '[redacted]', '_route' => 'compete_api_state'], 'id' => 7, 'nested' => ['deep' => ['[redacted]?']]],
             $redactor->redactValue(['route' => 'compete_api_state', 'route_parameters' => ['token' => self::TOKEN, '_route' => 'compete_api_state'], 'id' => 7, 'nested' => ['deep' => [self::TOKEN . '?']]]),
         );
+    }
+
+    /**
+     * The claim page's own token (`participant_claim*` routes) is redacted wherever it stands too
+     */
+    public function testTheCurrentClaimLinksTokenIsRedactedAnywhere(): void
+    {
+        $requestStack = new RequestStack();
+        $request = Request::create('/en/claim/' . self::TOKEN, 'POST');
+        $request->attributes->set('_route', 'participant_claim_confirm');
+        $request->attributes->set('token', self::TOKEN);
+        $requestStack->push($request);
+
+        self::assertSame('WHERE cp.claim_token = [redacted]', (new OnlineTokenRedactor($requestStack))->redact('WHERE cp.claim_token = ' . self::TOKEN));
     }
 
     public function testTokensFoundInPathsAreKnownEverywhere(): void

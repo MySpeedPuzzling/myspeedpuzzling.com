@@ -9,12 +9,16 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * A personal link's token is the access right to a participant's online competition (docs/features/online-
- * competitions/README.md §5.4) - it must never reach Sentry or the logs. Replaces with REDACTED:
+ * competitions/README.md §5.4), a claim link's token links a participant to an account - neither may reach Sentry or the
+ * logs. Replaces with REDACTED:
  * - every token in a link's path: `/api/compete/<token>`, `/<locale>/compete/<token>`, `/compete/<token>` (the link
  *   without a language, stream RP), `/soutezit/<token>` (the Czech page) - also with JSON-escaped (`\/`) or URL-encoded
  *   (`%2F`) slashes;
+ * - every personal claim link's token (docs/features/competitions-management/participant-linking.md §6.5, R4): the
+ *   claim page `/<locale>/claim/<token>` and the link without a language `/claim/<token>` - a claim token links whoever
+ *   opens it signed in;
  * - the current request's own token wherever it appears (route parameters, query parameters of a logged statement),
- *   when the request is one of the `compete_*` routes.
+ *   when the request is one of the `compete_*` or `participant_claim*` routes.
  * Used by RedactOnlineTokensProcessor (Monolog) and OnlineTokenSentryScrubber (Sentry). Stateless - the current token
  * is read from the request stack each time.
  */
@@ -48,7 +52,7 @@ final readonly class OnlineTokenRedactor
             }
         }
 
-        if (stripos($text, 'compete') === false && stripos($text, 'soutezit') === false) {
+        if (self::mayHoldALinkPath($text) === false) {
             return $text;
         }
 
@@ -114,7 +118,7 @@ final readonly class OnlineTokenRedactor
         }
 
         if (is_string($value)) {
-            if ((stripos($value, 'compete') === false && stripos($value, 'soutezit') === false) || preg_match_all(self::pattern(), $value, $matches) === false) {
+            if (self::mayHoldALinkPath($value) === false || preg_match_all(self::pattern(), $value, $matches) === false) {
                 return [];
             }
 
@@ -150,7 +154,7 @@ final readonly class OnlineTokenRedactor
         $route = $request->attributes->get('_route');
         $token = $request->attributes->get('token');
 
-        if (!is_string($route) || !str_starts_with($route, 'compete_') || !is_string($token) || OnlineToken::looksValid($token) === false) {
+        if (!is_string($route) || !(str_starts_with($route, 'compete_') || str_starts_with($route, 'participant_claim')) || !is_string($token) || OnlineToken::looksValid($token) === false) {
             return null;
         }
 
@@ -171,11 +175,20 @@ final readonly class OnlineTokenRedactor
         return $chain;
     }
 
+    /**
+     * A cheap test before the pattern: the text names one of the links' paths
+     */
+    private static function mayHoldALinkPath(string $text): bool
+    {
+        return stripos($text, 'compete') !== false || stripos($text, 'soutezit') !== false || stripos($text, 'claim') !== false;
+    }
+
     private static function pattern(): string
     {
         $slash = self::SLASH;
         $character = self::TOKEN_CHARACTER;
+        $locale = '(?:cs|de|en|es|fr|ja)';
 
-        return '~((?:(?:' . $slash . '(?:api|cs|de|en|es|fr|ja))?' . $slash . 'compete|' . $slash . 'soutezit)' . $slash . ')(' . $character . '{' . OnlineToken::LENGTH . '})(?!' . $character . ')~i';
+        return '~((?:(?:' . $slash . '(?:api|' . $locale . '))?' . $slash . 'compete|' . $slash . 'soutezit|(?:' . $slash . $locale . ')?' . $slash . 'claim)' . $slash . ')(' . $character . '{' . OnlineToken::LENGTH . '})(?!' . $character . ')~i';
     }
 }

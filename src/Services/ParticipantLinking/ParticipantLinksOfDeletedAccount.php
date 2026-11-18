@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Value\ParticipantLinkAction;
+use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 
 /**
@@ -31,7 +32,7 @@ readonly final class ParticipantLinksOfDeletedAccount
      *    CompetitionSelfJoin::releaseOtherParticipants()): left with the profile's name and no player they would read as
      *    an unclaimed name anybody could pick from the "I'm going" list;
      * 3. every row lets go of the account - the organiser's rows and self-joined ones holding official data stay on the
-     *    list, unlinked, with nothing of the link left.
+     *    list, unlinked, with nothing of the link left (a claim token only when the link was made with it - R6).
      */
     public function release(string $playerId): void
     {
@@ -64,9 +65,11 @@ SQL,
             ['p' => $playerId, 'selfJoined' => ParticipantSource::SelfJoined->value, 'now' => $now],
         );
 
+        // A claim link the account used goes with the link (R6, CompetitionParticipant::disconnect()) - set before
+        // connected_via is cleared in the same statement (Postgres reads the old row on the right-hand side)
         $conn->executeStatement(
-            'UPDATE competition_participant SET player_id = NULL, connected_at = NULL, connected_via = NULL, online_link_confirmed_at = NULL WHERE player_id = :p',
-            ['p' => $playerId],
+            'UPDATE competition_participant SET claim_token = CASE WHEN connected_via = :claimLink THEN NULL ELSE claim_token END, player_id = NULL, connected_at = NULL, connected_via = NULL, online_link_confirmed_at = NULL WHERE player_id = :p',
+            ['p' => $playerId, 'claimLink' => ParticipantLinkMethod::ClaimLink->value],
         );
     }
 }

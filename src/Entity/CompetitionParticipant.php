@@ -96,6 +96,18 @@ class CompetitionParticipant
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $onlineLinkConfirmedAt = null;
 
+    /**
+     * The personal claim link's secret (docs/features/competitions-management/participant-linking.md D5, §3.1 -
+     * OnlineToken's format): who opens `/claim/{token}` signed in is linked to this participant at once, under every claim
+     * policy - the organiser handed it to one person. Made on demand for unlinked people (GenerateParticipantClaimTokens),
+     * a new one in place of the old with "New link" (RegenerateParticipantClaimToken). An unlink clears it only when the
+     * link being undone was made with it (R6, disconnect()) - a used link never links a second person, a printed slip of
+     * somebody the organiser linked by hand keeps working.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 32, unique: true, nullable: true)]
+    public null|string $claimToken = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -140,11 +152,16 @@ class CompetitionParticipant
     }
 
     /**
-     * Call through ParticipantLinks. Whatever the link was made with goes with it - a claim token is to be cleared here
-     * only when `connectedVia` was `claim_link` (R6, package L4a): read the method before clearing it.
+     * Call through ParticipantLinks. Whatever the link was made with goes with it: the claim token only when the link was
+     * made with it (`claim_link`, R6) - a used claim link never links a second person; any other link leaves the token
+     * as it is, so the slip the organiser printed or the link they sent keeps working for the right person.
      */
     public function disconnect(): void
     {
+        if ($this->connectedVia === ParticipantLinkMethod::ClaimLink) {
+            $this->claimToken = null;
+        }
+
         $this->player = null;
         $this->connectedAt = null;
         $this->connectedVia = null;
@@ -278,6 +295,15 @@ class CompetitionParticipant
     {
         $this->onlineToken = $token;
         $this->onlineTokenCreatedAt = $at;
+    }
+
+    /**
+     * A personal claim link - also a new one in place of the old ("New link"): the old one stops working at once. The
+     * caller makes the token (OnlineToken::generate()).
+     */
+    public function assignClaimToken(string $token): void
+    {
+        $this->claimToken = $token;
     }
 
     /**

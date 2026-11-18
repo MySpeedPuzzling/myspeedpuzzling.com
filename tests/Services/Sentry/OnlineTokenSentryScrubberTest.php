@@ -64,6 +64,29 @@ final class OnlineTokenSentryScrubberTest extends TestCase
         self::assertStringContainsString('application/json', $everything);
     }
 
+    /**
+     * A personal claim link (participant-linking.md §6.5, R4): the page, the link without a language and the sign-in page
+     * coming back to it - in the request, the Referer, the transaction and wherever else the token stands
+     */
+    public function testAClaimLinksEventIsScrubbedEverywhere(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest([
+            'url' => 'https://myspeedpuzzling.com/en/claim/' . self::TOKEN,
+            'method' => 'POST',
+            'headers' => ['Referer' => ['https://myspeedpuzzling.com/en/login?return=%2Fen%2Fclaim%2F' . self::TOKEN]],
+        ]);
+        $event->setTransaction('GET /claim/' . self::TOKEN);
+        $event->setExtra(['token' => self::TOKEN]);
+
+        $scrubbed = (new OnlineTokenSentryScrubber(new OnlineTokenRedactor(new RequestStack())))->beforeSend()($event, null);
+
+        $everything = (string) json_encode([$scrubbed->getRequest(), $scrubbed->getTransaction(), $scrubbed->getExtra()], JSON_UNESCAPED_SLASHES);
+        self::assertStringNotContainsString(self::TOKEN, $everything);
+        self::assertStringContainsString('/en/claim/[redacted]', $everything);
+        self::assertSame('GET /claim/[redacted]', $scrubbed->getTransaction());
+    }
+
     public function testATransactionsSpansAreScrubbed(): void
     {
         $span = (new Hub())->startTransaction(TransactionContext::make())->startChild(

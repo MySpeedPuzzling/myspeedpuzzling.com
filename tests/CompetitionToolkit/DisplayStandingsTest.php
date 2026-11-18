@@ -191,7 +191,8 @@ final class DisplayStandingsTest extends WebTestCase
         // Not numbered: no number across the stages - the place in the own group; the qualified have none
         self::assertSame(array_fill(0, 7, null), array_column($rows, 'rank'));
         self::assertSame([null, null, null, null, 2, 4, 3], array_column($rows, 'stageRank'));
-        self::assertSame([1, 1, 1, 1, 1, 1, 1], array_column($rows, 'stage'));
+        // A qualified row's stage is the one it is qualified for
+        self::assertSame([2, 2, 2, 2, 1, 1, 1], array_column($rows, 'stage'));
         self::assertSame([...array_fill(0, 4, '✓ Final'), ...array_fill(0, 3, 'Group A / Group B')], array_column($rows, 'stageName'));
         self::assertSame(['key', 'rank', 'complete', 'name', 'members', 'countries', 'totalSeconds', 'totalTimeSeconds', 'totalMissingPieces', 'totalPenaltySeconds', 'roundsScored', 'perRound', 'stage', 'stageName', 'stageRank'], array_keys((array) self::at($standing, 'rows.0')));
         self::assertSame('after %counted% of %count% stages', self::at($state, 'texts.standingStagesOf'));

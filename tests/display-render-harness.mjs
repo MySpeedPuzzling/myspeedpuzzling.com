@@ -640,8 +640,8 @@ const stagesState = (standing) => baseState({ standings: { st000001: standing },
 check('standings: a stages standing - the stage place, qualified without one, no round columns, "after 1 of 2 stages"', () => {
     // The groups classified, the final not: the qualified are one group without a place, the others keep their group's
     const standing = STAGES_STANDING([
-        STAGE_ROW('a', null, null, 'Anna', 3000, 1, '✓ Final', { complete: false }),
-        STAGE_ROW('b', null, null, 'Ben', 3100, 1, '✓ Final', { complete: false }),
+        STAGE_ROW('a', null, null, 'Anna', 3000, 2, '✓ Final', { complete: false }),
+        STAGE_ROW('b', null, null, 'Ben', 3100, 2, '✓ Final', { complete: false }),
         STAGE_ROW('c', null, 2, 'Cara', 3300, 1, 'Group A / Group B'),
         STAGE_ROW('d', null, 4, 'Dan', 3600, 1, 'Group A / Group B', { totalMissingPieces: 20, perRound: [SCORE(3600, 'unfinished', 20), NOT_COUNTED, NOT_COUNTED] }),
         STAGE_ROW('i', null, 3, 'Ivan', 3400, 1, 'Group A / Group B'),

@@ -1,0 +1,22 @@
+{#
+    Divisions (shared-puzzles-and-divisions.md D1): the event's divisions - ranked separately inside a round.
+    Variables: competition, divisions (list<CompetitionDivisionOverview>).
+#}
+<div class="col-lg-6">
+    <div class="card shadow-sm h-100" data-toolkit-card="divisions">
+        <div class="card-body">
+            <h3 class="h5"><i class="bi bi-people me-2"></i>{{ 'competition_toolkit.divisions.card.title'|trans }}</h3>
+            <p class="small text-muted">{{ 'competition_toolkit.divisions.card.help'|trans }}</p>
+
+            {% if divisions is empty %}
+                <p class="small mb-2" data-toolkit-divisions-empty>{{ 'competition_toolkit.divisions.card.none'|trans }}</p>
+            {% else %}
+                <p class="small mb-2" data-toolkit-divisions>{{ divisions|map(d => d.name)|join(', ') }}</p>
+            {% endif %}
+
+            <a href="{{ path('competition_divisions', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-toolkit-divisions-link>
+                <i class="bi bi-people me-1"></i>{{ 'competition_toolkit.divisions.card.manage'|trans }}
+            </a>
+        </div>
+    </div>
+</div>

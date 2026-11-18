@@ -398,6 +398,48 @@ curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
 # → [{"participantId": "…", "name": "Load Tester 1", "roundIds": ["<roundId>"], "url": "https://sandbox.myspeedpuzzling.com/compete/…"}]
 ```
 
+### Divisions
+
+An event's divisions and which round uses which (`docs/features/competitions-management/shared-puzzles-and-divisions.md`
+D1, A10) - the same message and rules as the event's divisions page (`competition_divisions`); the entries' divisions in
+bulk until the participants sheet has its Division column. Drafts work.
+
+| Method | Path | Mirrors | Body |
+|---|---|---|---|
+| `GET` | `/internal-api/competitions/{competitionId}/divisions` | the divisions page | - |
+| `PUT` | `/internal-api/competitions/{competitionId}/divisions` | the divisions page's Save | `divisions` (required, ≤ 12, in order): `[{"id"?, "name", "shortName"?, "roundIds"?}]`, `confirmClearing` |
+| `PUT` | `/internal-api/rounds/{roundId}/entry-divisions` | - (D3: the sheet's Division column) | `entries` (required, 1-1000): `[{"participantId" \| "teamId", "division"}]` |
+
+- **`GET …/divisions`**: `{"competitionId", "divisions": [{"id", "name", "shortName", "position", "roundIds",
+  "entriesCount"}]}` in the event's order; `entriesCount` = round entries carrying it (removed participants left out).
+- **`PUT …/divisions`** (`SetCompetitionDivisions`, under `CompetitionParticipantsLock`): **the whole list** - an `id` of
+  the event's division keeps it (renamed / re-labelled / re-ordered as sent), no `id` - or an id that is not one of the
+  event's divisions - = a new division with the server's own id, a division left
+  out is deleted; `roundIds` = the rounds using it (left out = none, so every round's subset is replaced too). Answers
+  like the GET. Refusals, all before anything changes: `422` with `code` = `too_many`, `invalid_name` (empty or > 60),
+  `invalid_short_name` (> 12), `duplicate_name` (case does not matter), `duplicate_id`, `unknown_division` (an id of
+  another event), `unknown_round` (not a round of the event); **`409 divisions_in_use`** when entries would lose their
+  division (a division removed, or removed from their round) - send it again with `"confirmClearing": true` to clear
+  them; `400` invalid fields, `404` unknown competition.
+- **`PUT …/entry-divisions`** (`SetRoundEntryDivisions`, under the lock): a solo round's entry by `participantId`, a
+  pair/team by `teamId` or by one of its members' `participantId` (the pair/team carries the division, never its
+  members); `division` = the division's id, name or short label (case does not matter) - one the round uses - or `null`
+  to clear. All or nothing: `422` `unknown_entry` (also a removed participant's) / `duplicate_entry` (one entry twice, e.g. a pair
+  by its team and by a member) / `not_in_round` / `unknown_division` (the item in `error`). Entries
+  left out keep theirs. Answers `{"roundId", "changed", "entries": [{"ref", "participantId", "teamId", "name",
+  "division", "divisionRank"}]}` - every entry of the round after the change. The round's open desks are refreshed.
+
+```bash
+# St. Paul: three divisions, SOLO uses all, PAIRS two
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"divisions": [{"name": "Regular", "roundIds": ["<solo>", "<pairs>"]}, {"name": "Senior 55+", "shortName": "S", "roundIds": ["<solo>", "<pairs>"]}, {"name": "Junior U16", "shortName": "J", "roundIds": ["<solo>"]}]}' \
+  https://sandbox.myspeedpuzzling.com/internal-api/competitions/<competitionId>/divisions | jq
+# Put people into them
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"entries": [{"participantId": "<id>", "division": "Senior 55+"}, {"participantId": "<id>", "division": "J"}]}' \
+  https://sandbox.myspeedpuzzling.com/internal-api/rounds/<solo>/entry-divisions | jq
+```
+
 ### E-mail blocks and messages to players
 
 For a player whose e-mail does not arrive (a mistyped domain like `googlemail.mail.com`): stop every e-mail to the

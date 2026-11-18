@@ -983,6 +983,150 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /internal-api/competitions/{competitionId}/divisions:
+    get:
+      summary: An event's divisions
+      operationId: getCompetitionDivisions
+      description: |
+        The event's divisions in their order, each with the rounds that use it and how
+        many round entries carry it (removed participants left out).
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "200":
+          description: The divisions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDivisions"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Set an event's divisions and the rounds that use them
+      operationId: putCompetitionDivisions
+      description: |
+        What the event's divisions page saves (`SetCompetitionDivisions`) - the whole
+        list: an `id` of the event's division keeps it, no `id` = a new one, a
+        division left out is deleted; `roundIds` replaces the rounds using it.
+        Refused before anything changes: 422 with `code` = `too_many`,
+        `invalid_name`, `invalid_short_name`, `duplicate_name`, `duplicate_id`,
+        `unknown_division`, `unknown_round`; 409 `divisions_in_use` when entries
+        would lose their division and `confirmClearing` is not true.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [divisions]
+              properties:
+                divisions:
+                  type: array
+                  maxItems: 12
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [name]
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string, maxLength: 60 }
+                      shortName: { type: [string, "null"], maxLength: 12 }
+                      roundIds: { type: array, items: { type: string, format: uuid } }
+                confirmClearing: { type: boolean, default: false }
+      responses:
+        "200":
+          description: The divisions after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDivisions"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          description: The divisions cannot be saved (`code` = the reason)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal-api/rounds/{roundId}/entry-divisions:
+    put:
+      summary: Put a round's entries into divisions
+      operationId: putRoundEntryDivisions
+      description: |
+        Divisions of some entries of one round, all or nothing
+        (`SetRoundEntryDivisions`): a solo entry by `participantId`, a pair/team by
+        `teamId` or a member's `participantId`; `division` = the division's id, name
+        or short label (one the round uses), `null` clears. 422 with `code` =
+        `unknown_entry`, `not_in_round` or `unknown_division`.
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [entries]
+              properties:
+                entries:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [division]
+                    properties:
+                      participantId: { type: string, format: uuid }
+                      teamId: { type: string, format: uuid }
+                      division: { type: [string, "null"] }
+      responses:
+        "200":
+          description: Every entry of the round after the change
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roundId: { type: string, format: uuid }
+                  changed: { type: integer }
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ref: { type: string }
+                        participantId: { type: [string, "null"], format: uuid }
+                        teamId: { type: [string, "null"], format: uuid }
+                        name: { type: string }
+                        division: { type: [string, "null"] }
+                        divisionRank: { type: [integer, "null"] }
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: An unknown entry or a division the round does not use (`code`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /internal-api/competitions/{competitionId}/participants:
     post:
       summary: Add people to a competition and enter them into rounds
@@ -4900,6 +5044,21 @@ components:
             createdAt: { type: string, format: date-time }
             receivedAt: { type: string, format: date-time }
 
+    CompetitionDivisions:
+      type: object
+      properties:
+        competitionId: { type: string, format: uuid }
+        divisions:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              shortName: { type: [string, "null"] }
+              position: { type: integer }
+              roundIds: { type: array, items: { type: string, format: uuid } }
+              entriesCount: { type: integer }
     Error:
       type: object
       additionalProperties: false

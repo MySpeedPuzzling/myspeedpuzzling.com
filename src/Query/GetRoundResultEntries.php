@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
@@ -28,7 +29,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
  * A3) the piece counts of its puzzles - entries of a `pick` round carry their per-puzzle record (`puzzles`). The round's
  * statement reads its competition's competitor pages / QR tag mode too: while either is set, team entries carry their
  * `lineupId` (competition toolkit P1, R-review-and-plan.md §1.8, CompetitionLineupId over every member not removed -
- * the waitlisted ones too, the tag route's rule - while only the going ones are listed).
+ * the waitlisted ones too, the tag route's rule - while only the going ones are listed). A round that uses divisions
+ * (shared-puzzles-and-divisions.md D2) reads them in the round's statement (RoundDivisionsJson) and its entries carry
+ * their `division` and `divisionRank` - no statement more, and a round without divisions reads what it always did.
  */
 readonly final class GetRoundResultEntries
 {
@@ -47,9 +50,11 @@ readonly final class GetRoundResultEntries
      */
     public function forRound(string $roundId): array
     {
-        /** @var false|array{category: string, puzzle_format: string, puzzles_to_solve: null|int, competition_id: string, lineups: bool} $round */
+        $divisionsSql = RoundDivisionsJson::sql('r.id');
+        /** @var false|array{category: string, puzzle_format: string, puzzles_to_solve: null|int, competition_id: string, lineups: bool, divisions: null|string} $round */
         $round = $this->database->fetchAssociative(<<<SQL
-SELECT r.category, r.puzzle_format, r.puzzles_to_solve, r.competition_id, (c.competitor_pages OR c.qr_tag_mode IS NOT NULL) AS lineups
+SELECT r.category, r.puzzle_format, r.puzzles_to_solve, r.competition_id, (c.competitor_pages OR c.qr_tag_mode IS NOT NULL) AS lineups,
+    {$divisionsSql} AS divisions
 FROM competition_round r
 INNER JOIN competition c ON c.id = r.competition_id
 WHERE r.id = :roundId
@@ -61,9 +66,15 @@ SQL, [
             throw new CompetitionRoundNotFound();
         }
 
+        // The divisions the round uses (shared-puzzles-and-divisions.md D2) - none: the entries are exactly what they were
+        $divisions = [];
+        foreach (RoundDivision::listFromJson($round['divisions']) as $division) {
+            $divisions[$division->id] = $division;
+        }
+
         $entries = $round['category'] === 'solo'
-            ? $this->people($roundId)
-            : $this->teams($roundId, $round['lineups'] ? $round['competition_id'] : null);
+            ? $this->people($roundId, $divisions)
+            : $this->teams($roundId, $round['lineups'] ? $round['competition_id'] : null, $divisions);
 
         if ($round['puzzle_format'] === RoundPuzzleFormat::Pick->value && $round['puzzles_to_solve'] !== null) {
             $entries = $this->withPuzzles($roundId, $round['puzzles_to_solve'], $entries);
@@ -90,7 +101,7 @@ SQL, [
         ), $entries);
     }
 
-    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null): RoundResultEntry
+    private static function copy(RoundResultEntry $entry, null|int $rank = null, null|bool $puzzlesUsed = null, null|int $piecesCount = null, null|int $divisionRank = null): RoundResultEntry
     {
         return new RoundResultEntry(
             ref: $entry->ref,
@@ -117,6 +128,9 @@ SQL, [
             piecesCount: $piecesCount ?? $entry->piecesCount,
             lineupId: $entry->lineupId,
             missingPieces: $entry->missingPieces,
+            divisionsUsed: $entry->divisionsUsed,
+            division: $entry->division,
+            divisionRank: $divisionRank ?? $entry->divisionRank,
         );
     }
 
@@ -147,11 +161,16 @@ SQL, [
      */
     private static function ranked(array $entries): array
     {
-        $ranks = OfficialResultsRanking::rank(array_map(static fn (RoundResultEntry $entry): RoundEntryResult => $entry->result, $entries));
+        $results = array_map(static fn (RoundResultEntry $entry): RoundEntryResult => $entry->result, $entries);
+        $ranks = OfficialResultsRanking::rank($results);
+        // A round with divisions: each entry's rank within its division too (A13 - the overall rules inside the division)
+        $divisionRanks = array_any($entries, static fn (RoundResultEntry $entry): bool => $entry->divisionsUsed)
+            ? OfficialResultsRanking::rankWithin($results, array_map(static fn (RoundResultEntry $entry): null|string => $entry->division?->id, $entries))
+            : [];
 
         $rankedEntries = [];
         foreach ($entries as $index => $entry) {
-            $rankedEntries[] = self::copy($entry, rank: $ranks[$index]);
+            $rankedEntries[] = self::copy($entry, rank: $ranks[$index], divisionRank: $divisionRanks[$index] ?? null);
         }
 
         usort($rankedEntries, static function (RoundResultEntry $a, RoundResultEntry $b): int {
@@ -165,9 +184,10 @@ SQL, [
     }
 
     /**
+     * @param array<string, RoundDivision> $divisions the round's divisions by id - none: the round does not use them
      * @return list<RoundResultEntry>
      */
-    private function people(string $roundId): array
+    private function people(string $roundId, array $divisions): array
     {
         $going = CompetitionParticipantGoing::sql('cp');
         $rows = $this->database->fetchAllAssociative(
@@ -185,6 +205,7 @@ SELECT
     entered_by.code AS entered_by_code,
     cpr.qualified_at,
     cpr.result_puzzles,
+    cpr.division_id,
     cp.id AS participant_id,
     cp.name AS participant_name,
     cp.country AS participant_country,
@@ -203,7 +224,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
+            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string, division_id: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
             $entries[] = new RoundResultEntry(
                 ref: RoundEntryRef::participantRound($row['id']),
                 kind: RoundResultEntry::KIND_PERSON,
@@ -226,6 +247,8 @@ SQL,
                 playerIsPrivate: $row['player_is_private'] === true,
                 puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
                 missingPieces: $row['result_missing_pieces'],
+                divisionsUsed: $divisions !== [],
+                division: $row['division_id'] !== null ? $divisions[$row['division_id']] ?? null : null,
             );
         }
 
@@ -233,10 +256,11 @@ SQL,
     }
 
     /**
+     * @param array<string, RoundDivision> $divisions the round's divisions by id - none: the round does not use them
      * @param null|string $lineupsOf the competition id while its pairs/teams carry their `lineupId`, else null
      * @return list<RoundResultEntry>
      */
-    private function teams(string $roundId, null|string $lineupsOf): array
+    private function teams(string $roundId, null|string $lineupsOf, array $divisions): array
     {
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -253,7 +277,8 @@ SELECT
     entered_by.name AS entered_by_name,
     entered_by.code AS entered_by_code,
     ct.qualified_at,
-    ct.result_puzzles
+    ct.result_puzzles,
+    ct.division_id
 FROM competition_team ct
 LEFT JOIN player entered_by ON entered_by.id = ct.result_entered_by_id
 WHERE ct.round_id = :roundId
@@ -314,7 +339,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string} $row */
+            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_missing_pieces: null|int, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, result_puzzles: null|string, division_id: null|string} $row */
             $teamMembers = $members[$row['id']] ?? [];
             $countries = [];
             foreach ($teamMembers as $member) {
@@ -345,6 +370,8 @@ SQL,
                 puzzles: RoundEntryPuzzles::fromStored($row['result_puzzles']),
                 lineupId: $lineupsOf !== null && isset($lineupMembers[$row['id']]) ? CompetitionLineupId::of($lineupsOf, $lineupMembers[$row['id']]) : null,
                 missingPieces: $row['result_missing_pieces'],
+                divisionsUsed: $divisions !== [],
+                division: $row['division_id'] !== null ? $divisions[$row['division_id']] ?? null : null,
             );
         }
 

@@ -181,6 +181,11 @@
              reveal_scope_everywhere: 'competition_toolkit.reveal_stopwatch.scope.everywhere'|trans,
              reveal_scope_name_everywhere: 'competition_toolkit.reveal_stopwatch.scope.name_everywhere'|trans,
              reveal_scope_event: 'competition_toolkit.reveal_stopwatch.scope.event'|trans,
+         } : {})|merge(round.overview.divisions is not empty ? {
+             division_all: 'results_desk.divisions.all'|trans,
+             division_none: 'results_desk.divisions.none'|trans,
+             division_rank: 'results_desk.divisions.rank_title'|trans,
+             count_without_division: browser_translation('results_desk.divisions.without'),
          } : {})|merge(advancement_steps|default([]) is not empty ? {
              step_overall_loading: 'advancement_step.banner.overall_loading'|trans,
              step_overall_failed: 'advancement_step.banner.overall_failed'|trans,
@@ -368,6 +373,12 @@
             </div>
         </div>
 
+        {% if round.overview.divisions is not empty %}
+            {# Divisions of the round (shared-puzzles-and-divisions.md D2): chips All / each / No division, filled by the controller #}
+            {# `hidden` on the wrapper only - the chips' row (d-flex) is the controller's inner element #}
+            <div role="group" aria-label="{{ 'results_desk.divisions.filter_label'|trans }}" data-results-desk-target="divisionFilter"></div>
+        {% endif %}
+
         {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
            without it they widen the page at 375 px (browser verification) #}
         <div class="table-responsive position-relative">
@@ -376,6 +387,9 @@
                 <thead>
                     <tr>
                         <th scope="col" class="text-end">{{ 'results_desk.table.rank'|trans }}</th>
+                        {% if round.overview.divisions is not empty %}
+                            <th scope="col" data-results-desk-target="divisionColumn">{{ 'results_desk.divisions.column'|trans }}</th>
+                        {% endif %}
                         <th scope="col" data-results-desk-target="tableColumn" {{ competition.isOnline or round.overview.tableNumbersOff ? 'hidden' }}>{{ 'results_desk.table.table'|trans }}</th>
                         <th scope="col">{{ (round.overview.category == 'solo' ? 'results_desk.table.entrant' : 'results_desk.table.team')|trans }}</th>
                         <th scope="col">{{ 'results_desk.table.country'|trans }}</th>

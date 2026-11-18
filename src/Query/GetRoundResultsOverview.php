@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\RoundPuzzleFormats;
 use SpeedPuzzling\Web\Services\SeatingReadiness;
@@ -22,7 +23,9 @@ use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
  * event - CompetitionParticipantGoing), and say how many people of the round wait on the event's waitlist (left out
  * until the organiser gives them a spot). A `pick` round (competition toolkit A2) comes with its format and puzzles
  * (RoundPuzzleFormats - by label only while hidden, the public rule for every viewer), so every answer and update that
- * carries a round (the round state, Mercure `official_results.round` / `.entries`, the desk's actions) has them.
+ * carries a round (the round state, Mercure `official_results.round` / `.entries`, the desk's actions) has them. A round
+ * that uses divisions comes with them (RoundDivisionsJson, a column of the same statement - shared-puzzles-and-
+ * divisions.md D2).
  */
 readonly final class GetRoundResultsOverview
 {
@@ -50,7 +53,8 @@ SELECT
     entries.with_table_number,
     entries.with_result,
     entries.qualified,
-    waitlisted.on_waitlist
+    waitlisted.on_waitlist,
+    %divisions% AS divisions
 FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN LATERAL (
@@ -138,6 +142,7 @@ SQL;
             '%going%' => CompetitionParticipantGoing::sql('cp'),
             '%waitlisted%' => RegistrationStatus::Waitlisted->value,
             '%stopwatch%' => RoundPuzzleReveal::Stopwatch->value,
+            '%divisions%' => RoundDivisionsJson::sql('cr.id'),
         ]);
     }
 
@@ -177,7 +182,7 @@ SQL;
      */
     private function hydrate(array $row, DateTimeImmutable $now): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, stopwatch_reveal_left: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, stopwatch_reveal_left: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int, divisions: null|string} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
         $stopwatchStartedAt = $date($row['stopwatch_started_at']);
@@ -207,6 +212,7 @@ SQL;
             puzzleFormat: $row['puzzle_format'],
             puzzlesToSolve: $row['puzzles_to_solve'],
             stopwatchRevealMissed: self::stopwatchRevealMissed((int) $row['stopwatch_reveal_left'], $row['stopwatch_status'], $stopwatchStartedAt, $startsAt, $row['minutes_limit'], $now),
+            divisions: RoundDivision::listFromJson($row['divisions']),
             showsTablesReadiness: SeatingReadiness::isShown(
                 $row['is_online'],
                 $row['table_numbers_off'],

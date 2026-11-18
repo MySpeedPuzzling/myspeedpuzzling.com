@@ -6,7 +6,6 @@ import { rankEntries } from '../assets/official_results_ranking.js';
 
 const { rounds } = JSON.parse(readFileSync(0, 'utf8'));
 
-process.stdout.write(JSON.stringify(rounds.map((entries) => rankEntries(entries).map((entry) => ({
-    id: entry.id,
-    rank: entry.rank,
-})))));
+process.stdout.write(JSON.stringify(rounds.map((entries) => rankEntries(entries).map((entry) => ('divisionRank' in entry
+    ? { id: entry.id, rank: entry.rank, divisionRank: entry.divisionRank }
+    : { id: entry.id, rank: entry.rank })))));

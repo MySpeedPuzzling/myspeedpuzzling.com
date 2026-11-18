@@ -48,6 +48,13 @@ Entries without a result and did-not-start are listed (organisers only). Search 
 member names and #CODE (accent-insensitive); filter all / without a result / qualified / not saved yet. "Entered at"
 and "published since" are shown in the round's zone (like the export), not the device's.
 
+- **Divisions** (shared-puzzles-and-divisions.md D2, a round that uses divisions only): a "Division" column after the
+  rank, the rank cell "3 · S 1" (overall rank, then the division's short label - else its name - and the rank within it,
+  `rankEntries()` computes `divisionRank` in the browser like `OfficialResultsRanking::rankWithin()`), chips All / each
+  division / No division above the table (a client filter), and "N without a division" in the counts line. The page
+  renders the column and the texts only for a round that has divisions when it loads (divisions added while it is open
+  show after a reload). Entries are put into a division on the event's divisions page / the internal API - the desk
+  has no Division editor yet (v2, `docs/TODO.md`); walk-ins recorded at the desk get none.
 - **Swap two tables**: a table number held by another entry comes back refused (`table_number_taken`) with "Table 6 is
   Ben's · Swap them": the holder gets this entry's old number and both changes go in **one** request - the server
   checks the numbers after the whole set, so 5 ↔ 6 works (one at a time it never could).
@@ -140,7 +147,8 @@ at, own time, pieces placed - a hidden puzzle by its label only); every other ro
 (`PickRoundDeskAndExportTest`). Competition toolkit T6: a last column "Pieces missing (finished)" only when an entry of the round has
 such a count (official-results.md "Finished with pieces missing"); the time editor of a one-result round has an optional
 "pieces missing" input next to the time (sent as `missing_pieces`, grouped with a changed time), the row shows
-"1:23:45 · 1 piece missing".
+"1:23:45 · 1 piece missing". A round that uses divisions adds "Division" (full name) and "Division rank" right after
+"Rank" (`CompetitionDivisionsPagesTest`); every other round's columns stay as they were.
 
 ## Advance the qualified (`advance_qualified_controller.js`)
 

@@ -29,6 +29,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * A `pick` round (competition toolkit A4) adds, per position in solving order 1..K, the puzzle (its label, the name only
  * once it is out - the public rule of RoundPuzzlesVisibleNow), the time it was finished at, its own time and the pieces
  * placed on it. Every other round exports exactly the columns it always did.
+ *
+ * A round that uses divisions (shared-puzzles-and-divisions.md D2) adds "Division" and "Division rank" right after
+ * "Rank" (the short label is for the screen - the export names the division in full).
  */
 readonly final class RoundResultsExporter
 {
@@ -40,18 +43,19 @@ readonly final class RoundResultsExporter
     /**
      * @param list<RoundResultEntry> $entries in ranking order (GetRoundResultEntries::forRound())
      * @param null|RoundPuzzleFormatView $pickFormat the round's format when it is a `pick` round
+     * @param bool $withDivisions the round uses divisions
      */
-    public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format, null|RoundPuzzleFormatView $pickFormat = null): ExportFile
+    public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format, null|RoundPuzzleFormatView $pickFormat = null, bool $withDivisions = false): ExportFile
     {
         // Finished with pieces missing (competition toolkit T6): a last column only when some entry has them - every other
         // round exports exactly the columns it did
         $withMissing = array_any($entries, static fn (RoundResultEntry $entry): bool => $entry->missingPieces !== null);
         $missingHeader = $withMissing ? [$this->translator->trans('finished_missing.export_column')] : [];
-        $rows = [[...$this->header(), ...$this->puzzlesHeader($pickFormat), ...$missingHeader]];
+        $rows = [[...$this->header($withDivisions), ...$this->puzzlesHeader($pickFormat), ...$missingHeader]];
 
         foreach ($entries as $entry) {
             $rows[] = [
-                ...$this->row($entry, $piecesCount, new DateTimeZone($timezone)),
+                ...$this->row($entry, $piecesCount, new DateTimeZone($timezone), $withDivisions),
                 ...$this->puzzlesRow($entry, $pickFormat),
                 ...($withMissing ? [$entry->missingPieces] : []),
             ];
@@ -67,21 +71,22 @@ readonly final class RoundResultsExporter
     /**
      * @return list<string>
      */
-    private function header(): array
+    private function header(bool $withDivisions): array
     {
         return array_map(
             fn (string $column): string => $this->translator->trans('results_desk.export.column.' . $column),
-            ['rank', 'table', 'entrant', 'members', 'country', 'result', 'seconds', 'pieces_placed', 'qualified', 'entered_by', 'entered_at'],
+            ['rank', ...($withDivisions ? ['division', 'division_rank'] : []), 'table', 'entrant', 'members', 'country', 'result', 'seconds', 'pieces_placed', 'qualified', 'entered_by', 'entered_at'],
         );
     }
 
     /**
      * @return list<null|int|string>
      */
-    private function row(RoundResultEntry $entry, null|int $piecesCount, DateTimeZone $zone): array
+    private function row(RoundResultEntry $entry, null|int $piecesCount, DateTimeZone $zone, bool $withDivisions): array
     {
         return [
             $entry->rank,
+            ...($withDivisions ? [$entry->division?->name, $entry->divisionRank] : []),
             $entry->tableNumber,
             $entry->displayName(),
             implode(', ', array_map(static fn (RoundResultEntryMember $member): string => $member->name, $entry->members)),

@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The divisions of an event (shared-puzzles-and-divisions.md §3, D1 - competition_divisions): the list (name, short
+    label, order) and which round uses which division, saved together. Variables: competition, rounds
+    (list<CompetitionRoundForManagement>), rows (the list as shown - saved or as posted), divisions (saved ones = grid
+    columns), ticks (round id => division id => true), error, in_use (entries a save would take a division from),
+    max_divisions.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition_toolkit.divisions.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+        {label: 'competition_toolkit.divisions.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_toolkit', {competitionId: competition.id}), fallbackTitle: 'competition_toolkit.title'|trans}) }}
+
+    <div class="pb-4" data-competition-divisions>
+        <h1 class="h2">{{ 'competition_toolkit.divisions.title'|trans }}</h1>
+        <p class="text-muted" style="max-width: 48rem;">{{ 'competition_toolkit.divisions.intro'|trans }}</p>
+
+        {% if error is not null %}
+            <div class="alert alert-danger" role="alert" data-divisions-error>{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ path('competition_divisions', {competitionId: competition.id}) }}" data-divisions-form>
+            <input type="hidden" name="_token" value="{{ csrf_token('competition-divisions-' ~ competition.id) }}">
+
+            {% if in_use is not null %}
+                <div class="alert alert-warning" role="alert" data-divisions-in-use>
+                    <p class="mb-2">{{ 'competition_toolkit.divisions.in_use'|trans({'%count%': in_use}) }}</p>
+                    <button type="submit" name="confirm_clearing" value="1" class="btn btn-sm btn-warning" data-divisions-confirm>{{ 'competition_toolkit.divisions.in_use_confirm'|trans }}</button>
+                </div>
+            {% endif %}
+
+            <section class="card shadow-sm mb-4" style="max-width: 48rem;">
+                <div class="card-body">
+                    <h2 class="h5">{{ 'competition_toolkit.divisions.list_title'|trans }}</h2>
+                    <p class="small text-muted">{{ 'competition_toolkit.divisions.list_help'|trans({'%max%': max_divisions}) }}</p>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-2">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ 'competition_toolkit.divisions.name'|trans }}</th>
+                                    <th scope="col">{{ 'competition_toolkit.divisions.short_name'|trans }}</th>
+                                    <th scope="col" style="width: 6rem;">{{ 'competition_toolkit.divisions.order'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                    <tr data-division-row="{{ row.id ?? 'new' }}">
+                                        <td>
+                                            <input type="hidden" name="divisions[{{ loop.index0 }}][id]" value="{{ row.id }}">
+                                            <input type="text" class="form-control form-control-sm" name="divisions[{{ loop.index0 }}][name]" value="{{ row.name }}" maxlength="60"
+                                                   aria-label="{{ 'competition_toolkit.divisions.name'|trans }}"
+                                                   placeholder="{{ row.id is null ? 'competition_toolkit.divisions.name_placeholder'|trans : '' }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm" name="divisions[{{ loop.index0 }}][shortName]" value="{{ row.shortName }}" maxlength="12"
+                                                   aria-label="{{ 'competition_toolkit.divisions.short_name'|trans }}"
+                                                   placeholder="{{ row.id is null ? 'competition_toolkit.divisions.short_name_placeholder'|trans : '' }}">
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" name="divisions[{{ loop.index0 }}][position]" value="{{ row.position }}" min="1" max="99"
+                                                   aria-label="{{ 'competition_toolkit.divisions.order'|trans }}">
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h5">{{ 'competition_toolkit.divisions.rounds_title'|trans }}</h2>
+                    <p class="small text-muted" style="max-width: 48rem;">{{ 'competition_toolkit.divisions.rounds_help'|trans }}</p>
+
+                    {% if rounds is empty %}
+                        <p class="small text-muted mb-0">{{ 'competition_toolkit.divisions.no_rounds'|trans }}</p>
+                    {% elseif divisions is empty %}
+                        <p class="small text-muted mb-0" data-divisions-grid-empty>{{ 'competition_toolkit.divisions.save_first'|trans }}</p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0" data-divisions-grid>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{{ 'competition_toolkit.divisions.round'|trans }}</th>
+                                        {% for division in divisions %}
+                                            <th scope="col" class="text-center">{{ division.name }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for round in rounds %}
+                                        <tr data-division-round="{{ round.id }}">
+                                            <th scope="row" class="fw-normal">
+                                                <span class="badge" style="background-color: {{ round.color }}; color: {{ round.textColor }}">{{ round.name }}</span>
+                                                <span class="small text-muted ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+                                            </th>
+                                            {% for division in divisions %}
+                                                <td class="text-center">
+                                                    <input type="checkbox" class="form-check-input" name="rounds[{{ round.id }}][]" value="{{ division.id }}"
+                                                           aria-label="{{ 'competition_toolkit.divisions.uses'|trans({'%round%': round.name, '%division%': division.name}) }}"
+                                                           {{ ticks[round.id][division.id] is defined ? 'checked' }}>
+                                                </td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <button type="submit" class="btn btn-primary" data-divisions-save>{{ 'competition_toolkit.divisions.save'|trans }}</button>
+        </form>
+    </div>
+{% endblock %}

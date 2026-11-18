@@ -33,6 +33,9 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
         'competition_display.competition_id' => self::REFUSED,
         // SeriesConversionBlocker::PageSections
         'competition_page_section.competition_id' => self::REFUSED,
+        // Divisions (shared-puzzles-and-divisions.md D1) are the event's list for its rounds - an event with rounds is
+        // refused (SeriesConversionBlocker::Rounds), so only a list nobody uses goes with it
+        'competition_division.competition_id' => self::CASCADES,
         // SeriesConversionBlocker::Participants unless dropParticipants - then deleted (removed ones always)
         'competition_participant.competition_id' => self::DELETED,
         // SeriesConversionBlocker::Referees

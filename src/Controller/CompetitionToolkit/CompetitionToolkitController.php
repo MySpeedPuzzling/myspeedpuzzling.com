@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Query\GetParticipantLinkSummary;
 use SpeedPuzzling\Web\Message\ChangeCompetitorPageSettings;
 use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
+use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitionStandings;
@@ -35,7 +36,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The competition toolkit's one settings hub of an event (docs/features/competitions-management/toolkit/
- * R-review-and-plan.md §1.4): a card per area - participants & profiles (participant-linking.md §7.5), competitor pages & QR, displays & overlays, standings, round formats &
+ * R-review-and-plan.md §1.4): a card per area - participants & profiles (participant-linking.md §7.5), competitor pages & QR, displays & overlays, standings, divisions, round formats &
  * reveals, judges. Each toolkit package fills its own card partial (templates/competition_toolkit/_card_*.html.twig).
  * Only for whom COMPETITION_TOOLKIT_MANAGE grants (= COMPETITION_EDIT: every organiser of the event, admins).
  *
@@ -57,6 +58,7 @@ final class CompetitionToolkitController extends AbstractController
         private readonly GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
         private readonly GetParticipantClaimPolicy $getParticipantClaimPolicy,
         private readonly GetParticipantLinkSummary $getParticipantLinkSummary,
+        private readonly GetCompetitionDivisions $getCompetitionDivisions,
     ) {
     }
 
@@ -140,6 +142,8 @@ final class CompetitionToolkitController extends AbstractController
             'standings' => $this->getCompetitionStandings->ofCompetition($competitionId),
             // ... and the advancement steps, managed on competition_advancement_steps_manage (A8)
             'advancement_steps' => $this->getCompetitionAdvancementSteps->ofCompetition($competitionId),
+            // Divisions (shared-puzzles-and-divisions.md D1), managed on competition_divisions
+            'divisions' => $this->getCompetitionDivisions->ofCompetition($competitionId),
         ]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');

@@ -49,7 +49,7 @@ export default class extends Controller {
     static targets = [
         'tbody', 'tableColumn', 'syncPill', 'banner', 'conflictBar', 'counts', 'readiness', 'publication', 'search',
         'filter', 'emptyState', 'helperModal', 'helperBody', 'helperSummary', 'helperApply', 'publishModal',
-        'publishModalTitle', 'publishModalBody', 'publishConfirm', 'revealMissed',
+        'publishModalTitle', 'publishModalBody', 'publishConfirm', 'revealMissed', 'divisionColumn', 'divisionFilter',
     ];
 
     static values = {
@@ -84,6 +84,8 @@ export default class extends Controller {
         this.hiddenSince = null;
         // Counts every merge of newer entries - a state fetched meanwhile may be older than them (resync)
         this.generation = 0;
+        // The division chip chosen (a round with divisions): 'all' | a division id | 'none' (entries without one)
+        this.divisionFilter = 'all';
 
         this.replaceEntries(this.stateValue.entries ?? []);
 
@@ -234,12 +236,17 @@ export default class extends Controller {
     updateRound(overview) {
         if (overview && overview.id === this.round.id) {
             // The JSON endpoints answer the overview only - keep what the page knows on top (colours, public URL)
-            this.round = { ...this.round, ...overview };
+            const round = { ...this.round, ...overview };
 
-            // A key the overview carries only while it applies (competition toolkit G3) - gone = not any more
-            if (!('stopwatchRevealMissed' in overview)) {
-                delete this.round.stopwatchRevealMissed;
+            // Keys the overview carries only while they apply - gone = not any more: a missed stopwatch reveal
+            // (competition toolkit G3), the round's divisions (shared-puzzles-and-divisions.md D2)
+            for (const key of ['stopwatchRevealMissed', 'divisions']) {
+                if (!(key in overview)) {
+                    delete round[key];
+                }
             }
+
+            this.round = round;
         }
     }
 
@@ -269,6 +276,17 @@ export default class extends Controller {
 
     usesTableNumbers() {
         return !this.competition.isOnline && !this.round.tableNumbersOff;
+    }
+
+    /** The divisions the round uses (shared-puzzles-and-divisions.md D2) - [] for a round without them. */
+    divisions() {
+        return Array.isArray(this.round.divisions) ? this.round.divisions : [];
+    }
+
+    // The page renders the Division column only for a round that had divisions when it loaded - divisions added later show
+    // after a reload, never as cells without a column
+    usesDivisions() {
+        return this.hasDivisionColumnTarget && this.divisions().length > 0;
     }
 
     rankedEntries() {
@@ -307,8 +325,18 @@ export default class extends Controller {
                 return true;
             }
 
-            return this.matchesFilter(entry, filter) && this.matchesSearch(entry, query);
+            return this.matchesFilter(entry, filter) && this.matchesDivision(entry) && this.matchesSearch(entry, query);
         });
+    }
+
+    matchesDivision(entry) {
+        if (!this.usesDivisions() || this.divisionFilter === 'all') {
+            return true;
+        }
+
+        const id = entry.division?.id ?? null;
+
+        return this.divisionFilter === 'none' ? id === null : id === this.divisionFilter;
     }
 
     matchesFilter(entry, filter) {
@@ -347,6 +375,8 @@ export default class extends Controller {
     renderTable() {
         const usesTables = this.usesTableNumbers();
         this.tableColumnTargets.forEach((column) => { column.hidden = !usesTables; });
+        this.divisionColumnTargets.forEach((column) => { column.hidden = !this.usesDivisions(); });
+        this.renderDivisionFilter();
 
         const visible = this.visibleEntries();
         const visibleRefs = new Set(visible.map((entry) => entry.ref));
@@ -426,7 +456,11 @@ export default class extends Controller {
         const name = entry.displayName ?? '';
         const cells = [];
 
-        cells.push(`<td class="text-end fw-semibold text-nowrap">${entry.rank ?? (entry.result?.didNotStart ? '<span class="text-body-secondary">–</span>' : '')}</td>`);
+        cells.push(`<td class="text-end fw-semibold text-nowrap">${entry.rank ?? (entry.result?.didNotStart ? '<span class="text-body-secondary">–</span>' : '')}${this.divisionRankHtml(entry)}</td>`);
+
+        if (this.usesDivisions()) {
+            cells.push(`<td class="small" data-division-cell>${entry.division ? `<span class="badge text-bg-light border fw-normal">${escapeHtml(entry.division.name)}</span>` : '<span class="text-body-secondary">—</span>'}</td>`);
+        }
 
         if (usesTables) {
             cells.push(`<td class="text-nowrap">
@@ -453,6 +487,57 @@ export default class extends Controller {
         </td>`);
 
         return cells.join('');
+    }
+
+    /** "3 · S 1": the rank within the entry's division under the overall one (shared-puzzles-and-divisions.md D2). */
+    divisionRankHtml(entry) {
+        if (!this.usesDivisions() || !entry.division || !Number.isInteger(entry.divisionRank)) {
+            return '';
+        }
+
+        const label = entry.division.shortName ?? entry.division.name;
+
+        return ` <span class="small fw-normal text-body-secondary" data-division-rank title="${escapeHtml(this.t('division_rank', { division: entry.division.name, rank: entry.divisionRank }))}">· ${escapeHtml(label)} ${entry.divisionRank}</span>`;
+    }
+
+    /**
+     * The division chips (All / each division / No division) - only for a round with divisions; a chip of a division
+     * the round no longer uses falls back to All.
+     */
+    renderDivisionFilter() {
+        if (!this.hasDivisionFilterTarget) {
+            return;
+        }
+
+        const divisions = this.divisions();
+
+        if (this.divisionFilter !== 'all' && this.divisionFilter !== 'none' && !divisions.some((division) => division.id === this.divisionFilter)) {
+            this.divisionFilter = 'all';
+        }
+
+        this.divisionFilterTarget.hidden = divisions.length === 0;
+
+        const chips = [
+            { value: 'all', label: this.t('division_all') },
+            ...divisions.map((division) => ({ value: division.id, label: division.name })),
+            { value: 'none', label: this.t('division_none') },
+        ];
+        const html = chips.map((chip) => {
+            const active = chip.value === this.divisionFilter;
+
+            return `<button type="button" class="btn btn-sm ${active ? 'btn-primary' : 'btn-outline-primary'} rounded-pill" data-action="results-desk#chooseDivision" data-division="${escapeHtml(chip.value)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHtml(chip.label)}</button>`;
+        }).join('');
+        const row = `<div class="d-flex flex-wrap gap-1 mb-2">${html}</div>`;
+
+        if (this.divisionFilterTarget.dataset.html !== row) {
+            this.divisionFilterTarget.innerHTML = row;
+            this.divisionFilterTarget.dataset.html = row;
+        }
+    }
+
+    chooseDivision(event) {
+        this.divisionFilter = event.currentTarget.dataset.division ?? 'all';
+        this.renderTable();
     }
 
     entrantHtml(entry) {
@@ -702,10 +787,14 @@ export default class extends Controller {
         const qualified = ranked.filter((entry) => entry.qualified === true).length;
 
         if (this.hasCountsTarget) {
+            const withoutDivision = this.usesDivisions() ? ranked.filter((entry) => !entry.division).length : 0;
+
             this.countsTarget.textContent = [
                 this.tc('count_entries', total),
                 this.tc('count_results', withResult),
                 this.tc('count_qualified', qualified),
+                // A round with divisions: entries without one have the overall rank only
+                ...(withoutDivision > 0 ? [this.tc('count_without_division', withoutDivision)] : []),
             ].join(' · ');
         }
 

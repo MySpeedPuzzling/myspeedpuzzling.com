@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Repository\CompetitionAdvancementStepRepository;
 use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
@@ -56,6 +57,7 @@ readonly final class MoveRoundToCompetitionHandler
         private CompetitionSlugGenerator $slugGenerator,
         private EventUrlRedirects $eventUrlRedirects,
         private OnlineRoundRepository $onlineRoundRepository,
+        private CompetitionRoundDivisionRepository $roundDivisionRepository,
     ) {
     }
 
@@ -138,6 +140,12 @@ readonly final class MoveRoundToCompetitionHandler
             if ($step->pruneRound($round->id->toString()) && $step->isEmpty()) {
                 $this->advancementStepRepository->delete($step);
             }
+        }
+
+        // ... and the divisions it used are the source event's list (shared-puzzles-and-divisions.md §3.2): the moved round
+        // uses none - it has no entries to carry one (refused above)
+        foreach ($this->roundDivisionRepository->ofRound($round) as $roundDivision) {
+            $this->roundDivisionRepository->delete($roundDivision);
         }
 
         foreach ($times as $time) {

@@ -1886,7 +1886,10 @@ export class SheetGrid {
         });
         this.on(window, 'resize', () => this.fitHeight());
 
-        // A banner or the problems panel above the grid moves it down: its height follows
+        // A banner or the problems panel above the grid moves it down: its height follows. The scroller too: the person
+        // panel opening or closing narrows / widens it, a table stretched to the scroller's width changes its first
+        // column's width - the sticky second column's offset (--sheet-first-w) must follow, or the scrolled cells show
+        // through a gap between the two (FU-R2)
         if (typeof ResizeObserver !== 'undefined') {
             let frame = null;
             const observer = new ResizeObserver(() => {
@@ -1898,6 +1901,7 @@ export class SheetGrid {
                 });
             });
             observer.observe(document.body);
+            observer.observe(this.scroller);
             this.listeners.push(() => {
                 cancelAnimationFrame(frame);
                 observer.disconnect();

@@ -72,16 +72,25 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         self::assertStringNotContainsString('didNotStart', (string) $browser->getResponse()->getContent());
     }
 
-    public function testAnUnpublishedRoundIsALiveRankingOfTheRecordedResults(): void
+    public function testAnUnpublishedRoundIsALiveRankingOfTheRecordedResultsWhileTheEventShowsLiveResults(): void
     {
         $browser = self::createClient();
         $url = '/analytics-studio/' . F::ROUND_GROUP_B . '/state';
 
-        // Competitor pages and their live results off (the fixture): what the judges recorded is the result (FU-S)
+        // Competitor pages and their live results off (the fixture): no results until publishing (FU-R2)
         $this->clearAnalyticsStudioCache();
         $state = $this->studioJson($browser, $url);
         self::assertFalse(self::dig($state, 'round', 'published'));
         self::assertArrayNotHasKey('liveResults', self::digArray($state, 'round'));
+        self::assertSame([], self::dig($state, 'results'));
+
+        // Switched on: the switch is part of the cache key - the next state ranks at once, no cache clear needed
+        $this->studioDatabase()->executeStatement(
+            'UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id',
+            ['id' => F::COMPETITION_RESULTS_CUP],
+        );
+        // What the judges recorded is the result (FU-S)
+        $state = $this->studioJson($browser, $url);
         self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO, F::ENTRY_B_IVAN], self::column(self::dig($state, 'results'), 'key'), 'rank order');
         self::assertSame(['official', 'official', 'official'], self::column(self::dig($state, 'results'), 'state'), 'one state - no "confirmed, not official"');
         self::assertSame([1, 2, 3], self::column(self::dig($state, 'results'), 'rank'));
@@ -115,6 +124,8 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
     public function testAPairRoundListsItsPairsWithTheirMembers(): void
     {
         $browser = self::createClient();
+        // Not published: its results only while the event shows live results (FU-R2)
+        $this->studioDatabase()->executeStatement('UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
         $this->clearAnalyticsStudioCache();
 
         $state = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_PAIRS . '/state');

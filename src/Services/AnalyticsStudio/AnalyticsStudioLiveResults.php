@@ -20,10 +20,12 @@ use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
  *
  * - a published round: the official rows (OfficialEntrantsView - ranks and qualified marks as the round page has them,
  *   never re-ranked here), in rank order;
- * - not published yet: the live ranking of the recorded results (the entries' result columns - what a judge or the desk
- *   entered; a competitor's time proposal is never one until a judge confirms it), ranked by OfficialResultsRanking
- *   (the round page's rule, ties share a place), in rank order; no qualified mark (the organiser decides that when
- *   publishing); did not start and no result yet are left out, as on the published round.
+ * - not published yet, while the event shows live results (competitor pages AND their live results - the setting the
+ *   competitor page follows; FU-R2, Jan 2026-11-18): the live ranking of the recorded results (the entries' result
+ *   columns - what a judge or the desk entered; a competitor's time proposal is never one until a judge confirms it),
+ *   ranked by OfficialResultsRanking (the round page's rule, ties share a place), in rank order; no qualified mark (the
+ *   organiser decides that when publishing); did not start and no result yet are left out, as on the published round;
+ * - otherwise nothing - the ranking comes with publishing.
  *
  * Every row says `state: "official"` - the one state the page knows.
  *
@@ -46,6 +48,10 @@ final class AnalyticsStudioLiveResults
             }
 
             return $results;
+        }
+
+        if ($round->liveResults === false) {
+            return [];
         }
 
         $ranked = array_values(array_filter(

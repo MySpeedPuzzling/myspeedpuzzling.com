@@ -108,7 +108,7 @@ next poll" is superseded by R21-R26:
   proposals), so every existing write path is covered after its commit without touching a controller.
 - **R23** Only for a round whose studio computed a state in the last 180 s (`AnalyticsStudioWatch`, pool
   `analytics_studio_watch_cache`): an unwatched round costs one cache read and no statement.
-- **R24** *(the results half superseded by FU-S: results always signal)* Gate read at publish time (1 statement, watched rounds only): `GetAnalyticsStudioRound::byId()` (publicly
+- **R24** *(FU-S made results always signal; FU-R2 restored this gate)* Gate read at publish time (1 statement, watched rounds only): `GetAnalyticsStudioRound::byId()` (publicly
   visible, slugged - a draft never signals); a results signal only when the round is published or live results are on
   (an unpublished result is not told by its timing).
 - **R25** The client asks for the state `SIGNAL_SETTLE_MS` 2.3 s + 0-1 s after a signal (the 2 s state cache must have
@@ -923,6 +923,9 @@ Client only (design note `design-v2/studio.md` §2.2.4, R31/R32), on top of V2's
 
 ## As built: FU-S (live ranking of the running round, 2026-11-18)
 
+*Amended by FU-R2 (below): the live ranking only while the event shows live results (competitor pages AND their live
+results) - "whatever the competitor page settings" and "results always signal" no longer hold.*
+
 Jan (2026-11-18, binding): "they see realtime judges entered times, there is no unofficial/official - what judges
 entered is at the moment considered to be official, they do not see competitor proposed times". Supersedes D8, R8 and
 the results half of R24.
@@ -958,3 +961,25 @@ the results half of R24.
   `AnalyticsStudioSignalsTest` (edit, clear, record in an unpublished round each signal),
   `AnalyticsStudioSecretPuzzleTest` (swap test with a live unfinished result, `piecesCount` null), the harness
   (live ranking, rank sort, compare, render without labels).
+
+## As built: FU-R2 (live ranking follows the competitor pages' live results, 2026-11-18)
+
+Jan (2026-11-18): the studio's live ranking of an unpublished round follows the setting it followed before FU-S.
+
+- **Results** (`AnalyticsStudioLiveResults::of()`): a published round unchanged (the official rows). A round not
+  published yet shows FU-S's live ranking of the recorded results **only while the event has competitor pages AND
+  their live results on** (`c.competitor_pages AND c.competitor_pages_live_results`, read by
+  `GetAnalyticsStudioRound` into `AnalyticsStudioRound::$liveResults`; live results without the pages do nothing - the
+  competitor page rule); otherwise `results: []` - the Live tab says "No results yet", no rank sort, the ranking comes
+  with publishing (as before FU-S). Still one state (`official`), no official/unofficial labels, time proposals never
+  read. `round.liveResults` stays out of the state JSON (the page needs only `results`).
+- **Signal** (`AnalyticsStudioSignals`): `resultsChanged()` signals only while the results are visible -
+  `AnalyticsStudioRound::resultsVisible()` (published, or live results on); an unpublished result in a round without
+  live results is not told by its timing. Round and puzzle signals unchanged.
+- **Cache**: the state key = round + stopwatch hash + visible hash + published moment + the live results switch
+  (`l`/`n`), so switching the setting shows (or hides) the ranking at the next state read.
+- Tests: `AnalyticsStudioLiveResultsTest` (off, pages without live results, live results without pages: nothing for an
+  unpublished round, the published one still listed; on: the live ranking, ties, a proposal nothing until confirmed),
+  `AnalyticsStudioStateControllerTest` (off = `results: []`, on without clearing the cache = the ranking, re-ranked
+  after an edit), `AnalyticsStudioSignalsTest` (off: record/edit/clear signal nothing, pages on without live results
+  nothing; on: each signals), `AnalyticsStudioSecretPuzzleTest` (swap test with live results on).

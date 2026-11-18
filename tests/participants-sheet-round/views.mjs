@@ -583,4 +583,22 @@ export default function (test) {
         assert.equal(document.activeElement, view.grid.cellElement('p-kim', 'puzzles'));
         view.destroy();
     });
+
+    test('FU-R2: the person editor opened from a solo tab pages through that round\'s people only, as shown', async () => {
+        const { view, context, model } = await mount('solo', { roundId: ROUND_SOLO });
+        const opened = [];
+        context.openPersonEditor = async (personId, options) => {
+            opened.push({ personId, options });
+
+            return true;
+        };
+
+        await view.openPerson('p-kim');
+        assert.equal(opened.length, 1);
+        const list = opened[0].options?.list?.();
+        assert.deepEqual(list, view.grid.rows.filter((row) => row !== '__new'));
+        assert.deepEqual([...list].sort(), model.peopleIn(ROUND_SOLO).map((person) => person.id).sort());
+        assert.ok(model.people().length > list.length, 'the event has more people than the round');
+        view.destroy();
+    });
 }

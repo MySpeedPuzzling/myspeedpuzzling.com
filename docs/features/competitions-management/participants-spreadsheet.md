@@ -1240,8 +1240,8 @@ person gets the "a spot opened up" e-mail, and keeps the focus (on the next firs
 
 Person editor (`person_editor.js`): one `<dialog>` - `show()` as a side panel at ≥ 768 px (the page gets
 `has-person-panel`, the grid makes room), `showModal()` full screen on phones; `open(personId, {list, returnFocus,
-onShow})` - `list()` is the opener's rows as shown (previous/next), `onShow(id|null)` lets the view hold and mark the
-row. Text fields save on change / Enter with `from` = the value at focus; a live change under a field being typed in
+onShow})` - `list()` is the opener's rows as shown (previous/next; opened from a solo round tab = that round's rows,
+not the whole event - FU-R2), `onShow(id|null)` lets the view hold and mark the row. Text fields save on change / Enter with `from` = the value at focus; a live change under a field being typed in
 shows "Changed meanwhile to …" with Keep mine / Use theirs; server conflicts and refusals show at the field (Keep mine
 = `queue.keepMine`, Use theirs = `queue.dismiss`) and as a toast. A round's switch and pair/team picker carry
 `data-shown` (the place they show, written with every render of them) and send it as `from` (review M2: a tap on a

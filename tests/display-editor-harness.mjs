@@ -864,6 +864,10 @@ check('panel: a multi-selection shows the count, Arrange, shared or Mixed values
     const { window, container } = panelFor(state, acts);
     equal(container.querySelector('[data-selected-count]').textContent, '2 elements selected', 'count');
     equal(container.querySelectorAll('[data-align]').length, 6, 'six align buttons');
+    // One align row of its own that shares the panel's width (display_editor.scss .display-editor__align) - the distribute pair is a separate group
+    equal(container.querySelectorAll('.display-editor__align').length, 1, 'one align row');
+    equal(container.querySelector('.display-editor__align').querySelectorAll('[data-align]').length, 6, 'all six in the align row');
+    equal(container.querySelector('.display-editor__align [data-distribute]'), null, 'distribute is not in the align row');
     equal([...container.querySelectorAll('[data-distribute]')].map((button) => button.disabled), [true, true], 'distribute needs 3');
     const x = container.querySelector('[data-field="sel.frame.x"]');
     const w = container.querySelector('[data-field="sel.frame.w"]');

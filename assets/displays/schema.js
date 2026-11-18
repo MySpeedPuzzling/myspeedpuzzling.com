@@ -58,6 +58,9 @@ export const STYLE_SPEC = [
     { key: 'fit', kind: 'enum', options: ['none', 'shrink', 'fill'] },
 ];
 
+// The highest round puzzle position a leaderboard's `challenge` may name (DisplayDesignSanitizer::MAX_CHALLENGE)
+export const MAX_CHALLENGE = 50;
+
 const RESULTS_SOURCE_SPEC = [
     { key: 'source', kind: 'enum', options: ['published', 'live'], default: 'published' },
     { key: 'whenUnpublished', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
@@ -138,10 +141,14 @@ export const PROP_SPECS = {
             ],
         },
         ...RESULTS_SOURCE_SPEC,
+        // Real events L2b: one view of the round - optional, stored only when set (every other design is unchanged)
+        { key: 'division', kind: 'division', optional: true },
+        { key: 'challenge', kind: 'challenge', optional: true, min: 1, max: MAX_CHALLENGE },
     ],
     ticker: [
         { key: 'rows', kind: 'int', min: 1, max: 10, default: 5 },
         ...RESULTS_SOURCE_SPEC,
+        { key: 'division', kind: 'division', optional: true },
     ],
     qr: [
         { key: 'target', kind: 'enum', options: ['event_page', 'round_results', 'custom'], default: 'event_page' },
@@ -485,7 +492,12 @@ function propsOf(specs, input, path, competitionId, errors) {
     const props = {};
 
     for (const spec of specs) {
-        props[spec.key] = propValue(spec, get(input, spec.key), path, competitionId, errors);
+        const value = propValue(spec, get(input, spec.key), path, competitionId, errors);
+
+        // An optional prop is stored only when it has a value
+        if (spec.optional !== true || value !== null) {
+            props[spec.key] = value;
+        }
     }
 
     // A value that only counts with a certain choice of another prop (an uploaded picture, a custom QR link)
@@ -524,6 +536,19 @@ function propValue(spec, value, path, competitionId, errors) {
             return typeof value === 'string' && Array.from(value).length <= spec.max && URL_PATTERN.test(value) ? value : null;
         case 'images':
             return imageList(value, `${path}/${spec.key}`, competitionId, errors);
+        case 'division':
+            // A division's id (lowercased) - whether the shown round uses it is the state's question; anything else = none
+            return typeof value === 'string' && STANDING_ID_PATTERN.test(value) ? value.toLowerCase() : null;
+        case 'challenge': {
+            // A round puzzle's position, half away from zero; out of range = none, never clamped (0 = the whole round)
+            if (!isNumber(value)) {
+                return null;
+            }
+
+            const position = (value < 0 ? -1 : 1) * Math.floor(Math.abs(value) + 0.5);
+
+            return position >= spec.min && position <= spec.max ? position : null;
+        }
         case 'standing':
             // `auto` or a standing's id (lowercased) - whether it is a published standing of the event is the state's question
             return typeof value === 'string' && STANDING_ID_PATTERN.test(value) ? value.toLowerCase() : spec.default;

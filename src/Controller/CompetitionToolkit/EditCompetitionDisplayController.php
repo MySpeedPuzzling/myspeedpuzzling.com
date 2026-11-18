@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplays;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionStandings;
+use SpeedPuzzling\Web\Query\GetDisplayEditorResultsOptions;
 use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayPayload;
@@ -40,6 +41,7 @@ final class EditCompetitionDisplayController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly GetCompetitionStandings $getCompetitionStandings,
+        private readonly GetDisplayEditorResultsOptions $getDisplayEditorResultsOptions,
     ) {
     }
 
@@ -66,6 +68,9 @@ final class EditCompetitionDisplayController extends AbstractController
         $state = $page['state'];
         unset($state['mercure']);
 
+        // A results element's views (real events L2b): the fields show only when the event has divisions / a block
+        $resultsOptions = $this->getDisplayEditorResultsOptions->forCompetition($display->competitionId);
+
         $response = $this->render('competition_toolkit/display_editor.html.twig', [
             'competition' => $this->getCompetitionEvents->byId($display->competitionId),
             'display' => $display,
@@ -82,6 +87,8 @@ final class EditCompetitionDisplayController extends AbstractController
                     'name' => $standing->name,
                     'published' => $standing->publishedAt !== null,
                 ], $this->getCompetitionStandings->ofCompetition($display->competitionId)),
+                'divisions' => $resultsOptions['divisions'],
+                'challenges' => $resultsOptions['challenges'],
                 'standingTexts' => $this->competitionDisplayPayload->sampleStandingTexts($page['locale']),
                 'saveUrl' => $this->generateUrl('save_competition_display', ['displayId' => $display->id]),
                 'uploadUrl' => $this->generateUrl('upload_competition_display_image', ['displayId' => $display->id]),

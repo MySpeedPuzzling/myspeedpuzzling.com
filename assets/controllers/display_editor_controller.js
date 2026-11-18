@@ -74,6 +74,8 @@ export default class extends Controller {
             t: this.t,
             kind: config.kind,
             standings: config.standings ?? [],
+            divisions: config.divisions ?? [],
+            challenges: config.challenges ?? [],
             uploadAvailable: typeof config.uploadUrl === 'string' && config.uploadUrl !== '',
             getImages: () => ({ ...(this.baseState.images ?? {}), ...this.images }),
             upload: (file) => this.upload(file),

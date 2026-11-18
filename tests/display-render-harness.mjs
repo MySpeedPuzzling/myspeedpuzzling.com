@@ -304,6 +304,47 @@ check('leaderboard: rows diffed by key - nodes reused and moved, removed rows go
     equal(renderer.nextChangeMs(state([ROW('e', 1, 'E', { enteredAtMs: START - 2_000 })]), START), 8_005, 'next change at the highlight end');
 });
 
+check('views: a division / challenge element shows its own rows, a plain one the whole round, gating per element', () => {
+    const DIVISION = '018d0004-0000-0000-0000-00000000d1d1';
+    const elements = [
+        element('vw000001', 'leaderboard', { source: 'live', columns: ['rank', 'name', 'result'] }),
+        element('vw000002', 'leaderboard', { source: 'live', columns: ['rank', 'name', 'result'], division: DIVISION }),
+        element('vw000003', 'leaderboard', { source: 'live', columns: ['rank', 'name', 'result'], challenge: 2, rows: 1 }),
+        element('vw000004', 'ticker', { source: 'live', division: DIVISION }),
+        element('vw000005', 'leaderboard', { source: 'published', division: DIVISION, whenUnpublished: 'text', unpublishedText: 'Soon' }),
+    ];
+    const whole = [ROW('a', 1, 'Ann'), ROW('b', 2, 'Ben'), ROW('c', 3, 'Cid')];
+    const live = {
+        published: false,
+        finished: null,
+        total: null,
+        top: whole,
+        latest: whole,
+        views: {
+            vw000002: [ROW('b', 1, 'Ben')],
+            vw000003: [ROW('c', 1, 'Cid', { resultSeconds: 1500 }), ROW('a', 2, 'Ann', { resultSeconds: 1600 })],
+            vw000004: [ROW('b', 1, 'Ben')],
+        },
+    };
+    const names = (node) => [...node.querySelectorAll('.msp-el__name')].map((item) => item.textContent);
+    let { node } = render(elements, baseState({ results: live }));
+    equal(names(node('vw000001')), ['Ann', 'Ben', 'Cid'], 'plain leaderboard = the whole round');
+    equal(names(node('vw000002')), ['Ben'], 'division leaderboard = its own rows');
+    equal(text(node('vw000002').querySelector('.msp-el__cell--rank')), '1.', 'division rank');
+    equal(names(node('vw000003')), ['Cid'], 'challenge rows, cut to the element rows');
+    equal(text(node('vw000003').querySelector('.msp-el__cell--result')), '25:00', 'challenge own time');
+    assert(text(node('vw000004')).includes('Ben') && !text(node('vw000004')).includes('Ann'), 'division ticker');
+    equal(text(node('vw000005')), 'Soon', 'a published view element waits like any other');
+    // Without its own rows (the editor's sample data, an element not saved yet) a view element shows the whole round
+    ({ node } = render(elements, baseState({ results: { ...live, views: undefined } })));
+    equal(names(node('vw000002')), ['Ann', 'Ben', 'Cid'], 'sample fallback');
+    // Evil view data is plain text and no rows from a non-list
+    ({ node } = render(elements, baseState({ results: { ...live, views: { vw000002: [ROW('x', 1, '<img src=x onerror=alert(1)>')], vw000003: 'nope' } } })));
+    equal(names(node('vw000002')), ['<img src=x onerror=alert(1)>'], 'plain text');
+    assert(node('vw000002').querySelector('img') === null, 'no element injected');
+    equal(names(node('vw000003')), ['Ann'], 'a non-list view falls back to the whole round');
+});
+
 // ---- puzzles
 
 check('puzzles: none before the reveal (hidden text), every revealed one up to max', () => {

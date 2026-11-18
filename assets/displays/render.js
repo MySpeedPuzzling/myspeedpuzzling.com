@@ -275,6 +275,23 @@ export function resultsFor(props, state) {
     return { results, text: '' };
 }
 
+/**
+ * The rows a leaderboard (`top`) or ticker (`latest`) shows. An element showing a division or a challenge (real events
+ * L2b) has rows of its own in `results.views[element id]` (GetCompetitionDisplayState); without them (the editor's
+ * sample data, an element not saved yet) it shows the whole round's list.
+ */
+export function resultRows(element, results, list) {
+    const props = element?.props ?? {};
+    const views = results?.views;
+
+    if ((typeof props.division === 'string' || typeof props.challenge === 'number')
+        && views !== null && typeof views === 'object' && Object.hasOwn(views, element.id) && Array.isArray(views[element.id])) {
+        return views[element.id];
+    }
+
+    return Array.isArray(results?.[list]) ? results[list] : [];
+}
+
 export function resultText(row, texts) {
     if (row.didNotFinish) {
         return (texts.piecesPlaced ?? '%count%').split('%count%').join(String(number(row.piecesPlaced, 0)));
@@ -986,7 +1003,7 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
     function updateLeaderboard(view, element, state, nowMs) {
         const props = element.props;
         const { results, text } = resultsFor(props, state);
-        const rows = results !== null && Array.isArray(results.top) ? results.top.slice(0, props.rows) : [];
+        const rows = results !== null ? resultRows(element, results, 'top').slice(0, props.rows) : [];
         setText(view, 'empty', view.refs.empty, results === null ? text : '');
         view.refs.empty.style.display = results === null && text !== '' ? '' : 'none';
         view.refs.list.style.display = results === null ? 'none' : '';
@@ -1073,7 +1090,7 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
     function updateTicker(view, element, state) {
         const props = element.props;
         const { results, text } = resultsFor(props, state);
-        const rows = results !== null && Array.isArray(results.latest) ? results.latest.slice(0, props.rows) : [];
+        const rows = results !== null ? resultRows(element, results, 'latest').slice(0, props.rows) : [];
         setText(view, 'empty', view.refs.empty, results === null ? text : '');
         view.refs.empty.style.display = results === null && text !== '' ? '' : 'none';
         view.refs.list.style.display = results === null ? 'none' : '';
@@ -1458,7 +1475,7 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
             if (element.type === 'leaderboard' && element.props.highlightLatestSeconds > 0) {
                 const { results } = resultsFor(element.props, state);
 
-                for (const row of results?.top ?? []) {
+                for (const row of results !== null ? resultRows(element, results, 'top') : []) {
                     const ends = number(row?.enteredAtMs, -Infinity) + element.props.highlightLatestSeconds * 1000;
 
                     if (ends > nowMs) {

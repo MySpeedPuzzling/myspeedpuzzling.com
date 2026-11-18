@@ -15,6 +15,8 @@ readonly final class DisplayResults implements \JsonSerializable
     /**
      * @param list<DisplayResultRow> $top best first (leaderboard)
      * @param list<DisplayResultRow> $latest newest first (ticker)
+     * @param null|array<string, list<DisplayResultRow>> $views real events L2b - per element showing a division or a
+     *     challenge (DisplayDesignSanitizer::resultsViews()) its own rows; null (no `views` key) for every other design
      */
     public function __construct(
         public bool $published,
@@ -22,6 +24,7 @@ readonly final class DisplayResults implements \JsonSerializable
         public null|int $total,
         public array $top,
         public array $latest,
+        public null|array $views = null,
     ) {
     }
 
@@ -30,12 +33,19 @@ readonly final class DisplayResults implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        $json = [
             'published' => $this->published,
             'finished' => $this->finished,
             'total' => $this->total,
             'top' => $this->top,
             'latest' => $this->latest,
         ];
+
+        if ($this->views !== null) {
+            // An object keyed by element id, also when empty
+            $json['views'] = (object) $this->views;
+        }
+
+        return $json;
     }
 }

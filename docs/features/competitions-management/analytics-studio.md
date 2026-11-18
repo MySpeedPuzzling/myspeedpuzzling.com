@@ -60,7 +60,7 @@ Independent design review 2026-11-17, decisions by the orchestrator:
   `analytics_studio_cache` 15 min via the pool's `get()` callback (stampede lock). No prediction column/sort in the
   list (v2 in `docs/TODO.md`). No `WarmAnalyticsStudioPredictions`, no LockFactory, no messenger routing.
   *Amended in v2 by R28-R33 ("As built: V2"): a round-wide warm on its own `analytics_studio` queue + a `round-predictions`
-  answer; still no LockFactory, still never on `async`.*
+  answer; still no LockFactory, still never on `async`. The list's prediction column + sort: "As built: V3".*
 - **R4 "As of now" numbers.** Predictions, rating, skill, solved total and best 500 are the player's current values
   (labelled "now"); only the per-puzzle and similar-puzzle history is "before this round" (cut-off).
 - **R5 Date precision.** A history row with a month/year-only date counts as "before" only when its whole period ends
@@ -887,3 +887,35 @@ Amendments of record (design note `design-v2/studio.md` §2.2, decisions R28-R34
   imports vs async), `AnalyticsStudioRoundPredictionsControllerTest`, new rows in `AnalyticsStudioQueryBudgetTest`, the
   Draft / PrivateProfile / Blocklist canaries, `RobotsTxtTest`.
 
+## As built: V3 (prediction column + sort in the list, 2026-11-18)
+
+Client only (design note `design-v2/studio.md` §2.2.4, R31/R32), on top of V2's `round-predictions` answer:
+
+- **Where**: solo rounds whose active slot is visible (`model.js` `hasPredictionColumn()`); a pair/team round, a hidden
+  slot: no cell, no sort, no request (D12, D7/R1).
+- **Source order** `predictionOf({entrant, predictions, round})`: the entrant answer > the compare set's > the round's
+  (`roundSource()` - only an answer for the `visibleHash` shown; one for another visible set is never drawn). The detail
+  and the compare table read the round's value too, so a freshly selected entrant shows its prediction at once.
+- **Rows** gain `predictionStatus` / `predictionSeconds`; private/unlinked entrants are `none` without asking (empty
+  cell). Cell `as-row__prediction` right after the best time: `≈ 43:00` (title "Time prediction now"), `…` while
+  pending, `—` with the opt-out tooltip, empty for none/no history; pending cells are empty once stalled.
+- **Sort** `prediction` (fastest first, the rest by name) offered only when the round's answer is `ready` for the shown
+  visible set (R32) - until then a `?sort=prediction` link shows the list by name and re-sorts once ready.
+  `mergeRoundPredictions()`: a `warming` answer for the same visible set (the re-warm after the 15-minute entries
+  expire) keeps the shown values and a `ready` status stays ready - the column never blanks and the sort never goes
+  away; another visible set replaces it whole.
+- **Planner** (`refresh.js` `syncRoundPredictions()` in `syncAll()`): asked at once for a new visible hash; `warming`
+  (or a failure, or the server already on another set) → again after 4 s, 20 times, then every 60 s and told as
+  `stalled`; `ready` → again after 10 min ±20 %; an answer for an old hash dropped; nothing while gone.
+- **Status line** `as-list__status` after the filter chips: "Calculating predictions…" while warming, "Predictions are
+  not available right now" when stalled, nothing when ready.
+- **Layout**: ≥ 1280 px its own 56 px column and the list column 500 px instead of 440 (`as--predictions` on the root -
+  the names keep their room); 768-1279 px hidden (sort still offered); < 768 px shown instead of the best time only while
+  sorted by it (`as-list--by-prediction`), so a phone row stays one line.
+- **Shell**: `data-round-predictions-url` on `#analytics-studio` (statement budgets unchanged).
+- **Bundle** re-pinned: 70.2 KB / 22.9 KB gzip measured → budget 73.7 KB / 24.1 KB (`AnalyticsStudioBundleTest`).
+- **Labels** (`analytics_studio.*`, render.js `LABEL_NAMES` + the PHP twin): `sort.prediction`,
+  `prediction.cell_title`, `prediction.warming`, `prediction.unavailable`.
+- Tests: nine harness scenarios (sort + availability, source priority, merge, planner warming/stalled, ready 10 min +
+  failure retry, new hash / old answer dropped, pair round / nothing visible / no URL, server ahead + gone + close, the
+  rendered column), `AnalyticsStudioPageTest` (data attribute).

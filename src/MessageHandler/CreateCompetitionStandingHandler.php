@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
 use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingDivision;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingRounds;
 use SpeedPuzzling\Web\Services\RoundResults\CompetitionRoundSlugGenerator;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -25,6 +26,7 @@ readonly final class CreateCompetitionStandingHandler
         private CompetitionRepository $competitionRepository,
         private CompetitionStandingRepository $standingRepository,
         private CompetitionStandingRounds $standingRounds,
+        private CompetitionStandingDivision $standingDivision,
         private CompetitionRoundSlugGenerator $slugGenerator,
         private ClockInterface $clock,
     ) {
@@ -49,6 +51,7 @@ readonly final class CreateCompetitionStandingHandler
         }
 
         $roundIds = $this->standingRounds->validated($competition, $message->category, $message->roundIds, $message->mode);
+        $division = $this->standingDivision->validated($competition, $message->divisionId, $roundIds, $message->mode);
 
         $this->standingRepository->save(new CompetitionStanding(
             id: $message->standingId,
@@ -65,6 +68,7 @@ readonly final class CreateCompetitionStandingHandler
             missingRule: $message->rules->missing,
             penaliseFinishedMissing: $message->rules->penaliseFinishedMissing,
             numberedAcrossStages: $message->numberedAcrossStages,
+            division: $division,
         ));
     }
 }

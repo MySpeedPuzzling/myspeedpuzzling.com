@@ -99,6 +99,10 @@ no qualification, the winner per category has the lowest sum.
   (World-Series fixture `WorldSeriesSetup`: handlers, prune, duplicate, cascade), `CompetitionStandingsPagesTest.php`,
   `NoShowStandingTest.php` (as_zero_pieces: preview, public = preview, substitutes warning, form, desk/state keys).
 
+- **Per division (real events L2a):** `competition_standing.division_id` - a `sum` standing of one division counts
+  only the entries carrying it, each cell with the place within the division; see
+  [shared-puzzles-and-divisions.md](shared-puzzles-and-divisions.md) "As built: D7".
+
 ## Public standings (competition toolkit A7)
 
 Design: `toolkit/A-round-formats.md` §3.4, §3.6, §8; R §2.2, §2.3, §2.9 (no public JSON, no Mercure topic in v1).

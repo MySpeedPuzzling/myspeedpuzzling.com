@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
+use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitionStandings;
 use SpeedPuzzling\Web\Query\GetStandingResults;
 use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingsPerCategory;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +33,8 @@ final class CompetitionStandingsController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly GetCompetitionStandings $getCompetitionStandings,
         private readonly GetStandingResults $getStandingResults,
+        private readonly GetCompetitionDivisions $getCompetitionDivisions,
+        private readonly StandingsPerCategory $standingsPerCategory,
     ) {
     }
 
@@ -54,8 +59,8 @@ final class CompetitionStandingsController extends AbstractController
         $rounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
         $standings = $this->getCompetitionStandings->ofCompetition($competitionId);
 
-        // "One per category": the categories that have rounds and no standing yet
-        $covered = array_map(static fn (CompetitionStandingOverview $standing): RoundCategory => $standing->category, $standings);
+        // "One per category": the categories that have rounds and no overall standing yet
+        $covered = StandingsPerCategory::coveredCategories($standings);
         $missingCategories = [];
 
         foreach (RoundCategory::cases() as $category) {
@@ -66,6 +71,23 @@ final class CompetitionStandingsController extends AbstractController
                     break;
                 }
             }
+        }
+
+        // Real events L2a: "… per category and division" - the standings it would create (an event with divisions only)
+        $divisions = $this->getCompetitionDivisions->ofCompetition($competitionId);
+        $missingDivisionStandings = [];
+
+        if ($divisions !== []) {
+            /** @var array<string, list<string>> $roundIdsByCategory */
+            $roundIdsByCategory = [];
+            foreach ($rounds as $round) {
+                $roundIdsByCategory[$round->category->value][] = $round->id;
+            }
+
+            $missingDivisionStandings = array_map(
+                static fn (CreateCompetitionStanding $message): string => $message->name,
+                $this->standingsPerCategory->perDivision($competitionId, $roundIdsByCategory, $divisions, StandingsPerCategory::coveredDivisions($standings)),
+            );
         }
 
         // The public page of each published standing (A7) - the event's reference only when one is published
@@ -96,6 +118,7 @@ final class CompetitionStandingsController extends AbstractController
             'rounds' => $rounds,
             'tables' => array_map(fn (CompetitionStandingOverview $standing) => $this->getStandingResults->organiserView($standing), $standings),
             'missing_categories' => $missingCategories,
+            'missing_division_standings' => $missingDivisionStandings,
         ]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');

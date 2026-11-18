@@ -38,6 +38,15 @@
                 <div><button type="submit" class="btn btn-sm btn-outline-primary">{{ 'competition_standing.list.per_category'|trans }}</button></div>
             </form>
         {% endif %}
+        {#- Real events L2a: one standing per category and division - only for an event with divisions -#}
+        {% if missing_division_standings|default([]) is not empty %}
+            <form method="post" action="{{ path('create_competition_standings_per_category', {competitionId: competition.id}) }}" class="card card-body bg-body-tertiary mb-4" style="max-width: 48rem;" data-standings-per-division>
+                <input type="hidden" name="_token" value="{{ csrf_token('standings-per-category-' ~ competition.id) }}">
+                <input type="hidden" name="per_division" value="1">
+                <p class="small mb-2">{{ 'standing_division.per_division_help'|trans({'%standings%': missing_division_standings|join(', ')}) }}</p>
+                <div><button type="submit" class="btn btn-sm btn-outline-primary">{{ 'standing_division.per_division'|trans }}</button></div>
+            </form>
+        {% endif %}
 
         {% if rounds is empty %}
             <p class="text-muted">{{ 'competition_standing.list.no_rounds'|trans }}</p>
@@ -48,7 +57,7 @@
                 <div class="card-body">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <h2 class="h5 mb-0">{{ table.standing.name }}</h2>
-                        <span class="badge bg-secondary">{{ ('competition.round.category.' ~ table.standing.category.value)|trans }}</span>
+                        <span class="badge bg-secondary">{{ ('competition.round.category.' ~ table.standing.category.value)|trans }}</span>{% if table.standing.division is not null %}<span class="badge text-bg-light border ms-2" data-standing-division>{{ table.standing.division.name }}</span>{% endif %}
                         <span class="small text-muted">{% if table.stages is not null %}{{ 'competition_toolkit.standings.mode.stages'|trans }}{% if table.standing.numberedAcrossStages %} · {{ 'competition_toolkit.standings.rule_numbered'|trans }}{% endif %}{% else %}{{ include('standing/_rules.html.twig', {rules: table.standing.rules}) }}{% endif %}</span>
                         {% if table.standing.publishedAt is not null %}
                             <span class="badge bg-success" data-standing-published>{{ 'public_standing.organiser.published'|trans }}</span>

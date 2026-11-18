@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionStandingNotFound;
 use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingMode;
@@ -22,13 +23,28 @@ use SpeedPuzzling\Web\Value\StandingRules;
 readonly final class GetCompetitionStandings
 {
     private const string SELECT = <<<SQL
-SELECT id, competition_id, name, slug, category, mode, round_ids, unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing, position, published_at, numbered_across_stages
+SELECT id, competition_id, name, slug, category, mode, round_ids, unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing, position, published_at, numbered_across_stages,
+    %division% AS division
 FROM competition_standing
 SQL;
 
     public function __construct(
         private Connection $database,
     ) {
+    }
+
+    /**
+     * The standing's division (real events L2a) as one JSON column - `{id, name, shortName}` or NULL - of the statement that
+     * reads the standing: no statement more for any standing.
+     */
+    public static function divisionSql(string $standingAlias): string
+    {
+        return "(SELECT json_build_object('id', d.id, 'name', d.name, 'shortName', d.short_name) FROM competition_division d WHERE d.id = {$standingAlias}.division_id)";
+    }
+
+    private static function select(): string
+    {
+        return str_replace('%division%', self::divisionSql('competition_standing'), self::SELECT);
     }
 
     /**
@@ -41,7 +57,7 @@ SQL;
         }
 
         $rows = $this->database->fetchAllAssociative(
-            self::SELECT . "\nWHERE competition_id = :competitionId\nORDER BY position, created_at, id",
+            self::select() . "\nWHERE competition_id = :competitionId\nORDER BY position, created_at, id",
             ['competitionId' => $competitionId],
         );
 
@@ -57,7 +73,7 @@ SQL;
             throw new CompetitionStandingNotFound();
         }
 
-        $row = $this->database->fetchAssociative(self::SELECT . "\nWHERE id = :id", ['id' => $standingId]);
+        $row = $this->database->fetchAssociative(self::select() . "\nWHERE id = :id", ['id' => $standingId]);
 
         if ($row === false) {
             throw new CompetitionStandingNotFound();
@@ -71,7 +87,7 @@ SQL;
      */
     public static function hydrate(array $row): CompetitionStandingOverview
     {
-        /** @var array{id: string, competition_id: string, name: string, slug: string, category: string, mode: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, missing_rule: string, penalise_finished_missing: bool, position: int, published_at: null|string, numbered_across_stages?: bool} $row */
+        /** @var array{id: string, competition_id: string, name: string, slug: string, category: string, mode: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, missing_rule: string, penalise_finished_missing: bool, position: int, published_at: null|string, numbered_across_stages?: bool, division?: null|string} $row */
         $roundIds = json_decode($row['round_ids'], true, flags: JSON_THROW_ON_ERROR);
 
         return new CompetitionStandingOverview(
@@ -91,6 +107,7 @@ SQL;
             position: $row['position'],
             publishedAt: $row['published_at'] !== null ? new DateTimeImmutable($row['published_at']) : null,
             numberedAcrossStages: (bool) ($row['numbered_across_stages'] ?? false),
+            division: RoundDivision::listFromJson(isset($row['division']) ? '[' . $row['division'] . ']' : null)[0] ?? null,
         );
     }
 }

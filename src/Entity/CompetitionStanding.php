@@ -96,6 +96,14 @@ class CompetitionStanding
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(options: ['default' => false])]
         public bool $numberedAcrossStages = false,
+        // Real events L2a (shared-puzzles-and-divisions.md D7): a `sum` standing limited to one division of the event -
+        // an entrant counts in a round only with an entry of that division there. null = everybody (every standing
+        // before). A division in use by a standing is never deleted (SetCompetitionDivisions refuses
+        // `used_by_standing`); the SET NULL is the database's last resort only.
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|CompetitionDivision $division = null,
     ) {
     }
 
@@ -124,9 +132,14 @@ class CompetitionStanding
      * @param list<string> $roundIds validated by the caller (CompetitionStandingRounds) - empty for `stages`
      * @param null|StandingMode $mode null = kept
      * @param null|bool $numberedAcrossStages null = kept
+     * @param false|null|CompetitionDivision $division false = kept (the wizard's "rounds added later"), null = everybody
      */
-    public function change(string $name, RoundCategory $category, array $roundIds, StandingRules $rules, null|StandingMode $mode = null, null|bool $numberedAcrossStages = null): void
+    public function change(string $name, RoundCategory $category, array $roundIds, StandingRules $rules, null|StandingMode $mode = null, null|bool $numberedAcrossStages = null, false|null|CompetitionDivision $division = false): void
     {
+        if ($division !== false) {
+            $this->division = $division;
+        }
+
         $this->name = $name;
         $this->category = $category;
         $this->roundIds = $roundIds;

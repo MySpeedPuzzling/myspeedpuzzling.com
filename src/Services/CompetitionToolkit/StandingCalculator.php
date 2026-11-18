@@ -50,6 +50,10 @@ use SpeedPuzzling\Web\Value\StandingScoreStatus;
  * and the public page (which never sees an absentee) list the same people. Its name and people are the ones of the
  * last round (in the standing's order) it is in.
  *
+ * A standing of one division (real events L2a) reads its rounds through StandingRoundInput::forDivision(): only the
+ * entries of the division, the entrants of another division in a round are "not in the round" there (missing, never a
+ * no-show - `outsideKeys`).
+ *
  * stages() is the other mode - the final classification across a bracket (competition toolkit v2 S5), see there.
  *
  * @phpstan-type StageReach array{stage: int, position: int, round: StandingRoundInput, entry: StandingEntryInput}
@@ -101,7 +105,8 @@ final readonly class StandingCalculator
                     $round->counted ? StandingScoreStatus::NotInRound : StandingScoreStatus::NotCounted,
                 );
 
-                if ($rules->missing === StandingMissing::AsZeroPieces) {
+                // An entrant of another division in this round (a standing of one division) played there - never a no-show
+                if ($rules->missing === StandingMissing::AsZeroPieces && !in_array($key, $round->outsideKeys, true)) {
                     $score = self::noShow($rules, $round, $key, $score);
                 }
 

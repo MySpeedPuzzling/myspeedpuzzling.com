@@ -74,6 +74,7 @@ final class AddCompetitionStandingController extends AbstractController
                     rules: $data->rules(),
                     mode: $data->mode ?? StandingMode::Sum,
                     numberedAcrossStages: $data->numberedAcrossStages,
+                    divisionId: $data->divisionId,
                 ));
 
                 $this->addFlash('success', $this->translator->trans('competition_standing.flash.added'));

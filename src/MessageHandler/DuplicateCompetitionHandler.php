@@ -158,10 +158,11 @@ readonly final class DuplicateCompetitionHandler
         }
 
         $this->copyPageSections($source, $copy, $now);
-        $this->copyStandings($source, $copy, $roundIdMap, $now);
+        // Divisions first - a standing limited to one gets the copy's division (real events L2a)
+        $divisionCopies = $this->copyDivisions($source, $copy, $roundIdMap, $now);
+        $this->copyStandings($source, $copy, $roundIdMap, $divisionCopies, $now);
         $this->copyDisplays($source, $copy, $roundIdMap, $actor, $now);
         $this->copyAdvancementSteps($source, $copy, $roundIdMap, $now);
-        $this->copyDivisions($source, $copy, $roundIdMap, $now);
 
         $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($copy, $actor, $now);
     }
@@ -222,9 +223,12 @@ readonly final class DuplicateCompetitionHandler
      * The event's standings (competition toolkit A6, A-round-formats.md §3.6) - unpublished, the same slug (the copy has
      * none yet), their rounds remapped to the copies; an id that is not a round of the source any more is left out.
      *
+     * A standing limited to a division (real events L2a) is limited to the copy of that division.
+     *
      * @param array<string, string> $roundIdMap source round id => its copy's id
+     * @param array<string, CompetitionDivision> $divisionCopies source division id => its copy
      */
-    private function copyStandings(Competition $source, Competition $copy, array $roundIdMap, DateTimeImmutable $now): void
+    private function copyStandings(Competition $source, Competition $copy, array $roundIdMap, array $divisionCopies, DateTimeImmutable $now): void
     {
         foreach ($this->standingRepository->ofCompetition($source) as $standing) {
             $this->standingRepository->save(new CompetitionStanding(
@@ -245,6 +249,7 @@ readonly final class DuplicateCompetitionHandler
                 missingRule: $standing->missingRule,
                 penaliseFinishedMissing: $standing->penaliseFinishedMissing,
                 numberedAcrossStages: $standing->numberedAcrossStages,
+                division: $standing->division !== null ? ($divisionCopies[$standing->division->id->toString()] ?? null) : null,
             ));
         }
     }
@@ -431,8 +436,9 @@ readonly final class DuplicateCompetitionHandler
      * copied, so no entry carries one.
      *
      * @param array<string, string> $roundIdMap source round id => its copy's id
+     * @return array<string, CompetitionDivision> source division id => its copy
      */
-    private function copyDivisions(Competition $source, Competition $copy, array $roundIdMap, DateTimeImmutable $now): void
+    private function copyDivisions(Competition $source, Competition $copy, array $roundIdMap, DateTimeImmutable $now): array
     {
         $divisionCopies = [];
         foreach ($this->divisionRepository->ofCompetition($source) as $division) {
@@ -442,7 +448,7 @@ readonly final class DuplicateCompetitionHandler
         }
 
         if ($divisionCopies === []) {
-            return;
+            return [];
         }
 
         foreach ($this->roundDivisionRepository->ofCompetition($source) as $roundDivision) {
@@ -454,6 +460,8 @@ readonly final class DuplicateCompetitionHandler
                 $this->roundDivisionRepository->save(new CompetitionRoundDivision(Uuid::uuid7(), $this->roundRepository->get($roundCopyId), $divisionCopy));
             }
         }
+
+        return $divisionCopies;
     }
 
     /**

@@ -7,12 +7,11 @@ namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
+use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitionStandings;
-use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingsPerCategory;
-use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,6 +37,7 @@ final class CreateStandingsPerCategoryController extends AbstractController
         private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
         private readonly TranslatorInterface $translator,
         private readonly StandingsPerCategory $standingsPerCategory,
+        private readonly GetCompetitionDivisions $getCompetitionDivisions,
     ) {
     }
 
@@ -62,10 +62,7 @@ final class CreateStandingsPerCategoryController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $covered = array_map(
-            static fn (CompetitionStandingOverview $standing): RoundCategory => $standing->category,
-            $this->getCompetitionStandings->ofCompetition($competitionId),
-        );
+        $standings = $this->getCompetitionStandings->ofCompetition($competitionId);
         /** @var array<string, list<string>> $roundIdsByCategory */
         $roundIdsByCategory = [];
 
@@ -73,11 +70,21 @@ final class CreateStandingsPerCategoryController extends AbstractController
             $roundIdsByCategory[$round->category->value][] = $round->id;
         }
 
+        // Real events L2a: "… per category and division" (field per_division) - a standing per category and division
+        $messages = $request->request->getBoolean('per_division')
+            ? $this->standingsPerCategory->perDivision(
+                $competitionId,
+                $roundIdsByCategory,
+                $this->getCompetitionDivisions->ofCompetition($competitionId),
+                StandingsPerCategory::coveredDivisions($standings),
+            )
+            : $this->standingsPerCategory->messages($competitionId, $roundIdsByCategory, StandingsPerCategory::coveredCategories($standings));
+
         $created = 0;
 
         // Each its own message - the first refused one stops the rest
         try {
-            foreach ($this->standingsPerCategory->messages($competitionId, $roundIdsByCategory, $covered) as $message) {
+            foreach ($messages as $message) {
                 $this->messageBus->dispatch($message);
                 $created++;
             }

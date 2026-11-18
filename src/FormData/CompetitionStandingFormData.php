@@ -42,6 +42,10 @@ final class CompetitionStandingFormData
     // `stages`: one number over everybody across the stages
     public bool $numberedAcrossStages = false;
 
+    // Real events L2a: limited to one division of the event (`sum` only) - null = everybody. The field is there only when
+    // the event has divisions; the handler checks the division is the event's and every chosen round uses it
+    public null|string $divisionId = null;
+
     #[Assert\NotNull]
     #[Assert\Range(min: 0, max: StandingRules::PENALTY_MAX)]
     public null|int $penaltySecondsPerPiece = 0;
@@ -68,6 +72,7 @@ final class CompetitionStandingFormData
         $data->missingRule = $standing->rules->missing;
         $data->mode = $standing->mode;
         $data->numberedAcrossStages = $standing->numberedAcrossStages;
+        $data->divisionId = $standing->division?->id;
 
         return $data;
     }

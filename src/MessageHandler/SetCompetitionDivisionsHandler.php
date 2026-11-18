@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundDivisionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -27,7 +28,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * before anything changes (a refusal leaves the unit of work untouched): the list (≤ 12, names unique per event without
  * regard to case, ids of this event or new), the rounds (of this event, divisions of the new list), then the entries
  * that would lose their division - refused (DivisionsInUse) unless confirmed, then cleared one by one (entities, the
- * counts are small). Entries of removed participants lose theirs silently and are not counted.
+ * counts are small). Entries of removed participants lose theirs silently and are not counted. A division a standing is
+ * limited to (real events L2a) is never removed - from the list or from a round the standing counts (`used_by_standing`).
  */
 #[AsMessageHandler]
 readonly final class SetCompetitionDivisionsHandler
@@ -39,6 +41,7 @@ readonly final class SetCompetitionDivisionsHandler
         private CompetitionRoundDivisionRepository $roundDivisionRepository,
         private CompetitionParticipantRoundRepository $participantRoundRepository,
         private CompetitionTeamRepository $teamRepository,
+        private CompetitionStandingRepository $standingRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -119,6 +122,26 @@ readonly final class SetCompetitionDivisionsHandler
                 }
 
                 $wantedSubsets[$roundId][$divisionId] = true;
+            }
+        }
+
+        // A standing limited to a division (real events L2a) keeps it, in every round it counts - edit or delete the
+        // standing first (its public page would silently become another ranking)
+        foreach ($this->standingRepository->ofCompetition($competition) as $standing) {
+            $divisionId = $standing->division !== null ? strtolower($standing->division->id->toString()) : null;
+
+            if ($divisionId === null) {
+                continue;
+            }
+
+            if (!isset($wantedDivisions[$divisionId])) {
+                throw new InvalidCompetitionDivisions('used_by_standing', $standing->name);
+            }
+
+            foreach ($standing->roundIds() as $roundId) {
+                if (isset($rounds[$roundId]) && !isset($wantedSubsets[$roundId][$divisionId])) {
+                    throw new InvalidCompetitionDivisions('used_by_standing', $standing->name);
+                }
             }
         }
 

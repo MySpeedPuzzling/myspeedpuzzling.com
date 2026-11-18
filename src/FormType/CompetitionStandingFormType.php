@@ -24,6 +24,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * Only the event's own rounds are offered (option `rounds`: id => label) - any other id is an invalid choice. The
  * category of each round is shown in its label; the handler refuses a round of another category.
  *
+ * Option `divisions` (real events L2a, id => label): the event's divisions - the "Division" select is there only when the
+ * event has some (an event without divisions gets the form as before).
+ *
  * Option `stages_available` (competition toolkit v2 S5): false = the event has no bracket of any category - the
  * "Final classification across the bracket" choice is disabled (the handler refuses it for a category without one).
  *
@@ -74,6 +77,23 @@ final class CompetitionStandingFormType extends AbstractType
             'help' => 'competition_standing.form.rounds_help',
         ]);
 
+        /** @var array<string, string> $divisionLabels */
+        $divisionLabels = $options['divisions'];
+
+        if ($divisionLabels !== []) {
+            $divisionIds = array_map('strval', array_keys($divisionLabels));
+
+            $builder->add('divisionId', ChoiceType::class, [
+                'choices' => array_combine($divisionIds, $divisionIds),
+                'choice_label' => static fn (string $divisionId): string => $divisionLabels[$divisionId] ?? $divisionId,
+                'choice_translation_domain' => false,
+                'required' => false,
+                'placeholder' => 'standing_division.form.everybody',
+                'label' => 'standing_division.form.label',
+                'help' => 'standing_division.form.help',
+            ]);
+        }
+
         $builder->add('penaltySecondsPerPiece', IntegerType::class, [
             'label' => 'competition_standing.form.penalty',
             'help' => 'competition_standing.form.penalty_help',
@@ -108,6 +128,8 @@ final class CompetitionStandingFormType extends AbstractType
         ]);
         $resolver->setRequired('rounds');
         $resolver->setAllowedTypes('rounds', 'array');
+        $resolver->setDefault('divisions', []);
+        $resolver->setAllowedTypes('divisions', 'array');
         $resolver->setDefault('stages_available', false);
         $resolver->setAllowedTypes('stages_available', 'bool');
     }

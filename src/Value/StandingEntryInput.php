@@ -34,6 +34,9 @@ final readonly class StandingEntryInput
         // Marked qualified in its round - only the `stages` classification reads it (competition toolkit v2 S5: "Qualified
         // for <next stage>" while the next stage is not classified yet)
         public bool $qualified = false,
+        // The entry's division in its round (real events L2a) - only one the round uses; null = none. Read by
+        // StandingRoundInput::forDivision() only
+        public null|string $divisionId = null,
     ) {
     }
 }

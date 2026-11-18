@@ -67,6 +67,10 @@
                 </div>
 
                 <div data-standing-sum-only>
+                {# Real events L2a: only when the event has divisions #}
+                {% if form.divisionId is defined %}
+                    {{ form_row(form.divisionId, {row_attr: {class: 'mb-3', 'data-standing-division-field': ''}, attr: {style: 'max-width: 20rem;'}}) }}
+                {% endif %}
                 <fieldset class="mb-3">
                     <legend class="form-label fw-semibold fs-6 mb-1">{{ form_label(form.roundIds)|striptags }}</legend>
                     <div class="form-text mt-0 mb-1">{{ 'competition_standing.form.rounds_help'|trans }}</div>

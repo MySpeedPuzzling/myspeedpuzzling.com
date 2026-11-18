@@ -253,7 +253,7 @@ SQL, ['competitionId' => $competitionId]);
                 'pieces_by_round_puzzle' => is_array($pieces) ? array_map(static fn (mixed $count): int => is_numeric($count) ? (int) $count : 0, $pieces) : [],
                 'labels_by_round_puzzle' => $labels,
             ];
-            }
+        }
 
         /** @var array<string, RoundRow> $roundsById */
             return $roundsById;

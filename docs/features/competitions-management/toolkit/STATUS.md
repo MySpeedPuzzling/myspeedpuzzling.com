@@ -284,6 +284,30 @@ table ranges when championships overlap); divisions per round entry (a person ma
 Pairs), no eligibility check, standings per division after the demo; `?challenge=` and `?division=` exclusive; ties
 undefined by SPWS = shared rank.
 
-**v3 / left:** standings per division (D7); displays "rank by challenge" + division filter on displays/studio (D6);
-judge-card help line for penalised pieces; a desk Division cell for walk-ins; the embeddable standings widget for the
-SPWS Wix site (iframe route) and country flags on SPWS tags (nice to have, not started); chained rounds (above).
+**v3 / left:** judge-card help line for penalised pieces; a desk Division cell for walk-ins; displays: finished count per
+division, ticker per challenge, the challenge label on the element; chained rounds (above); the results desk's no-show
+line counts every entry even for a division standing; a site-wide `X-Frame-Options: SAMEORIGIN` from the app (Traefik
+already sends DENY outside `/embed/`).
+### Leftovers round + Docker catch-up (2026-11-18)
+| Pkg | PR | What |
+|---|---|---|
+| L1 | #453 | Results desk at phone width: compact per-puzzle chips (label / ✓ split / own), Country + Entered folded below sm/md |
+| L4 | #454 | "Show country flags" on the tags print page (`?flags=1`, default off; profile country only for public profiles) |
+| L2a | #455 | Standings per division (D7): `competition_standing.division_id`, cell ranks within the division, "one standing per category and division" |
+| L2b | #456 | Displays: `division` view (leaderboard + ticker) and `challenge` ranking (leaderboard) on results elements |
+| L3 | #457 | Embeddable standing `/embed/standing/{id}(/{locale})?theme=dark` + organiser snippet; lily.srv 16c9e0e: Traefik routers for `GET /embed/` without `frameDeny` (prod + sandbox), every other page keeps `X-Frame-Options: DENY` |
+| S1 perf | #461 | Reconcile LINK select on production 221 → 64 ms (before S1: 42 ms): evidence only for times with several candidates; same answers (8,071 rows, identical md5) |
+| W5 fix | #462 | After an offline reload the per-puzzle "Finished now" waits for the outbox (no second split); a tap never overwrites a split - found by v2's chaos run |
+| L5 | this PR | Dark embed rows readable; desk Division column folded at phone width |
+| load | (tools) | `tools/competition-load` `MIX=real` |
+
+**Chaos (full run, main 4c55c16a7):** all PASS (s01-s13, s14_continuous_scanning) except s14_puzzle_splits = the W5 bug; on
+the fix (re/w5fix, QUICK) s14_puzzle_splits / s13 / s02 / s08 PASS.
+**Load (local prod mode, MIX=real: 350 solo "Solve all 2" + 2 × 150 teams of 4, 18 judges, 1,550 phones, 180 proposals,
+6 displays):** ~49,000 requests, 0 failures. p95: save 79 ms, save + puzzles 103 ms, split 79 ms, proposal 52 ms (180 in
+1 s: 208 ms), heartbeat 5 ms, judge state 84 ms (155 in the burst), competitor state 39 ms, display state 16 ms; lock
+waits 0.4 % (1.2 % in the burst, max queue 14). Saves ≈ 2 × T4 (three rounds share one event lock) - all far below 500 ms.
+**Sandbox walk (Selenium, 1280 + 375 px, `cm-delivery/shots/re-walk/`):** both demos OK except the dark embed's even
+rows and the SOLO desk's Division column at 375 px (both fixed in L5). Notes for the demo: the pairs standing's
+championship tabs clip at 375 px; the judge page's puzzle picker cards cut long names at 375 px; OPEN #2 shows "starts in
+14 days" (demo date 2 Dec - re-run the command with `--date` of the demo day).

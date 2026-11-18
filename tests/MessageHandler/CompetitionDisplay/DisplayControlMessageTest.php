@@ -49,6 +49,7 @@ final class DisplayControlMessageTest extends KernelTestCase
         self::assertSame(['Break - next round 14:30'], $result->recentMessages);
 
         $row = $this->row(self::EVENT);
+        self::assertIsArray($row);
         self::assertSame('Break - next round 14:30', $row['message']);
         self::assertNotNull($row['message_set_at']);
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $row['updated_by_id']);

@@ -191,7 +191,9 @@ final class DisplayControlControllerTest extends WebTestCase
         self::assertSame('Gina Quick', self::at($state, 'control.spotlight.name'));
         self::assertNull(self::at($state, 'control.spotlight.rank'));
         self::assertNull(self::at($state, 'control.spotlight.resultSeconds'));
-        self::assertMatchesRegularExpression('/^[0-9a-f]{16}$/', (string) self::at($state, 'control.spotlight.key'));
+        $key = self::at($state, 'control.spotlight.key');
+        self::assertIsString($key);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{16}$/', $key);
         self::assertStringNotContainsString('Jane Smith', $raw);
         self::assertStringNotContainsString(OfficialResultsFixture::ENTRY_B_GINA, $raw);
         self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, $raw);

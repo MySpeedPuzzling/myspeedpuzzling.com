@@ -52,7 +52,7 @@ final class RoundSpotlightTest extends KernelTestCase
         // Another entry replaces it (one row per round); a team of the pairs round by its team ref
         $this->set(self::GROUP_A, 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN);
         self::assertSame('participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, $this->ref(self::GROUP_A));
-        self::assertSame(1, (int) $this->database->fetchOne('SELECT COUNT(*) FROM competition_round_spotlight WHERE round_id = :id', ['id' => self::GROUP_A]));
+        self::assertSame([self::GROUP_A], $this->database->fetchFirstColumn('SELECT round_id FROM competition_round_spotlight WHERE round_id = :id', ['id' => self::GROUP_A]));
         self::assertSame('Puzzle Sharks', $this->set(OfficialResultsFixture::ROUND_PAIRS, 'team:' . OfficialResultsFixture::TEAM_SHARKS)?->name);
 
         self::assertNull($this->set(self::GROUP_A, null));
@@ -71,14 +71,16 @@ final class RoundSpotlightTest extends KernelTestCase
             ['id' => OfficialResultsFixture::PARTICIPANT_FILIP],
         );
 
-        foreach ([
+        $refused = [
             'another round\'s entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_B_GINA,
             'a team in a solo round' => 'team:' . OfficialResultsFixture::TEAM_SHARKS,
             'a removed participant' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP,
             'an unknown id' => 'participant_round:' . Uuid::uuid7()->toString(),
             'not a ref' => 'Anna Fast',
             'another kind' => 'player:' . PlayerFixture::PLAYER_ADMIN,
-        ] as $case => $ref) {
+        ];
+
+        foreach ($refused as $case => $ref) {
             try {
                 $this->set(self::GROUP_A, $ref);
                 self::fail($case . ' must be refused');

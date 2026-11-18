@@ -736,3 +736,50 @@ in, otherwise divisions are set in the sheet or through the internal API.
   `AddPuzzleToRoundControllerTest` (flash + line, twice refused), `EventWizardSeveralRoundsTest` (two rows share, grid
   line, row errors); new `tests/Controller/SharedPuzzleCarnivalSetUpTest.php` (3 team rounds, one puzzle - round pages and
   internal API). `MoveRoundToCompetitionHandlerTest` unchanged.
+
+## As built: D3 + D4 (divisions in the participants sheet and the participant import - 2026-11-18)
+
+- **One matching rule** `Value\DivisionMatch` (§3.5): a value names a division by its id, name or short label, folded
+  like search text (`SearchText::fold()` - trimmed, inner whitespace collapsed, case and accents folded: "  seniór 55+"
+  is "Senior 55+"); only a division the round uses is given (`resolve()` → the division, `not_in_round`,
+  `unknown_division`). `SetRoundEntryDivisionsHandler` (internal API), the sheet (`SheetPlanRun`) and the import
+  (`PlanBuilder`) all go through it - the sheet and the import via `ParticipantRules::divisionInRound()`. Browser twin
+  `matchDivision()` in `assets/participants_sheet/sheet_divisions.js` (over `search_fold.js`).
+- **Reads, no statement more**: `SiteSnapshotReader::roundsAndDivisions()` reads the round's subset
+  (`RoundDivisionsJson`) and the event's list in the one rounds statement (`ParticipantImportRound::$divisions`,
+  `SiteSnapshot::$divisions`); the entries' and teams' statements add `division_id`. `GetParticipantsSheetState`: rounds
+  statement + `RoundDivisionsJson`, places/teams + `division_id` (`ParticipantsSheetQueryBudgetTest` unchanged). The
+  sheet version and the import's state version add one section (list, subsets, entries' divisions) that is NULL - and
+  left out with its separator by `concat_ws` - for an event without divisions, so their versions stay what they were.
+- **D3 sheet**: `SheetChangeOp::Division` `{"op": "division", "round", "participant" | "team", "from", "to"}` (division
+  id, `''` = none): a solo entry by participant, a pair/team by team (a member of a pair → `division_of_team`), three-way,
+  `to = ''` clears; refusals `not_in_round` (params round + division), `unknown_division`, `division_not_entered`
+  (texts `entry_divisions.sheet.reason.*`, `SheetChangeOutcome::DIVISION_REASONS`). Written by
+  `ParticipantImportApplier` from the operations' new `entryDivisions` (existing entry by id, a new one by participant
+  key + round) and `teamDivisions` (`t:` / `n:` keys) under the sheet's lock - a new pair and its division in one group
+  work. State JSON: round `divisions` (only when the round uses some), entry `division` (id | null) only on solo places
+  of such rounds and on teams of such rounds - nothing for an event without divisions. Client: a "Division" list column
+  on the solo and pair/team tabs of a round that uses divisions (`round/round_divisions.js`, `from` = the cell when its
+  editor opened, Delete clears, the toolbar's "N without a division" + "Fill empty with …" = one group per entry), the
+  phone list a "Division: … · Change" line per card; problems panel names the division. The round texts come only for an
+  event with a round using divisions (`_texts_round.html.twig`).
+- **D4 import**: `ParticipantImportField::Division` + `DivisionInRound` (`division_in_round:<roundId>`, like
+  `team_in_round`). `ColumnMapping::detect/fromQuery(…, $hasDivisions)`: `division` / `divisions` / `division name` /
+  `age group` / `age category` → Division only when the event has a list (else `division(s)` stay Rounds - every
+  WJPC-style file maps as before, `ColumnMappingTest`); `division: <round>`, `division name: <round>`, `<round> division`
+  → that round (one that uses divisions). The preview says when a `Division` header is read as divisions (A14,
+  `entry_divisions.import.header_read_as_division`). Planner: the Division value goes to every entry of the row in the
+  rounds it lists (no rounds cell: the rounds the person is in) that use it - a round of the row that does not is a
+  warning naming round + division; a value naming no division of the event is an error of the row (the console counts
+  it as one) but the rest of the row is imported (**deviation**: §3.5 said "row not applied" - a typo must not drop a
+  person on event day); empty leaves it as it is; a pair/team gets the division its members' rows agree on, disagreeing
+  → warning, the pair keeps its own; a person not in the round / without a pair → warning. Preview line per round
+  ("<round> division: before → after"). Export: a `division: <round>` column per round that uses divisions (read back by
+  the import). The template is event-less and stays as it is (**deviation**: no Division header there).
+  `ParticipantImportRowData::toArray()` carries the division keys only when mapped, so an event without divisions keeps
+  its import fingerprints.
+- Not done: no Mercure `official_results.refresh` to the desk when the sheet changes a division (the desk shows it at
+  its next state fetch); a page opened before an event got its first division needs a reload for the column's texts.
+- **Tests**: `tests/CompetitionToolkit/Divisions/DivisionsInTheSheetTest.php`, `DivisionsInTheImportTest.php`,
+  `CompetitionDivisionsTest` (accents), `ColumnMappingTest`, `GetParticipantsSheetVersionTest`, node suite
+  `tests/participants-sheet-round/divisions.mjs` (`ParticipantsSheetRoundScriptsTest`), the texts tests.

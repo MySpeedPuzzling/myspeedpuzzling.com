@@ -642,13 +642,33 @@ body.as-body {
     flex-wrap: wrap;
 }
 
-// One line: a long name ends in an ellipsis, the flag stays next to it
-.as-row__player,
+// A long name wraps onto a second line (then ends in an ellipsis) - readable in the narrow list column (FU-R2); a
+// person's flag flows right after the last word
+.as-row__name:not(.as-row__name--team) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+
+    .as-flag {
+        margin-left: 5px;
+    }
+}
+
 .as-row__team {
+    display: -webkit-box;
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
 }
 
 .as-row__team {
@@ -1600,8 +1620,9 @@ a.as-person__name:hover {
 // ---- tablet: two columns, the side panel under the detail
 
 @media (max-width: 1279.98px) {
+    // The list column grows with the window (360 px at 1024, ~410 px just under 1280), so names keep their room
     .as-columns {
-        grid-template-columns: 360px minmax(0, 1fr) 300px;
+        grid-template-columns: clamp(360px, 32vw, 420px) minmax(0, 1fr) 300px;
     }
 
     .as-row,

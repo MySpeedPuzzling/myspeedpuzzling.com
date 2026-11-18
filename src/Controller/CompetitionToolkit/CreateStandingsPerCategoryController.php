@@ -70,20 +70,20 @@ final class CreateStandingsPerCategoryController extends AbstractController
             $roundIdsByCategory[$round->category->value][] = $round->id;
         }
 
-        // Real events L2a: "… per category and division" (field per_division) - a standing per category and division
-        $messages = $request->request->getBoolean('per_division')
-            ? $this->standingsPerCategory->perDivision(
-                $competitionId,
-                $roundIdsByCategory,
-                $this->getCompetitionDivisions->ofCompetition($competitionId),
-                StandingsPerCategory::coveredDivisions($standings),
-            )
-            : $this->standingsPerCategory->messages($competitionId, $roundIdsByCategory, StandingsPerCategory::coveredCategories($standings));
-
         $created = 0;
 
         // Each its own message - the first refused one stops the rest
         try {
+            // Real events L2a: "… per category and division" (field per_division) - a standing per category and division
+            $messages = $request->request->getBoolean('per_division')
+                ? $this->standingsPerCategory->perDivision(
+                    $competitionId,
+                    $roundIdsByCategory,
+                    $this->getCompetitionDivisions->ofCompetition($competitionId),
+                    StandingsPerCategory::coveredDivisions($standings),
+                )
+                : $this->standingsPerCategory->messages($competitionId, $roundIdsByCategory, StandingsPerCategory::coveredCategories($standings));
+
             foreach ($messages as $message) {
                 $this->messageBus->dispatch($message);
                 $created++;

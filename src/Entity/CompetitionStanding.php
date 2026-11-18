@@ -132,9 +132,9 @@ class CompetitionStanding
      * @param list<string> $roundIds validated by the caller (CompetitionStandingRounds) - empty for `stages`
      * @param null|StandingMode $mode null = kept
      * @param null|bool $numberedAcrossStages null = kept
-     * @param false|null|CompetitionDivision $division false = kept (the wizard's "rounds added later"), null = everybody
+     * @param null|false|CompetitionDivision $division false = kept (the wizard's "rounds added later"), null = everybody
      */
-    public function change(string $name, RoundCategory $category, array $roundIds, StandingRules $rules, null|StandingMode $mode = null, null|bool $numberedAcrossStages = null, false|null|CompetitionDivision $division = false): void
+    public function change(string $name, RoundCategory $category, array $roundIds, StandingRules $rules, null|StandingMode $mode = null, null|bool $numberedAcrossStages = null, null|false|CompetitionDivision $division = false): void
     {
         if ($division !== false) {
             $this->division = $division;

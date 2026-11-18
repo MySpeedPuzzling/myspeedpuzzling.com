@@ -146,7 +146,7 @@ final class DivisionStandingsTest extends WebTestCase
             confirmClearing: true,
         )));
 
-        self::assertSame(2, (int) $this->database->fetchOne('SELECT COUNT(*) FROM competition_division WHERE competition_id = :id', ['id' => self::WS_COMPETITION]));
+        self::assertEquals(2, $this->database->fetchOne('SELECT COUNT(*) FROM competition_division WHERE competition_id = :id', ['id' => self::WS_COMPETITION]));
     }
 
     public function testUntouchedStandingsStayByteIdentical(): void

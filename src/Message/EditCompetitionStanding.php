@@ -31,7 +31,7 @@ readonly final class EditCompetitionStanding implements SerializedByLock
         public null|StandingMode $mode = null,
         public null|bool $numberedAcrossStages = null,
         // Real events L2a: limited to one division of the event (sum only) - null = everybody, false = kept as it is
-        public false|null|string $divisionId = false,
+        public null|false|string $divisionId = false,
     ) {
     }
 

@@ -584,6 +584,7 @@ SQL, ['competitionId' => $competitionId]);
                 missingPieces: $entry->missingPieces,
                 challengeTimes: $challengeTimes,
                 qualified: $entry->isQualified(),
+                divisionId: $divisionId,
             );
         }
 

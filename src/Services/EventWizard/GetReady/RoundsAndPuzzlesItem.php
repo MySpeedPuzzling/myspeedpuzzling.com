@@ -18,8 +18,13 @@ readonly final class RoundsAndPuzzlesItem implements GetReadyItem
         return 20;
     }
 
-    public function row(GetReadyFacts $facts): GetReadyRow
+    public function row(GetReadyFacts $facts): null|GetReadyRow
     {
+        // A meetup, swap or workshop on the calendar has no rounds to add and no judges (creation-wizard.md "Calendar path")
+        if ($facts->calendarEvent) {
+            return null;
+        }
+
         $count = count($facts->rounds);
 
         if ($count === 0) {

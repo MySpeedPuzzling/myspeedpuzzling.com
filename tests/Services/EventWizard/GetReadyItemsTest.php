@@ -41,12 +41,14 @@ final class GetReadyItemsTest extends TestCase
         $item = new RoundsAndPuzzlesItem();
 
         $none = $item->row(self::facts());
+        self::assertNotNull($none);
         self::assertFalse($none->done);
         self::assertSame('manage_competition_rounds', $none->route);
         self::assertSame(['competitionId' => self::EVENT], $none->routeParameters);
 
         // "Decide later": that round's puzzles
         $later = $item->row(self::facts(rounds: [self::round('r1', puzzles: 1), self::round('r2', puzzles: 0)]));
+        self::assertNotNull($later);
         self::assertFalse($later->done);
         self::assertSame('manage_round_puzzles', $later->route);
         self::assertSame(['roundId' => 'r2'], $later->routeParameters);
@@ -54,9 +56,11 @@ final class GetReadyItemsTest extends TestCase
         self::assertSame(['%count%' => 2], $later->labelParameters);
 
         $single = $item->row(self::facts(rounds: [self::round('r1', puzzles: 0)]));
+        self::assertNotNull($single);
         self::assertSame('event_wizard.get_ready.round_without_puzzle', $single->noteKey);
 
         $done = $item->row(self::facts(rounds: [self::round('r1', puzzles: 1), self::round('r2', puzzles: 3)]));
+        self::assertNotNull($done);
         self::assertTrue($done->done);
         self::assertNull($done->route);
     }
@@ -66,12 +70,22 @@ final class GetReadyItemsTest extends TestCase
         $item = new JudgesItem();
 
         $suggestion = $item->row(self::facts());
+        self::assertNotNull($suggestion);
         self::assertNull($suggestion->done);
         self::assertSame('competition_referees', $suggestion->route);
 
         $added = $item->row(self::facts(referees: 3));
+        self::assertNotNull($added);
         self::assertTrue($added->done);
         self::assertSame(['%count%' => 3], $added->labelParameters);
+    }
+
+    public function testACalendarEventHasNoRoundOrJudgeRows(): void
+    {
+        // "Something else" (a meetup, swap or workshop - creation-wizard.md "Calendar path"): nothing about rounds or judges
+        self::assertNull((new RoundsAndPuzzlesItem())->row(self::facts(calendar: true)));
+        self::assertNull((new JudgesItem())->row(self::facts(calendar: true)));
+        self::assertTrue((new EventDetailsItem())->row(self::facts(calendar: true))->done);
     }
 
     public function testRegistrationOnlyWhileManaged(): void
@@ -235,6 +249,7 @@ final class GetReadyItemsTest extends TestCase
         null|QrTagMode $qrTagMode = null,
         int $notLinked = 0,
         bool $draft = false,
+        bool $calendar = false,
     ): GetReadyFacts {
         return new GetReadyFacts(
             competitionId: self::EVENT,
@@ -253,6 +268,7 @@ final class GetReadyItemsTest extends TestCase
             overlayDisplaysCount: $overlays,
             qrTagMode: $qrTagMode,
             participantsNotLinked: $notLinked,
+            calendarEvent: $calendar,
         );
     }
 

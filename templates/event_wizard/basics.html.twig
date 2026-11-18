@@ -18,7 +18,14 @@
                 {{ form_errors(form) }}
                 <div class="required">{{ form_row(form.name) }}</div>
                 {% if calendar %}
-                    <div class="required" data-event-wizard-calendar-types>{{ form_row(form.eventTypes) }}</div>
+                    {#- Its label carries the "Required" mark like the other required labels (the field itself is not `required`:
+                        a checkbox group - and label_attr on form_row would mark every checkbox too) -#}
+                    <fieldset class="mb-3" data-event-wizard-calendar-types>
+                        {{ form_label(form.eventTypes, null, {label_attr: {class: 'form-label required'}}) }}
+                        {{ form_widget(form.eventTypes) }}
+                        {{ form_help(form.eventTypes) }}
+                        {{ form_errors(form.eventTypes) }}
+                    </fieldset>
                 {% endif %}
 
                 <div class="mb-3">

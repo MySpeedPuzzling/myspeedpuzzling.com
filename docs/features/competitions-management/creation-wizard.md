@@ -80,6 +80,10 @@ button - the classic form ever makes sense only for some specific update".
   non-competition kinds goes on as a calendar event: after a no-round Basics the next step is derived from the saved
   draft (`nextAfterBasics()`), never a Structure page that would send it to the edit page. Adding a round later (edit
   page) makes it a one-round / several-rounds draft again.
+- **"Get ready" of a calendar event** (FU-V, 2026-11-18): no "Round and puzzle" to-do and no "Add judges" tip -
+  `GetReadyFacts::$calendarEvent` (the same kinds signal, no round; `GetEventGetReadyFacts`' first statement, +0
+  statements), `RoundsAndPuzzlesItem` / `JudgesItem` answer null. Review's summary line of an undated online event
+  starts with "Online event" (no leading separator).
 
 ## Puzzle search (G2, 2026-11-17)
 Every wizard puzzle picker (`EventWizardPuzzleSlotFormType`, the one-round Puzzle step, the Puzzles grid, Backfill's

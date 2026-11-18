@@ -178,6 +178,11 @@
 // Competition toolkit - bracket of the declared advancement steps
 @import "bracket";
 
+// Competition toolkit hub: a card opened by its anchor (e.g. "Get ready" → #participant-links) starts below the sticky header
+[data-toolkit-card] {
+    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+}
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

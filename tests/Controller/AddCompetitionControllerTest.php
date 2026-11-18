@@ -118,6 +118,9 @@ final class AddCompetitionControllerTest extends WebTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
 
-        return (int) $connection->fetchOne($query);
+        $count = $connection->fetchOne($query);
+        assert(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 }

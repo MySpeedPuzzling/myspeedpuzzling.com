@@ -201,7 +201,10 @@ final class EventWizardCalendarTest extends WebTestCase
 
     private function eventsCount(): int
     {
-        return (int) $this->database()->fetchOne('SELECT COUNT(*) FROM competition');
+        $count = $this->database()->fetchOne('SELECT COUNT(*) FROM competition');
+        assert(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 
     /**

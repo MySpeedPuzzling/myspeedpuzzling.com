@@ -26,6 +26,14 @@
  *   outboxSummary() is what the page's heartbeat reports: the round's taps still on the phone (any tab - read from the
  *   storage) and the oldest one's tap moment, so a heartbeat never counts against a tap the phone is still trying.
  *
+ * - Puzzle choice (competition toolkit v2 C3, competitor-pages.md "Puzzle choice with the proposal"): a pick round's
+ *   tap may carry `puzzles` ([{position, label}], what the phone shows) - sent with the tap, never at its cost. A change
+ *   while the tap is still on the phone edits the item in place (same id - idempotency holds); once it is sent (or
+ *   while it is being sent) a `puzzles` item `<proposalId>:puzzles` goes to `POST …/{proposalId}/puzzles` after it,
+ *   carrying `chosenAtMs` (the server keeps the newest choice - a late replay never wins). A newer change replaces an
+ *   unsent older one. A resend answered `known` whose stored choice is not the phone's sends the phone's as a change.
+ *   `puzzles` items are no taps: outboxSummary() and itemOf() leave them out (T2 unchanged).
+ *
  * Storage, the network, the clock, the timers and the lock are injected - tests/competitor-proposals-harness.mjs.
  */
 
@@ -46,7 +54,8 @@ export { createMemoryStorage, createTabLock, uuidv7 };
 export const PROPOSALS_DATABASE = 'msp_competitor_proposals';
 export const PROPOSALS_LOCK = 'msp-competitor-proposals';
 export const LOCK_RETRY_MS = 2000;
-const ANSWERED = ['proposed', 'known', 'withdrawn'];
+const ANSWERED = ['proposed', 'known', 'withdrawn', 'chosen'];
+export const PUZZLES_SUFFIX = ':puzzles';
 
 /**
  * The phone's store (null where IndexedDB can not be opened - then createMemoryStorage()).
@@ -162,7 +171,49 @@ export function proposalBody(item, sentAtMs) {
         queuedOffline: item.queuedOffline === true || item.offline === true || attempts > 0,
         attempts: attempts + 1,
         sentAtMs: typeof sentAtMs === 'number' && Number.isFinite(sentAtMs) ? Math.round(sentAtMs) : null,
+        // v2 C3: only with a choice - a tap without one keeps its body
+        ...(hasChoice(item.puzzles) ? { puzzles: item.puzzles } : {}),
     };
+}
+
+/**
+ * The JSON a `puzzles` item is sent with (v2 C3): the whole choice (null clears it) and when it was made.
+ */
+export function puzzlesBody(item) {
+    return {
+        expectedPlayerId: typeof item.userId === 'string' && item.userId !== '' ? item.userId : null,
+        puzzles: hasChoice(item.puzzles) ? item.puzzles : null,
+        chosenAtMs: typeof item.chosenAtMs === 'number' && Number.isFinite(item.chosenAtMs) ? Math.round(item.chosenAtMs) : null,
+    };
+}
+
+function hasChoice(puzzles) {
+    return Array.isArray(puzzles) && puzzles.length > 0;
+}
+
+/**
+ * A choice as the phone keeps and sends it: [{position, label}] of whole positions and labels, or null (none). Pure.
+ */
+export function normaliseChoice(puzzles) {
+    if (!Array.isArray(puzzles)) {
+        return null;
+    }
+
+    const places = puzzles
+        .filter((place) => place && Number.isInteger(place.position) && typeof place.label === 'string' && place.label !== '')
+        .map((place) => ({ position: place.position, label: place.label }));
+
+    return places.length === 0 ? null : places;
+}
+
+/**
+ * Whether two choices name the same places in the same order (null and [] are both none). Pure.
+ */
+export function sameChoice(a, b) {
+    const left = normaliseChoice(a) ?? [];
+    const right = normaliseChoice(b) ?? [];
+
+    return left.length === right.length && left.every((place, index) => place.position === right[index].position && place.label === right[index].label);
 }
 
 /**
@@ -190,7 +241,7 @@ export function outboxSummary(items, userId, roundId, confirmingTapMs = null) {
 /**
  * @typedef {object} ProposalItem
  * @property {string} id            the proposal's UUIDv7 (made at the tap)
- * @property {'propose'|'withdraw'} action
+ * @property {'propose'|'withdraw'|'puzzles'} action
  * @property {string} userId        the signed-in player who tapped
  * @property {string} roundId
  * @property {string} [entry]       "participant_round:<id>" / "team:<id>"
@@ -205,6 +256,9 @@ export function outboxSummary(items, userId, roundId, confirmingTapMs = null) {
  * @property {number} nextAttemptAt
  * @property {boolean} offline      the last attempt never reached the server
  * @property {boolean} [withdrawAfter] Undo while it was being sent
+ * @property {null|{position: number, label: string}[]} [puzzles] the puzzle choice (v2 C3)
+ * @property {null|number} [chosenAtMs] when the choice was made (server time; a propose item: its tap)
+ * @property {string} [proposalId] a `puzzles` item's proposal
  */
 export class ProposalOutbox {
     /**
@@ -275,12 +329,21 @@ export class ProposalOutbox {
     }
 
     /**
-     * The round's item still on the phone (the newest), or null.
+     * The round's tap or withdrawal still on the phone (the newest), or null - never a `puzzles` item.
      */
     itemOf(roundId) {
-        const items = this.own().filter((item) => item.roundId.toLowerCase() === String(roundId).toLowerCase());
+        const items = this.own().filter((item) => item.action !== 'puzzles' && item.roundId.toLowerCase() === String(roundId).toLowerCase());
 
         return items.length === 0 ? null : items[items.length - 1];
+    }
+
+    /**
+     * The proposal's puzzle change still on the phone, or null (v2 C3).
+     */
+    choiceItemOf(proposalId) {
+        const item = this.items.get(String(proposalId) + PUZZLES_SUFFIX);
+
+        return item !== undefined && item.userId === this.userId ? item : null;
     }
 
     isSending(id) {
@@ -294,7 +357,8 @@ export class ProposalOutbox {
     /**
      * A tap: stored first, then sent. The id is made from the tap moment unless given (tests).
      */
-    async propose({ roundId, entry, tappedAtMs, offsetMs = null, rttMs = null, stateHash = null, id = null, offsetSampleAgeMs = null, offline = false }) {
+    async propose({ roundId, entry, tappedAtMs, offsetMs = null, rttMs = null, stateHash = null, id = null, offsetSampleAgeMs = null, offline = false, puzzles = null }) {
+        const choice = normaliseChoice(puzzles);
         const item = {
             id: id ?? uuidv7(tappedAtMs),
             action: 'propose',
@@ -307,6 +371,8 @@ export class ProposalOutbox {
             stateHash: typeof stateHash === 'string' ? stateHash : null,
             offsetSampleAgeMs: typeof offsetSampleAgeMs === 'number' && Number.isFinite(offsetSampleAgeMs) ? offsetSampleAgeMs : null,
             queuedOffline: offline === true,
+            // v2 C3: only with a choice - made at the tap
+            ...(choice !== null ? { puzzles: choice, chosenAtMs: tappedAtMs } : {}),
             createdAt: this.now(),
             attempts: 0,
             nextAttemptAt: 0,
@@ -319,10 +385,46 @@ export class ProposalOutbox {
     }
 
     /**
+     * The competitor's puzzle choice of the proposal `id` changed (v2 C3; null = none): the tap still on the phone (not
+     * being sent) carries it in place; else a `puzzles` item, replacing an unsent older one, is sent after the tap.
+     */
+    async setPuzzles(id, roundId, puzzles, chosenAtMs) {
+        const choice = normaliseChoice(puzzles);
+        const item = this.items.get(id);
+
+        if (item !== undefined && item.action === 'propose' && item.userId === this.userId && this.inFlight !== id) {
+            const { puzzles: _puzzles, ...rest } = item;
+            await this.put(choice === null ? { ...rest, chosenAtMs } : { ...rest, puzzles: choice, chosenAtMs });
+
+            return;
+        }
+
+        await this.put({
+            id: id + PUZZLES_SUFFIX,
+            action: 'puzzles',
+            proposalId: id,
+            userId: this.userId,
+            roundId,
+            puzzles: choice,
+            chosenAtMs,
+            createdAt: this.now(),
+            attempts: 0,
+            nextAttemptAt: 0,
+            offline: false,
+        });
+        this.kick();
+    }
+
+    /**
      * Undo of the proposal `id` of the round.
      */
     async withdraw(id, roundId) {
         const item = this.items.get(id);
+
+        // Its puzzle change goes too - a withdrawn proposal has no choice to change (v2 C3)
+        if (this.items.has(id + PUZZLES_SUFFIX) && this.inFlight !== id + PUZZLES_SUFFIX) {
+            await this.remove(id + PUZZLES_SUFFIX);
+        }
 
         if (item !== undefined && item.action === 'propose') {
             if (this.inFlight === id) {
@@ -384,7 +486,8 @@ export class ProposalOutbox {
             return;
         }
 
-        const items = this.own();
+        // A puzzle change waiting for its tap goes with the tap - it never plans a run of its own (v2 C3)
+        const items = this.own().filter((item) => !(item.action === 'puzzles' && this.items.has(item.proposalId)));
 
         if (this.timer !== null) {
             this.cancelFn(this.timer);
@@ -437,13 +540,16 @@ export class ProposalOutbox {
     }
 
     async sendDue() {
-        for (const item of this.own()) {
+        for (const listed of this.own()) {
             if (this.closed || this.blocked !== null) {
                 return;
             }
 
-            // Undone meanwhile, or not due yet
-            if (!this.items.has(item.id) || item.nextAttemptAt > this.now()) {
+            // As it is now (a choice may have changed in place meanwhile - v2 C3)
+            const item = this.items.get(listed.id);
+
+            // Undone meanwhile, or not due yet - a puzzle change only once its tap reached the server (v2 C3)
+            if (item === undefined || item.nextAttemptAt > this.now() || (item.action === 'puzzles' && this.items.has(item.proposalId))) {
                 continue;
             }
 
@@ -459,18 +565,35 @@ export class ProposalOutbox {
 
             this.inFlight = null;
             const current = this.items.get(item.id) ?? item;
+            const proposalId = item.action === 'puzzles' ? item.proposalId : item.id;
+
+            // A `puzzles` item changed while it was being sent: the newer choice goes next, this answer is old (v2 C3)
+            if (item.action === 'puzzles' && this.items.has(item.id) && (current.chosenAtMs !== item.chosenAtMs || !sameChoice(current.puzzles, item.puzzles))
+                && (answer?.kind === 'ok' || answer?.kind === 'refused')) {
+                continue;
+            }
 
             if (answer?.kind === 'ok') {
                 await this.remove(item.id);
 
                 if (current.withdrawAfter && current.action === 'propose' && answer.data?.status !== 'withdrawn') {
                     await this.put({ id: item.id, action: 'withdraw', userId: this.userId, roundId: item.roundId, createdAt: this.now(), attempts: 0, nextAttemptAt: 0, offline: false });
+                } else if (current.action === 'propose' && answer.data?.status === 'known' && answer.data.proposal?.status === 'pending'
+                    && !this.items.has(item.id + PUZZLES_SUFFIX) && !sameChoice(current.puzzles, answer.data.proposal.puzzles)) {
+                    // A resend never changes the stored choice: the phone's (changed meanwhile) goes as a change
+                    await this.setPuzzles(item.id, item.roundId, current.puzzles ?? null, current.chosenAtMs ?? null);
                 }
 
-                this.onAnswer(item.roundId, { kind: answer.data.status, action: item.action, proposal: answer.data.proposal ?? null, proposalId: item.id });
+                this.onAnswer(item.roundId, {
+                    kind: answer.data.status,
+                    action: item.action,
+                    proposal: answer.data.proposal ?? null,
+                    proposalId,
+                    ...(typeof answer.data.puzzlesRefused === 'string' ? { puzzlesRefused: answer.data.puzzlesRefused, puzzlesMessage: answer.data.puzzlesMessage ?? null } : {}),
+                });
             } else if (answer?.kind === 'refused') {
                 await this.remove(item.id);
-                this.onAnswer(item.roundId, { kind: 'refused', action: item.action, reason: answer.reason, message: answer.message, proposal: answer.proposal ?? null, proposalId: item.id });
+                this.onAnswer(item.roundId, { kind: 'refused', action: item.action, reason: answer.reason, message: answer.message, proposal: answer.proposal ?? null, proposalId });
             } else if (answer?.kind === 'auth' || answer?.kind === 'csrf') {
                 // Signed out or a stale page: everything stays on the phone until the page is loaded again
                 this.blocked = answer.kind;

@@ -43,7 +43,7 @@ import { finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, s
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 import { myTablesOf, parseTables, recentMine, splitMine, todo, withMyTables } from '../live_entry_my_tables.js';
-import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
+import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -201,6 +201,8 @@ export default class extends Controller {
         // A pick round (toolkit C10): the open entry's puzzle choice (round puzzle ids, solving order); the find view's
         // "Puzzle missing" list on/off
         this.choice = [];
+        // v2 C3: the choice shown is the pending proposal's, untouched by the judge (a push may update it)
+        this.choiceFromProposal = false;
         this.missingOnly = false;
         // My tables on this phone (judge-speed J3): this event's {text, on, ranges} or null, read once per event; Recent
         // of every table after a tap on "+ N at other tables" (until a card opens)
@@ -835,7 +837,9 @@ export default class extends Controller {
         this.openEntry(draft.ref);
 
         if (Array.isArray(draft.choice)) {
+            // The draft's choice wins over a proposal's (v2 C3)
             this.choice = choiceOf(pickFormat(this.round), draft.choice.map((roundPuzzleId) => ({ roundPuzzleId })));
+            this.choiceFromProposal = false;
         }
 
         // Change on a proposal: its Save still confirms it (toolkit C9)
@@ -1846,7 +1850,7 @@ export default class extends Controller {
                 exact: false,
                 result: { value: proposalValue(proposal) },
                 sync: '',
-                note: `${this.age(proposal.receivedAtMs, now)}${waitingNote(proposal) ? ` · ${this.t(waitingNote(proposal))}` : ''}`,
+                note: [this.age(proposal.receivedAtMs, now), proposalChoiceLabels(pickFormat(this.round), proposal), waitingNote(proposal) ? this.t(waitingNote(proposal)) : null].filter(Boolean).join(' · '),
             }));
 
             return;
@@ -1997,6 +2001,13 @@ export default class extends Controller {
         }
 
         this.clearButtonTarget.disabled = shown.value === null || shown.value === undefined;
+
+        // A proposal push (its puzzles changed, it was decided) while the chips still show its choice untouched (v2 C3) -
+        // never under a judge who tapped a chip, typed pieces or is on the confirm step
+        if (this.choiceFromProposal && this.view === 'entry' && this.piecesFormTarget.classList.contains('lr-hidden')) {
+            this.applyProposalChoice(entry, true);
+        }
+
         this.renderPuzzles(entry, items);
         this.renderSplits(entry, items);
         this.renderProposal(entry, items);
@@ -2284,9 +2295,12 @@ export default class extends Controller {
                     ${chip.hidden ? `<i class="bi bi-lock" title="${escapeHtml(this.t('puzzleHidden'))}" aria-label="${escapeHtml(this.t('puzzleHidden'))}"></i>` : ''}
                 </button>`).join('');
             const head = format.toSolve > 1 ? this.t('puzzlesPickK', { '%count%': format.toSolve }) : this.t('puzzlesPickOne');
+            // What the competitor's phone said (v2 C3)
+            const note = proposalChoiceNote(format, this.choice, this.proposalsOn ? proposalOfEntry(this.proposals, entry.ref) : null, this.choiceFromProposal);
             const canSaveChoice = !confirming && fields.some((field) => field.field === 'puzzles') && (record !== null || this.choice.length === 0);
 
             html = `<div class="small fw-medium mb-1${missing ? ' text-warning-emphasis' : ' text-muted'}">${escapeHtml(missing ? this.t('puzzlesMissingNote') : head)}</div>
+                ${note !== null ? `<div class="small fw-semibold text-info-emphasis mb-1" data-proposal-choice="${note.key}">${escapeHtml(this.t(note.key, { '%labels%': note.labels ?? '' }))}</div>` : ''}
                 <div class="lr-chips">${chips}</div>
                 ${canSaveChoice ? `<button type="button" class="btn btn-outline-primary w-100 mt-2" data-action="live-results#saveChoice">${escapeHtml(this.t('puzzlesSave'))}</button>` : ''}`;
         }
@@ -2792,7 +2806,9 @@ export default class extends Controller {
         // A pick round: the choice known (the server's, this device's waiting or refused one) is preselected
         const format = pickFormat(this.round);
         const record = format === null ? null : shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value;
+        // ... completed from the pending proposal's puzzles (v2 C3) - shown only, Confirm or Save sends it
         this.choice = choiceOf(format, record);
+        this.applyProposalChoice(entry, true);
         this.showTimeForm();
 
         // A refused result opens with the refused value, ready to fix
@@ -3008,6 +3024,7 @@ export default class extends Controller {
 
         if (gate.choice !== null) {
             this.choice = gate.choice;
+            this.choiceFromProposal = false;
         }
 
         return false;
@@ -3293,6 +3310,18 @@ export default class extends Controller {
         return pick !== null && pick.result !== null ? pick.notDone : null;
     }
 
+    /**
+     * The card's choice: the record shown (the server's, this device's waiting or refused one), completed from the
+     * entry's pending proposal while untouched by the judge (competition toolkit v2 C3, choiceAfterProposal()).
+     */
+    applyProposalChoice(entry, untouched) {
+        const format = pickFormat(this.round);
+        const proposal = format !== null && this.proposalsOn ? proposalOfEntry(this.proposals, entry.ref) : null;
+        const next = choiceAfterProposal(format, this.choice, untouched, format === null ? null : shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value, proposal);
+        this.choice = next.choice;
+        this.choiceFromProposal = next.fromProposal;
+    }
+
     pickPuzzle(event) {
         const format = pickFormat(this.round);
         const entry = this.openRef !== null ? this.entry(this.openRef) : null;
@@ -3303,6 +3332,7 @@ export default class extends Controller {
 
         const before = this.choice;
         this.choice = togglePick(this.choice, event.currentTarget.dataset.id, format.toSolve);
+        this.choiceFromProposal = false;
         this.openPuzzles = openAfterPick(before, this.choice, this.openPuzzles);
         this.proposalNeedsChoice = false;
 
@@ -3510,6 +3540,7 @@ export default class extends Controller {
         this.splitNote = null;
         this.splitEditing = null;
         this.choice = step.choice;
+        this.choiceFromProposal = false;
 
         if (step.finishes) {
             // The card's `from` fresh from the server now (the snapshot of the entry's opening would read as "Saved meanwhile")

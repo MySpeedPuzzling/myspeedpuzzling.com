@@ -18,6 +18,10 @@
 
 import { shownValue, sameValue } from './official_results_live.js';
 import { total, unfinishedMaximum, validate } from './official_results_puzzles.js';
+import { togglePick } from './round_puzzle_pick.js';
+
+// A tap on a chip (see the header) - the rule is shared with the competitor's page (competition toolkit v2 C3)
+export { togglePick };
 
 /**
  * The round's `puzzleFormat` when it is a pick round, else null (a `total` round has no choice).
@@ -44,20 +48,23 @@ export function choiceOf(format, record) {
 }
 
 /**
- * A tap on a chip (see the header).
+ * The card's choice with a pending proposal's (competition toolkit v2 C3): `proposalIds` = the proposal's `puzzles`
+ * (round puzzle ids, solving order - only of the round, at most K). Nothing chosen on the card, or a choice that is
+ * the start of the proposal's → the proposal's (`fromProposal`); else the card's choice stays - the judge's own record
+ * wins (`differs`). Never saves anything: Confirm or Save does, with the chips shown.
+ *
+ * @returns {{choice: string[], fromProposal: boolean, differs: boolean}}
  */
-export function togglePick(choice, id, toSolve) {
-    const tapped = key(id);
+export function choiceWithProposal(format, choice, proposalIds) {
+    const proposed = format === null || !Array.isArray(proposalIds) ? [] : choiceOf(format, proposalIds.map((roundPuzzleId) => ({ roundPuzzleId }))).slice(0, Math.max(1, format.toSolve));
 
-    if (choice.includes(tapped)) {
-        return choice.filter((picked) => picked !== tapped);
+    if (proposed.length === 0) {
+        return { choice, fromProposal: false, differs: false };
     }
 
-    if (toSolve <= 1) {
-        return [tapped];
-    }
-
-    return choice.length < toSolve ? [...choice, tapped] : [...choice.slice(0, toSolve - 1), tapped];
+    return choice.length <= proposed.length && choice.every((id, index) => id === proposed[index])
+        ? { choice: proposed, fromProposal: true, differs: false }
+        : { choice, fromProposal: false, differs: true };
 }
 
 function safeImage(url) {

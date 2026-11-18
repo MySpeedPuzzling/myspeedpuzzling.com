@@ -11,9 +11,10 @@ import {
     PROPOSALS_LOCK,
     proposalBody,
     proposalRequest,
+    puzzlesBody,
 } from '../competitor_proposals_outbox.js';
 import { CompetitorHeartbeat, sendHeartbeat } from '../competitor_heartbeat.js';
-import { currentProposal, NONE, proposalPanel, waitsForJudge } from '../competitor_proposals_view.js';
+import { choiceOfPlaces, choiceWire, currentProposal, NONE, pickOf, proposalPanel, togglePick, waitsForJudge } from '../competitor_proposals_view.js';
 
 const FETCH_TIMEOUT_MS = 10000;
 const PHASE_CLASSES = ['is-phase-idle', 'is-phase-scheduled', 'is-phase-running', 'is-phase-times_up', 'is-phase-stopped'];
@@ -44,6 +45,11 @@ const NIL_ID = '00000000-0000-0000-0000-000000000000';
  * tap still waits on the phone) the page beats every 15 s to `heartbeat-url` with the round's signed token
  * (assets/competitor_heartbeat.js) - started only once the outbox was read, so a reloaded page never reports
  * "nothing unsent" over a tap it still holds.
+ *
+ * v2 C3 - puzzle choice on a `pick` round (`puzzles-url`): optional chips in the "Propose?" sheet go with the tap (the
+ * tap's moment stays the one read at Stop); while it waits "Change puzzles" / "Tell the judge which puzzle" opens the
+ * chips again, Save hands the choice to the outbox (in place while the tap is on the phone, else a change after it).
+ * A change refused because the round's puzzles changed fetches the state and opens the chips again with the message.
  */
 export default class extends Controller {
     static values = {
@@ -58,6 +64,7 @@ export default class extends Controller {
         viewer: String,
         proposalLabels: Object,
         heartbeatUrl: String,
+        puzzlesUrl: String,
     };
 
     connect() {
@@ -70,6 +77,9 @@ export default class extends Controller {
         this.outbox = null;
         this.answers = new Map();
         this.confirming = new Map();
+        // v2 C3, per round: "Change puzzles" open {proposalId, choice, message}; the last answer to a puzzle change
+        this.choosing = new Map();
+        this.choiceAnswers = new Map();
         this.slotKeys = new WeakMap();
         this.waiting = false;
         this.heartbeat = null;
@@ -148,9 +158,17 @@ export default class extends Controller {
         window.addEventListener('beforeunload', this.onBeforeUnload);
 
         // Every request names the tap's player - another one signed in meanwhile is refused nothing of it (D1)
-        const send = (item) => item.action === 'withdraw'
-            ? proposalRequest(this.withdrawUrlValue.replace(NIL_ID, item.id), { expectedPlayerId: item.userId }, this.csrfTokenValue)
-            : proposalRequest(this.proposeUrlValue.replace(NIL_ID, item.roundId), proposalBody(item, this.tapNowMs()), this.csrfTokenValue);
+        const send = (item) => {
+            if (item.action === 'withdraw') {
+                return proposalRequest(this.withdrawUrlValue.replace(NIL_ID, item.id), { expectedPlayerId: item.userId }, this.csrfTokenValue);
+            }
+
+            if (item.action === 'puzzles') {
+                return proposalRequest(this.puzzlesUrlValue.replace(NIL_ID, item.proposalId), puzzlesBody(item), this.csrfTokenValue);
+            }
+
+            return proposalRequest(this.proposeUrlValue.replace(NIL_ID, item.roundId), proposalBody(item, this.tapNowMs()), this.csrfTokenValue);
+        };
 
         createProposalsStorage().catch(() => null).then((storage) => {
             if (this.live === null) {
@@ -162,14 +180,31 @@ export default class extends Controller {
                 send,
                 userId: this.viewerValue,
                 lock: createTabLock(PROPOSALS_LOCK),
-                onAnswer: (roundId, answer) => {
-                    this.answers.set(roundId.toLowerCase(), answer);
-                    this.drawProposals();
-                },
+                onAnswer: (roundId, answer) => this.onAnswer(roundId.toLowerCase(), answer),
                 onChange: () => this.drawProposals(),
             });
             this.outbox.load().catch(() => {}).then(() => this.startHeartbeat());
         });
+    }
+
+    onAnswer(roundId, answer) {
+        if (answer.action === 'puzzles') {
+            // v2 C3: kept apart - the tap's own answer stays what the slot says about the time
+            this.choiceAnswers.set(roundId, { ...answer, atMs: this.tapNowMs() });
+
+            if (answer.kind === 'refused' && answer.reason === 'puzzles_changed') {
+                this.choosing.set(roundId, { proposalId: answer.proposalId, choice: [], message: answer.message ?? null });
+            }
+        } else {
+            this.answers.set(roundId, answer);
+        }
+
+        // The round's puzzles changed, or a choice is stored: the state at once
+        if (answer.kind === 'chosen' || answer.reason === 'puzzles_changed' || answer.puzzlesRefused === 'puzzles_changed') {
+            this.live?.requestRefresh(1000);
+        }
+
+        this.drawProposals();
     }
 
     /**
@@ -260,7 +295,34 @@ export default class extends Controller {
         if (action === 'stop') {
             this.answers.delete(roundId);
             // What the tap's time rests on, at the tap (T2) - and whether the browser knew it was offline
-            this.confirming.set(roundId, { tappedAtMs, sample: this.live.clockSample(), offline: navigator.onLine === false });
+            this.confirming.set(roundId, { tappedAtMs, sample: this.live.clockSample(), offline: navigator.onLine === false, choice: [] });
+        } else if (action === 'pick') {
+            // v2 C3: a chip - in the "Propose?" sheet (the tap's moment untouched) or in "Change puzzles"
+            const pick = pickOf(round);
+            const open = this.confirming.has(roundId) ? this.confirming : this.choosing;
+            const current = open.get(roundId);
+
+            if (pick !== null && current !== undefined) {
+                open.set(roundId, { ...current, choice: togglePick(current.choice ?? [], button.dataset.competitorPick ?? '', pick.toSolve) });
+            }
+        } else if (action === 'choose') {
+            const pick = pickOf(round);
+            const panel = this.panelOf(round, this.live.serverNow());
+
+            if (pick !== null && panel.choice !== null) {
+                this.choosing.set(roundId, { proposalId: panel.choice.proposalId, choice: choiceOfPlaces(pick, panel.choice.places), message: null });
+            }
+        } else if (action === 'choose-cancel') {
+            this.choosing.delete(roundId);
+        } else if (action === 'choose-save') {
+            const open = this.choosing.get(roundId);
+            const pick = pickOf(round);
+            this.choosing.delete(roundId);
+
+            if (open !== undefined && pick !== null && this.outbox !== null) {
+                this.choiceAnswers.delete(roundId);
+                this.outbox.setPuzzles(open.proposalId, round.roundId, choiceWire(pick, open.choice), tappedAtMs).catch(() => {});
+            }
         } else if (action === 'cancel') {
             this.confirming.delete(roundId);
         } else if (action === 'confirm') {
@@ -268,6 +330,7 @@ export default class extends Controller {
             this.confirming.delete(roundId);
 
             if (tap && this.outbox !== null && typeof round.entry?.entry === 'string') {
+                const pick = pickOf(round);
                 this.outbox.propose({
                     roundId: round.roundId,
                     entry: round.entry.entry,
@@ -277,6 +340,8 @@ export default class extends Controller {
                     offsetSampleAgeMs: tap.sample.sampleAgeMs,
                     offline: tap.offline,
                     stateHash: round.stopwatch?.stateHash ?? null,
+                    // v2 C3: the chips chosen, if any - never holds the tap back
+                    puzzles: pick !== null ? choiceWire(pick, tap.choice ?? []) : null,
                 }).catch(() => {});
             }
         } else if (action === 'undo' && this.outbox !== null) {
@@ -285,6 +350,7 @@ export default class extends Controller {
             const id = item?.action === 'propose' ? item.id : (proposal?.status === 'pending' ? proposal.id : null);
 
             if (id !== null) {
+                this.choosing.delete(roundId);
                 this.outbox.withdraw(id, round.roundId).catch(() => {});
             }
         }
@@ -324,16 +390,7 @@ export default class extends Controller {
                 continue;
             }
 
-            const id = round.roundId.toLowerCase();
-            const item = this.outbox?.itemOf(round.roundId) ?? null;
-            const panel = this.outbox === null ? NONE : proposalPanel({
-                round,
-                nowMs,
-                item,
-                blocked: this.outbox.blocked,
-                answer: this.answers.get(id) ?? null,
-                confirming: this.confirming.get(id) ?? null,
-            });
+            const panel = this.panelOf(round, nowMs);
             panels.push(panel);
 
             const slot = card.querySelector('[data-competitor-round-actions]');
@@ -353,6 +410,33 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * What the round's slot shows now (proposalPanel()).
+     */
+    panelOf(round, nowMs) {
+        if (this.outbox === null) {
+            return NONE;
+        }
+
+        const id = round.roundId.toLowerCase();
+        const item = this.outbox.itemOf(round.roundId);
+        const proposal = currentProposal(round.proposal ?? null, this.answers.get(id)?.proposal ?? null);
+        const pendingId = item?.action === 'propose' ? item.id : (proposal?.status === 'pending' ? proposal.id : null);
+
+        return proposalPanel({
+            round,
+            nowMs,
+            item,
+            blocked: this.outbox.blocked,
+            answer: this.answers.get(id) ?? null,
+            confirming: this.confirming.get(id) ?? null,
+            choiceItem: pendingId !== null ? this.outbox.choiceItemOf(pendingId) : null,
+            choiceAnswer: this.choiceAnswers.get(id) ?? null,
+            choosing: this.choosing.get(id) ?? null,
+            stateAtMs: typeof this.live?.state?.serverNowMs === 'number' ? this.live.state.serverNowMs : null,
+        });
+    }
+
     proposalLabel(key, values = {}) {
         let text = (this.proposalLabelsValue ?? {})[key] ?? '';
 
@@ -362,6 +446,61 @@ export default class extends Controller {
         }
 
         return text;
+    }
+
+    /**
+     * A label with plain text values (`%labels%`, `%count%`, `%reason%`) - v2 C3.
+     */
+    proposalText(key, values = {}) {
+        let text = (this.proposalLabelsValue ?? {})[key] ?? '';
+
+        for (const [name, value] of Object.entries(values)) {
+            text = text.replace(`%${name}%`, String(value));
+        }
+
+        return text;
+    }
+
+    /**
+     * The chips of a pick round (v2 C3): the question, one big chip per place (label; the name once it is out), the
+     * solving order as a badge.
+     */
+    chipsBlock(pick, button) {
+        const block = document.createElement('div');
+        block.className = 'competitor-pick';
+        block.setAttribute('role', 'group');
+        const question = document.createElement('p');
+        question.className = 'competitor-pick-question';
+        question.textContent = pick.toSolve > 1 ? this.proposalText('puzzles_question_k', { count: pick.toSolve }) : this.proposalText('puzzles_question');
+        block.setAttribute('aria-label', question.textContent);
+        const chips = document.createElement('div');
+        chips.className = 'competitor-pick-chips';
+
+        for (const chip of pick.chips) {
+            const element = button('pick', chip.label, `competitor-pick-chip${chip.order > 0 ? ' is-on' : ''}`);
+            element.dataset.competitorPick = chip.key;
+            element.setAttribute('aria-pressed', String(chip.order > 0));
+
+            if (chip.name !== null) {
+                const name = document.createElement('span');
+                name.className = 'competitor-pick-name';
+                name.textContent = chip.name;
+                element.append(name);
+            }
+
+            if (chip.order > 0 && pick.toSolve > 1) {
+                const order = document.createElement('span');
+                order.className = 'competitor-pick-order';
+                order.textContent = String(chip.order);
+                element.append(order);
+            }
+
+            chips.append(element);
+        }
+
+        block.append(question, chips);
+
+        return block;
     }
 
     drawSlot(slot, panel) {
@@ -394,13 +533,18 @@ export default class extends Controller {
             const help = document.createElement('p');
             help.className = 'small text-muted mb-2';
             help.textContent = this.proposalLabel('confirm_help');
+
+            // v2 C3: optional - Propose is always there; "You can also tell the judge later"
+            if (panel.confirm.pick) {
+                help.textContent += ` ${this.proposalText('puzzles_optional')}`;
+            }
             const actions = document.createElement('div');
             actions.className = 'competitor-propose-sheet-actions';
             actions.append(
                 button('cancel', this.proposalLabel('cancel'), 'btn btn-outline-secondary btn-lg'),
                 button('confirm', this.proposalLabel('confirm'), 'btn btn-success btn-lg'),
             );
-            sheet.append(question, help, actions);
+            sheet.append(question, ...(panel.confirm.pick ? [this.chipsBlock(panel.confirm.pick, button)] : []), help, actions);
             slot.append(sheet);
             sheet.querySelector('[data-competitor-propose="confirm"]')?.focus({ preventScroll: true });
 
@@ -430,7 +574,44 @@ export default class extends Controller {
                 status.textContent += ` ${this.proposalLabel(`reason_${panel.status.reason}`) || this.proposalLabel('reason_other')}`;
             }
 
+            // v2 C3: the puzzles said with it
+            if (typeof panel.status.puzzles === 'string') {
+                status.textContent += ` · ${this.proposalText(panel.status.sending ? 'puzzles_saving' : 'puzzles_shown', { labels: panel.status.puzzles })}`;
+            }
+
             slot.append(status);
+
+            if (typeof panel.status.notSent === 'string') {
+                const notSent = document.createElement('p');
+                notSent.className = 'small text-danger mb-0 text-center';
+                notSent.dataset.competitorPuzzlesNotSent = '';
+                notSent.textContent = this.proposalText('puzzles_not_sent', { reason: panel.status.notSent });
+                slot.append(notSent);
+            }
+        }
+
+        if (panel.choice?.edit) {
+            const sheet = document.createElement('div');
+            sheet.className = 'competitor-propose-sheet';
+            sheet.append(this.chipsBlock(panel.choice.edit, button));
+
+            if (panel.choice.edit.message) {
+                const message = document.createElement('p');
+                message.className = 'small text-danger mb-2';
+                message.textContent = panel.choice.edit.message;
+                sheet.append(message);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'competitor-propose-sheet-actions';
+            actions.append(
+                button('choose-cancel', this.proposalText('puzzles_cancel'), 'btn btn-outline-secondary btn-lg'),
+                button('choose-save', this.proposalText('puzzles_save'), 'btn btn-success btn-lg'),
+            );
+            sheet.append(actions);
+            slot.append(sheet);
+        } else if (panel.choice?.link) {
+            slot.append(button('choose', this.proposalText(panel.choice.link), 'btn btn-outline-primary btn-sm competitor-pick-link'));
         }
 
         if (panel.undo) {

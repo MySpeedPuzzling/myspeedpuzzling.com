@@ -18,7 +18,7 @@
  */
 
 import { sameValue, shownValue } from './official_results_live.js';
-import { saveFields } from './live_entry_puzzles.js';
+import { choiceOf, choiceWithProposal, describeChoice, saveFields } from './live_entry_puzzles.js';
 
 const STATUSES = ['pending', 'confirmed', 'rejected', 'superseded', 'withdrawn'];
 export const REJECT_REASONS = ['not_finished', 'wrong_entry', 'other'];
@@ -195,6 +195,56 @@ export function proposalNotes(proposal) {
  */
 export function waitingNote(proposal) {
     return proposalTiming(proposal).verdict === 'suspicious' ? 'proposalCheck' : null;
+}
+
+/**
+ * The card's puzzle choice with the entry's proposal (competition toolkit v2 C3): while the card's choice is untouched
+ * by the judge (`untouched` - just opened, or still the proposal's) the record's choice completed from the pending
+ * proposal again (a push may change it, a decision drops it); a choice the judge made - a chip, a split, a restored
+ * draft - is never overwritten. Nothing is saved here.
+ *
+ * @returns {{choice: string[], fromProposal: boolean}}
+ */
+export function choiceAfterProposal(format, current, untouched, record, proposal) {
+    if (!untouched || format === null) {
+        return { choice: current, fromProposal: false };
+    }
+
+    const next = choiceWithProposal(format, choiceOf(format, record), proposal?.status === 'pending' ? proposal.puzzles : null);
+
+    return { choice: next.choice, fromProposal: next.fromProposal };
+}
+
+/**
+ * The puzzles a pending proposal names (competition toolkit v2 C3) as labels - "B → A" - or null (none, not a pick
+ * round, decided).
+ */
+export function proposalChoiceLabels(format, proposal) {
+    const ids = format !== null && proposal?.status === 'pending' && Array.isArray(proposal.puzzles) ? choiceOf(format, proposal.puzzles.map((roundPuzzleId) => ({ roundPuzzleId }))) : [];
+
+    return ids.length === 0 ? null : describeChoice(format, ids.map((roundPuzzleId) => ({ roundPuzzleId })));
+}
+
+/**
+ * The line over the card's chips about the phone's choice: "Chosen on their phone - check" while the chips show it
+ * untouched, "Their phone says: B → A" while they show something else, else null.
+ *
+ * @returns {null|{key: 'proposalChoiceNote'}|{key: 'proposalChoiceDiffers', labels: string}}
+ */
+export function proposalChoiceNote(format, choice, proposal, fromProposal) {
+    const labels = proposalChoiceLabels(format, proposal);
+
+    if (labels === null) {
+        return null;
+    }
+
+    if (fromProposal) {
+        return { key: 'proposalChoiceNote' };
+    }
+
+    const proposed = choiceOf(format, proposal.puzzles.map((roundPuzzleId) => ({ roundPuzzleId })));
+
+    return proposed.length === choice.length && proposed.every((id, index) => id === choice[index]) ? null : { key: 'proposalChoiceDiffers', labels };
 }
 
 /**

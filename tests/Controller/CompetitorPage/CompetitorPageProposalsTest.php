@@ -51,6 +51,10 @@ final class CompetitorPageProposalsTest extends WebTestCase
         /** @var array<string, string> $labels */
         $labels = json_decode((string) $root->attr('data-competitor-page-proposal-labels-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame('Propose %time%?', $labels['confirm_question'] ?? null);
+        // v2 C3: the puzzle choice's endpoint and texts
+        self::assertSame('/en/competitor-proposals/00000000-0000-0000-0000-000000000000/puzzles', $root->attr('data-competitor-page-puzzles-url-value'));
+        self::assertSame('Change puzzles', $labels['puzzles_change'] ?? null);
+        self::assertSame('Your time was sent - the puzzle choice was not: %reason%', $labels['puzzles_not_sent'] ?? null);
 
         $final = $this->stateRound($this->pageState($crawler), F::ROUND_FINAL);
         self::assertTrue($final['canPropose']);

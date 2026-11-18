@@ -378,6 +378,11 @@ Only for a competition with `time_proposals` on (Competitor pages & QR card; des
   pending **and confirmed** proposals. Outcomes then carry `proposal: {id, status}`. A replay touches nothing. With proposals off the
   resolver runs no statement (`RecordRoundResultsStatementPinTest`), a `proposal` change is `proposals_off`.
 - A stopwatch **reset** supersedes the round's pending proposals (`stopwatch_reset`).
+- **Puzzle choice** (competition toolkit v2 C2): on a `pick` round a proposal may carry the competitor's puzzle choice
+  (`puzzle_choice`, `puzzles` with the tap or `POST /{_locale}/competitor-proposals/{proposalId}/puzzles` →
+  `ChangeTimeProposalPuzzles`, answer status `chosen`) - competitor-pages.md "Puzzle choice with the proposal". The
+  judges' `TimeProposalView` carries `puzzles: [roundPuzzleId, …]` only when there is one; the judge's Confirm still
+  sends the `puzzles` change in the group (C10) - the server never copies the choice onto the entry.
 - **Reads**: the round state carries `proposals` (pending + decided in the last 10 minutes, `TimeProposalView`) only
   while the competition has them on; team entries carry `lineupId` while competitor pages or a QR tag mode is set.
 - **Live**: `official_results.proposals {roundId, proposals}` on both round topics (identical payload - the participant

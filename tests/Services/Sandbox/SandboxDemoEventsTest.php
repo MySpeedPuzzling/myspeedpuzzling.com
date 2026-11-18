@@ -127,7 +127,7 @@ SQL, ['first' => $block['id'], 'next' => $nextBlock['id']]));
         self::assertGreaterThan(0, $this->rowCount("SELECT COUNT(*) FROM competition_participant_round cpr JOIN competition_division d ON d.id = cpr.division_id WHERE cpr.round_id = :id AND d.name = :junior", ['id' => $solo['id'], 'junior' => SandboxDemoEventDefinitions::JUNIOR]));
         self::assertSame(16, $this->rowCount('SELECT COUNT(*) FROM competition_team WHERE round_id = :id AND division_id IS NOT NULL', ['id' => $this->round($carnival, '500 PAIRS')['id']]));
 
-        // Carnival Saturday published; OPEN #1 shares CHALLENGE's puzzle - or says what is missing
+        // Carnival Saturday published; OPEN #1 shares CHALLENGE's puzzle (shared puzzles S2)
         self::assertNotNull($this->round($carnival, '1000 Teams')['results_published_at']);
         $open = $this->round($carnival, '500 Teams OPEN #1');
         self::assertSame(20, $this->teamResults($open['id']));
@@ -138,11 +138,8 @@ JOIN competition_round_puzzle b ON b.puzzle_id = a.puzzle_id AND b.round_id = :o
 WHERE a.round_id = :challenge
 SQL, ['open' => $open['id'], 'challenge' => $this->round($carnival, '500 Teams CHALLENGE')['id']]);
 
-        if ($shared === 0) {
-            self::assertNotEmpty(array_filter($lines, static fn (string $line): bool => str_starts_with($line, 'TODO: "500 Teams OPEN #1"')));
-        } else {
-            self::assertSame(1, $shared);
-        }
+        self::assertSame(1, $shared);
+        self::assertSame([], array_values(array_filter($lines, static fn (string $line): bool => str_starts_with($line, 'TODO:'))));
 
         self::assertNotEmpty(array_filter($lines, static fn (string $line): bool => str_contains($line, '/en/events/' . SandboxDemoEventDefinitions::SPWS_SLUG)));
 

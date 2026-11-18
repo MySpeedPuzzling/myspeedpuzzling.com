@@ -70,9 +70,13 @@ export function candidates(format, record, choice) {
  * while the entry has no result - the candidates (`tap` while the stopwatch runs, `edit` = a typed time). `show` is
  * false when there is nothing to show (no split yet and nothing to tap) - the card stays as it was.
  *
- * @returns {{show: boolean, rows: {id: string, label: string, order: number, done: boolean, at: number|null, own: number|null, tap: boolean, edit: boolean}[]}}
+ * `known` = this device's outbox has been read (IndexedDB, after a reload): until then the record shown may lack a split
+ * that waits on the device, so every row is `waiting` - its buttons are there but disabled (a tap would record a second,
+ * wrong split over the waiting one).
+ *
+ * @returns {{show: boolean, rows: {id: string, label: string, order: number, done: boolean, at: number|null, own: number|null, tap: boolean, edit: boolean, waiting: boolean}[]}}
  */
-export function splitRows(format, record, choice, result, running) {
+export function splitRows(format, record, choice, result, running, known = true) {
     if (format === null) {
         return { show: false, rows: [] };
     }
@@ -91,11 +95,12 @@ export function splitRows(format, record, choice, result, running) {
         tap: false,
         // The last split of a finished entry is its result - the time field changes both
         edit: !(finishedTime(result) && index === done.length - 1 && done.length === format.toSolve),
+        waiting: known !== true,
     }));
 
     if (!resultSet) {
         for (const id of candidates(format, items, choice)) {
-            rows.push({ id, label: labels.get(id) ?? '?', order: 0, done: false, at: null, own: null, tap: running === true, edit: true });
+            rows.push({ id, label: labels.get(id) ?? '?', order: 0, done: false, at: null, own: null, tap: running === true, edit: true, waiting: known !== true });
         }
     }
 
@@ -109,9 +114,13 @@ export function splitRows(format, record, choice, result, running) {
  * and the card's choice. `finishes` = it is the K-th puzzle: the record goes with the round's result (the confirm
  * step), `choice` is then the solving order to confirm. `refusal` = an official_results.reason.* key, never sent.
  *
+ * `tapped` = a "Finished now" tap (not a typed time): a puzzle already finished - saved, or waiting on this device - is
+ * never overwritten by a tap (`already_finished`: a stale button, or one painted before the outbox was read); only a
+ * typed time corrects a split.
+ *
  * @returns {{record: object[]|null, choice: string[], finishes: boolean, refusal: string|null}}
  */
-export function splitStep(format, record, choice, id, seconds, result) {
+export function splitStep(format, record, choice, id, seconds, result, tapped = false) {
     const target = key(id);
     const items = list(record).map((item) => ({ ...item }));
     const done = items.filter((item) => item.done === true);
@@ -122,6 +131,10 @@ export function splitStep(format, record, choice, id, seconds, result) {
     }
 
     const index = done.findIndex((item) => key(item.roundPuzzleId) === target);
+
+    if (index !== -1 && tapped === true) {
+        return refuse('already_finished');
+    }
 
     if (index !== -1) {
         // A correction of a split already recorded - the result stays (never the last one of a finished entry)

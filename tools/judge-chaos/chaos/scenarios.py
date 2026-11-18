@@ -1096,6 +1096,30 @@ def splits_text(browser):
                       'return el && !el.hidden ? el.textContent.replace(/\\s+/g, " ").trim() : null')
 
 
+SPLIT_PUZZLE_1 = '018d0099-0000-0000-0000-000000000012'
+
+# From the first moment of the reloaded page: records every time puzzle 1's "Finished now" is ENABLED while its waiting
+# split is not on the card (a tap then would record a second, wrong split - the W5 offline-reload defect)
+SPLIT_WATCH_JS = r"""
+(() => {
+    window.__s14 = {enabledBeforeSplit: [], firstSplitAtMs: null, checks: 0};
+    const look = () => {
+        const box = document.querySelector('[data-live-results-target="splits"]');
+        if (!box || box.hidden) { return; }
+        window.__s14.checks++;
+        const shown = box.textContent.includes('\u2713');
+        if (shown && window.__s14.firstSplitAtMs === null) { window.__s14.firstSplitAtMs = Math.round(performance.now()); }
+        const button = box.querySelector('[data-action="live-results#finishPuzzle"][data-id="%s"]');
+        if (button && !button.disabled && !shown) {
+            window.__s14.enabledBeforeSplit.push({atMs: Math.round(performance.now()), text: box.textContent.replace(/\s+/g, ' ').trim()});
+        }
+    };
+    new MutationObserver(look).observe(document, {subtree: true, childList: true, attributes: true, characterData: true});
+    setInterval(look, 10);
+})();
+""" % SPLIT_PUZZLE_1
+
+
 def s14_puzzle_splits(context):
     """14. Real events W5 - "Finished now" per puzzle on a "Solve all 2" round: puzzle 1 tapped OFFLINE, a reload while
     offline (the card comes back with the waiting split), back online (sent), puzzle 2 tapped online → confirm → Save =
@@ -1128,13 +1152,20 @@ def s14_puzzle_splits(context):
     context['evidence']['outbox_offline'] = waiting
     check(len(waiting) == 1 and waiting[0]['field'] == 'puzzles', 'offline after the tap: outbox %s' % waiting)
     time.sleep(wait_s)
+    watch = browser.cdp('Page.addScriptToEvaluateOnNewDocument', {'source': SPLIT_WATCH_JS})
     browser.driver.refresh()
     restored = browser.wait(lambda: (lambda i: i if i['entry'] else None)(browser.info()), timeout=20,
                             message='the card of %d after the offline reload' % SPLIT_TABLE)
-    rows_after_reload = splits_text(browser)
+    # The waiting split comes from the outbox (IndexedDB) - wait for it, then ask the watcher what the page offered before
+    rows_after_reload = browser.wait(lambda: (lambda text: text if text and '✓' in text else None)(splits_text(browser)),
+                                     timeout=15, interval=0.1, message='the waiting split of puzzle 1 on the card after the offline reload')
+    watched = browser.js('return window.__s14 || null')
+    browser.cdp('Page.removeScriptToEvaluateOnNewDocument', {'identifier': watch['identifier']})
     shots.append(browser.shot('s14-3-after-offline-reload'))
-    context['evidence']['after_reload'] = {'entryName': restored['entryName'], 'splits': rows_after_reload}
-    check(rows_after_reload is not None and '✓' in rows_after_reload, 'after the reload the card shows no recorded split: %r' % rows_after_reload)
+    context['evidence']['after_reload'] = {'entryName': restored['entryName'], 'splits': rows_after_reload, 'watch': watched}
+    check(watched is not None and watched['checks'] > 0, 'the page watcher did not run: %r' % watched)
+    check(not watched['enabledBeforeSplit'], 'puzzle 1\'s Finished now was ENABLED before its waiting split showed: %s'
+          % watched['enabledBeforeSplit'][:3])
 
     network_up(proxy, browser)
     browser.wait_saved(60)

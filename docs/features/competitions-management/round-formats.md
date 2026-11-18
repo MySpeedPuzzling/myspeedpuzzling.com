@@ -153,6 +153,12 @@ challenge 2's own time = split₂ − split₁). Pure logic `assets/live_entry_s
   "This finishes the whole round - for one puzzle use its own Finished now" (`finishesWholeRound()`; on a "Solve all 2"
   round this shows until puzzle 1 is tapped); the round button ignores a tap within 350 ms of a split save. The K-th
   split's confirm step takes its `from` fresh from the server (no false "Saved meanwhile").
+- **After a reload the outbox is read first** (fix after chaos `s14`, 2026-11-18): the page paints the card from the
+  server state before IndexedDB answers, so a split waiting on the device was missing and puzzle 1's "Finished now" was
+  live for a moment - a tap would have recorded a second, wrong split. Until the outbox is read (`outboxKnown`) every
+  split row is `waiting` (`splitRows(…, known)`): its buttons are disabled; the per-puzzle and the round's "Finished
+  now" await the read (tap moment kept). A tap on a puzzle already finished - saved or waiting - is refused
+  (`splitStep(…, tapped)` → `already_finished`, ignored); only a typed time corrects a split.
 - **Typed correction:** ✎ on a finished puzzle replaces its split (the record alone, `splits_out_of_order` checked on the
   device first: "That time does not fit the order …"); never the last split of a finished entry - that is the result,
   the time field changes both (the last split follows by `withFinishSplit()`).

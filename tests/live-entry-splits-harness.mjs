@@ -235,6 +235,53 @@ const scenarios = {
         assert.equal(finishesWholeRound(null, null), false, 'not a split round: no note');
     },
 
+    'rows before the outbox is read: every button disabled (waiting), after it the waiting split shows'() {
+        const solveAll = format(2);
+        const before = splitRows(solveAll, null, [P_A], null, true, false);
+        assert.equal(before.show, true);
+        assert.ok(before.rows.every((row) => row.waiting === true), 'not known yet: nothing can be tapped');
+        assert.deepEqual(before.rows.map((row) => [row.id, row.done, row.tap]), [[P_A, false, true], [P_B, false, true]], 'the server alone does not know puzzle 1 is finished');
+
+        const after = splitRows(solveAll, [{ roundPuzzleId: P_A, done: true, atSeconds: 602 }], [P_A], null, true, true);
+        assert.deepEqual(after.rows.map((row) => [row.id, row.done, row.at, row.tap, row.waiting]), [[P_A, true, 602, false, false], [P_B, false, null, true, false]]);
+        // The default (every caller before the flag) is known
+        assert.ok(splitRows(solveAll, null, [], null, true).rows.every((row) => row.waiting === false));
+    },
+
+    'a tap on a puzzle already finished (saved or waiting) never overwrites its split; a typed time still corrects it'() {
+        const solveAll = format(2);
+        const waiting = [{ roundPuzzleId: P_A, done: true, atSeconds: 602 }];
+        assert.deepEqual(splitStep(solveAll, waiting, [P_A], P_A, 700, null, true), { record: null, choice: [P_A], finishes: false, refusal: 'already_finished' });
+        assert.deepEqual(splitStep(solveAll, waiting, [P_A], P_A, 590, null, false).record, [{ roundPuzzleId: P_A, done: true, atSeconds: 590 }], 'typed: a correction');
+        // A tap on the open puzzle is still taken
+        assert.equal(splitStep(solveAll, waiting, [P_A], P_B, 1300, null, true).finishes, true);
+    },
+
+    async 'offline reload: the card is built from the server first, then the stored outbox - the waiting split is found before any tap'() {
+        const solveAll = format(2);
+        const storage = createMemoryStorage();
+        const server = { async send() { return { kind: 'offline' }; } };
+        let ids = 0;
+        const make = () => new Outbox({ storage, userId: 'referee-1', send: (roundId, changes) => server.send(roundId, changes), now: () => 1_800_000_000_000, newId: () => `00000000-0000-4000-8000-${String(++ids).padStart(12, '0')}` });
+        const page1 = make();
+        const first = splitStep(solveAll, null, [], P_A, 602, null, true);
+        await enqueue(page1, [{ field: 'puzzles', to: first.record }]).persisted;
+
+        // The reload: a new page, its outbox not read yet
+        const page2 = make();
+        const anna = entry();
+        assert.deepEqual(page2.all(), []);
+        const painted = splitRows(solveAll, shownValue(anna, 'puzzles', page2.all()).value, first.choice, null, true, false);
+        assert.ok(painted.rows.every((row) => row.waiting), 'first paint: Finished now of puzzle 1 disabled');
+
+        await page2.load();
+        const known = shownValue(anna, 'puzzles', page2.all()).value;
+        assert.deepEqual(known, first.record);
+        const rows = splitRows(solveAll, known, first.choice, null, true, true).rows;
+        assert.deepEqual(rows.map((row) => [row.id, row.done, row.tap]), [[P_A, true, false], [P_B, false, true]]);
+        assert.equal(splitStep(solveAll, known, first.choice, P_A, 640, null, true).refusal, 'already_finished', 'a stale button of puzzle 1 changes nothing');
+    },
+
     async 'offline tap on puzzle 1, online tap on puzzle 2: chained from, one group, exactly once'() {
         const solveAll = format(2);
         const { outbox, server, clock } = setup();

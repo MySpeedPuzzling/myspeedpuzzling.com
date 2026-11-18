@@ -1479,7 +1479,13 @@ export default class extends Controller {
             },
         });
 
-        this.outbox.load().then(async () => {
+        // Until the outbox is read (IndexedDB - after a reload it holds this device's waiting changes) the card's split
+        // rows are not trusted: their buttons stay disabled (real events W5 - a waiting split must never be tapped over)
+        this.outboxKnown = false;
+        this.outboxLoaded = this.outbox.load().finally(() => {
+            this.outboxKnown = true;
+            this.renderSplits();
+        }).then(async () => {
             this.foreign = await this.outbox.foreignCount();
             this.scheduleRender();
             this.flushSoon();
@@ -3017,6 +3023,11 @@ export default class extends Controller {
             return;
         }
 
+        // A split round: the waiting splits of this device decide what the round's time finishes
+        if (splitFormat(this.round) !== null && !(await this.outboxRead(ref))) {
+            return;
+        }
+
         // Live updates down for a while: the stopwatch may have been paused or stopped meanwhile - ask the server
         // before trusting it (a failed fetch keeps what is known: better than nothing on venue Wi-Fi)
         if (!this.stopwatchTrusted()) {
@@ -3355,7 +3366,7 @@ export default class extends Controller {
         this.splitsRunning = running;
         const view = open === null || format === null
             ? { show: false, rows: [] }
-            : splitRows(format, shownValue(open, 'puzzles', all).value, this.choice, shownValue(open, 'result', all).value, running);
+            : splitRows(format, shownValue(open, 'puzzles', all).value, this.choice, shownValue(open, 'result', all).value, running, this.outboxKnown === true);
         const shape = JSON.stringify([view.rows, this.splitEditing, this.splitNote ?? null]);
 
         if (this.splitsTarget.dataset.shape === shape) {
@@ -3378,7 +3389,7 @@ export default class extends Controller {
                 ? `<form class="lr-split-form" data-id="${id}" data-action="submit->live-results#typedSplit" novalidate><input class="form-control" value="${row.at !== null ? escapeHtml(formatResultTime(row.at)) : ''}" placeholder="${escapeHtml(this.t('splitPlaceholder'))}" aria-label="${escapeHtml(row.label)}" inputmode="numeric" enterkeyhint="done" autocomplete="off"><button type="submit" class="btn btn-primary">${escapeHtml(this.t('splitSave'))}</button></form>`
                 : '';
 
-            return `<div class="lr-srow"><span class="lr-chip-order${row.done ? '' : ' lr-srow-open'}">${row.done ? row.order : ''}</span><strong class="lr-srow-label">${escapeHtml(row.label)}</strong><span class="lr-srow-at">${escapeHtml(at)}</span>${row.tap ? `<button type="button" class="btn btn-success lr-split-now" data-id="${id}" data-action="live-results#finishPuzzle"><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>${escapeHtml(this.t('splitFinishedNow'))}</button>` : ''}${row.edit ? `<button type="button" class="btn btn-link px-1 lr-split-edit" data-id="${id}" data-action="live-results#editSplit" title="${escapeHtml(this.t('splitType'))}" aria-label="${escapeHtml(this.t('splitType'))} - ${escapeHtml(row.label)}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ''}${form}</div>`;
+            return `<div class="lr-srow"><span class="lr-chip-order${row.done ? '' : ' lr-srow-open'}">${row.done ? row.order : ''}</span><strong class="lr-srow-label">${escapeHtml(row.label)}</strong><span class="lr-srow-at">${escapeHtml(at)}</span>${row.tap ? `<button type="button" class="btn btn-success lr-split-now" data-id="${id}" data-action="live-results#finishPuzzle"${row.waiting ? ' disabled' : ''}><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>${escapeHtml(this.t('splitFinishedNow'))}</button>` : ''}${row.edit ? `<button type="button" class="btn btn-link px-1 lr-split-edit" data-id="${id}" data-action="live-results#editSplit"${row.waiting ? ' disabled' : ''} title="${escapeHtml(this.t('splitType'))}" aria-label="${escapeHtml(this.t('splitType'))} - ${escapeHtml(row.label)}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ''}${form}</div>`;
         }).join('');
 
         this.splitsTarget.innerHTML = `<div class="small fw-medium text-muted mb-1">${escapeHtml(this.t('splitTitle'))}</div>${rows}${this.splitNote ? `<div class="small text-danger mt-1" role="alert">${escapeHtml(this.splitNote)}</div>` : ''}`;
@@ -3396,6 +3407,11 @@ export default class extends Controller {
         const ref = this.openRef;
 
         if (!this.splitTapAllowed(event) || this.view !== 'entry') {
+            return;
+        }
+
+        // The device's waiting changes first - the split is built on them, never beside them
+        if (!(await this.outboxRead(ref))) {
             return;
         }
 
@@ -3419,6 +3435,17 @@ export default class extends Controller {
         this.recordSplit(id, Math.min(elapsed, 86399), tappedAt);
     }
 
+    /** Waits for the outbox to be read (after a reload) - false when the card was left meanwhile. */
+    async outboxRead(ref) {
+        if (this.outboxKnown === true || !this.outboxLoaded) {
+            return true;
+        }
+
+        await this.outboxLoaded.catch(() => {});
+
+        return this.openRef === ref && this.view === 'entry';
+    }
+
     editSplit(event) {
         if (!this.splitTapAllowed(event)) {
             return;
@@ -3433,6 +3460,10 @@ export default class extends Controller {
 
     typedSplit(event) {
         event.preventDefault();
+
+        if (this.outboxKnown !== true) {
+            return;
+        }
         const parsed = parseResultTime(event.currentTarget.querySelector('input')?.value ?? '');
 
         if (parsed.empty || parsed.error) {
@@ -3460,7 +3491,14 @@ export default class extends Controller {
 
         const items = this.outbox.all();
         const known = shownValue(entry, 'puzzles', items).value;
-        const step = splitStep(format, known, this.choice, id, seconds, shownValue(entry, 'result', items).value);
+        const step = splitStep(format, known, this.choice, id, seconds, shownValue(entry, 'result', items).value, tappedAt !== null);
+
+        // A stale "Finished now" of a puzzle already finished (saved or waiting): ignored, the rows show its split
+        if (step.refusal === 'already_finished') {
+            this.renderSplits();
+
+            return;
+        }
 
         if (step.refusal !== null) {
             this.splitNote = step.refusal === 'splits_out_of_order' ? this.t('splitOutOfOrder') : this.t('invalidChange');

@@ -40,10 +40,10 @@
 
     {% if page.standings|length > 1 %}
         <nav class="mb-3" aria-label="{{ 'public_standing.other_standings'|trans }}">
-            <ul class="nav nav-pills small flex-nowrap overflow-auto" data-standing-tabs>
+            <ul class="nav nav-pills small standing-tabs" data-standing-tabs>
                 {% for other in page.standings %}
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap py-1 px-3 {{ other.slug == standing.slug ? 'active' }}" {% if other.slug == standing.slug %}aria-current="page"{% endif %} href="{{ path(standing_route, route_params|merge({standingSlug: other.slug})) }}">{{ other.name }}</a>
+                        <a class="nav-link py-1 px-3 {{ other.slug == standing.slug ? 'active' }}" {% if other.slug == standing.slug %}aria-current="page"{% endif %} href="{{ path(standing_route, route_params|merge({standingSlug: other.slug})) }}">{{ other.name }}</a>
                     </li>
                 {% endfor %}
             </ul>

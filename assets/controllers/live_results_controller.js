@@ -2295,7 +2295,7 @@ export default class extends Controller {
             const chips = puzzleChips(format, this.choice).map((chip) => `<button type="button" class="lr-chip${chip.order > 0 ? ' lr-chip-on' : ''}" data-action="live-results#pickPuzzle" data-id="${escapeHtml(chip.id)}" aria-pressed="${chip.order > 0}">
                     ${chip.order > 0 ? `<span class="lr-chip-order">${format.toSolve > 1 ? chip.order : '<i class="bi bi-check-lg" aria-hidden="true"></i>'}</span>` : ''}
                     ${chip.imageUrl ? `<img src="${escapeHtml(chip.imageUrl)}" alt="" width="48" height="48" loading="lazy">` : ''}
-                    <span class="lr-chip-text"><strong>${escapeHtml(chip.label)}</strong>${chip.name ? `<span class="lr-chip-name">${escapeHtml(chip.name)}</span>` : ''}</span>
+                    <span class="lr-chip-text"><strong>${escapeHtml(chip.label)}</strong>${chip.name ? `<span class="lr-chip-name" title="${escapeHtml(chip.name)}">${escapeHtml(chip.name)}</span>` : ''}</span>
                     ${chip.hidden ? `<i class="bi bi-lock" title="${escapeHtml(this.t('puzzleHidden'))}" aria-label="${escapeHtml(this.t('puzzleHidden'))}"></i>` : ''}
                 </button>`).join('');
             const head = format.toSolve > 1 ? this.t('puzzlesPickK', { '%count%': format.toSolve }) : this.t('puzzlesPickOne');

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\RoundPuzzlesVisibleNow;
 use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioLiveResults;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\TimeProposals\TimeProposalScenario;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture as F;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\CompetitionTag;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -117,7 +118,13 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
         // Anna tapped Stop on her phone: a proposal, not a result
         $answer = self::propose(self::ANNA_FINAL);
         self::assertSame('proposed', $answer->status, (string) $answer->reason);
-        self::assertSame([], $this->studio(F::ROUND_FINAL));
+        self::assertCount(0, $this->studio(F::ROUND_FINAL));
+
+        // A pair's proposal changes nothing in its round either
+        $pairsBefore = $this->studio(F::ROUND_PAIRS);
+        $pair = self::propose(self::UNNAMED_PAIR, PlayerFixture::PLAYER_REGULAR, roundId: F::ROUND_PAIRS);
+        self::assertSame('proposed', $pair->status, (string) $pair->reason);
+        self::assertEquals($pairsBefore, $this->studio(F::ROUND_PAIRS));
 
         // The judge confirms it
         self::record([self::resultChange(self::ANNA_FINAL, null, ['seconds' => 598], $answer->proposalId)]);
@@ -135,6 +142,9 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
     }
 
     /**
+     * Impure: the same round reads differently after a write (PHPStan must not remember an earlier answer).
+     *
+     * @phpstan-impure
      * @return array<string, array{key: string, state: string, seconds: null|int, piecesPlaced: null|int, piecesCount: null|int, rank: null|int, qualified: bool, puzzles?: list<array{label: string, done: bool, seconds: null|int, piecesPlaced: null|int}>}>
      */
     private function studio(string $roundId): array

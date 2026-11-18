@@ -234,11 +234,6 @@ final readonly class DisplayBracket
             return $compute();
         }
 
-        if (!is_array($brackets)) {
-            return $compute();
-        }
-
-        /** @var list<CachedBracket> $brackets */
         return $brackets;
     }
 

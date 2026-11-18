@@ -39,6 +39,8 @@ readonly final class GetReadyFacts
         public null|QrTagMode $qrTagMode = null,
         // People on the list (not removed) without a MySpeedPuzzling profile linked (participant-linking.md §7.5)
         public int $participantsNotLinked = 0,
+        // A calendar event ("Something else" - kinds without Competition, no round): no round or judge rows
+        public bool $calendarEvent = false,
     ) {
     }
 

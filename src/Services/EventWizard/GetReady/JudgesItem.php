@@ -18,8 +18,13 @@ readonly final class JudgesItem implements GetReadyItem
         return 30;
     }
 
-    public function row(GetReadyFacts $facts): GetReadyRow
+    public function row(GetReadyFacts $facts): null|GetReadyRow
     {
+        // A meetup, swap or workshop on the calendar has no rounds to add and no judges (creation-wizard.md "Calendar path")
+        if ($facts->calendarEvent) {
+            return null;
+        }
+
         if ($facts->refereesCount > 0) {
             return new GetReadyRow(
                 key: 'judges',

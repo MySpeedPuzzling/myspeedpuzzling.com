@@ -95,6 +95,13 @@ final class EventWizardCalendarTest extends WebTestCase
         $this->browser->submit($crawler->selectButton('Publish')->form());
         self::assertResponseRedirects('/en/edit-event/' . $competitionId, 303);
         self::assertFalse($this->database()->fetchOne('SELECT is_draft FROM competition WHERE id = :id', ['id' => $competitionId]));
+
+        // "Published - here's what's left" asks nothing about rounds or judges - a workshop has none
+        $this->browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-get-ready-row="details"]');
+        self::assertSelectorNotExists('[data-get-ready-row="rounds"]');
+        self::assertSelectorNotExists('[data-get-ready-row="judges"]');
     }
 
     public function testAnOnlineEventMayStayUndatedAnInPersonOneMayNot(): void
@@ -107,6 +114,8 @@ final class EventWizardCalendarTest extends WebTestCase
 
         $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
         self::assertResponseIsSuccessful();
+        // No date: the summary line starts with "Online event", no separator before it
+        self::assertStringStartsWith('Online event', trim((string) preg_replace('/\s+/', ' ', $this->browser->getCrawler()->filter('[data-event-wizard-review-summary]')->text())));
 
         // In person: the day is needed
         self::assertNull($this->submitBasics(['name' => 'Undated Meetup', 'dateFrom' => ''], ['casual_puzzling']));

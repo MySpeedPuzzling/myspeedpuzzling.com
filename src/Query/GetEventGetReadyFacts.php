@@ -51,6 +51,8 @@ SELECT
     c.registration_managed,
     c.capacity,
     c.qr_tag_mode,
+    -- Kinds without "Competition" - with no round, a calendar event ("Something else", GetEventWizardState calendar_event)
+    COALESCE(c.event_types <> '[]'::jsonb AND NOT c.event_types @> '["competition"]'::jsonb, false) AS calendar_kinds,
     (SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = c.id AND {$going}) AS participants_going,
     -- People on the list without a MySpeedPuzzling profile linked - the hub's "not linked" (GetParticipantLinkSummary)
     (SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = c.id AND cp.deleted_at IS NULL AND cp.player_id IS NULL) AS participants_not_linked,
@@ -61,7 +63,7 @@ FROM competition c
 WHERE c.id = :competitionId
 SQL;
 
-        /** @var false|array{is_draft: bool, is_online: bool, date_from: null|string, date_to: null|string, registration_managed: bool, capacity: null|int, participants_going: int|string, participants_not_linked: int|string, referees_count: int|string, screens_count: int|string, overlays_count: int|string, qr_tag_mode: null|string} $row */
+        /** @var false|array{is_draft: bool, is_online: bool, date_from: null|string, date_to: null|string, registration_managed: bool, capacity: null|int, participants_going: int|string, participants_not_linked: int|string, referees_count: int|string, screens_count: int|string, overlays_count: int|string, qr_tag_mode: null|string, calendar_kinds: bool} $row */
         $row = $this->database->executeQuery($event, ['competitionId' => $competitionId])->fetchAssociative();
 
         if ($row === false) {
@@ -150,6 +152,7 @@ SQL;
             rounds: $roundFacts,
             toolkitAvailable: $toolkitAvailable,
             now: $now,
+            calendarEvent: $row['calendar_kinds'] && $roundFacts === [],
         );
     }
 }

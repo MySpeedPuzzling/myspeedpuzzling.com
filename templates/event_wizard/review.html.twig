@@ -15,11 +15,11 @@
                 <h2 class="h5 mb-1">{{ competition.name }}</h2>
                 <a class="small flex-shrink-0" href="{{ path('event_wizard_basics_edit', {competitionId: competition.id}) }}">{{ 'event_wizard.edit'|trans }}</a>
             </div>
-            <p class="mb-1">
+            <p class="mb-1" data-event-wizard-review-summary>
                 {% if competition.dateFrom is not null %}
-                    {{ events_date_range(competition.dateFrom, competition.dateTo ?? competition.dateFrom, 'yMMMd') }}
+                    {{ events_date_range(competition.dateFrom, competition.dateTo ?? competition.dateFrom, 'yMMMd') }} ·
                 {% endif %}
-                · {{ competition.isOnline ? 'competition.form.event_type_online'|trans : competition.location }}{% if competition.locationCountryCode is not null %}, <span class="fi fi-{{ competition.locationCountryCode.name }}"></span>{% endif %}
+                {{ competition.isOnline ? 'competition.form.event_type_online'|trans : competition.location }}{% if competition.locationCountryCode is not null %}, <span class="fi fi-{{ competition.locationCountryCode.name }}"></span>{% endif %}
             </p>
             {#- The calendar path ("Something else"): what kind of event it is -#}
             {% if progress.path.value == 'calendar' and competition.eventTypes is not null %}

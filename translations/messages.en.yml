@@ -15815,9 +15815,9 @@ participant_linking:
 
 participant_link_suggestions:
     hub:
-        count: "{1}1 person may already have a profile|]1,Inf[%count% people may already have a profile"
+        count: "{0}Nobody may already have a profile|{1}1 person may already have a profile|]1,Inf[%count% people may already have a profile"
     import_flash:
-        text: "{1}1 person may already have a MySpeedPuzzling profile.|]1,Inf[%count% people may already have a MySpeedPuzzling profile."
+        text: "{0}Nobody may already have a MySpeedPuzzling profile.|{1}1 person may already have a MySpeedPuzzling profile.|]1,Inf[%count% people may already have a MySpeedPuzzling profile."
         review: "Review suggestions"
     sheet:
         filter: "Suggestions"
@@ -15842,7 +15842,7 @@ participant_link_suggestions:
         refusal_paid: "their own registration is paid"
         refusal_waitlisted: "their own registration is on the waitlist"
         refusal_registered: "their own registration holds a spot"
-        done: "{1}1 person linked|]1,Inf[%count% people linked"
+        done: "{0}Nobody linked|{1}1 person linked|]1,Inf[%count% people linked"
 event_wizard_more:
     puzzle_search:
         label: "Find the puzzle"

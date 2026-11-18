@@ -51,6 +51,15 @@ enum CompetitionTagPrintKind: string
     }
 
     /**
+     * "Show country flags" (competitor-pages.md "Country flags") is offered where a tag names people - not on a table's
+     * card (whoever sits there changes) nor on a claim slip (handed to one person).
+     */
+    public function printsCountryFlags(): bool
+    {
+        return $this === self::People || $this === self::Lineups || $this === self::Entries;
+    }
+
+    /**
      * Sorted by table first where a table is what the tag is about.
      */
     public function sortsByTableByDefault(): bool

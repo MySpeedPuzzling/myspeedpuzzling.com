@@ -16,7 +16,8 @@ use SpeedPuzzling\Web\Results\CompetitionNameTag;
  * public, so a linked player's #CODE is printed only when their profile is public - whoever prints (the organiser's own
  * view of private profiles must not decide what strangers read on a badge). The division label of the entry whose table
  * is printed rides along (EntryDivisionLabel, shared-puzzles-and-divisions.md D5) - a solo round's own, a pair/team
- * round's the pair's/team's. One statement.
+ * round's the pair's/team's. The linked player's own country rides along under the #CODE rule (public profiles only) -
+ * printed only when the organiser asks for country flags and the participant has none. One statement.
  */
 readonly final class GetCompetitionNameTags
 {
@@ -50,6 +51,7 @@ SELECT
     cp.name,
     cp.country,
     CASE WHEN p.is_private THEN NULL ELSE p.code END AS player_code,
+    CASE WHEN p.is_private THEN NULL ELSE p.country END AS profile_country,
     cp.registration_status = 'waitlisted' AS waitlisted,
     entry.table_number,
     entry.round_name,
@@ -83,7 +85,7 @@ SQL,
         );
 
         return array_map(static function (array $row): CompetitionNameTag {
-            /** @var array{id: string, name: string, country: null|string, player_code: null|string, waitlisted: null|bool, table_number: null|int, round_name: null|string, division: null|string} $row */
+            /** @var array{id: string, name: string, country: null|string, player_code: null|string, profile_country: null|string, waitlisted: null|bool, table_number: null|int, round_name: null|string, division: null|string} $row */
             return new CompetitionNameTag(
                 participantId: $row['id'],
                 name: $row['name'],
@@ -93,6 +95,7 @@ SQL,
                 roundName: $row['round_name'],
                 waitlisted: $row['waitlisted'] === true,
                 division: $row['division'],
+                profileCountry: $row['profile_country'],
             );
         }, $rows);
     }

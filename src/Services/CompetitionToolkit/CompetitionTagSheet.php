@@ -34,6 +34,10 @@ use Symfony\Component\HttpFoundation\Request;
  * Claim slips (`?kind=claims`, participant-linking.md §7.4): the people not linked to a profile, each slip with the QR of
  * their personal claim link - the A4 sheet of tags only.
  *
+ * Country flags (`?flags=1`, competitor-pages.md "Country flags"): an organiser's option for people, line-ups and entries
+ * - the flag printed large next to each name, the participant's country else their public profile's (flagCountry());
+ * without it every tag is exactly the one of before.
+ *
  * Tables: every number from 1 to the highest one the event (or the round) uses - a table nobody sits at yet still gets
  * its card -, or the range the organiser asks for (`?from=` / `?to=`, at most MAX_TABLES cards at once).
  */
@@ -68,6 +72,7 @@ readonly final class CompetitionTagSheet
             $layout = CompetitionTagPrintLayout::Tags;
         }
 
+        $flags = $kind->printsCountryFlags() && $request->query->getBoolean('flags');
         $sort = $request->query->getString('sort');
 
         if ($sort !== GetCompetitionNameTags::SORT_NAME && $sort !== GetCompetitionNameTags::SORT_TABLE) {
@@ -95,13 +100,16 @@ readonly final class CompetitionTagSheet
             'tables_used' => [],
             'competitor_pages' => $settings->competitorPages,
             'claims_online_timing' => false,
+            'flags' => $flags,
+            'flags_offered' => $kind->printsCountryFlags(),
+            'flags_asked' => $request->query->getBoolean('flags'),
         ];
 
         return match ($kind) {
-            CompetitionTagPrintKind::People => $this->people($request, $competitionId, $round, $sort) + $variables,
-            CompetitionTagPrintKind::Lineups => $this->lineups($competitionId, $round, $sort) + $variables,
+            CompetitionTagPrintKind::People => $this->people($request, $competitionId, $round, $sort, $flags) + $variables,
+            CompetitionTagPrintKind::Lineups => $this->lineups($competitionId, $round, $sort, $flags) + $variables,
             CompetitionTagPrintKind::Tables => $this->tables($request, $competitionId, $round) + $variables,
-            CompetitionTagPrintKind::Entries => $this->entries($competitionId, $round, $sort) + $variables,
+            CompetitionTagPrintKind::Entries => $this->entries($competitionId, $round, $sort, $flags) + $variables,
             CompetitionTagPrintKind::Claims => $this->claims($competitionId) + $variables,
         };
     }
@@ -109,7 +117,7 @@ readonly final class CompetitionTagSheet
     /**
      * @return array<string, mixed>
      */
-    private function people(Request $request, string $competitionId, null|RoundResultsOverview $round, string $sort): array
+    private function people(Request $request, string $competitionId, null|RoundResultsOverview $round, string $sort, bool $flags): array
     {
         $withWaitlist = $request->query->getBoolean('waitlist');
         $tags = $this->getCompetitionNameTags->forCompetition($competitionId, $round?->roundId, $sort, withWaitlist: true);
@@ -126,7 +134,7 @@ readonly final class CompetitionTagSheet
             'waitlisted_count' => $waitlisted,
             'tags' => array_map(fn (CompetitionNameTag $tag): array => [
                 'heading' => $tag->name,
-                'members' => [['name' => null, 'country' => $tag->country, 'code' => $tag->playerCode]],
+                'members' => [['name' => null, 'country' => $flags ? $tag->flagCountry() : $tag->country, 'code' => $tag->playerCode]],
                 'table_number' => $tag->tableNumber,
                 'division' => $tag->division,
                 'table' => false,
@@ -139,7 +147,7 @@ readonly final class CompetitionTagSheet
     /**
      * @return array<string, mixed>
      */
-    private function lineups(string $competitionId, null|RoundResultsOverview $round, string $sort): array
+    private function lineups(string $competitionId, null|RoundResultsOverview $round, string $sort, bool $flags): array
     {
         $lineups = $this->getCompetitionLineupTags->ofCompetition($competitionId, $round?->roundId, $sort);
 
@@ -151,7 +159,7 @@ readonly final class CompetitionTagSheet
             ], $lineups->changes),
             'tags' => array_map(fn (CompetitionLineupTag $tag): array => [
                 'heading' => $tag->teamName,
-                'members' => self::members($tag->members),
+                'members' => self::members($tag->members, $flags),
                 'table_number' => $tag->tableNumber,
                 'division' => $tag->division,
                 'table' => false,
@@ -192,7 +200,7 @@ readonly final class CompetitionTagSheet
     /**
      * @return array<string, mixed>
      */
-    private function entries(string $competitionId, null|RoundResultsOverview $round, string $sort): array
+    private function entries(string $competitionId, null|RoundResultsOverview $round, string $sort, bool $flags): array
     {
         $tags = $round === null ? [] : $this->getRoundEntryTags->ofRound($competitionId, $round->roundId, $sort);
 
@@ -200,8 +208,8 @@ readonly final class CompetitionTagSheet
             'tags' => array_map(fn (CompetitionRoundEntryTag $tag): array => [
                 'heading' => $tag->teamName ?? (count($tag->members) === 1 ? $tag->members[0]->name : null),
                 'members' => $tag->teamName === null && count($tag->members) === 1
-                    ? [['name' => null, 'country' => $tag->members[0]->country, 'code' => $tag->members[0]->playerCode]]
-                    : self::members($tag->members),
+                    ? [['name' => null, 'country' => $flags ? $tag->members[0]->flagCountry() : $tag->members[0]->country, 'code' => $tag->members[0]->playerCode]]
+                    : self::members($tag->members, $flags),
                 'table_number' => $tag->tableNumber,
                 'division' => $tag->division,
                 'table' => false,
@@ -244,11 +252,11 @@ readonly final class CompetitionTagSheet
      * @param list<CompetitionTagMember> $members
      * @return list<array{name: string, country: null|string, code: null|string}>
      */
-    private static function members(array $members): array
+    private static function members(array $members, bool $flags): array
     {
         return array_map(static fn (CompetitionTagMember $member): array => [
             'name' => $member->name,
-            'country' => $member->country,
+            'country' => $flags ? $member->flagCountry() : $member->country,
             'code' => $member->playerCode,
         ], $members);
     }

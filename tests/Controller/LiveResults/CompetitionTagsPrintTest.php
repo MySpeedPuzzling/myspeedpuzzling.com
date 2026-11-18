@@ -284,6 +284,125 @@ final class CompetitionTagsPrintTest extends WebTestCase
         self::assertSame(OfficialResultsFixture::ROUND_PAIRS, $page->filter('select[name="round"] option[selected]')->attr('value'));
     }
 
+    public function testCountryFlagsAreOffUntilTheOrganiserAsks(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->setQrMode('entrant');
+
+        foreach (['tags', 'tents'] as $layout) {
+            $page = $browser->request('GET', self::PAGE . '?kind=people&layout=' . $layout);
+
+            self::assertResponseIsSuccessful();
+            self::assertCount(1, $page->filter('[data-tag-flags]'));
+            self::assertNull($page->filter('[data-tag-flags]')->attr('checked'));
+            self::assertCount(0, $page->filter('[data-name-flag]'));
+            self::assertCount(0, $page->filter('body.with-flags'));
+            // The small flag under the name, as before
+            self::assertCount(9 * ($layout === 'tents' ? 2 : 1), $page->filter('.tag-who img'));
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, string, int}>
+     */
+    public static function flagKindsAndLayouts(): iterable
+    {
+        foreach (['tags' => 1, 'tents' => 2] as $layout => $faces) {
+            yield "people, {$layout}" => ['people', $layout, 9 * $faces];
+            yield "entries of a solo round, {$layout}" => ['entries', $layout, 6 * $faces];
+        }
+    }
+
+    #[DataProvider('flagKindsAndLayouts')]
+    public function testAPersonsFlagIsPrintedLargeBeforeTheirName(string $kind, string $layout, int $flags): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->setQrMode('entrant');
+
+        $page = $browser->request('GET', self::PAGE . "?kind={$kind}&layout={$layout}&flags=1");
+
+        self::assertResponseIsSuccessful();
+        self::assertNotNull($page->filter('[data-tag-flags]')->attr('checked'));
+        self::assertCount(1, $page->filter('body.with-flags'));
+        self::assertCount($flags, $page->filter($layout === 'tents' ? '.tent-name [data-name-flag]' : '.tag-name [data-name-flag]'));
+        // Not twice: the line under the name keeps only the #CODE
+        self::assertCount(0, $page->filter('.tag-who img'));
+        self::assertStringContainsString('/build/images/cz', (string) $page->filter('[data-name-flag]')->eq(0)->attr('src'));
+    }
+
+    public function testPairsAndTeamsCarryEachPersonsFlagAndNoneWhenUnknown(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->setQrMode('entrant');
+        // Ben is not linked to a profile: no country at all
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition_participant SET country = NULL WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_BEN]);
+
+        foreach (['?kind=lineups', '?kind=entries&round=' . OfficialResultsFixture::ROUND_PAIRS] as $query) {
+            foreach (['tags', 'tents'] as $layout) {
+                $page = $browser->request('GET', self::PAGE . $query . '&layout=' . $layout . '&flags=1');
+                self::assertResponseIsSuccessful();
+
+                $sharks = $page->filter('[data-tag]')->reduce(static fn (Crawler $tag): bool => str_contains($tag->text(), 'Puzzle Sharks'))->first();
+                $faces = $layout === 'tents' ? 2 : 1;
+                // Anna's flag next to her name, nothing next to Ben's
+                self::assertSame(array_merge(...array_fill(0, $faces, ['CZ'])), $sharks->filter('.tag-member img')->each(static fn (Crawler $flag): string => (string) $flag->attr('alt')), $query);
+                self::assertCount(2 * $faces, $sharks->filter('.tag-member'), $query);
+                // A pair has no flag of its own
+                self::assertCount(0, $page->filter('[data-name-flag]'), $query);
+            }
+        }
+    }
+
+    public function testAMissingCountryIsTakenFromAPublicProfileOnlyAndOnlyWithFlags(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->setQrMode('entrant');
+        $database = self::getContainer()->get(Connection::class);
+        // Anna (linked to a public profile) and Gina (a private one) without a country on the participant list
+        $database->executeStatement('UPDATE competition_participant SET country = NULL WHERE id IN (:anna, :gina)', ['anna' => OfficialResultsFixture::PARTICIPANT_ANNA, 'gina' => OfficialResultsFixture::PARTICIPANT_GINA]);
+        $database->executeStatement('UPDATE player SET country = :country, is_private = false WHERE id = :id', ['country' => 'pt', 'id' => PlayerFixture::PLAYER_ADMIN]);
+        $database->executeStatement('UPDATE player SET country = :country, is_private = true WHERE id = :id', ['country' => 'fr', 'id' => PlayerFixture::PLAYER_PRIVATE]);
+
+        foreach (['?kind=people', '?kind=lineups', '?kind=entries&round=' . OfficialResultsFixture::ROUND_GROUP_B, '?kind=entries'] as $query) {
+            foreach (['tags', 'tents'] as $layout) {
+                $browser->request('GET', self::PAGE . $query . '&layout=' . $layout);
+                $html = (string) $browser->getResponse()->getContent();
+                // Without the option the tags are the ones of before: the participant list's country only
+                self::assertStringNotContainsString('alt="PT"', $html, $query);
+                self::assertStringNotContainsString('alt="FR"', $html, $query);
+
+                $browser->request('GET', self::PAGE . $query . '&layout=' . $layout . '&flags=1');
+                $html = (string) $browser->getResponse()->getContent();
+                // A private profile's country is never printed - the #CODE rule
+                self::assertStringNotContainsString('alt="FR"', $html, $query);
+                self::assertStringNotContainsStringIgnoringCase('/build/images/fr', $html, $query);
+
+                if (str_contains($html, 'Anna Fast')) {
+                    self::assertStringContainsString('alt="PT"', $html, $query);
+                }
+            }
+        }
+
+        $browser->request('GET', self::PAGE . '?kind=people&flags=1');
+        self::assertStringContainsString('alt="PT"', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testTablesOfferNoFlagsButKeepTheChoice(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->setQrMode('entrant');
+
+        $page = $browser->request('GET', self::PAGE . '?kind=tables&flags=1');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $page->filter('[data-tag-flags]'));
+        self::assertCount(0, $page->filter('body.with-flags'));
+        self::assertCount(1, $page->filter('input[type="hidden"][name="flags"][value="1"]'));
+
+        $page = $browser->request('GET', self::PAGE . '?kind=tables');
+        self::assertCount(0, $page->filter('input[name="flags"]'));
+    }
+
     /**
      * One statement per kind: the tags of 4 or 200 entries cost the same.
      *

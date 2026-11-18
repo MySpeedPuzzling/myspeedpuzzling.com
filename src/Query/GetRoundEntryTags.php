@@ -39,7 +39,8 @@ json_build_object(
         'id', cp.id,
         'name', cp.name,
         'country', cp.country,
-        'code', CASE WHEN p.is_private THEN NULL ELSE p.code END
+        'code', CASE WHEN p.is_private THEN NULL ELSE p.code END,
+        'profile_country', CASE WHEN p.is_private THEN NULL ELSE p.country END
     )
 SQL;
 
@@ -81,7 +82,7 @@ SQL,
         );
 
         $tags = array_map(static function (array $row): CompetitionRoundEntryTag {
-            /** @var list<array{id: string, name: string, country: null|string, code: null|string}> $members */
+            /** @var list<array{id: string, name: string, country: null|string, code: null|string, profile_country: null|string}> $members */
             $members = json_decode($row['members'], true, flags: JSON_THROW_ON_ERROR);
 
             return new CompetitionRoundEntryTag(

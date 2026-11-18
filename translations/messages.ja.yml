@@ -5166,6 +5166,7 @@ name_tags:
     empty_lineups: "ペアやチームはまだありません。先に参加者シートで組んでください。"
     empty_entries: "このラウンドにはまだ誰もいません。"
     print_tags: "タグを印刷"
+    show_flags: "国旗を表示"
   waitlist: "{1}キャンセル待ちの1人も含みます|[0,Inf[キャンセル待ちの%count%人も含みます"
   first_round_note: "ネームタグのテーブルは、その人の最初のラウンドのものです。ラウンドの座席配置をやり直したら、もう一度印刷してください。"
 results_desk:

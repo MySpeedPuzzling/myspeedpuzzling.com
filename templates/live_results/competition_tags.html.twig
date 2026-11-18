@@ -78,6 +78,12 @@
         .tent-qr { flex: 0 0 60mm; }
         .tent-qr svg { display: block; width: 60mm; height: 60mm; }
 
+        /* "Show country flags" (?flags=1): a person's flag large before their name, a pair's/team's people with larger
+           flags. Same-origin flag images - an <img> prints whatever the browser's "background graphics" setting is */
+        .name-flag { display: inline-block; width: 1.33em; height: 1em; margin-right: 0.3em; vertical-align: -0.1em; object-fit: cover; border: 1px solid #ddd; }
+        .with-flags .tag-member img { width: 8mm; height: 6mm; }
+        .with-flags .tent .tag-member img { width: 14mm; height: 10.5mm; }
+
         /* A phone shows one tag per row - the A4 sheet of two columns (180 mm) would widen the page */
         @media screen and (max-width: 720px) {
             .sheet { grid-template-columns: minmax(0, 90mm); }
@@ -97,7 +103,7 @@
         }
     </style>
 </head>
-<body>
+<body{{ flags ? ' class="with-flags"' }}>
     <form class="controls" method="get" action="{{ path('competition_name_tags', {competitionId: competition.id}) }}" data-tag-controls>
         <a href="{{ path('participants_sheet', {competitionId: competition.id}) }}">&larr; {{ 'name_tags.back'|trans }}</a>
         <label>
@@ -152,6 +158,14 @@
             <label class="inline">
                 <span><input type="checkbox" name="waitlist" value="1" {{ with_waitlist ? 'checked' }} onchange="this.form.submit()"> {{ 'name_tags.waitlist'|trans({'%count%': waitlisted_count}) }}</span>
             </label>
+        {% endif %}
+        {% if flags_offered %}
+            <label class="inline">
+                <span><input type="checkbox" name="flags" value="1" {{ flags ? 'checked' }} onchange="this.form.submit()" data-tag-flags> {{ 'name_tags.toolkit.show_flags'|trans }}</span>
+            </label>
+        {% elseif flags_asked %}
+            {# Kept for when the organiser switches back to a kind that names people #}
+            <input type="hidden" name="flags" value="1">
         {% endif %}
         <noscript><button type="submit">{{ 'name_tags.show'|trans }}</button></noscript>
         <button type="button" class="print" onclick="window.print()">{{ 'name_tags.print'|trans }}</button>
@@ -227,9 +241,9 @@
                                     {% if competitor_pages %}<div class="tent-scan">{{ 'name_tags.toolkit.scan_table'|trans }}</div>{% endif %}
                                 {% else %}
                                     {% if item.heading is not null %}
-                                        <div class="tent-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
+                                        <div class="tent-name{{ item.heading|length > 24 ? ' long' }}">{% if flags %}{{ _self.name_flag(item) }}{% endif %}{{ item.heading }}</div>
                                     {% endif %}
-                                    {{ _self.members(item) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
+                                    {{ _self.members(item, flags) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
                                     {% if item.table_number is not null %}
                                         <div class="tent-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
                                     {% endif %}
@@ -265,9 +279,9 @@
                             {% if competitor_pages %}<div class="tag-scan">{{ 'name_tags.toolkit.scan_table'|trans }}</div>{% endif %}
                         {% else %}
                             {% if item.heading is not null %}
-                                <div class="tag-name{{ item.heading|length > 24 ? ' long' }}">{{ item.heading }}</div>
+                                <div class="tag-name{{ item.heading|length > 24 ? ' long' }}">{% if flags %}{{ _self.name_flag(item) }}{% endif %}{{ item.heading }}</div>
                             {% endif %}
-                            {{ _self.members(item) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
+                            {{ _self.members(item, flags) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
                             {% if item.table_number is not null %}
                                 <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
                             {% endif %}
@@ -284,12 +298,12 @@
         Who is on a tag: a person's flag and #CODE under their name, or a pair's/team's people - their names large when
         the pair/team has no name of its own.
     #}
-    {% macro members(item) %}
+    {% macro members(item, flags = false) %}
         {% if item.members|length == 1 and item.members[0].name is null %}
             {% set person = item.members[0] %}
-            {% if person.country or person.code %}
+            {% if (person.country and not flags) or person.code %}
                 <div class="tag-who">
-                    {% if person.country %}
+                    {% if person.country and not flags %}
                         <img src="{{ asset('build/images/' ~ person.country ~ '.svg') }}" alt="{{ person.country|upper }}">
                     {% endif %}
                     {% if person.code %}
@@ -312,6 +326,16 @@
                 {% endfor %}
             </div>
         {% endif %}
+    {% endmacro %}
+
+    {#
+        "Show country flags": a person's flag large in front of their name (it then leaves the line under the name); a
+        pair's/team's people carry theirs next to each name (members()). No flag when the country is unknown.
+    #}
+    {% macro name_flag(item) %}
+        {%- if item.members|length == 1 and item.members[0].name is null and item.members[0].country -%}
+            <img class="name-flag" src="{{ asset('build/images/' ~ item.members[0].country ~ '.svg') }}" alt="{{ item.members[0].country|upper }}" data-name-flag>
+        {%- endif -%}
     {% endmacro %}
 </body>
 </html>

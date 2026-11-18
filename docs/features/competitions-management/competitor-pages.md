@@ -110,6 +110,16 @@ Otherwise it is the old name tags page **byte for byte** (`name_tags.html.twig`,
   `competitor_page.print.scan_page` ("Anybody else who scans it opens the public competitor page.") or `scan_event`
   ("… lands on the event page.") by the pages setting. The old `name_tags.hint` ("anybody else … lands on the event
   page") stays true: the old page shows only while pages are off.
+- **Country flags** (real events L4, 2026-11-18, for SPWS): the checkbox "Show country flags" (`?flags=1`, default
+  off) on people, line-ups and entries (`CompetitionTagPrintKind::printsCountryFlags()`; tables and claim slips never -
+  a hidden field keeps the choice while another kind is shown). On: a person's flag large in front of the name
+  (`.name-flag`, 1.33 × 1 em of the name: ~9 mm on a tag, ~19 mm on a tent, both faces) instead of the small one
+  under it; a pair's/team's people each with a larger flag next to their name (`body.with-flags`); no flag when the
+  country is unknown. Country = the participant list's, else the linked player's own **only for a public profile**
+  (`flagCountry()`; the tag queries read `profile_country` under the #CODE rule - a private profile's country is never
+  printed, whoever prints). Names stay as the organiser recorded them, as before. Flags are the same-origin
+  `build/images/<cc>.svg` `<img>`s (they print without "background graphics"). Off: every tag is the one of before; the
+  name tags page of an untouched event ignores `?flags=` (`CompetitionNameTagsGoldenTest`). No new statement.
 - Tests: `CompetitionTagsPrintTest`, `CompetitionNameTagsTest`, `CompetitionNameTagsGoldenTest`.
 
 ## Competitor page (B4)

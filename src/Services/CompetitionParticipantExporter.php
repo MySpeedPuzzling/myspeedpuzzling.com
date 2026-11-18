@@ -44,6 +44,9 @@ readonly final class CompetitionParticipantExporter
      */
     public const array REGISTRATION_HEADERS = ['registration_status', 'paid_at', 'checked_in_at'];
 
+    /** A column "division: <round>" holds the entry's division in that round (ColumnMapping reads it back) */
+    public const string DIVISION_COLUMN_PREFIX = 'division:';
+
     public function __construct(
         private GetCompetitionParticipantsForManagement $getParticipants,
         private GetCompetitionRoundsForManagement $getRounds,
@@ -71,9 +74,24 @@ readonly final class CompetitionParticipantExporter
         $teamNames = $this->fetchTeamNames($competitionId);
         $publicCodes = $this->fetchPublicCodes($competitionId);
 
+        // Rounds that use divisions (shared-puzzles-and-divisions.md §3.4) - a "division: <round>" column each, read
+        // back by the import; an event without divisions exports what it always did
+        $divisionRoundIds = $this->fetchDivisionRounds($competitionId);
+        /** @var array<string, string> $divisionRounds roundId => round name */
+        $divisionRounds = [];
+        foreach ($rounds as $round) {
+            if (isset($divisionRoundIds[$round->id])) {
+                $divisionRounds[$round->id] = $round->name;
+            }
+        }
+        $divisionNames = $divisionRounds !== [] ? $this->fetchDivisionNames($competitionId) : [];
+
         $headers = self::EXPORT_HEADERS;
         foreach ($teamRounds as $roundName) {
             $headers[] = CompetitionParticipantImporter::TEAM_COLUMN_PREFIX . ' ' . $roundName;
+        }
+        foreach ($divisionRounds as $roundName) {
+            $headers[] = self::DIVISION_COLUMN_PREFIX . ' ' . $roundName;
         }
         $headers[] = 'participant_id';
 
@@ -118,6 +136,10 @@ readonly final class CompetitionParticipantExporter
 
             foreach (array_keys($teamRounds) as $roundId) {
                 $values[] = $teamNames[$participant->participantId][$roundId] ?? null;
+            }
+
+            foreach (array_keys($divisionRounds) as $roundId) {
+                $values[] = $divisionNames[$participant->participantId][$roundId] ?? null;
             }
 
             $values[] = $participant->participantId;
@@ -178,6 +200,50 @@ SQL;
         foreach ($rows as $row) {
             /** @var array{participant_id: string, round_id: string, team_name: string} $row */
             $result[$row['participant_id']][$row['round_id']] = $row['team_name'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, true> round ids of the event's rounds that use divisions
+     */
+    private function fetchDivisionRounds(string $competitionId): array
+    {
+        /** @var list<string> $roundIds */
+        $roundIds = $this->database->fetchFirstColumn(
+            <<<SQL
+SELECT DISTINCT crd.round_id
+FROM competition_round_division crd
+INNER JOIN competition_round cr ON cr.id = crd.round_id
+WHERE cr.competition_id = :competitionId
+SQL,
+            ['competitionId' => $competitionId],
+        );
+
+        return array_fill_keys($roundIds, true);
+    }
+
+    /**
+     * @return array<string, array<string, string>> participant_id => [round_id => division name] - a solo entry's own, a
+     *         pair's/team's for its members
+     */
+    private function fetchDivisionNames(string $competitionId): array
+    {
+        $query = <<<SQL
+SELECT cp.id AS participant_id, cpr.round_id, d.name AS division_name
+FROM competition_participant cp
+INNER JOIN competition_participant_round cpr ON cpr.participant_id = cp.id
+LEFT JOIN competition_team ct ON ct.id = cpr.team_id
+INNER JOIN competition_division d ON d.id = COALESCE(ct.division_id, cpr.division_id)
+WHERE cp.competition_id = :competitionId
+    AND cp.deleted_at IS NULL
+SQL;
+
+        $result = [];
+        foreach ($this->database->fetchAllAssociative($query, ['competitionId' => $competitionId]) as $row) {
+            /** @var array{participant_id: string, round_id: string, division_name: string} $row */
+            $result[$row['participant_id']][$row['round_id']] = $row['division_name'];
         }
 
         return $result;

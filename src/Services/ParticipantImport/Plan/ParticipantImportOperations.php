@@ -20,6 +20,11 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport\Plan;
  * `notThem` (the cleared link is the organiser's "Not this person", participant-linking.md D11) and `declinedRequests`
  * (link requests the organiser declined, §5.3). `email` (present = set to that address, null clears) is the import's too
  * (its Email column) and the sheet's (participant-linking.md §7.1, §7.3).
+ *
+ * Divisions (shared-puzzles-and-divisions.md §3) - both planners, only for rounds that use divisions, so nothing changes
+ * for an event without them: `entryDivisions` a solo entry's own (an existing entry by `entryId`, one these operations
+ * create by `participantKey` + `roundId`), `teamDivisions` a pair's/team's (team key "t:…" / "n:…"); `division` null =
+ * none.
  */
 readonly final class ParticipantImportOperations
 {
@@ -34,6 +39,8 @@ readonly final class ParticipantImportOperations
      * @param list<string> $deletedTeams team ids (full sync - teams the import empties; the sheet's deleted pairs/teams)
      * @param list<array{teamId: string, name: null|string}> $renamedTeams existing teams with another name (the sheet)
      * @param list<string> $declinedRequests ids of pending link requests the organiser declined (the sheet)
+     * @param list<array{entryId?: string, participantKey?: string, roundId: string, division: null|string}> $entryDivisions
+     * @param list<array{team: string, division: null|string}> $teamDivisions
      */
     public function __construct(
         public array $participants = [],
@@ -50,6 +57,8 @@ readonly final class ParticipantImportOperations
         public int $removed = 0,
         public array $renamedTeams = [],
         public array $declinedRequests = [],
+        public array $entryDivisions = [],
+        public array $teamDivisions = [],
     ) {
     }
 
@@ -62,7 +71,9 @@ readonly final class ParticipantImportOperations
             && $this->deletedEntries === []
             && $this->deletedTeams === []
             && $this->renamedTeams === []
-            && $this->declinedRequests === [];
+            && $this->declinedRequests === []
+            && $this->entryDivisions === []
+            && $this->teamDivisions === [];
     }
 
     /**
@@ -83,6 +94,8 @@ readonly final class ParticipantImportOperations
             && $this->deletedEntries === []
             && $this->deletedTeams === []
             && $this->renamedTeams === []
-            && $this->declinedRequests === [];
+            && $this->declinedRequests === []
+            && $this->entryDivisions === []
+            && $this->teamDivisions === [];
     }
 }

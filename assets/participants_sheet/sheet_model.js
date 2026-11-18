@@ -478,6 +478,29 @@ export class Working {
                 return;
             }
 
+            case 'division': {
+                // A solo entry's own (the person's place), a pair's/team's on the team - '' = none
+                const division = change.to === '' || change.to === undefined ? null : change.to;
+
+                if (change.team) {
+                    const team = this.team(change.team);
+
+                    if (team !== null) {
+                        this.write('teams', team.id, { ...team, division });
+                    }
+
+                    return;
+                }
+
+                const place = this.place(change.participant, change.round);
+
+                if (place !== null) {
+                    this.write('places', placeKey(change.participant, change.round), { ...place, division });
+                }
+
+                return;
+            }
+
             default:
                 // An op this client does not know changes nothing locally - the server's answer and the next state do
         }

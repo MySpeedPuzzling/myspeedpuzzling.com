@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionDivision;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -135,12 +136,30 @@ readonly final class ParticipantImportApplier
         foreach ($operations->deletedEntries as $entryId) {
             $entryIds[$entryId] = true;
         }
+        foreach ($operations->entryDivisions as $operation) {
+            if (isset($operation['entryId'])) {
+                $entryIds[$operation['entryId']] = true;
+            }
+        }
+        foreach ($operations->teamDivisions as $operation) {
+            if (str_starts_with($operation['team'], 't:')) {
+                $teamIds[substr($operation['team'], 2)] = true;
+            }
+        }
+
+        $divisionIds = [];
+        foreach ([...$operations->entryDivisions, ...$operations->teamDivisions] as $operation) {
+            if ($operation['division'] !== null) {
+                $divisionIds[$operation['division']] = true;
+            }
+        }
 
         $existing = $this->load(CompetitionParticipant::class, array_keys($participantIds), static fn (CompetitionParticipant $participant): string => $participant->id->toString());
         $players = $this->load(Player::class, array_keys($playerIds), static fn (Player $player): string => $player->id->toString());
         $rounds = $this->load(CompetitionRound::class, array_keys($roundIds), static fn (CompetitionRound $round): string => $round->id->toString());
         $teams = $this->load(CompetitionTeam::class, array_keys($teamIds), static fn (CompetitionTeam $team): string => $team->id->toString());
         $entries = $this->load(CompetitionParticipantRound::class, array_keys($entryIds), static fn (CompetitionParticipantRound $entry): string => $entry->id->toString());
+        $divisions = $this->load(CompetitionDivision::class, array_keys($divisionIds), static fn (CompetitionDivision $division): string => $division->id->toString());
         $membersOfDeletedTeams = $this->entriesOfTeams($operations->deletedTeams);
         $declinedRequests = $this->requestRepository->byIds($operations->declinedRequests);
 
@@ -250,16 +269,20 @@ readonly final class ParticipantImportApplier
             return $newTeams[$key] ?? throw new \LogicException(sprintf('The plan references team "%s" it does not create.', $key));
         };
 
+        /** @var array<string, CompetitionParticipantRound> $createdEntries "<participant key>|<round id>" => entry */
+        $createdEntries = [];
         foreach ($operations->newEntries as $operation) {
             $participant = $participants[$operation['participantKey']]
                 ?? throw new \LogicException(sprintf('The plan references participant "%s" it does not create.', $operation['participantKey']));
 
-            $this->participantRoundRepository->save(new CompetitionParticipantRound(
+            $entry = new CompetitionParticipantRound(
                 id: Uuid::uuid7(),
                 participant: $participant,
                 round: $rounds[$operation['roundId']],
                 team: $teamOf($operation['team']),
-            ));
+            );
+            $this->participantRoundRepository->save($entry);
+            $createdEntries[$operation['participantKey'] . '|' . $operation['roundId']] = $entry;
         }
 
         foreach ($operations->entryTeams as $operation) {
@@ -275,6 +298,21 @@ readonly final class ParticipantImportApplier
 
         foreach ($operations->deletedEntries as $entryId) {
             $this->participantRoundRepository->delete($entries[$entryId]);
+        }
+
+        // Divisions (shared-puzzles-and-divisions.md §3) - checked against the round's subset by the planner
+        foreach ($operations->entryDivisions as $operation) {
+            $entry = isset($operation['entryId'])
+                ? $entries[$operation['entryId']]
+                : ($createdEntries[($operation['participantKey'] ?? '') . '|' . $operation['roundId']]
+                    ?? throw new \LogicException('The plan gives a division to an entry it does not create.'));
+            $entry->changeDivision($operation['division'] !== null ? $divisions[$operation['division']] : null);
+        }
+
+        foreach ($operations->teamDivisions as $operation) {
+            $team = $teamOf($operation['team']);
+            assert($team !== null);
+            $team->changeDivision($operation['division'] !== null ? $divisions[$operation['division']] : null);
         }
 
         // Teams deleted - every member let go first, removed people too (they keep their place in the round, WEB-D5)

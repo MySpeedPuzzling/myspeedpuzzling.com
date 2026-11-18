@@ -42,6 +42,7 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
         'views/solo_round_view.js',
         'views/round_cards_view.js',
         'round/round_common.js',
+        'round/round_divisions.js',
     ];
 
     public function testEveryTextTheRoundScriptsUseIsInTheJson(): void
@@ -121,7 +122,7 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
         self::assertSame('Puzzles', $withPick['col_puzzles'] ?? null);
         self::assertIsString($withPick['puzzles_cleared'] ?? null);
 
-        $json = self::getContainer()->get(Environment::class)->render('participants_sheet/_texts_round.html.twig', ['state' => ['rounds' => [['puzzleFormat' => null]]]]);
+        $json = self::getContainer()->get(Environment::class)->render('participants_sheet/_texts_round.html.twig', ['state' => ['rounds' => [['puzzleFormat' => null, 'divisions' => [['id' => 'd1', 'name' => 'Regular', 'shortName' => null]]]]]]);
         $texts = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($texts);
         self::assertArrayNotHasKey('col_puzzles', $texts);
@@ -130,6 +131,23 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
         self::assertSame('Per-puzzle record', $withPick['puzzles_popover_title'] ?? null);
         self::assertSame('Finished', $withPick['puzzles_popover_done'] ?? null);
         self::assertSame(array_keys($texts), array_values(array_diff(array_keys($withPick), ['col_puzzles', 'puzzles_cleared', 'puzzles_popover_title', 'puzzles_popover_none', 'puzzles_popover_done', 'puzzles_popover_own_time', 'puzzles_popover_edit_on_desk'])));
+    }
+
+    /**
+     * The Division texts (shared-puzzles-and-divisions.md §3.4) come only with an event that has a round using divisions
+     * - every other sheet gets exactly the JSON it always got (a round without the key, as the state serialises it).
+     */
+    public function testDivisionTextsOnlyForAnEventWithDivisions(): void
+    {
+        $withDivisions = $this->render();
+        self::assertSame('Division', $withDivisions['col_division'] ?? null);
+
+        $json = self::getContainer()->get(Environment::class)->render('participants_sheet/_texts_round.html.twig', ['state' => ['rounds' => [['puzzleFormat' => ['mode' => 'pick']]]]]);
+        $texts = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($texts);
+        $divisionKeys = array_values(array_filter(array_keys($withDivisions), static fn (string $key): bool => $key === 'col_division' || str_starts_with($key, 'division_')));
+        self::assertCount(11, $divisionKeys);
+        self::assertSame(array_keys($texts), array_values(array_diff(array_keys($withDivisions), $divisionKeys)));
     }
 
     /**
@@ -143,8 +161,8 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
         $container->get('request_stack')->push($request);
         $container->get('router')->getContext()->setParameter('_locale', 'en');
 
-        // An event with a `pick` round (competition toolkit A4) - its texts too
-        $json = self::getContainer()->get(Environment::class)->render($template, ['state' => ['rounds' => [['puzzleFormat' => ['mode' => 'pick']]]]]);
+        // An event with a `pick` round (competition toolkit A4) and a round with divisions - their texts too
+        $json = self::getContainer()->get(Environment::class)->render($template, ['state' => ['rounds' => [['puzzleFormat' => ['mode' => 'pick'], 'divisions' => [['id' => 'd1', 'name' => 'Regular', 'shortName' => null]]]]]]);
         $texts = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($texts);
 

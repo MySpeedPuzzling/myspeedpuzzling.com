@@ -12,6 +12,9 @@ final class PlanEntry
 {
     public bool $removed = false;
 
+    /** The division after the import (a solo entry's; null = none) */
+    public null|string $division;
+
     public function __construct(
         /** null = created by the import */
         public readonly null|string $id,
@@ -21,7 +24,10 @@ final class PlanEntry
         public readonly null|string $originalTeam = null,
         /** The row that put the person into the round (new entries) */
         public readonly null|int $row = null,
+        /** A solo entry's own division (shared-puzzles-and-divisions.md §3.5) - a pair's/team's is the team's */
+        public readonly null|string $originalDivision = null,
     ) {
+        $this->division = $originalDivision;
     }
 
     public function isNew(): bool

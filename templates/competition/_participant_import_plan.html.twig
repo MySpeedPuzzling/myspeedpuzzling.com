@@ -147,6 +147,13 @@
                                         {% endif %}
                                     </div>
                                 {% endfor %}
+                                {% for round_name, division in row.divisions %}
+                                    <div data-division-round="{{ round_name }}">
+                                        <span class="text-muted">{{ 'entry_divisions.import.preview_line'|trans({'%round%': round_name}) }}:</span>
+                                        {% if division.before is not null %}<del>{{ division.before }}</del>{% endif %}
+                                        → <strong>{{ division.after }}</strong>
+                                    </div>
+                                {% endfor %}
                                 {% for message in row.messages %}
                                     <div class="text-warning-emphasis"><i class="bi bi-exclamation-triangle me-1"></i>{{ message|trans }}</div>
                                 {% endfor %}

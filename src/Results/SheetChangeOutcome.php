@@ -29,6 +29,9 @@ readonly final class SheetChangeOutcome
     /** The E-mail column's refusal (participant-linking.md §7.1, package L4b) - its text lives with the invitations */
     public const array INVITATION_REASONS = ['invalid_email'];
 
+    /** The reasons of entry divisions (SheetPlanRun, shared-puzzles-and-divisions.md §3.3) - their texts are under entry_divisions */
+    public const array DIVISION_REASONS = ['not_in_round', 'unknown_division', 'division_of_team', 'division_not_entered'];
+
     /**
      * @param array<string, null|string|int> $parameters
      */
@@ -80,6 +83,10 @@ readonly final class SheetChangeOutcome
 
         if (in_array($this->reason, self::INVITATION_REASONS, true)) {
             return 'participant_claim_invitation.sheet.reason.' . $this->reason;
+        }
+
+        if (in_array($this->reason, self::DIVISION_REASONS, true)) {
+            return 'entry_divisions.sheet.reason.' . $this->reason;
         }
 
         return 'participants_sheet_server.reason.' . $this->reason . ($this->cause !== null ? '_' . $this->cause : '');

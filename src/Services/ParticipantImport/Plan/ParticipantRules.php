@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\ParticipantImport\Plan;
 
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Results\RoundDivision;
+use SpeedPuzzling\Web\Value\DivisionMatch;
+use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
 /**
@@ -137,6 +140,19 @@ final class ParticipantRules
         }
 
         return $entryHasOwnData ? self::KEPT_BY_OFFICIAL_DATA : null;
+    }
+
+    /**
+     * The division a value gives an entry of the round (shared-puzzles-and-divisions.md §3.3, §3.5): one the round uses
+     * (its id, name or short label - DivisionMatch), else the refusal - DivisionMatch::NOT_IN_ROUND for a division of the
+     * event the round does not use, DivisionMatch::UNKNOWN_DIVISION for none. The sheet and the import alike; what an
+     * empty value means is theirs (the sheet clears, the import leaves it as it is).
+     *
+     * @param list<RoundDivision> $eventDivisions
+     */
+    public static function divisionInRound(string $value, ParticipantImportRound $round, array $eventDivisions): RoundDivision|string
+    {
+        return DivisionMatch::resolve($value, $round->divisions, $eventDivisions);
     }
 
     /**

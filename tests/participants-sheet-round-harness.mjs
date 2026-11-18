@@ -16,7 +16,7 @@ import { wireGroups } from '../assets/participants_sheet/sheet_changes.js';
 import { SheetModel } from '../assets/participants_sheet/sheet_model.js';
 import { parseClipboardText } from '../assets/participants_sheet/tsv.js';
 
-const SUITES = ['results', 'paste', 'common', 'views', 'puzzles'];
+const SUITES = ['results', 'paste', 'common', 'views', 'puzzles', 'divisions'];
 
 async function runSuite(name) {
     if (!SUITES.includes(name)) {

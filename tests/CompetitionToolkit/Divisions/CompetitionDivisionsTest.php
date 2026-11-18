@@ -130,6 +130,19 @@ final class CompetitionDivisionsTest extends KernelTestCase
         ])));
     }
 
+    public function testADivisionIsNamedWithoutRegardToAccentsCaseOrSpaces(): void
+    {
+        $this->setUpStPaulDivisions($this->messageBus, withEntries: false);
+
+        // The one rule of the sheet and the import too (DivisionMatch)
+        self::assertSame(2, self::handled($this->messageBus, new SetRoundEntryDivisions(self::CUP, OfficialResultsFixture::ROUND_GROUP_A, [
+            new EntryDivisionInput(OfficialResultsFixture::PARTICIPANT_ANNA, null, '  SENIÓR   55+ '),
+            new EntryDivisionInput(OfficialResultsFixture::PARTICIPANT_BEN, null, 'júnior u16'),
+        ])));
+        self::assertSame($this->senior, $this->database->fetchOne('SELECT division_id FROM competition_participant_round WHERE participant_id = ? AND round_id = ?', [OfficialResultsFixture::PARTICIPANT_ANNA, OfficialResultsFixture::ROUND_GROUP_A]));
+        self::assertSame($this->junior, $this->database->fetchOne('SELECT division_id FROM competition_participant_round WHERE participant_id = ? AND round_id = ?', [OfficialResultsFixture::PARTICIPANT_BEN, OfficialResultsFixture::ROUND_GROUP_A]));
+    }
+
     public function testEntryDivisionsAreAllOrNothing(): void
     {
         $this->setUpStPaulDivisions($this->messageBus, withEntries: false);

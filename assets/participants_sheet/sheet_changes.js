@@ -44,8 +44,9 @@ import {
     textLength,
     Working,
 } from './sheet_model.js';
+import { NO_DIVISION, divisionMarkerKey, divisionValue, roundDivisions } from './sheet_divisions.js';
 
-export const OPS = ['newParticipant', 'field', 'player', 'place', 'newTeam', 'renameTeam', 'deleteTeam', 'remove', 'restore', 'teamSize'];
+export const OPS = ['newParticipant', 'field', 'player', 'place', 'newTeam', 'renameTeam', 'deleteTeam', 'remove', 'restore', 'teamSize', 'division'];
 export const FIELDS = ['name', 'country', 'externalId', 'note', 'email'];
 // Request limits of the endpoint (contract §3.1)
 export const MAX_GROUPS = 1000;
@@ -157,6 +158,13 @@ export function changeTarget(change, model = null) {
         }
         case 'teamSize':
             return { key: `round:${change.round}:teamSize`, people: [], teams: [], rounds: [change.round] };
+        case 'division':
+            return {
+                key: divisionMarkerKey(change.round, change.team ? { team: change.team } : { participant: change.participant }),
+                people: change.participant ? [change.participant] : (model ? model.membersOf(change.team).map((person) => person.id) : []),
+                teams: change.team ? [change.team] : [],
+                rounds: [change.round],
+            };
         case 'declineLinkRequest': {
             // The request's person: its chip is in their profile cell
             const participantId = model?.request?.(change.request)?.participantId ?? null;
@@ -358,6 +366,49 @@ export function checkChange(change, state, { countries = null } = {}) {
             return change.to === null || (Number.isInteger(change.to) && change.to >= TEAM_SIZE_MIN && change.to <= TEAM_SIZE_MAX) ? null : 'invalid_team_size';
         }
 
+        case 'division': {
+            const round = roundOf(state, change.round);
+
+            if (round === null) {
+                return 'round_not_found';
+            }
+
+            if (change.team) {
+                if (round.category === 'solo') {
+                    return 'not_a_team_round';
+                }
+
+                const team = state.team(change.team);
+
+                if (team === null) {
+                    return 'team_not_found';
+                }
+
+                if (team.roundId !== change.round) {
+                    return 'team_of_another_round';
+                }
+            } else {
+                if (person(change.participant) === null) {
+                    return 'participant_not_found';
+                }
+
+                if (removed(change.participant)) {
+                    return 'participant_removed';
+                }
+
+                if (round.category !== 'solo') {
+                    return 'division_of_team';
+                }
+
+                if (state.place(change.participant, change.round) === null) {
+                    return 'division_not_entered';
+                }
+            }
+
+            // Only a division the round uses (DivisionMatch on the server)
+            return change.to === NO_DIVISION || (round.divisions ?? []).some((division) => division.id === change.to) ? null : 'not_in_round';
+        }
+
         default:
             return 'invalid_change';
     }
@@ -506,6 +557,17 @@ export function refusalDetails(error, state) {
 
             return { key, params: { team: record?.name ?? null, round: roundName(record?.roundId) } };
         }
+        case 'not_in_round':
+        case 'unknown_division':
+        case 'division_of_team':
+        case 'division_not_entered': {
+            const known = error.division ?? String(change.to ?? '');
+            const division = (typeof state?.rounds === 'function' ? state.rounds() : [...(state?.rounds?.values?.() ?? [])])
+                .flatMap((round) => round.divisions ?? [])
+                .find((candidate) => candidate.id === known);
+
+            return { key: reason, params: { name, round: roundName(change.round), division: division?.name ?? known } };
+        }
         default:
             return { key: reason, params: {} };
     }
@@ -576,6 +638,8 @@ function invertChange(change, before) {
             return (before.person(change.participant)?.removedAt ?? null) !== null ? [{ op: 'remove', participant: change.participant }] : [];
         case 'teamSize':
             return [{ op: 'teamSize', round: change.round, from: change.to, to: change.from }];
+        case 'division':
+            return [{ ...change, from: change.to, to: change.from }];
         default:
             return [];
     }
@@ -1076,6 +1140,50 @@ export function setTeamSize(model, roundId, size, options = {}) {
     }
 
     return buildAction(model, [[{ op: 'teamSize', round: roundId, from, to }]], { label: { key: 'team_size' }, ...actionOptions(options) });
+}
+
+/**
+ * The division of an entry of a round that uses divisions (shared-puzzles-and-divisions.md §3.3): `target` =
+ * {participant} (a solo entry) or {team} (a pair/team); `divisionId` = a division of the round, '' / null = none.
+ * `options.from` = the division the organiser saw ('' = none). Several entries at once ("Fill empty with …"): one
+ * group each, so one refused entry does not hold back the others.
+ */
+export function setDivision(model, roundId, target, divisionId, options = {}) {
+    return setDivisions(model, roundId, [target], divisionId, { label: { key: 'division' }, ...options });
+}
+
+export function setDivisions(model, roundId, targets, divisionId, options = {}) {
+    const to = divisionValue(divisionId);
+    const groups = [];
+
+    for (const target of targets) {
+        const current = target.team
+            ? model.team(target.team)?.division
+            : model.place(target.participant, roundId)?.division;
+        const shown = divisionValue(current);
+        const from = divisionValue(fromFor(options, target.team ?? target.participant, shown));
+
+        if (shown === to || from === to) {
+            continue;
+        }
+
+        groups.push([{ op: 'division', round: roundId, ...(target.team ? { team: target.team } : { participant: target.participant }), from, to }]);
+    }
+
+    return buildAction(model, groups, { label: { key: 'divisions' }, ...actionOptions(options) });
+}
+
+/** The entries of the round without a division (solo: people, else pairs/teams) - what "Fill empty with …" fills. */
+export function emptyDivisionTargets(model, roundId) {
+    const usable = new Set(roundDivisions(model, roundId).map((division) => division.id));
+
+    if (model.round(roundId)?.category === 'solo') {
+        return model.peopleIn(roundId)
+            .filter((person) => !usable.has(model.place(person.id, roundId)?.division ?? ''))
+            .map((person) => ({ participant: person.id }));
+    }
+
+    return model.teamsOf(roundId).filter((team) => !usable.has(team.division ?? '')).map((team) => ({ team: team.id }));
 }
 
 // ---------------------------------------------------------------- results (RecordRoundResults, contract O3)

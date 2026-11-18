@@ -71,7 +71,11 @@ final class ParticipantImportPreviewController extends AbstractController
             'csrf_token_id' => self::CSRF_TOKEN_ID,
             'fields' => array_values(array_filter(
                 ParticipantImportField::cases(),
-                static fn (ParticipantImportField $field): bool => $field !== ParticipantImportField::Ignore && $field !== ParticipantImportField::TeamInRound,
+                static fn (ParticipantImportField $field): bool => $field !== ParticipantImportField::Ignore
+                    && $field !== ParticipantImportField::TeamInRound
+                    && $field !== ParticipantImportField::DivisionInRound
+                    // Only an event with divisions has a Division column (shared-puzzles-and-divisions.md §3.5)
+                    && ($field !== ParticipantImportField::Division || ($preview !== null && $preview->divisions !== [])),
             )),
             'actions' => ParticipantImportRowAction::cases(),
             'encodings' => ParticipantFileOptions::ENCODINGS,

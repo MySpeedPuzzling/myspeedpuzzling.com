@@ -80,6 +80,33 @@ SELECT encode(sha256(convert_to(concat_ws(E'\n',
         FROM competition_participant cp
         WHERE cp.competition_id = :competitionId
             AND cp.connected_via IS NOT NULL
+    ),
+    -- Divisions (shared-puzzles-and-divisions.md §3): the event's list, each round's subset and the entries' divisions -
+    -- NULL (left out by concat_ws, separator included) for an event without them, so its version stays what it was
+    (
+        SELECT '#' || string_agg(division_row, E'\n' ORDER BY division_row)
+        FROM (
+            SELECT json_build_array('d', d.id, d.name, d.short_name, d.position)::text AS division_row
+            FROM competition_division d
+            WHERE d.competition_id = :competitionId
+            UNION ALL
+            SELECT json_build_array('r', crd.round_id, crd.division_id)::text
+            FROM competition_round_division crd
+            INNER JOIN competition_round cr ON cr.id = crd.round_id
+            WHERE cr.competition_id = :competitionId
+            UNION ALL
+            SELECT json_build_array('e', cpr.id, cpr.division_id)::text
+            FROM competition_participant_round cpr
+            INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+            WHERE cp.competition_id = :competitionId
+                AND cpr.division_id IS NOT NULL
+            UNION ALL
+            SELECT json_build_array('t', ct.id, ct.division_id)::text
+            FROM competition_team ct
+            INNER JOIN competition_round cr ON cr.id = ct.round_id
+            WHERE cr.competition_id = :competitionId
+                AND ct.division_id IS NOT NULL
+        ) divisions
     )
 ), 'UTF8')), 'hex')
 SQL;

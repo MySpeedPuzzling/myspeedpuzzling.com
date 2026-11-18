@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport;
 
 use SpeedPuzzling\Web\Query\GetParticipantImportStateVersion;
 use SpeedPuzzling\Web\Results\ParticipantImportPlan;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\PlanBuilder;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
@@ -33,6 +34,16 @@ readonly final class ParticipantImportPlanner
     public function rounds(string $competitionId): array
     {
         return $this->siteSnapshotReader->rounds($competitionId);
+    }
+
+    /**
+     * The rounds (each with its divisions) and the event's division list - one statement (SiteSnapshotReader).
+     *
+     * @return array{list<ParticipantImportRound>, list<RoundDivision>}
+     */
+    public function roundsAndDivisions(string $competitionId): array
+    {
+        return $this->siteSnapshotReader->roundsAndDivisions($competitionId);
     }
 
     public function plan(string $competitionId, ParticipantImportRows $rows, ParticipantImportMode $mode): ParticipantImportPlan

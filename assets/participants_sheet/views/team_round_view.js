@@ -73,6 +73,21 @@ import {
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
 import { roundPickFormat } from '../sheet_puzzles.js';
 import {
+    DIVISION_COLUMN,
+    clearDivisionsAction,
+    divisionCell,
+    divisionColumn,
+    divisionCommit,
+    divisionEditValue,
+    divisionItems,
+    divisionsKey,
+    divisionSuggest,
+    divisionToolbarHtml,
+    fillEmptyAction,
+    shownDivision,
+} from '../round/round_divisions.js';
+import { divisionOf } from '../sheet_divisions.js';
+import {
     CHOOSE,
     NEW_TEAM,
     SKIP,
@@ -218,7 +233,7 @@ export class TeamRoundView {
     columnsKey() {
         const round = this.model.round(this.roundId);
 
-        return [this.wantedMemberCount(), usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null].join('|');
+        return [this.wantedMemberCount(), usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null, divisionsKey(this.model, this.roundId)].join('|');
     }
 
     /** Columns changed (member count, results shown, the round's table usage): a new grid, the same cell focused. */
@@ -499,6 +514,13 @@ export class TeamRoundView {
             className: 'sheet-col-member sheet-col-extra',
         });
         columns.push({ key: 'size', label: this.t('col_size'), kind: 'readonly', width: 215, className: 'sheet-col-size' });
+        // A round that uses divisions (shared-puzzles-and-divisions.md §3.4): the pair's/team's - every other round's
+        // columns stay
+        const division = divisionColumn(this.model, this.roundId, this.texts);
+
+        if (division !== null) {
+            columns.push(division);
+        }
 
         if (this.showResults) {
             columns.push(
@@ -709,6 +731,10 @@ export class TeamRoundView {
             return this.sizeCell(team.id);
         }
 
+        if (col === DIVISION_COLUMN) {
+            return divisionCell(this.context, this.model, this.roundId, team.id, this.texts);
+        }
+
         if (col === 'result') {
             return this.results.resultCell(ref, team.result, team.enteredBy, team.enteredAt, { missingPieces: team.missingPieces ?? null });
         }
@@ -814,6 +840,10 @@ export class TeamRoundView {
             return resultEditText(this.entryOf(row)?.result ?? null);
         }
 
+        if (col === DIVISION_COLUMN) {
+            return divisionEditValue(this.model, this.roundId, row);
+        }
+
         return '';
     }
 
@@ -870,6 +900,10 @@ export class TeamRoundView {
 
         if (col === 'name') {
             return team.name;
+        }
+
+        if (col === DIVISION_COLUMN) {
+            return shownDivision(this.model, this.roundId, row);
         }
 
         return this.isMemberColumn(col) ? (this.slotsOf(row)[this.memberIndex(col)] ?? null) : null;
@@ -929,7 +963,12 @@ export class TeamRoundView {
             return;
         }
 
-        const shown = editing.col === 'name' ? (now ?? this.core.t('team_no_name')) : (now === null ? this.t('member_empty') : (this.model.person(now)?.name ?? ''));
+        let shown = editing.col === 'name' ? (now ?? this.core.t('team_no_name')) : (now === null ? this.t('member_empty') : (this.model.person(now)?.name ?? ''));
+
+        if (editing.col === DIVISION_COLUMN) {
+            shown = divisionOf(this.model, this.roundId, now)?.name ?? this.t('division_none');
+        }
+
         this.grid.editorNotice({
             text: this.t('changed_meanwhile', { value: shown }),
             actions: [
@@ -952,6 +991,10 @@ export class TeamRoundView {
     // ---------------------------------------------------------------- suggestions
 
     suggest(row, col, query, info = {}) {
+        if (col === DIVISION_COLUMN) {
+            return row === NEW_ROW ? [] : divisionSuggest(this.model, this.roundId, query, this.texts);
+        }
+
         if (this.isMemberColumn(col)) {
             const teamId = row === NEW_ROW ? null : row;
             const options = personOptions(this.model, this.roundId, query, this.texts, { teamId, countries: this.context.countries });
@@ -1049,6 +1092,16 @@ export class TeamRoundView {
 
         if (col === 'name') {
             return this.commitName(row, input, this.seenOf(row, col, extra));
+        }
+
+        if (col === DIVISION_COLUMN && row !== NEW_ROW) {
+            const answer = divisionCommit(this.model, this.roundId, row, input, this.seenOf(row, col, extra), this.texts, this.options());
+
+            if (answer === null) {
+                return undefined;
+            }
+
+            return answer.error ? { error: answer.error } : this.perform(answer.action, { row, col });
         }
 
         if (this.isMemberColumn(col)) {
@@ -1320,9 +1373,16 @@ export class TeamRoundView {
     clear(cells) {
         const actions = [];
         const results = [];
+        const divisions = [];
 
         for (const { row, col } of cells) {
             if (row === NEW_ROW) {
+                continue;
+            }
+
+            if (col === DIVISION_COLUMN) {
+                divisions.push(row);
+
                 continue;
             }
 
@@ -1375,6 +1435,7 @@ export class TeamRoundView {
             ...actions.filter((action) => !action.personId),
             buildAction(this.model, groups, { label: { key: 'clear_member' }, ...this.options() }),
             results.length > 0 ? officialEdits(results) : null,
+            clearDivisionsAction(this.model, this.roundId, divisions, this.options()),
         );
 
         this.holdWorkedOn(cells.map((cell) => cell.row));
@@ -1536,6 +1597,7 @@ export class TeamRoundView {
             ${filterHtml || clearFilter ? `<div class="sheet-round-filters" role="group" aria-label="${escapeHtml(this.t('filters_label'))}">${filterHtml}${clearFilter}</div>` : ''}
             ${teamSize ? `<div class="sheet-round-size-wrap">${teamSize}</div>` : ''}
             <div class="sheet-round-actions">
+                ${divisionToolbarHtml(this.model, this.roundId, this.texts)}
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-sort title="${escapeHtml(this.t('sort_hint'))}"><i class="bi bi-sort-numeric-down" aria-hidden="true"></i> ${escapeHtml(this.t('sort'))}</button>
                 ${this.showResults ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-rank-sort aria-pressed="${this.rankSort ? 'true' : 'false'}"><i class="bi bi-trophy" aria-hidden="true"></i> ${escapeHtml(this.t('sort_by_rank'))}</button>` : ''}
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-results aria-pressed="${this.showResults ? 'true' : 'false'}"><i class="bi bi-stopwatch" aria-hidden="true"></i> ${escapeHtml(this.t('results_columns'))}</button>
@@ -1566,6 +1628,14 @@ export class TeamRoundView {
     }
 
     onToolbarClick(event) {
+        const fill = event.target.closest('[data-fill-divisions]');
+
+        if (fill) {
+            this.fillEmptyDivisions(fill);
+
+            return;
+        }
+
         const filter = event.target.closest('[data-filter]');
 
         if (filter) {
@@ -1619,6 +1689,24 @@ export class TeamRoundView {
 
         if (!this.tablesUsed) {
             this.grid.rows.forEach((key) => this.grid.updateCell(key, 'table'));
+        }
+    }
+
+    /** "Fill empty with …": the pairs/teams of the round without a division get the picked one (one undo step). */
+    async fillEmptyDivisions(anchor) {
+        this.dialog?.close();
+        this.dialog = new RoundDialog({
+            host: this.context.root,
+            closeLabel: this.t('dialog_close'),
+            title: this.t('division_fill_empty'),
+            anchor,
+            items: divisionItems(this.model, this.roundId, this.texts, { none: false }),
+            returnFocus: () => this.toolbar.querySelector('[data-fill-divisions]')?.focus(),
+        }).open();
+        const choice = await this.dialog.result;
+
+        if (choice?.value) {
+            this.run(fillEmptyAction(this.model, this.roundId, choice.value, this.options()), { success: this.t('division_filled', { division: choice.label }), anchor });
         }
     }
 

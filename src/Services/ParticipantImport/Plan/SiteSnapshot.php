@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\ParticipantImport\Plan;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\PlayerReference;
 
@@ -13,8 +14,8 @@ use SpeedPuzzling\Web\Value\PlayerReference;
  * never changed.
  *
  * @phpstan-type SnapshotParticipant array{id: string, name: string, country: null|string, externalId: null|string, playerId: null|string, playerName: null|string, deletedAt: null|DateTimeImmutable, selfJoined: bool, organizerNote: null|string, email?: null|string, registrationStatus: null|string, connectedVia?: null|string, playerCode?: null|string, playerMasked?: bool, refusedPlayerIds?: list<string>}
- * @phpstan-type SnapshotEntry array{id: string, participantId: string, roundId: string, teamId: null|string, ownOfficialData: bool}
- * @phpstan-type SnapshotTeam array{id: string, roundId: string, name: null|string}
+ * @phpstan-type SnapshotEntry array{id: string, participantId: string, roundId: string, teamId: null|string, ownOfficialData: bool, divisionId?: null|string}
+ * @phpstan-type SnapshotTeam array{id: string, roundId: string, name: null|string, divisionId?: null|string}
  * @phpstan-type SnapshotPlayer array{code: string, name: null|string, masked: bool}
  * @phpstan-type SnapshotReference array{status: string, playerId: null|string}
  */
@@ -43,6 +44,8 @@ readonly final class SiteSnapshot
      * @param array<string, SnapshotPlayer> $players lower-cased player id => the player a reference asked about resolved to;
      *        `masked` = the viewer may not see who it is (private to them, or blocked by them)
      * @param array<string, SnapshotReference> $references PlayerReference::key() => what it resolved to, by key
+     * @param list<RoundDivision> $divisions the event's divisions in its order (each round's own: ParticipantImportRound)
+     *        - `divisionId` of an entry is its own (solo rounds), of a team the pair's/team's
      */
     public function __construct(
         public string $competitionId,
@@ -57,7 +60,19 @@ readonly final class SiteSnapshot
         public array $officialTeams = [],
         public array $players = [],
         public array $references = [],
+        public array $divisions = [],
     ) {
+    }
+
+    public function round(string $roundId): null|ParticipantImportRound
+    {
+        foreach ($this->rounds as $round) {
+            if ($round->id === $roundId) {
+                return $round;
+            }
+        }
+
+        return null;
     }
 
     /**

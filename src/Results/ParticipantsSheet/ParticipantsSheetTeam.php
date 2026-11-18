@@ -31,11 +31,15 @@ readonly final class ParticipantsSheetTeam implements \JsonSerializable
         public null|RoundEntryPuzzles $puzzles = null,
         // Finished with pieces missing (competition toolkit T6) - the JSON carries `missingPieces` only when set
         public null|int $missingPieces = null,
+        // An entry of a round that uses divisions (shared-puzzles-and-divisions.md §3.4): the JSON carries `division`
+        // (the division id, null = none); absent on every other round
+        public bool $divisionUsed = false,
+        public null|string $division = null,
     ) {
     }
 
     /**
-     * @return array{id: string, roundId: string, name: null|string, table: null|int, result: null|array{seconds: int}|array{piecesPlaced: int}|array{didNotStart: true}, qualified: bool, enteredAt: null|string, enteredBy: null|string, puzzles?: null|list<array{roundPuzzleId: string, done: bool, atSeconds?: int, piecesPlaced?: int}>, missingPieces?: int}
+     * @return array{id: string, roundId: string, name: null|string, table: null|int, result: null|array{seconds: int}|array{piecesPlaced: int}|array{didNotStart: true}, qualified: bool, enteredAt: null|string, enteredBy: null|string, puzzles?: null|list<array{roundPuzzleId: string, done: bool, atSeconds?: int, piecesPlaced?: int}>, missingPieces?: int, division?: null|string}
      */
     public function jsonSerialize(): array
     {
@@ -50,6 +54,7 @@ readonly final class ParticipantsSheetTeam implements \JsonSerializable
             'enteredBy' => $this->enteredBy,
             ...($this->puzzlesUsed ? ['puzzles' => $this->puzzles?->toWire()] : []),
             ...($this->missingPieces !== null ? ['missingPieces' => $this->missingPieces] : []),
+            ...($this->divisionUsed ? ['division' => $this->division] : []),
         ];
     }
 }

@@ -52,6 +52,20 @@ import {
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
 import { roundPickFormat } from '../sheet_puzzles.js';
 import {
+    DIVISION_COLUMN,
+    clearDivisionsAction,
+    divisionCell,
+    divisionColumn,
+    divisionCommit,
+    divisionEditValue,
+    divisionItems,
+    divisionsKey,
+    divisionSuggest,
+    divisionToolbarHtml,
+    fillEmptyAction,
+    shownDivision,
+} from '../round/round_divisions.js';
+import {
     CHOOSE,
     SKIP,
     buildSoloPasteAction,
@@ -174,7 +188,7 @@ export class SoloRoundView {
     columnsKey() {
         const round = this.model.round(this.roundId);
 
-        return [usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null].join('|');
+        return [usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null, divisionsKey(this.model, this.roundId)].join('|');
     }
 
     rebuild() {
@@ -343,6 +357,12 @@ export class SoloRoundView {
             { key: 'name', label: this.t('col_person'), kind: 'list', width: 240, space: 'panel', autoHighlight: 'exact' },
             { key: 'country', label: this.t('col_country'), kind: 'readonly', width: 170 },
         ];
+        // A round that uses divisions (shared-puzzles-and-divisions.md §3.4) - every other round's columns stay
+        const division = divisionColumn(this.model, this.roundId, this.texts);
+
+        if (division !== null) {
+            columns.push(division);
+        }
 
         if (this.showResults) {
             columns.push(
@@ -544,6 +564,8 @@ export class SoloRoundView {
 
                 return { text: label, html: person.country ? `${flagHtml(person.country)}${escapeHtml(label)}` : '', readonly: true };
             }
+            case DIVISION_COLUMN:
+                return divisionCell(this.context, this.model, this.roundId, row, this.texts);
             case 'result':
                 return this.results.resultCell(entry.ref, entry.place.result, entry.place.enteredBy, entry.place.enteredAt, { readonly: reason !== '', reason, missingPieces: entry.place.missingPieces ?? null });
             case 'puzzles':
@@ -570,12 +592,23 @@ export class SoloRoundView {
             return entry.table === null || entry.table === undefined ? '' : String(entry.table);
         }
 
+        if (col === DIVISION_COLUMN) {
+            return divisionEditValue(this.model, this.roundId, row);
+        }
+
         return col === 'result' ? resultEditText(entry.result) : '';
     }
 
     /** An edit of a table or result cell began: what it showed is the `from` of its save (openEditor()). */
     editStart(row, col) {
         this.editor = null;
+
+        if (row !== NEW_ROW && col === DIVISION_COLUMN) {
+            // What the cell showed: the `from` of the division change
+            this.editor = { row, col, seen: shownDivision(this.model, this.roundId, row) };
+
+            return this.editor.seen;
+        }
 
         if (row === NEW_ROW || (col !== 'table' && col !== 'result')) {
             return null;
@@ -639,6 +672,10 @@ export class SoloRoundView {
             return this.results.tableSuggest(this.editorFor(row, col), this.entryOf(row), query);
         }
 
+        if (col === DIVISION_COLUMN) {
+            return divisionSuggest(this.model, this.roundId, query, this.texts);
+        }
+
         return [];
     }
 
@@ -688,6 +725,17 @@ export class SoloRoundView {
         }
 
         this.holdWorkedOn([row]);
+
+        if (col === DIVISION_COLUMN) {
+            const answer = divisionCommit(this.model, this.roundId, row, input, this.editorFor(row, col)?.seen, this.texts, this.options());
+            this.editor = null;
+
+            if (answer === null) {
+                return undefined;
+            }
+
+            return answer.error ? { error: answer.error } : this.perform(answer.action, { row, col });
+        }
 
         if (col === 'table' || col === 'result') {
             const entry = this.entryOf(row);
@@ -784,9 +832,16 @@ export class SoloRoundView {
     clear(cells) {
         const out = [];
         const results = [];
+        const divisions = [];
 
         for (const { row, col } of cells) {
             if (row === NEW_ROW) {
+                continue;
+            }
+
+            if (col === DIVISION_COLUMN) {
+                divisions.push(row);
+
                 continue;
             }
 
@@ -811,6 +866,7 @@ export class SoloRoundView {
             { key: 'clear' },
             ...out.map((personId) => setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() })),
             results.length > 0 ? officialEdits(results) : null,
+            clearDivisionsAction(this.model, this.roundId, divisions, this.options()),
         );
 
         this.holdWorkedOn(cells.map((cell) => cell.row));
@@ -954,6 +1010,7 @@ export class SoloRoundView {
             </div>
             ${filter}
             <div class="sheet-round-actions">
+                ${divisionToolbarHtml(this.model, this.roundId, this.texts)}
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-sort title="${escapeHtml(this.t('sort_hint'))}"><i class="bi bi-sort-numeric-down" aria-hidden="true"></i> ${escapeHtml(this.t('sort'))}</button>
                 ${this.showResults ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-rank-sort aria-pressed="${this.rankSort ? 'true' : 'false'}"><i class="bi bi-trophy" aria-hidden="true"></i> ${escapeHtml(this.t('sort_by_rank'))}</button>` : ''}
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-results aria-pressed="${this.showResults ? 'true' : 'false'}"><i class="bi bi-stopwatch" aria-hidden="true"></i> ${escapeHtml(this.t('results_columns'))}</button>
@@ -973,6 +1030,14 @@ export class SoloRoundView {
     }
 
     onToolbarClick(event) {
+        const fill = event.target.closest('[data-fill-divisions]');
+
+        if (fill) {
+            this.fillEmptyDivisions(fill);
+
+            return;
+        }
+
         const filter = event.target.closest('[data-filter]');
 
         if (filter) {
@@ -1008,6 +1073,24 @@ export class SoloRoundView {
 
         if (event.target.closest('[data-results]')) {
             this.toggleResults(!this.showResults);
+        }
+    }
+
+    /** "Fill empty with …": the people of the round without a division get the picked one (one undo step). */
+    async fillEmptyDivisions(anchor) {
+        this.dialog?.close();
+        this.dialog = new RoundDialog({
+            host: this.context.root,
+            closeLabel: this.t('dialog_close'),
+            title: this.t('division_fill_empty'),
+            anchor,
+            items: divisionItems(this.model, this.roundId, this.texts, { none: false }),
+            returnFocus: () => this.toolbar.querySelector('[data-fill-divisions]')?.focus(),
+        }).open();
+        const choice = await this.dialog.result;
+
+        if (choice?.value) {
+            this.run(fillEmptyAction(this.model, this.roundId, choice.value, this.options()), { success: this.t('division_filled', { division: choice.label }), anchor });
         }
     }
 

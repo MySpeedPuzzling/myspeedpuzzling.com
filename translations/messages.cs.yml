@@ -4679,6 +4679,7 @@ qr_code:
         "external_id": "Externí ID"
         "status": "Status"
         email: "E-mail (soukromý, pro pozvánku k propojení)"
+        division: "Divize"
       "confirm":
         "nothing_saved_yet": "Zatím se nic neuložilo."
         "button": "Potvrdit import"
@@ -7776,6 +7777,39 @@ participants_sheet_server:
         team_size: "Členů na tým (jen u týmových kol)"
         team_size_help: "Slouží k upozornění na týmy s příliš malým nebo velkým počtem lidí - nikdy nic neblokuje."
         team_size_placeholder: "např. %size% (nejčastější velikost)"
+entry_divisions:
+    sheet:
+        column: "Divize"
+        none: "Bez divize"
+        current: "nyní"
+        change: "Změnit"
+        set: "Divize nastavena na %division%."
+        all_set: "Každý záznam má divizi"
+        without: "{0}%count% bez divize|{1}1 bez divize|[2,4]%count% bez divize|[5,Inf[%count% bez divize"
+        fill_empty: "Doplnit prázdné…"
+        filled: "Záznamy bez divize jsou teď v divizi %division%."
+        unknown: "„%value%“ není divize tohoto kola - má: %divisions%."
+        not_in_round: "%round% nepoužívá divizi %value% - má: %divisions%."
+        op: "Divize"
+        action: "nastavit divizi"
+        action_many: "nastavit divize"
+        reason:
+            not_in_round: "%round% nepoužívá divizi %division%."
+            unknown_division: "„%division%“ není divize této události."
+            division_of_team: "V kole %round% patří divize dvojici/týmu - nastavte ji u dvojice/týmu."
+            division_not_entered: "%name% není v kole %round% - nejdřív ho/ji do kola zařaďte."
+    import:
+        division_in_round: "Divize v kole %round%"
+        division_round_twice: "Divize jednoho kola je vybrána pro více než jeden sloupec."
+        header_read_as_division: "Tato událost má divize, proto se sloupec „%column%“ čte jako divize každého záznamu. Pokud uvádí kola, vyberte pro něj „Kola (seznam)“."
+        preview_line: "%round% – divize"
+        unknown: "Řádek %row%: „%value%“ není divize této události - má: %divisions%. Divize se nenastaví."
+        not_in_round: "Řádek %row%: %round% nepoužívá divizi %division% - tam zůstává beze změny."
+        not_entered: "Řádek %row%: %name% není v kole %round% - divize %division% se tam nenastaví."
+        no_round: "Řádek %row%: %name% není v žádném kole - divize %division% se nenastaví."
+        conflict_in_file: "Řádky %name% uvádějí v kole %round% různé divize - divize zůstává beze změny."
+        no_team: "Řádek %row%: %name% nemá v kole %round% dvojici ani tým - divize dvojice nebo týmu se nastavuje u dvojice nebo týmu."
+        members_disagree: "Členové %team% jsou v kole %round% v různých divizích - divize dvojice nebo týmu zůstává beze změny."
 
 participants_sheet_core:
     loading: "Načítání účastníků…"

@@ -12,7 +12,8 @@ use Doctrine\DBAL\Connection;
  * preview says "linked by themselves"), round entries (id, participant,
  * round, team), teams (id, round, name) and rounds (id, name, category, start - the order rounds are listed and
  * matched in), each in id order. Results are not in it -
- * they arrive all day on event day; the plan's results guard covers them.
+ * they arrive all day on event day; the plan's results guard covers them. An event with divisions adds its list, each
+ * round's subset and the entries' divisions (shared-puzzles-and-divisions.md §3).
  */
 readonly final class GetParticipantImportStateVersion
 {
@@ -49,6 +50,33 @@ SELECT encode(sha256(convert_to(concat_ws(E'\n',
         SELECT string_agg(json_build_array(cr.id, cr.name, cr.category, cr.starts_at)::text, E'\n' ORDER BY cr.id)
         FROM competition_round cr
         WHERE cr.competition_id = :competitionId
+    ),
+    -- Divisions (shared-puzzles-and-divisions.md §3): the event's list, each round's subset and the entries' divisions -
+    -- NULL (left out by concat_ws, separator included) for an event without them, so its version stays what it was
+    (
+        SELECT '#' || string_agg(division_row, E'\n' ORDER BY division_row)
+        FROM (
+            SELECT json_build_array('d', d.id, d.name, d.short_name, d.position)::text AS division_row
+            FROM competition_division d
+            WHERE d.competition_id = :competitionId
+            UNION ALL
+            SELECT json_build_array('r', crd.round_id, crd.division_id)::text
+            FROM competition_round_division crd
+            INNER JOIN competition_round cr ON cr.id = crd.round_id
+            WHERE cr.competition_id = :competitionId
+            UNION ALL
+            SELECT json_build_array('e', cpr.id, cpr.division_id)::text
+            FROM competition_participant_round cpr
+            INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+            WHERE cp.competition_id = :competitionId
+                AND cpr.division_id IS NOT NULL
+            UNION ALL
+            SELECT json_build_array('t', ct.id, ct.division_id)::text
+            FROM competition_team ct
+            INNER JOIN competition_round cr ON cr.id = ct.round_id
+            WHERE cr.competition_id = :competitionId
+                AND ct.division_id IS NOT NULL
+        ) divisions
     )
 ), 'UTF8')), 'hex')
 SQL;

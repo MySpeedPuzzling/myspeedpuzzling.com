@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DivisionMatch;
 use SpeedPuzzling\Web\Value\LinkRequestStatus;
 use SpeedPuzzling\Web\Value\ParticipantEmail;
 use SpeedPuzzling\Web\Value\ParticipantSource;
@@ -54,12 +55,17 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  *   removed, any other row only unlinked; their own paid registration only when they said yes at the claim). Declining
  *   one is `declineLinkRequest`; "Not this person" is the `player` change to null with `notThem`.
  *
+ * - Divisions (shared-puzzles-and-divisions.md §3.3): `division` sets the division of a solo entry (by participant) or of
+ *   a pair/team (by team) - only one the round uses (ParticipantRules::divisionInRound(), `not_in_round` /
+ *   `unknown_division` otherwise); '' clears it. A person taken out of a round and put back keeps their entry and its
+ *   division.
+ *
  * The working state is plain arrays on purpose: saving and restoring it around a group is an assignment (copy on
  * write), whatever the group did.
  *
  * @phpstan-type Person array{name: string, country: null|string, externalId: null|string, playerId: null|string, note: null|string, email: null|string, deleted: bool, selfJoined: bool, markAsImported: bool, waitlisted: bool, new: bool}
- * @phpstan-type Entry array{id: null|string, present: bool, team: null|string, ownData: bool}
- * @phpstan-type Team array{roundId: string, name: null|string, new: bool, deleted: bool}
+ * @phpstan-type Entry array{id: null|string, present: bool, team: null|string, ownData: bool, division: null|string}
+ * @phpstan-type Team array{roundId: string, name: null|string, new: bool, deleted: bool, division: null|string}
  * @phpstan-type Round array{name: string, category: RoundCategory, teamSize: null|int}
  * @phpstan-type Request array{participantId: string, playerId: string, status: string, releasesOwnRegistration: bool}
  * @phpstan-type State array{people: array<string, Person>, entries: array<string, array<string, Entry>>, teams: array<string, Team>, members: array<string, array<string, true>>, rounds: array<string, Round>, nameKeys: array<string, string>, requests: array<string, Request>, notThem: array<string, true>}
@@ -166,7 +172,7 @@ final class SheetPlanRun
         }
 
         foreach ($site->teams as $team) {
-            $this->teams[$team['id']] = ['roundId' => $team['roundId'], 'name' => $team['name'], 'new' => false, 'deleted' => false];
+            $this->teams[$team['id']] = ['roundId' => $team['roundId'], 'name' => $team['name'], 'new' => false, 'deleted' => false, 'division' => $team['divisionId'] ?? null];
             $this->members[$team['id']] = [];
         }
 
@@ -176,6 +182,7 @@ final class SheetPlanRun
                 'present' => true,
                 'team' => $entry['teamId'],
                 'ownData' => $entry['ownOfficialData'],
+                'division' => $entry['divisionId'] ?? null,
             ];
 
             if ($entry['teamId'] !== null) {
@@ -327,6 +334,7 @@ final class SheetPlanRun
             SheetChangeOp::Restore => $this->restoreParticipant($change, $index),
             SheetChangeOp::TeamSize => $this->teamSize($change, $index),
             SheetChangeOp::DeclineLinkRequest => $this->declineLinkRequest($change, $index),
+            SheetChangeOp::Division => $this->division($change, $index),
         };
     }
 
@@ -809,7 +817,7 @@ final class SheetPlanRun
             return $this->refused($change, $index, 'team_name_too_long', ['max' => CompetitionTeam::NAME_MAX_LENGTH]);
         }
 
-        $this->teams[$id] = ['roundId' => $roundId, 'name' => $name, 'new' => true, 'deleted' => false];
+        $this->teams[$id] = ['roundId' => $roundId, 'name' => $name, 'new' => true, 'deleted' => false, 'division' => null];
         $this->members[$id] = [];
         $this->touchedTeams[$id] = true;
         $this->warnAboutSharedName($id);
@@ -1034,6 +1042,113 @@ final class SheetPlanRun
     }
 
     /**
+     * The division of a solo entry (by participant) or of a pair/team (by team) - three-way like every change: the
+     * division id the page saw (`from`, '' = none), the one it wants (`to`, '' clears it).
+     */
+    private function division(SheetChange $change, int $index): SheetChangeOutcome
+    {
+        $roundId = (string) $change->roundId;
+        $round = isset($this->rounds[$roundId]) ? $this->site->round($roundId) : null;
+
+        if ($round === null) {
+            return $this->refused($change, $index, 'round_not_found');
+        }
+
+        if ($change->teamId !== null) {
+            if ($round->category === RoundCategory::Solo) {
+                return $this->refused($change, $index, 'not_a_team_round', ['round' => $round->name]);
+            }
+
+            $team = $this->teams[$change->teamId] ?? null;
+
+            if ($team === null || $team['deleted']) {
+                return $this->refused($change, $index, 'team_not_found');
+            }
+
+            if ($team['roundId'] !== $roundId) {
+                return $this->refused($change, $index, 'team_of_another_round', [
+                    'team' => $this->teamLabel($change->teamId),
+                    'round' => $this->rounds[$team['roundId']]['name'],
+                ]);
+            }
+
+            $current = $team['division'];
+        } else {
+            $participantId = (string) $change->participantId;
+            $person = $this->people[$participantId] ?? null;
+
+            if ($person === null) {
+                return $this->refused($change, $index, 'participant_not_found');
+            }
+
+            if ($person['deleted']) {
+                return $this->refused($change, $index, 'participant_removed', ['name' => $person['name']]);
+            }
+
+            // A pair's/team's division is the pair's/team's (§3.1) - its members' own entries carry none
+            if ($round->category !== RoundCategory::Solo) {
+                return $this->refused($change, $index, 'division_of_team', ['round' => $round->name]);
+            }
+
+            $entry = $this->entries[$participantId][$roundId] ?? null;
+
+            if ($entry === null || $entry['present'] === false) {
+                return $this->refused($change, $index, 'division_not_entered', ['name' => $person['name'], 'round' => $round->name]);
+            }
+
+            $current = $entry['division'];
+        }
+
+        $to = trim((string) $change->to);
+        $toId = null;
+
+        if ($to !== SheetChange::NO_DIVISION) {
+            $division = ParticipantRules::divisionInRound($to, $round, $this->site->divisions);
+
+            if (is_string($division)) {
+                return $this->refused($change, $index, $division, [
+                    'round' => $round->name,
+                    'division' => DivisionMatch::ofEvent($to, $this->site->divisions)->name ?? $to,
+                ]);
+            }
+
+            $toId = $division->id;
+        }
+
+        if (($current ?? SheetChange::NO_DIVISION) === ($toId ?? SheetChange::NO_DIVISION)) {
+            return $this->outcome($change, $index, SheetChangeStatus::Unchanged);
+        }
+
+        if (($current ?? SheetChange::NO_DIVISION) !== trim((string) $change->from)) {
+            return $this->outcome($change, $index, SheetChangeStatus::Conflict, 'changed_meanwhile');
+        }
+
+        if ($change->teamId !== null) {
+            $this->teams[$change->teamId]['division'] = $toId;
+        } else {
+            $this->entries[(string) $change->participantId][$roundId]['division'] = $toId;
+        }
+
+        return $this->outcome($change, $index, SheetChangeStatus::Applied);
+    }
+
+    /**
+     * The division id of the entry a division change addresses, '' for none - null when there is no such entry.
+     */
+    private function currentDivision(SheetChange $change): null|string
+    {
+        if ($change->teamId !== null) {
+            $team = $this->teams[$change->teamId] ?? null;
+
+            return $team !== null && $team['deleted'] === false ? ($team['division'] ?? SheetChange::NO_DIVISION) : null;
+        }
+
+        $entry = $this->entries[(string) $change->participantId][(string) $change->roundId] ?? null;
+
+        return $entry !== null && $entry['present'] ? ($entry['division'] ?? SheetChange::NO_DIVISION) : null;
+    }
+
+    /**
      * `out`, `in` or `team:<id>` - a person's place in a round as the working state has it.
      */
     private function placeOf(string $participantId, string $roundId): string
@@ -1080,6 +1195,7 @@ final class SheetPlanRun
             'present' => true,
             'team' => $newTeam,
             'ownData' => $entry['ownData'] ?? false,
+            'division' => $entry['division'] ?? null,
         ];
     }
 
@@ -1368,6 +1484,7 @@ final class SheetPlanRun
                 : null,
             SheetChangeOp::TeamSize => $this->rounds[(string) $change->roundId]['teamSize'] ?? null,
             SheetChangeOp::DeclineLinkRequest => $this->requests[(string) $change->requestId]['status'] ?? null,
+            SheetChangeOp::Division => $this->currentDivision($change),
             default => null,
         };
     }
@@ -1510,12 +1627,17 @@ final class SheetPlanRun
         $newEntries = [];
         $entryTeams = [];
         $deletedEntries = [];
+        $entryDivisions = [];
 
         foreach ($this->entries as $participantId => $rounds) {
             foreach ($rounds as $roundId => $entry) {
                 if ($entry['id'] === null) {
                     if ($entry['present']) {
                         $newEntries[] = ['participantKey' => $participantKey($participantId), 'roundId' => $roundId, 'team' => $teamKey($entry['team'])];
+
+                        if ($entry['division'] !== null) {
+                            $entryDivisions[] = ['participantKey' => $participantKey($participantId), 'roundId' => $roundId, 'division' => $entry['division']];
+                        }
                     }
 
                     continue;
@@ -1523,8 +1645,16 @@ final class SheetPlanRun
 
                 if ($entry['present'] === false) {
                     $deletedEntries[] = $entry['id'];
-                } elseif ($entry['team'] !== $start['entries'][$participantId][$roundId]['team']) {
+
+                    continue;
+                }
+
+                if ($entry['team'] !== $start['entries'][$participantId][$roundId]['team']) {
                     $entryTeams[] = ['entryId' => $entry['id'], 'team' => $teamKey($entry['team'])];
+                }
+
+                if ($entry['division'] !== $start['entries'][$participantId][$roundId]['division']) {
+                    $entryDivisions[] = ['entryId' => $entry['id'], 'roundId' => $roundId, 'division' => $entry['division']];
                 }
             }
         }
@@ -1532,6 +1662,7 @@ final class SheetPlanRun
         $newTeams = [];
         $deletedTeams = [];
         $renamedTeams = [];
+        $teamDivisions = [];
 
         foreach ($this->teams as $teamId => $team) {
             if ($team['new']) {
@@ -1540,6 +1671,10 @@ final class SheetPlanRun
 
                 if ($team['deleted'] === false && $leftEmpty === false) {
                     $newTeams[] = ['key' => 'n:' . $teamId, 'roundId' => $team['roundId'], 'name' => $team['name'], 'id' => $teamId];
+
+                    if ($team['division'] !== null) {
+                        $teamDivisions[] = ['team' => 'n:' . $teamId, 'division' => $team['division']];
+                    }
                 }
 
                 continue;
@@ -1547,8 +1682,16 @@ final class SheetPlanRun
 
             if ($team['deleted']) {
                 $deletedTeams[] = $teamId;
-            } elseif ($team['name'] !== $start['teams'][$teamId]['name']) {
+
+                continue;
+            }
+
+            if ($team['name'] !== $start['teams'][$teamId]['name']) {
                 $renamedTeams[] = ['teamId' => $teamId, 'name' => $team['name']];
+            }
+
+            if ($team['division'] !== $start['teams'][$teamId]['division']) {
+                $teamDivisions[] = ['team' => 't:' . $teamId, 'division' => $team['division']];
             }
         }
 
@@ -1573,6 +1716,8 @@ final class SheetPlanRun
             removed: $softDeleted,
             renamedTeams: $renamedTeams,
             declinedRequests: $declinedRequests,
+            entryDivisions: $entryDivisions,
+            teamDivisions: $teamDivisions,
         );
     }
 

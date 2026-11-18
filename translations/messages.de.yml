@@ -4604,6 +4604,7 @@ qr_code:
         "external_id": "Externe ID"
         "status": "Status"
         email: "E-Mail (privat, für die Verknüpfungseinladung)"
+        division: "Wertungsklasse"
       "confirm":
         "nothing_saved_yet": "Noch ist nichts gespeichert."
         "button": "Import bestätigen"
@@ -7686,6 +7687,39 @@ participants_sheet_server:
     team_size: "Mitglieder pro Team (nur Teamrunden)"
     team_size_help: "Dient dazu, auf Teams mit zu wenigen oder zu vielen Personen hinzuweisen – es blockiert nie etwas."
     team_size_placeholder: "z. B. %size% (die häufigste Größe)"
+entry_divisions:
+    sheet:
+        column: "Wertungsklasse"
+        none: "Keine Wertungsklasse"
+        current: "aktuell"
+        change: "Ändern"
+        set: "Wertungsklasse auf %division% gesetzt."
+        all_set: "Jeder Eintrag hat eine Wertungsklasse"
+        without: "{0}%count% ohne Wertungsklasse|{1}1 ohne Wertungsklasse|]1,Inf[%count% ohne Wertungsklasse"
+        fill_empty: "Leere füllen mit…"
+        filled: "Einträge ohne Wertungsklasse sind jetzt in %division%."
+        unknown: "„%value%“ ist keine Wertungsklasse dieser Runde – sie hat: %divisions%."
+        not_in_round: "%round% verwendet die Wertungsklasse %value% nicht – sie hat: %divisions%."
+        op: "Wertungsklasse"
+        action: "eine Wertungsklasse setzen"
+        action_many: "Wertungsklassen setzen"
+        reason:
+            not_in_round: "%round% verwendet die Wertungsklasse %division% nicht."
+            unknown_division: "„%division%“ ist keine Wertungsklasse dieser Veranstaltung."
+            division_of_team: "In %round% gehört die Wertungsklasse zum Paar/Team – setzen Sie sie beim Paar/Team."
+            division_not_entered: "%name% ist nicht in %round% – tragen Sie die Person zuerst in die Runde ein."
+    import:
+        division_in_round: "Wertungsklasse in %round%"
+        division_round_twice: "Die Wertungsklasse einer Runde ist für mehr als eine Spalte gewählt."
+        header_read_as_division: "Diese Veranstaltung hat Wertungsklassen, daher wird die Spalte „%column%“ als Wertungsklasse jedes Eintrags gelesen. Wenn sie Runden auflistet, wählen Sie dafür „Runden (Liste)“."
+        preview_line: "Wertungsklasse in %round%"
+        unknown: "Zeile %row%: „%value%“ ist keine Wertungsklasse dieser Veranstaltung – sie hat: %divisions%. Die Wertungsklasse wird nicht gesetzt."
+        not_in_round: "Zeile %row%: %round% verwendet die Wertungsklasse %division% nicht – dort bleibt alles, wie es ist."
+        not_entered: "Zeile %row%: %name% ist nicht in %round% – die Wertungsklasse %division% wird dort nicht gesetzt."
+        no_round: "Zeile %row%: %name% ist in keiner Runde – die Wertungsklasse %division% wird nicht gesetzt."
+        conflict_in_file: "Die Zeilen von %name% nennen in %round% unterschiedliche Wertungsklassen – die Wertungsklasse bleibt, wie sie ist."
+        no_team: "Zeile %row%: %name% hat in %round% kein Paar und kein Team – die Wertungsklasse eines Paars oder Teams wird beim Paar oder Team gesetzt."
+        members_disagree: "Die Mitglieder von %team% sind in %round% in unterschiedlichen Wertungsklassen – die Wertungsklasse des Paars oder Teams bleibt, wie sie ist."
 
 participants_sheet_core:
   loading: "Teilnehmer werden geladen…"

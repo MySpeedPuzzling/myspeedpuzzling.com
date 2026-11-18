@@ -9,7 +9,9 @@ use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Results\ParticipantImportRemovals;
 use SpeedPuzzling\Web\Results\ParticipantImportRow;
 use SpeedPuzzling\Web\Results\ParticipantImportRowProfile;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DivisionMatch;
 use SpeedPuzzling\Web\Value\ParticipantEmail;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
@@ -36,6 +38,11 @@ use Symfony\Component\Translation\TranslatableMessage;
  *   team column, removes participants the file does not have and deletes the pairs/teams it empties - never what
  *   has results (D11)
  * - an export imported back unchanged changes nothing
+ * - divisions (shared-puzzles-and-divisions.md §3.5): a Division value goes to every entry the row has (or creates) in a
+ *   round that uses it - a round of the row that does not is a warning, never another division; `division_in_round`
+ *   to that round only; empty leaves the division as it is; a value naming no division of the event is an error of the
+ *   row (the rest of the row is imported); a pair/team gets the division its members' rows agree on (they disagree →
+ *   a warning, the team keeps its own)
  *
  * The rules the participants sheet follows too - one linked player per active participant, the usual team size, the
  * results guard - live in ParticipantRules and SiteSnapshot, so a file and the sheet never disagree.
@@ -56,7 +63,7 @@ final class PlanBuilder
     /** @var list<non-empty-list<string>> */
     private array $roundCollisions = [];
 
-    /** @var array<string, array{id: string, roundId: string, name: null|string}> */
+    /** @var array<string, array{id: string, roundId: string, name: null|string, divisionId?: null|string}> */
     private array $teams;
 
     /** @var array<string, array<string, list<string>>> round id => team name key => existing team ids */
@@ -159,6 +166,12 @@ final class PlanBuilder
     /** @var array<string, array<string, true>> participant id => player ids refused for it (participant-linking.md D11) */
     private array $refusedPairs = [];
 
+    /** @var array<string, array<string, list<array{division: RoundDivision, row: int}>>> person key => round id => the divisions the file gives the entry */
+    private array $divisionWishes = [];
+
+    /** @var array<string, string> team key ("t:…" / "n:…") => the division the import gives the pair/team */
+    private array $teamDivisionChanges = [];
+
     public function __construct(
         private readonly SiteSnapshot $site,
         private readonly ParticipantImportRows $file,
@@ -219,7 +232,7 @@ final class PlanBuilder
 
         foreach ($site->entries as $entry) {
             $team = $entry['teamId'] !== null ? 't:' . $entry['teamId'] : null;
-            $this->entries[$entry['participantId']][] = new PlanEntry($entry['id'], $entry['participantId'], $entry['roundId'], $team, $team);
+            $this->entries[$entry['participantId']][] = new PlanEntry($entry['id'], $entry['participantId'], $entry['roundId'], $team, $team, originalDivision: $entry['divisionId'] ?? null);
         }
 
         foreach ($file->rows as $row) {
@@ -244,6 +257,8 @@ final class PlanBuilder
         if ($this->mode === ParticipantImportMode::Sync) {
             $this->planRemovals();
         }
+
+        $this->planDivisions();
 
         $this->warnAboutTeamSizes();
         $this->warnAboutNames();
@@ -486,6 +501,8 @@ final class PlanBuilder
             $person->roundsListed[$round->id] = true;
         }
 
+        $this->collectDivisions($data, $person, $row, $rowRounds);
+
         foreach ($rowTeams as $roundId => $roundTeam) {
             if ($roundTeam !== null && !isset($rowRounds[$roundId])) {
                 $row->messages[] = self::message('team_round_not_listed', [
@@ -624,6 +641,182 @@ final class PlanBuilder
                 $this->entriesChanged[$personKey] = true;
             }
         }
+    }
+
+    /**
+     * The divisions the row names (shared-puzzles-and-divisions.md §3.5): the Division cell for every round of the row
+     * (the rounds it lists, else the rounds the person is in) that uses it, a round's own Division cell for that round.
+     * Empty = leave as it is. Applied after the entries and teams are planned (planDivisions()).
+     *
+     * @param array<string, ParticipantImportRound> $rowRounds
+     */
+    private function collectDivisions(ParticipantImportRowData $data, PlanPerson $person, PlanRow $row, array $rowRounds): void
+    {
+        $asked = [];
+
+        if ($data->division !== null && !DivisionMatch::isBlank($data->division)) {
+            $rounds = $rowRounds;
+
+            if ($rounds === []) {
+                foreach ($this->entries[$person->key] ?? [] as $entry) {
+                    $rounds[$entry->roundId] = $this->roundsById[$entry->roundId];
+                }
+            }
+
+            if ($rounds === []) {
+                $row->messages[] = self::divisionMessage('no_round', ['%row%' => $row->rowNumber, '%name%' => $person->name, '%division%' => $data->division]);
+            }
+
+            foreach (array_keys($rounds) as $roundId) {
+                $asked[$roundId] = trim($data->division);
+            }
+        }
+
+        foreach ($data->divisionsByRound as $roundId => $cell) {
+            if (!DivisionMatch::isBlank($cell) && isset($this->roundsById[$roundId])) {
+                $asked[$roundId] = trim($cell);
+            }
+        }
+
+        $unknown = [];
+        foreach ($asked as $roundId => $value) {
+            $round = $this->roundsById[$roundId];
+            $division = ParticipantRules::divisionInRound($value, $round, $this->site->divisions);
+
+            if ($division === DivisionMatch::UNKNOWN_DIVISION) {
+                $unknown[DivisionMatch::key($value)] = $value;
+            } elseif ($division === DivisionMatch::NOT_IN_ROUND) {
+                $row->messages[] = self::divisionMessage('not_in_round', [
+                    '%row%' => $row->rowNumber,
+                    '%round%' => $round->name,
+                    '%division%' => DivisionMatch::ofEvent($value, $this->site->divisions)->name ?? $value,
+                ]);
+            } elseif ($division instanceof RoundDivision) {
+                $this->divisionWishes[$person->key][$roundId][] = ['division' => $division, 'row' => $row->rowNumber];
+            }
+        }
+
+        foreach ($unknown as $value) {
+            $row->messages[] = self::divisionMessage('unknown', [
+                '%row%' => $row->rowNumber,
+                '%value%' => $value,
+                '%divisions%' => implode(', ', array_map(static fn (RoundDivision $division): string => $division->name, $this->site->divisions)),
+            ]);
+        }
+    }
+
+    /**
+     * The divisions the file gives, on the entries and pairs/teams as planned: a solo entry gets its own, a pair/team the
+     * one its members' rows agree on.
+     */
+    private function planDivisions(): void
+    {
+        /** @var array<string, array{round: ParticipantImportRound, divisions: array<string, RoundDivision>, rows: list<int>, people: list<string>}> $teamWishes */
+        $teamWishes = [];
+        $deletedTeams = array_fill_keys(array_map(static fn (array $team): string => 't:' . $team['teamId'], $this->deletedTeams), true);
+
+        foreach ($this->divisionWishes as $personKey => $byRound) {
+            $person = $this->people[$personKey];
+
+            foreach ($byRound as $roundId => $wishes) {
+                $round = $this->roundsById[$roundId];
+                $firstRow = $this->rows[$wishes[0]['row']];
+                $divisions = [];
+                foreach ($wishes as $wish) {
+                    $divisions[$wish['division']->id] = $wish['division'];
+                }
+                $division = $wishes[0]['division'];
+                $entry = $this->entryOf($personKey, $roundId);
+
+                if ($person->deleted || $entry === null || $entry->removed) {
+                    $firstRow->messages[] = self::divisionMessage('not_entered', ['%row%' => $firstRow->rowNumber, '%name%' => $person->name, '%round%' => $round->name, '%division%' => $division->name]);
+
+                    continue;
+                }
+
+                if (count($divisions) > 1) {
+                    $firstRow->messages[] = self::divisionMessage('conflict_in_file', ['%name%' => $person->name, '%round%' => $round->name]);
+
+                    continue;
+                }
+
+                if (!$round->hasTeams()) {
+                    if ($entry->division !== $division->id) {
+                        $before = $entry->division;
+                        $entry->division = $division->id;
+                        $this->entriesChanged[$personKey] = true;
+
+                        foreach (array_unique(array_column($wishes, 'row')) as $rowNumber) {
+                            $this->rows[$rowNumber]->divisionChanges[$round->name] = ['before' => $this->divisionName($round, $before), 'after' => $division->name];
+                        }
+                    }
+
+                    continue;
+                }
+
+                if ($entry->team === null || isset($deletedTeams[$entry->team])) {
+                    $firstRow->messages[] = self::divisionMessage('no_team', ['%row%' => $firstRow->rowNumber, '%name%' => $person->name, '%round%' => $round->name]);
+
+                    continue;
+                }
+
+                $teamWishes[$entry->team] ??= ['round' => $round, 'divisions' => [], 'rows' => [], 'people' => []];
+                $teamWishes[$entry->team]['divisions'][$division->id] = $division;
+                $teamWishes[$entry->team]['rows'] = [...$teamWishes[$entry->team]['rows'], ...array_column($wishes, 'row')];
+                $teamWishes[$entry->team]['people'][] = $personKey;
+            }
+        }
+
+        foreach ($teamWishes as $teamKey => $wish) {
+            $round = $wish['round'];
+            $rows = array_values(array_unique($wish['rows']));
+
+            if (count($wish['divisions']) > 1) {
+                $this->rows[$rows[0]]->messages[] = self::divisionMessage('members_disagree', ['%team%' => $this->teamName($teamKey) ?? '', '%round%' => $round->name]);
+
+                continue;
+            }
+
+            $division = array_values($wish['divisions'])[0];
+            $current = $this->originalTeamDivision($teamKey);
+
+            if ($current === $division->id) {
+                continue;
+            }
+
+            $this->teamDivisionChanges[$teamKey] = $division->id;
+
+            foreach ($wish['people'] as $personKey) {
+                $this->entriesChanged[$personKey] = true;
+            }
+
+            foreach ($rows as $rowNumber) {
+                $this->rows[$rowNumber]->divisionChanges[$round->name] = ['before' => $this->divisionName($round, $current), 'after' => $division->name];
+            }
+        }
+    }
+
+    private function originalTeamDivision(string $teamKey): null|string
+    {
+        return str_starts_with($teamKey, 't:') ? ($this->teams[substr($teamKey, 2)]['divisionId'] ?? null) : null;
+    }
+
+    private function divisionName(ParticipantImportRound $round, null|string $divisionId): null|string
+    {
+        if ($divisionId === null) {
+            return null;
+        }
+
+        return $round->division($divisionId)->name
+            ?? (array_values(array_filter($this->site->divisions, static fn (RoundDivision $division): bool => $division->id === $divisionId))[0] ?? null)?->name;
+    }
+
+    /**
+     * @param array<string, int|string> $parameters
+     */
+    private static function divisionMessage(string $key, array $parameters): TranslatableMessage
+    {
+        return new TranslatableMessage('entry_divisions.import.' . $key, $parameters);
     }
 
     private function syncTeam(PlanPerson $person, PlanEntry $entry, ParticipantImportRound $round, null|string $teamName, PlanRow $row): void
@@ -1043,6 +1236,7 @@ final class PlanBuilder
         $newEntries = [];
         $entryTeams = [];
         $deletedEntries = [];
+        $entryDivisions = [];
         /** @var array<int, list<string>> $roundsAddedByRow */
         $roundsAddedByRow = [];
         foreach ($this->entries as $personKey => $entries) {
@@ -1056,10 +1250,18 @@ final class PlanBuilder
                     if ($entry->row !== null) {
                         $roundsAddedByRow[$entry->row][] = $this->roundsById[$entry->roundId]->name;
                     }
+                    if ($entry->division !== null) {
+                        $entryDivisions[] = ['participantKey' => $personKey, 'roundId' => $entry->roundId, 'division' => $entry->division];
+                    }
                 } elseif ($entry->removed) {
                     $deletedEntries[] = (string) $entry->id;
-                } elseif ($entry->team !== $entry->originalTeam) {
-                    $entryTeams[] = ['entryId' => (string) $entry->id, 'team' => $entry->team];
+                } else {
+                    if ($entry->team !== $entry->originalTeam) {
+                        $entryTeams[] = ['entryId' => (string) $entry->id, 'team' => $entry->team];
+                    }
+                    if ($entry->division !== $entry->originalDivision) {
+                        $entryDivisions[] = ['entryId' => (string) $entry->id, 'roundId' => $entry->roundId, 'division' => $entry->division];
+                    }
                 }
             }
         }
@@ -1068,6 +1270,13 @@ final class PlanBuilder
         foreach ($this->newTeams as $key => $team) {
             if (isset($usedNewTeams[$key])) {
                 $newTeams[] = ['key' => $key, 'roundId' => $team['roundId'], 'name' => $team['name']];
+            }
+        }
+
+        $teamDivisions = [];
+        foreach ($this->teamDivisionChanges as $teamKey => $divisionId) {
+            if (str_starts_with($teamKey, 't:') || isset($usedNewTeams[$teamKey])) {
+                $teamDivisions[] = ['team' => $teamKey, 'division' => $divisionId];
             }
         }
 
@@ -1117,6 +1326,7 @@ final class PlanBuilder
                 removedAt: $first && $person->isRestored() ? $person->deletedAt : null,
                 roundsRestored: $first && $person->isRestored() ? $this->roundsRestoredOf($person) : [],
                 profile: $this->profileOf($rowNumber, $person, $first),
+                divisions: $row->divisionChanges,
             );
         }
 
@@ -1163,6 +1373,8 @@ final class PlanBuilder
                 softDeleted: $softDeleted,
                 restored: $restored,
                 removed: count($this->removedParticipants) + count($this->removedSelfJoined),
+                entryDivisions: $entryDivisions,
+                teamDivisions: $teamDivisions,
             ),
             syncBlockers: $this->syncBlockers(),
             activeParticipantsBefore: count(array_filter($this->site->participants, static fn (array $participant): bool => $participant['deletedAt'] === null)),

@@ -4605,6 +4605,7 @@ fair_use_policy:
         "external_id": "ID externo"
         "status": "Estado"
         email: "Correo electrónico (privado, para la invitación de vinculación)"
+        division: "División"
       "confirm":
         "nothing_saved_yet": "Todavía no se ha guardado nada."
         "button": "Confirmar importación"
@@ -7687,6 +7688,39 @@ participants_sheet_server:
     team_size: "Miembros por equipo (solo rondas de equipos)"
     team_size_help: "Sirve para señalar equipos con muy pocas o demasiadas personas; nunca bloquea nada."
     team_size_placeholder: "p. ej. %size% (el tamaño más habitual)"
+entry_divisions:
+    sheet:
+        column: "División"
+        none: "Sin división"
+        current: "actual"
+        change: "Cambiar"
+        set: "División cambiada a %division%."
+        all_set: "Todas las inscripciones tienen división"
+        without: "{0}%count% sin división|{1}1 sin división|]1,Inf[%count% sin división"
+        fill_empty: "Rellenar vacías con…"
+        filled: "Las inscripciones sin división están ahora en %division%."
+        unknown: "«%value%» no es una división de esta ronda; tiene: %divisions%."
+        not_in_round: "%round% no usa la división %value%; tiene: %divisions%."
+        op: "División"
+        action: "asignar una división"
+        action_many: "asignar divisiones"
+        reason:
+            not_in_round: "%round% no usa la división %division%."
+            unknown_division: "«%division%» no es una división de este evento."
+            division_of_team: "En %round% la división pertenece a la pareja/equipo: asígnala en la pareja/equipo."
+            division_not_entered: "%name% no está en %round%: añádelo primero a la ronda."
+    import:
+        division_in_round: "División en %round%"
+        division_round_twice: "La división de una ronda está elegida para más de una columna."
+        header_read_as_division: "Este evento tiene divisiones, así que la columna «%column%» se lee como la división de cada inscripción. Si contiene rondas, elige «Rondas (lista)» para ella."
+        preview_line: "División en %round%"
+        unknown: "Fila %row%: «%value%» no es una división de este evento; tiene: %divisions%. La división no se asigna."
+        not_in_round: "Fila %row%: %round% no usa la división %division%; allí se deja como está."
+        not_entered: "Fila %row%: %name% no está en %round%; allí no se asigna la división %division%."
+        no_round: "Fila %row%: %name% no está en ninguna ronda; no se asigna la división %division%."
+        conflict_in_file: "Las filas de %name% indican divisiones distintas en %round%; la división se deja como está."
+        no_team: "Fila %row%: %name% no tiene pareja ni equipo en %round%; la división de una pareja o un equipo se asigna en la pareja o el equipo."
+        members_disagree: "Los miembros de %team% están en divisiones distintas en %round%; la división de la pareja o el equipo se deja como está."
 
 participants_sheet_core:
   loading: "Cargando los participantes…"

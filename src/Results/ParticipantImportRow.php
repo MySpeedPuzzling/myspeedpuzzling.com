@@ -24,6 +24,8 @@ readonly final class ParticipantImportRow
      * @param list<TranslatableMessage> $messages what the organiser should know about this row
      * @param list<string> $roundsRestored round names a restored participant comes back with (Restore only; in full sync
      *        after the file's rounds took out what it does not list)
+     * @param array<string, array{before: null|string, after: string}> $divisions round name => the division the row gives
+     *        the entry (before = the one it had, null = none) - only rounds whose division the import changes
      */
     public function __construct(
         public int $rowNumber,
@@ -42,6 +44,7 @@ readonly final class ParticipantImportRow
         public array $teamsBefore = [],
         /** The MySpeedPuzzling profile line - when the file names a player or the import links one */
         public null|ParticipantImportRowProfile $profile = null,
+        public array $divisions = [],
     ) {
     }
 

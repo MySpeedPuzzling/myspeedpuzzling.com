@@ -932,13 +932,27 @@ export class SoloRoundView {
         }).open();
     }
 
-    /** The person editor (stream E) when there is one, else the People tab at that person. */
+    /**
+     * The person editor (stream E) when there is one, else the People tab at that person. Previous / next walk this
+     * round's rows as shown (its people, filtered, in their order) - never everybody of the event.
+     */
     async openPerson(personId) {
         if (personId === NEW_ROW || this.model.person(personId) === null) {
             return;
         }
 
-        const opened = await this.context.openPersonEditor(personId);
+        const opened = await this.context.openPersonEditor(personId, {
+            list: () => (this.grid ? this.grid.rows.filter((row) => row !== NEW_ROW) : this.rowKeys().filter((row) => row !== NEW_ROW)),
+            returnFocus: (id) => {
+                if (this.grid === null) {
+                    return;
+                }
+
+                if (!this.grid.focusCell(id, 'name')) {
+                    this.grid.focusActive();
+                }
+            },
+        });
 
         if (opened !== true) {
             this.context.switchTab('people', { personId, col: 'name' });

@@ -113,13 +113,14 @@ final class DivisionsInTheSheetTest extends KernelTestCase
     {
         $state = json_decode((string) json_encode(self::getContainer()->get(GetParticipantsSheetState::class)->forCompetition(Cup::COMPETITION_RESULTS_CUP, PlayerFixture::PLAYER_WITH_STRIPE)), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($state);
+        /** @var array{rounds: list<array{id: string, divisions?: list<array{id: string, name: string, shortName: null|string}>}>, places: list<array{participantId: string, roundId: string, division?: null|string}>, teams: list<array{roundId: string, division?: null|string}>} $state */
 
         $rounds = [];
         foreach ($state['rounds'] as $round) {
             $rounds[$round['id']] = $round;
         }
-        self::assertSame(['Regular', 'Senior 55+', 'Junior U16'], array_column($rounds[Cup::ROUND_GROUP_A]['divisions'], 'name'));
-        self::assertSame(['Regular', 'Senior 55+'], array_column($rounds[Cup::ROUND_PAIRS]['divisions'], 'name'));
+        self::assertSame(['Regular', 'Senior 55+', 'Junior U16'], array_column($rounds[Cup::ROUND_GROUP_A]['divisions'] ?? [], 'name'));
+        self::assertSame(['Regular', 'Senior 55+'], array_column($rounds[Cup::ROUND_PAIRS]['divisions'] ?? [], 'name'));
         self::assertArrayNotHasKey('divisions', $rounds[Cup::ROUND_GROUP_B]);
         self::assertArrayNotHasKey('divisions', $rounds[Cup::ROUND_PAIRS_FINAL]);
 
@@ -132,7 +133,7 @@ final class DivisionsInTheSheetTest extends KernelTestCase
             }
 
             if ($place['participantId'] === Cup::PARTICIPANT_ANNA && $place['roundId'] === Cup::ROUND_GROUP_A) {
-                self::assertSame($this->regular, $place['division']);
+                self::assertSame($this->regular, $place['division'] ?? null);
             }
         }
 

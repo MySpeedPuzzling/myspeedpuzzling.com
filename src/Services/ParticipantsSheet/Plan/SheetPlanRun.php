@@ -1108,7 +1108,7 @@ final class SheetPlanRun
             if (is_string($division)) {
                 return $this->refused($change, $index, $division, [
                     'round' => $round->name,
-                    'division' => DivisionMatch::ofEvent($to, $this->site->divisions)?->name ?? $to,
+                    'division' => DivisionMatch::ofEvent($to, $this->site->divisions)->name ?? $to,
                 ]);
             }
 

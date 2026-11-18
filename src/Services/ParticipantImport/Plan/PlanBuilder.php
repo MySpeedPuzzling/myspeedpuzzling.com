@@ -689,7 +689,7 @@ final class PlanBuilder
                 $row->messages[] = self::divisionMessage('not_in_round', [
                     '%row%' => $row->rowNumber,
                     '%round%' => $round->name,
-                    '%division%' => DivisionMatch::ofEvent($value, $this->site->divisions)?->name ?? $value,
+                    '%division%' => DivisionMatch::ofEvent($value, $this->site->divisions)->name ?? $value,
                 ]);
             } elseif ($division instanceof RoundDivision) {
                 $this->divisionWishes[$person->key][$roundId][] = ['division' => $division, 'row' => $row->rowNumber];
@@ -807,7 +807,7 @@ final class PlanBuilder
             return null;
         }
 
-        return $round->division($divisionId)?->name
+        return $round->division($divisionId)->name
             ?? (array_values(array_filter($this->site->divisions, static fn (RoundDivision $division): bool => $division->id === $divisionId))[0] ?? null)?->name;
     }
 

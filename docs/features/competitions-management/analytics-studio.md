@@ -59,7 +59,7 @@ Independent design review 2026-11-17, decisions by the orchestrator:
   entries, each member through `GetPlayerPredictions::forPuzzles()`), cached per player × visible puzzle set in
   `analytics_studio_cache` 15 min via the pool's `get()` callback (stampede lock). No prediction column/sort in the
   list (v2 in `docs/TODO.md`). No `WarmAnalyticsStudioPredictions`, no LockFactory, no messenger routing.
-  *Amended in v2 by R28-R33 ("As built: V2"): a round-wide warm on the `imports` queue + a `round-predictions`
+  *Amended in v2 by R28-R33 ("As built: V2"): a round-wide warm on its own `analytics_studio` queue + a `round-predictions`
   answer; still no LockFactory, still never on `async`.*
 - **R4 "As of now" numbers.** Predictions, rating, skill, solved total and best 500 are the player's current values
   (labelled "now"); only the per-puzzle and similar-puzzle history is "before this round" (cut-off).
@@ -847,13 +847,14 @@ Where it differs from the sections above:
 
 Amendments of record (design note `design-v2/studio.md` §2.2, decisions R28-R34, with the orchestrator's queue change):
 
-- **R28 Queue: the existing `imports` transport** (not a new `analytics_studio` one - that needed a consumer change on
-  the servers, ops step O1, now dropped). `WarmAnalyticsStudioPredictions` (`HandledOutsideTransaction`, fields
-  `roundId`, `visibleHash`, `requestedAtMs`, `turn`; no puzzle or player ids) is routed to `imports` in
-  `config/packages/messenger.php`: its own consumer container on production, never `async` (sign-in e-mails), no
-  retries. **Turns of ≤ 8 s** (`WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN`) that queue the next turn -
-  the imports consumer's rule "no job longer than ~10 s", so a spreadsheet import waits at most one short turn behind a
-  warm. At most `MAX_TURNS` = 20 turns, then a warning. Dev `compose.yml` already consumes `async imports`.
+- **R28 Queue: its own `analytics_studio` transport** (2026-11-18, superseding the first build's `imports` routing: the
+  imports queue carries players' spreadsheet imports, which must never wait behind a warm). `WarmAnalyticsStudioPredictions`
+  (`HandledOutsideTransaction`, fields `roundId`, `visibleHash`, `requestedAtMs`, `turn`; no puzzle or player ids) is
+  routed to `analytics_studio` (same Doctrine table, `queue_name=analytics_studio`, no retries) in
+  `config/packages/messenger.php`, drained by its own consumer container on production (lily.srv `studio-consumer`;
+  never `async` = sign-in e-mails, never `imports`). **Turns of ≤ 8 s** (`WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN`)
+  that queue the next turn. At most `MAX_TURNS` = 20 turns, then a warning. Dev `compose.yml` consumes
+  `async imports analytics_studio`. Without a running consumer the answer stays `warming` (the page shows "not available").
 - **R29 Handler** `WarmAnalyticsStudioPredictionsHandler`: a message older than 10 min does nothing; the round and its
   visible puzzles **now** (`AnalyticsStudioContextLoader`, 2 statements - RoundPuzzlesVisibleNow alone decides the
   puzzles); another `visibleHash` than the message's, no visible slot or a pair/team round → nothing; the entrants (1)

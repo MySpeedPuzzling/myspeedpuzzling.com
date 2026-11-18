@@ -234,18 +234,22 @@ final class WarmAnalyticsStudioPredictionsHandlerTest extends WebTestCase
         self::assertFalse($this->isCached(self::HUGO, [$visible]));
     }
 
-    public function testTheWarmGoesToTheImportsQueueAndTheEmailsStayOnAsync(): void
+    public function testTheWarmGoesToItsOwnQueueNeverToImportsAndTheEmailsStayOnAsync(): void
     {
         $bus = self::getContainer()->get(MessageBusInterface::class);
 
         $bus->dispatch($this->message(F::ROUND_GROUP_B));
         $bus->dispatch(new SendEmailMessage((new Email())->from('a@example.com')->to('b@example.com')->subject('x')->text('x')));
 
-        self::assertCount(1, $this->sent(), 'queued on imports, not handled at once');
+        self::assertCount(1, $this->sent(), 'queued on analytics_studio, not handled at once');
         self::assertFalse($this->isCached(self::HUGO, [$this->puzzleOf(F::ROUND_GROUP_B)]));
         $async = self::getContainer()->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $async);
         self::assertSame([SendEmailMessage::class], array_map(static fn (Envelope $envelope): string => $envelope->getMessage()::class, array_values([...$async->getSent()])));
+        // A player's spreadsheet import never waits behind a warm
+        $imports = self::getContainer()->get('messenger.transport.imports');
+        self::assertInstanceOf(InMemoryTransport::class, $imports);
+        self::assertSame([], [...$imports->getSent()]);
     }
 
     private function handler(int $membersPerTurn = PHP_INT_MAX, null|AnalyticsStudioPredictions $predictions = null): WarmAnalyticsStudioPredictionsHandler
@@ -336,7 +340,7 @@ final class WarmAnalyticsStudioPredictionsHandlerTest extends WebTestCase
 
     private function transport(): InMemoryTransport
     {
-        $transport = self::getContainer()->get('messenger.transport.imports');
+        $transport = self::getContainer()->get('messenger.transport.analytics_studio');
         self::assertInstanceOf(InMemoryTransport::class, $transport);
 
         return $transport;

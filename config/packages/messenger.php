@@ -100,6 +100,17 @@ return App::config([
                         'max_retries' => 0,
                     ],
                 ],
+                // The analytics studio's round-wide prediction warm (docs/features/competitions-management/
+                // analytics-studio.md R28): its own queue on the same Doctrine table, drained by its own consumer
+                // container (lily.srv `studio-consumer`), so a warm never delays a player's spreadsheet import on
+                // `imports` nor the sign-in e-mails on `async`. No retries: a lost warm is asked for again by the next
+                // page request
+                'analytics_studio' => [
+                    'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=analytics_studio',
+                    'retry_strategy' => [
+                        'max_retries' => 0,
+                    ],
+                ],
                 'content_digest_emails' => [
                     'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=content_digest_emails',
                     'retry_strategy' => [
@@ -188,12 +199,10 @@ return App::config([
                 // A pairing of an unlisted puzzle with a catalogue puzzle, and its Undo - the same worker, in turns
                 ProcessUnlistedPairing::class => 'imports',
                 // The analytics studio's round-wide time predictions (docs/features/competitions-management/
-                // analytics-studio.md R28): seconds of reads per round, so never on `async` in front of the sign-in
-                // e-mails, and no queue of its own (that would need a consumer change on the servers) - the imports'
-                // consumer takes it, in turns of at most WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN (8 s)
-                // that queue themselves again, so a spreadsheet import never waits long behind a warm. No retries
-                // (the transport's): a lost warm is asked for again by the next page request
-                WarmAnalyticsStudioPredictions::class => 'imports',
+                // analytics-studio.md R28): seconds of reads per round - on their own queue and consumer, never in
+                // front of a player's import (`imports`) or the sign-in e-mails (`async`); turns of at most
+                // WarmAnalyticsStudioPredictionsHandler::SECONDS_PER_TURN (8 s) that queue themselves again
+                WarmAnalyticsStudioPredictions::class => 'analytics_studio',
                 // "Your import is done" - never in the worker's turn
                 SendImportAddedEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

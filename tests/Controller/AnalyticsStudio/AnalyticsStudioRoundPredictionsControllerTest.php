@@ -119,13 +119,13 @@ final class AnalyticsStudioRoundPredictionsControllerTest extends WebTestCase
     }
 
     /**
-     * The warms the last request sent (the imports queue, in memory in tests).
+     * The warms the last request sent (the analytics_studio queue, in memory in tests).
      *
      * @return list<WarmAnalyticsStudioPredictions>
      */
     private function warmsSent(KernelBrowser $browser): array
     {
-        $transport = $browser->getContainer()->get('messenger.transport.imports');
+        $transport = $browser->getContainer()->get('messenger.transport.analytics_studio');
         self::assertInstanceOf(InMemoryTransport::class, $transport);
         $warms = [];
 

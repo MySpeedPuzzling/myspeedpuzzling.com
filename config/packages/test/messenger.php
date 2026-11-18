@@ -21,6 +21,10 @@ return App::config([
                 'imports' => [
                     'dsn' => 'in-memory://',
                 ],
+                // The analytics studio's prediction warm - in memory, tests see what was queued
+                'analytics_studio' => [
+                    'dsn' => 'in-memory://',
+                ],
             ],
             'routing' => [
                 PrepareDigestEmailForPlayer::class => 'sync',

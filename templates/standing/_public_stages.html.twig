@@ -1,0 +1,34 @@
+{#
+    The table part of the public page of a `stages` standing (competition toolkit v2 S5) - in place of
+    standing/_public_table.html.twig, also in the `public_standing_table` fragment. A stage is classified once all its
+    rounds' results are published; "Provisional" until every stage is.
+
+    Variables: table (PublicStandingTable), standing (PublishedStandingRef), round_route, route_params.
+#}
+    {% set stages = table.table %}
+    <p class="small mb-1" data-standing-state>
+        {% if table.provisional %}
+            <span class="badge bg-warning text-dark" data-standing-provisional>{{ 'public_standing.provisional'|trans }}</span>
+            {% if not stages.stagesClash %}<span class="text-muted">{{ 'public_standing.stage.after_stages'|trans({'%counted%': stages.stagesClassified, '%count%': stages.stagesTotal}) }}</span>{% endif %}
+        {% else %}
+            <span class="badge bg-success" data-standing-final>{{ 'public_standing.final'|trans({'%count%': table.roundsTotal}) }}</span>
+        {% endif %}
+    </p>
+    <p class="small text-muted mb-3" data-standing-rules>
+        {{ 'competition_toolkit.standings.mode.stages'|trans }}{% if stages.standing.numberedAcrossStages %} · {{ 'competition_toolkit.standings.rule_numbered'|trans }}{% endif %}
+    </p>
+
+    {% if stages.stagesClash %}
+        <p class="text-muted" data-standing-stages-clash>{{ 'public_standing.stages_clash'|trans }}</p>
+    {% elseif table.rows is empty %}
+        <p class="text-muted" data-standing-empty>{{ (stages.stagesClassified == 0 ? 'public_standing.nothing_published' : 'public_standing.no_results')|trans }}</p>
+    {% else %}
+        <div class="custom-table-wrapper lb-wrapper mb-2">
+            {{ include('standing/_stages_table.html.twig', {table: stages, items: table.rows, public: true}) }}
+        </div>
+
+        <ul class="small text-muted list-unstyled mb-4" data-standing-legend>
+            <li>{{ 'public_standing.legend.stages'|trans }}</li>
+            {% if table.provisional %}<li>{{ 'public_standing.stage.legend_qualified'|trans }}</li>{% endif %}
+        </ul>
+    {% endif %}

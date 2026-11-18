@@ -9,7 +9,9 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\CompetitionStandingsPresent;
 
 /**
- * Does a published standing count a round - and is the round published? Does an event have a published standing?
+ * Does a published standing count a round - and is the round published? (A `stages` standing, competition toolkit v2
+ * S5, counts every round of its category - its bracket's rounds are read from the steps at compute time, a round of the
+ * category outside the bracket only costs a needless new generation.) Does an event have a published standing?
  * One statement each (competition toolkit v2 S1, displays-standings.md §2.2). Read through CompetitionStandingsPresence,
  * which keeps the answer, never directly from a write path.
  */
@@ -34,7 +36,9 @@ SELECT
     r.results_published_at IS NOT NULL AS round_published,
     EXISTS (
         SELECT 1 FROM competition_standing s
-        WHERE s.competition_id = r.competition_id AND s.published_at IS NOT NULL AND s.round_ids @> to_jsonb(lower(r.id::text))
+        WHERE s.competition_id = r.competition_id AND s.published_at IS NOT NULL
+            -- a `stages` standing (v2 S5) keeps no round list: its rounds are the bracket's of its category
+            AND (s.round_ids @> to_jsonb(lower(r.id::text)) OR (s.mode = 'stages' AND s.category = r.category))
     ) AS in_published_standing,
     EXISTS (SELECT 1 FROM competition_standing s WHERE s.competition_id = r.competition_id AND s.published_at IS NOT NULL) AS any_published
 FROM competition_round r

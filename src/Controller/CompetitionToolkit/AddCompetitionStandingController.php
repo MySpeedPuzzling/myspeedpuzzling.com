@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingForms;
+use SpeedPuzzling\Web\Value\StandingMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -55,7 +56,8 @@ final class AddCompetitionStandingController extends AbstractController
         $this->denyAccessUnlessGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId);
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
-        $form = $this->forms->create($competitionId, new CompetitionStandingFormData(), $request->getRequestUri());
+        $bracketCategories = $this->forms->bracketCategories($competitionId);
+        $form = $this->forms->create($competitionId, new CompetitionStandingFormData(), $request->getRequestUri(), $bracketCategories);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -70,6 +72,8 @@ final class AddCompetitionStandingController extends AbstractController
                     category: $data->category,
                     roundIds: $data->roundIds,
                     rules: $data->rules(),
+                    mode: $data->mode ?? StandingMode::Sum,
+                    numberedAcrossStages: $data->numberedAcrossStages,
                 ));
 
                 $this->addFlash('success', $this->translator->trans('competition_standing.flash.added'));
@@ -87,6 +91,7 @@ final class AddCompetitionStandingController extends AbstractController
             'competition' => $competition,
             'form' => $form,
             'table' => null,
+            'bracket_categories' => $bracketCategories,
         ]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');

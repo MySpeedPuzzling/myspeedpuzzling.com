@@ -40,11 +40,15 @@ readonly final class EditCompetitionStandingHandler
             throw new InvalidCompetitionStanding('invalid_name');
         }
 
+        $mode = $message->mode ?? $standing->mode;
+
         $standing->change(
             $name,
             $message->category,
-            $this->standingRounds->validated($standing->competition, $message->category, $message->roundIds),
+            $this->standingRounds->validated($standing->competition, $message->category, $message->roundIds, $mode),
             $message->rules,
+            $mode,
+            $message->numberedAcrossStages,
         );
     }
 }

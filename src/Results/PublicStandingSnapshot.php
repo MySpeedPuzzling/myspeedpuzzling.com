@@ -13,13 +13,14 @@ use SpeedPuzzling\Web\Value\StandingEntrant;
  *
  * Rows keep the internal `key` (participant / line-up id) for the display's opaque row keys and a future grouping - it
  * is never rendered: PublicStandingJson is the whitelist of what leaves the server. Statuses are the calculator's values,
- * passed through as they are (a status added later needs no change here).
+ * passed through as they are (a status added later needs no change here). A `stages` standing (competition toolkit v2
+ * S5) adds `numberedAcrossStages` and its rows' stage fields - a `sum` snapshot has none of them.
  *
  * @phpstan-type SnapshotEntrant array{name: string, country: null|string, playerCode: null|string}
  * @phpstan-type SnapshotScore array{roundId: string, status: string, scoreSeconds: null|int, timeSeconds: null|int, missingPieces: int, penaltySeconds: int, rank: null|int, result: null|array{seconds: null|int, piecesPlaced: null|int}}
- * @phpstan-type SnapshotRow array{key: string, rank: null|int, complete: bool, name: string, countries: list<string>, entrants: list<SnapshotEntrant>, totalSeconds: int, totalTimeSeconds: int, totalMissingPieces: int, totalPenaltySeconds: int, roundsScored: int, roundsFinished: int, perRound: list<SnapshotScore>}
+ * @phpstan-type SnapshotRow array{key: string, rank: null|int, complete: bool, name: string, countries: list<string>, entrants: list<SnapshotEntrant>, totalSeconds: int, totalTimeSeconds: int, totalMissingPieces: int, totalPenaltySeconds: int, roundsScored: int, roundsFinished: int, perRound: list<SnapshotScore>, stage?: int, stageName?: null|string, stageRoundId?: null|string, stageRank?: null|int, qualifiedForStage?: bool}
  * @phpstan-type SnapshotRound array{id: string, name: string, slug: null|string, minutesLimit: null|int, published: bool, counted: bool}
- * @phpstan-type SnapshotData array{competitionId: string, standingId: string, name: string, slug: string, category: string, mode: string, published: bool, position: int, rules: array{penaltySecondsPerPiece: int, order: string, missing: string, penaliseFinishedMissing: bool}, provisional: bool, roundsCounted: int, roundsTotal: int, eventSlug: null|string, seriesSlug: null|string, rounds: list<SnapshotRound>, rows: list<SnapshotRow>, generatedAtMs: int}
+ * @phpstan-type SnapshotData array{competitionId: string, standingId: string, name: string, slug: string, category: string, mode: string, numberedAcrossStages?: bool, published: bool, position: int, rules: array{penaltySecondsPerPiece: int, order: string, missing: string, penaliseFinishedMissing: bool}, provisional: bool, roundsCounted: int, roundsTotal: int, eventSlug: null|string, seriesSlug: null|string, rounds: list<SnapshotRound>, rows: list<SnapshotRow>, generatedAtMs: int}
  */
 readonly final class PublicStandingSnapshot
 {
@@ -93,7 +94,7 @@ readonly final class PublicStandingSnapshot
     }
 
     /**
-     * @return array{competitionId: string, standingId: string, name: string, slug: string, category: string, mode: string, position: int, rules: array{penaltySecondsPerPiece: int, order: string, missing: string, penaliseFinishedMissing: bool}, eventSlug: null|string, seriesSlug: null|string}
+     * @return array{competitionId: string, standingId: string, name: string, slug: string, category: string, mode: string, numberedAcrossStages?: bool, position: int, rules: array{penaltySecondsPerPiece: int, order: string, missing: string, penaliseFinishedMissing: bool}, eventSlug: null|string, seriesSlug: null|string}
      */
     private static function headData(PublicStandingHead $head): array
     {
@@ -106,6 +107,7 @@ readonly final class PublicStandingSnapshot
             'slug' => $standing->slug,
             'category' => $standing->category->value,
             'mode' => $standing->mode->value,
+            ...($standing->isStages() ? ['numberedAcrossStages' => $standing->numberedAcrossStages] : []),
             'position' => $standing->position,
             'rules' => $standing->rules->toArray(),
             'eventSlug' => $head->eventSlug,
@@ -118,7 +120,7 @@ readonly final class PublicStandingSnapshot
      */
     private static function row(StandingRow $row): array
     {
-        return [
+        $data = [
             'key' => $row->key,
             'rank' => $row->rank,
             'complete' => $row->complete,
@@ -149,5 +151,15 @@ readonly final class PublicStandingSnapshot
                     : null,
             ], $row->perRound)),
         ];
+
+        if ($row->stage !== null) {
+            $data['stage'] = $row->stage;
+            $data['stageName'] = $row->stageName;
+            $data['stageRoundId'] = $row->stageRoundId !== null ? strtolower($row->stageRoundId) : null;
+            $data['stageRank'] = $row->stageRank;
+            $data['qualifiedForStage'] = $row->qualifiedForStage;
+        }
+
+        return $data;
     }
 }

@@ -181,13 +181,20 @@ WHERE {$visibility}
     AND s.published_at IS NOT NULL
     AND c.slug IS NOT NULL
     AND (c.series_id IS NULL OR cs.slug IS NOT NULL)
-    AND EXISTS (
+    AND (EXISTS (
         SELECT 1
         FROM jsonb_array_elements_text(s.round_ids) AS standing_round(id)
         INNER JOIN competition_round cr ON CAST(cr.id AS TEXT) = lower(standing_round.id)
         WHERE cr.competition_id = s.competition_id
             AND cr.results_published_at IS NOT NULL
-    )
+    ) OR (s.mode = 'stages' AND EXISTS (
+        -- a `stages` standing (competition toolkit v2 S5) keeps no round list: a published round of its category
+        SELECT 1
+        FROM competition_round cr
+        WHERE cr.competition_id = s.competition_id
+            AND cr.category = s.category
+            AND cr.results_published_at IS NOT NULL
+    )))
 ORDER BY cs.slug NULLS FIRST, c.slug, s.position, s.slug
 SQL;
 

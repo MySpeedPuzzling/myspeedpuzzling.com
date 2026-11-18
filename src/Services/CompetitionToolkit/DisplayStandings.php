@@ -18,12 +18,14 @@ use SpeedPuzzling\Web\Services\Standings\PublicStandingSnapshots;
  * - An explicit id of another event, an unknown or an unpublished standing → null.
  * - Rows cut to the element's `rows`; a row's `key` is opaque per display (an HMAC keyed with the token, like the
  *   results rows) - no participant, line-up or player id leaves the server, no #code either.
+ * - A `stages` standing's rows (competition toolkit v2 S5) add `stage`, `stageName` (the renderer's `stage` column) and
+ *   `stageRank` (the place in its round there); a `sum` standing's rows have none.
  * - **A standings failure never blanks the timer**: everything sits in one try/catch → every element null + a warning.
  *
  * Statements: warm 0 (snapshot + list cached per generation); cold: the list (1, only for `auto`), a snapshot (≤ 4).
  * No instance state (readonly).
  *
- * @phpstan-type DisplayStandingRow array{key: string, rank: null|int, complete: bool, name: string, members: list<string>, countries: list<string>, totalSeconds: int, totalTimeSeconds: int, totalMissingPieces: int, totalPenaltySeconds: int, roundsScored: int, perRound: list<array{status: string, scoreSeconds: null|int, missingPieces: int}>}
+ * @phpstan-type DisplayStandingRow array{key: string, rank: null|int, complete: bool, name: string, members: list<string>, countries: list<string>, totalSeconds: int, totalTimeSeconds: int, totalMissingPieces: int, totalPenaltySeconds: int, roundsScored: int, perRound: list<array{status: string, scoreSeconds: null|int, missingPieces: int}>, stage?: int, stageName?: string, stageRank?: null|int}
  * @phpstan-type DisplayStanding array{name: string, category: string, provisional: bool, final: bool, roundsCounted: int, roundsTotal: int, rounds: list<array{name: string, counted: bool}>, rows: list<DisplayStandingRow>}
  */
 final readonly class DisplayStandings
@@ -171,6 +173,11 @@ final readonly class DisplayStandings
                 'roundsScored' => $row['roundsScored'],
                 // Statuses as the calculator gives them - the renderer shows a score it does not know by its seconds
                 'perRound' => self::perRound($row['perRound'], $roundIds),
+                ...(isset($row['stage']) ? [
+                    'stage' => $row['stage'],
+                    'stageName' => ($row['qualifiedForStage'] ?? false) ? '✓ ' . ($row['stageName'] ?? '') : ($row['stageName'] ?? ''),
+                    'stageRank' => $row['stageRank'] ?? null,
+                ] : []),
             ], array_slice($data['rows'], 0, $rows)),
         ];
     }

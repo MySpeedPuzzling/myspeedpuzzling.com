@@ -22,7 +22,7 @@ use SpeedPuzzling\Web\Value\StandingRules;
 readonly final class GetCompetitionStandings
 {
     private const string SELECT = <<<SQL
-SELECT id, competition_id, name, slug, category, mode, round_ids, unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing, position, published_at
+SELECT id, competition_id, name, slug, category, mode, round_ids, unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing, position, published_at, numbered_across_stages
 FROM competition_standing
 SQL;
 
@@ -71,7 +71,7 @@ SQL;
      */
     public static function hydrate(array $row): CompetitionStandingOverview
     {
-        /** @var array{id: string, competition_id: string, name: string, slug: string, category: string, mode: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, missing_rule: string, penalise_finished_missing: bool, position: int, published_at: null|string} $row */
+        /** @var array{id: string, competition_id: string, name: string, slug: string, category: string, mode: string, round_ids: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, missing_rule: string, penalise_finished_missing: bool, position: int, published_at: null|string, numbered_across_stages?: bool} $row */
         $roundIds = json_decode($row['round_ids'], true, flags: JSON_THROW_ON_ERROR);
 
         return new CompetitionStandingOverview(
@@ -90,6 +90,7 @@ SQL;
             ),
             position: $row['position'],
             publishedAt: $row['published_at'] !== null ? new DateTimeImmutable($row['published_at']) : null,
+            numberedAcrossStages: (bool) ($row['numbered_across_stages'] ?? false),
         );
     }
 }

@@ -598,6 +598,49 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The final classification across the bracket (`stages`, competition toolkit v2 S5): the blocked player's row is not
+     * there for the blocker - neither among the qualified nor in the groups - and everybody else keeps the number across
+     * the stages (hidden after numbering).
+     */
+    public function testBlockedPlayerIsNowhereInAStagesStanding(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        PublishedStanding::insert($database, $cup, 'classification', 'Classification', 'solo', [], mode: 'stages', numberedAcrossStages: true);
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]);
+        // "Ben Steady", qualified from Group A, and "Cara Tied", out there - the blocked player is Cara
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_CARA],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $url = '/en/events/results-cup/standings/classification';
+        $ranks = static fn (Crawler $crawler): array => $crawler->filter('[data-standing-row]')->each(static fn (Crawler $row): string => (string) $row->attr('data-standing-rank'));
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the classification does not link the player.');
+        // Anna, Ben, Gina, Hugo qualified for the final (no number yet), then Cara 5, Ivan 6, Dan 7
+        self::assertSame(['', '', '', '', '5', '6', '7'], $ranks($crawler));
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Cara Tied', $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['', '', '', '', '6', '7'], $ranks($crawler));
+    }
+
+    /**
      * The table fragment of the public standing page (`public_standing_table`, competition toolkit v2 S4) - what an open
      * page swaps in after a standings signal: the page's own rules per signed-in viewer, while guests share one cached
      * render. The blocker asking first must not leave his view for the guests, nor the guests' for him.

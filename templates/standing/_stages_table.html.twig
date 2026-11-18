@@ -1,0 +1,83 @@
+{#
+    A `stages` standing's classification (competition toolkit v2 S5, StandingCalculator::stages(); A-round-formats.md
+    §3.5): the rows in order, a section per stage reached - the deepest first - and, while a next stage is not classified,
+    the "Qualified for <next stage>" group in its place. Not numbered: each stage keeps its own round's places, a
+    sub-header per round of a stage with parallel rounds; numbered: one number over everybody (the round's place in
+    brackets). Shared by the public page, its table fragment and the organiser's preview.
+
+    Variables: table (StandingTable), items (list<PublicStandingRow> when public, list<StandingRow> otherwise), public
+    (bool), round_route + route_params (public only - the round pages).
+#}
+{% set numbered = table.standing.numberedAcrossStages %}
+<table class="table {{ public ? 'custom-table lb-table standing-table mb-0' : 'table-sm align-middle small mb-0' }}" data-standing-table data-standing-stages="{{ numbered ? 'numbered' : 'per-stage' }}">
+    <thead>
+    <tr>
+        <th scope="col" class="{{ public ? 'lb-rank-head' : 'text-end' }}"><abbr title="{{ 'public_standing.rank'|trans }}">#</abbr></th>
+        <th scope="col">{{ ('round_results.official.entrant.' ~ table.standing.category.value)|trans }}</th>
+        <th scope="col" class="text-end">{{ 'public_standing.stage.result'|trans }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% set current_section = null %}
+    {% set current_round = null %}
+    {% for item in items %}
+        {% set row = public ? item.row : item %}
+        {% set section = (row.qualifiedForStage ? 'q' : 's') ~ row.stage %}
+        {% if section != current_section %}
+            {% set current_section = section %}
+            {% set current_round = null %}
+            <tr class="table-light" data-standing-stage="{{ row.stage }}"{% if row.qualifiedForStage %} data-standing-stage-qualified{% endif %}>
+                <th scope="colgroup" colspan="3" class="fw-semibold">
+                    {%- if row.qualifiedForStage -%}
+                        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'public_standing.stage.qualified_for'|trans({'%stage%': row.stageName}) }}
+                    {%- else -%}
+                        {{ 'public_standing.stage.reached'|trans({'%number%': row.stage, '%stage%': row.stageName}) }}
+                    {%- endif -%}
+                </th>
+            </tr>
+        {% endif %}
+        {% set stage = table.stage(row.stage) %}
+        {% if not numbered and not row.qualifiedForStage and stage is not null and stage.hasParallelRounds and row.stageRoundId != current_round %}
+            {% set current_round = row.stageRoundId %}
+            {% set round_column = table.rounds|filter(r => r.id == row.stageRoundId)|first %}
+            <tr data-standing-stage-round="{{ row.stageRoundId }}">
+                <th scope="colgroup" colspan="3" class="small fw-normal text-muted">
+                    {%- if public and round_column and round_column.slug is not null and round_column.published -%}
+                        <a href="{{ path(round_route, route_params|merge({roundSlug: round_column.slug})) }}">{{ stage.rounds[row.stageRoundId] }}</a>
+                    {%- else -%}
+                        {{ stage.rounds[row.stageRoundId] ?? '' }}
+                    {%- endif -%}
+                </th>
+            </tr>
+        {% endif %}
+        {% set place = numbered ? row.rank : row.stageRank %}
+        <tr class="{{ public and item.isViewers ? 'table-active-player' }}" data-standing-row{% if not public %}="{{ row.key }}"{% endif %} data-standing-rank="{{ row.rank }}" data-standing-stage-rank="{{ row.stageRank }}">
+            <td class="{{ public ? 'rank' : 'text-end fw-semibold' }}">
+                {%- if place is not null -%}
+                    {% if public %}<span class="lb-rank{{ place <= 3 and row.stage == table.stagesTotal ? ' lb-rank-podium lb-rank-podium-' ~ place }}">{{ place }}</span>{% else %}{{ place }}{% endif %}
+                {%- else -%}
+                    <span class="text-muted">–</span>
+                {%- endif -%}
+            </td>
+            <td class="{{ public ? 'lb-solver' }}">
+                {% if public %}
+                    {% for entrant in item.entrants %}
+                        {{ include('_leaderboard_player.html.twig', {player: entrant, small: item.isTeam, show_tier: false}) }}
+                    {% endfor %}
+                    {% if item.isTeam and item.teamName is not null %}
+                        <div class="lb-badges"><span class="badge rounded-pill lb-team-badge"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ item.teamName }}</span></div>
+                    {% endif %}
+                {% else %}
+                    <span data-standing-name>{{ row.name }}</span>
+                    {% if row.entrants|length > 1 %}
+                        <span class="d-block text-muted" data-standing-people>{{ row.entrants|map(e => e.name)|join(', ') }}</span>
+                    {% endif %}
+                {% endif %}
+            </td>
+            <td class="text-end text-nowrap" data-standing-score="{{ (row.perRound|first).status.value }}">
+                <span class="{{ public ? 'lb-time-value small' }}">{{ include('standing/_score.html.twig', {score: row.perRound|first, hide_rank: not numbered and not row.qualifiedForStage}) }}</span>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>

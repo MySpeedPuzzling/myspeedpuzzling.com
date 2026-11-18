@@ -52,7 +52,7 @@
     {# Competition toolkit v2 S4: the table part follows the event's public standings signal (standing_live_controller.js) #}
     <div data-controller="standing-live" data-standing-live-url-value="{{ path('public_standing_table', {standingId: standing.id, _locale: app.request.locale}) }}" data-standing-live-topic-value="{{ page.liveTopic }}" data-standing-live-hub-value="{{ mercure_public_url }}">
         <turbo-frame id="standing-table" target="_top" data-standing-live-target="frame">
-            {{- include('standing/_public_table.html.twig') -}}
+            {{- include(table.table.stages is not null ? 'standing/_public_stages.html.twig' : 'standing/_public_table.html.twig') -}}
         </turbo-frame>
         <p class="small text-muted mb-0" aria-live="polite" data-standing-live-target="status" data-standing-live-updated="{{ 'public_standing.live.updated'|trans }}"></p>
     </div>

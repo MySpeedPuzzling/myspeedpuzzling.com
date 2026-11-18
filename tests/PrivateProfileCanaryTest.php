@@ -490,6 +490,43 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The final classification across the bracket (`stages`, competition toolkit v2 S5): among the qualified for the
+     * final she keeps the organiser's name only ("Gina Quick") for guests and strangers - page, fragment and JSON - and
+     * her profile for the friend on the page.
+     */
+    public function testAStagesStandingLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]);
+        DeclaredAdvancementStep::insert($database, $cup, [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], [OfficialResultsFixture::ROUND_FINAL], qualifyCount: 2);
+        $standingId = PublishedStanding::insert($database, $cup, 'classification', 'Classification', 'solo', [], mode: 'stages');
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $page = '/en/events/results-cup/standings/classification';
+        $urls = [$page, '/en/standing-table/' . $standingId, '/api/competition-standings/' . $standingId];
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            foreach ($urls as $url) {
+                $content = $this->get($browser, $url);
+                self::assertStringContainsString('Gina Quick', $content, 'No canary: ' . $url);
+                self::assertStringNotContainsString($profileLink, $content, 'A stranger is shown a private player: ' . $url);
+                self::assertStringNotContainsString(self::OWNER_NAME, $content, $url);
+                self::assertStringNotContainsString(self::OWNER, $content, $url);
+            }
+        }
+
+        $browser->restart();
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $page), 'The allowed friend does not see her profile here - the page is no canary.');
+    }
+
+    /**
      * The table fragment of the public standing page (`public_standing_table`, competition toolkit v2 S4): like the page -
      * her organiser's name only for guests and strangers, her profile for the allowed friend. The friend asking first must
      * not leave his view in the guests' cached render.

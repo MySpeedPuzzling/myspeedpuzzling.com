@@ -72,7 +72,7 @@ class CompetitionStanding
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::SMALLINT, options: ['default' => 0])]
         public int $position = 0,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 16, enumType: StandingMode::class, options: ['default' => 'sum'])]
         public StandingMode $mode = StandingMode::Sum,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -91,6 +91,11 @@ class CompetitionStanding
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(options: ['default' => false])]
         public bool $penaliseFinishedMissing = false,
+        // Competition toolkit v2 S5 (`stages` only): one number 1..N over everybody across the stages (WJPC-style); off =
+        // each stage keeps its own round's places
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(options: ['default' => false])]
+        public bool $numberedAcrossStages = false,
     ) {
     }
 
@@ -116,13 +121,17 @@ class CompetitionStanding
     }
 
     /**
-     * @param list<string> $roundIds validated by the caller (CompetitionStandingRounds)
+     * @param list<string> $roundIds validated by the caller (CompetitionStandingRounds) - empty for `stages`
+     * @param null|StandingMode $mode null = kept
+     * @param null|bool $numberedAcrossStages null = kept
      */
-    public function change(string $name, RoundCategory $category, array $roundIds, StandingRules $rules): void
+    public function change(string $name, RoundCategory $category, array $roundIds, StandingRules $rules, null|StandingMode $mode = null, null|bool $numberedAcrossStages = null): void
     {
         $this->name = $name;
         $this->category = $category;
         $this->roundIds = $roundIds;
+        $this->mode = $mode ?? $this->mode;
+        $this->numberedAcrossStages = $numberedAcrossStages ?? $this->numberedAcrossStages;
         $this->unfinishedPenaltySecondsPerPiece = $rules->penaltySecondsPerPiece;
         $this->orderRule = $rules->order;
         $this->missingRule = $rules->missing;

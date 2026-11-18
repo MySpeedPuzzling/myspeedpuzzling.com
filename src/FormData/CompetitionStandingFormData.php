@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Entity\CompetitionStanding;
 use SpeedPuzzling\Web\Results\CompetitionStandingOverview;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\StandingMissing;
+use SpeedPuzzling\Web\Value\StandingMode;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -26,9 +27,20 @@ final class CompetitionStandingFormData
     #[Assert\NotNull]
     public null|RoundCategory $category = RoundCategory::Solo;
 
+    // How it is decided (competition toolkit v2 S5): the sum of chosen rounds, or the final classification across the
+    // bracket (its rounds come from the advancement steps - the rounds, penalty, order and missing rule are not used)
+    #[Assert\NotNull]
+    public null|StandingMode $mode = StandingMode::Sum;
+
     /** @var list<string> */
-    #[Assert\Count(min: 1, minMessage: 'competition_standing.refused.no_rounds')]
+    #[Assert\When(
+        expression: 'this.mode === null or this.mode.value !== "stages"',
+        constraints: [new Assert\Count(min: 1, minMessage: 'competition_standing.refused.no_rounds')],
+    )]
     public array $roundIds = [];
+
+    // `stages`: one number over everybody across the stages
+    public bool $numberedAcrossStages = false;
 
     #[Assert\NotNull]
     #[Assert\Range(min: 0, max: StandingRules::PENALTY_MAX)]
@@ -54,6 +66,8 @@ final class CompetitionStandingFormData
         $data->orderRule = $standing->rules->order;
         $data->penaliseFinishedMissing = $standing->rules->penaliseFinishedMissing;
         $data->missingRule = $standing->rules->missing;
+        $data->mode = $standing->mode;
+        $data->numberedAcrossStages = $standing->numberedAcrossStages;
 
         return $data;
     }

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\SeededEntry;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 
 /**
  * The advancement seed - one order of the entries of one or more earlier rounds, best first
@@ -19,9 +20,42 @@ use SpeedPuzzling\Web\Results\SeededEntry;
  *    in a `pick` round the pieces of the entry's chosen puzzles, else of the round's K biggest (RoundResultEntry::$piecesCount)
  * 3. then the organiser's order of the rounds, the name, the id - never random
  * Entries without a ranked result (did not start, no result yet) come last, by name.
+ *
+ * Steps 1-2 are crossRoundKey() - also the numbering of a `stages` standing across the parallel rounds of a stage
+ * (competition toolkit v2 S5, StandingCalculator::stages()), so the bracket's seed and the final classification agree.
  */
 final readonly class AdvancementSeeding
 {
+    /**
+     * The seed's own order of one entry among the entries of several rounds - unranked last, then its rank within its
+     * round, then finished before unfinished, then the result relative to its round's winner. Equal keys are the same
+     * place (the round order, the name and the id only ever break the seed's ties, never a place).
+     *
+     * @param null|int $winnerSeconds the round's fastest finished time (roundWinnerSeconds())
+     * @param null|int $piecesCount the pieces the entry places when it finishes (a `pick` entry: its own bound)
+     * @return array{bool, int, bool, float}
+     */
+    public static function crossRoundKey(null|int $rank, RoundEntryResult $result, null|int $winnerSeconds, null|int $piecesCount): array
+    {
+        return [$rank === null, $rank ?? 0, $result->isUnfinished(), self::relative($result, $winnerSeconds, $piecesCount)];
+    }
+
+    /**
+     * @param iterable<RoundEntryResult> $results one round's results
+     */
+    public static function roundWinnerSeconds(iterable $results): null|int
+    {
+        $winnerSeconds = null;
+
+        foreach ($results as $result) {
+            if ($result->seconds !== null && ($winnerSeconds === null || $result->seconds < $winnerSeconds)) {
+                $winnerSeconds = $result->seconds;
+            }
+        }
+
+        return $winnerSeconds;
+    }
+
     /**
      * @param array<string, list<RoundResultEntry>> $entriesByRound source round id => its entries, in the organiser's
      *        order of the rounds; ranks as GetRoundResultEntries computes them
@@ -58,13 +92,12 @@ final readonly class AdvancementSeeding
             return ['selected' => [], 'tiedAtCut' => []];
         }
 
-        $key = static fn (array $candidate): array => [$candidate['entry']->rank, $candidate['entry']->result->isUnfinished(), $candidate['relative']];
-        $cutKey = $key($candidates[min($count, count($candidates)) - 1]);
+        $cutKey = $candidates[min($count, count($candidates)) - 1]['key'];
         $selected = [];
         $tied = [];
 
         foreach ($candidates as $index => $candidate) {
-            $atCut = $key($candidate) === $cutKey;
+            $atCut = $candidate['key'] === $cutKey;
 
             if ($index >= $count && !$atCut) {
                 break;
@@ -85,7 +118,7 @@ final readonly class AdvancementSeeding
      * @param array<string, list<RoundResultEntry>> $entriesByRound
      * @param array<string, null|int> $piecesCountByRound
      * @param null|callable(RoundResultEntry): bool $include
-     * @return list<array{roundId: string, roundPosition: int, entry: RoundResultEntry, relative: float}> best first
+     * @return list<array{roundId: string, roundPosition: int, entry: RoundResultEntry, key: array{bool, int, bool, float}}> best first
      */
     private static function sortedCandidates(array $entriesByRound, array $piecesCountByRound, null|callable $include): array
     {
@@ -94,13 +127,7 @@ final readonly class AdvancementSeeding
 
         foreach ($entriesByRound as $roundId => $entries) {
             $roundId = (string) $roundId;
-            $winnerSeconds = null;
-
-            foreach ($entries as $entry) {
-                if ($entry->result->seconds !== null && ($winnerSeconds === null || $entry->result->seconds < $winnerSeconds)) {
-                    $winnerSeconds = $entry->result->seconds;
-                }
-            }
+            $winnerSeconds = self::roundWinnerSeconds(array_map(static fn (RoundResultEntry $entry): RoundEntryResult => $entry->result, $entries));
 
             foreach ($entries as $entry) {
                 if ($include !== null && $include($entry) === false) {
@@ -112,7 +139,7 @@ final readonly class AdvancementSeeding
                     'roundPosition' => $roundPosition,
                     'entry' => $entry,
                     // A `pick` round's entry brings its own bound (GetRoundResultEntries, competition toolkit A3)
-                    'relative' => self::relative($entry, $winnerSeconds, $entry->piecesCount ?? $piecesCountByRound[$roundId] ?? null),
+                    'key' => self::crossRoundKey($entry->rank, $entry->result, $winnerSeconds, $entry->piecesCount ?? $piecesCountByRound[$roundId] ?? null),
                 ];
             }
 
@@ -123,8 +150,7 @@ final readonly class AdvancementSeeding
             $aEntry = $a['entry'];
             $bEntry = $b['entry'];
 
-            return [$aEntry->rank === null, $aEntry->rank ?? 0] <=> [$bEntry->rank === null, $bEntry->rank ?? 0]
-                ?: [$aEntry->result->isUnfinished(), $a['relative']] <=> [$bEntry->result->isUnfinished(), $b['relative']]
+            return $a['key'] <=> $b['key']
                 ?: $a['roundPosition'] <=> $b['roundPosition']
                 ?: strcasecmp($aEntry->displayName(), $bEntry->displayName())
                 ?: strcmp($aEntry->ref->id, $bEntry->ref->id);
@@ -136,10 +162,8 @@ final readonly class AdvancementSeeding
     /**
      * Smaller is better: time ÷ winner's time; for unfinished the negative share of the pieces placed.
      */
-    private static function relative(RoundResultEntry $entry, null|int $winnerSeconds, null|int $piecesCount): float
+    private static function relative(RoundEntryResult $result, null|int $winnerSeconds, null|int $piecesCount): float
     {
-        $result = $entry->result;
-
         if ($result->seconds !== null) {
             return $winnerSeconds !== null && $winnerSeconds > 0 ? $result->seconds / $winnerSeconds : (float) $result->seconds;
         }

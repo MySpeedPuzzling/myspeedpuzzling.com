@@ -49,7 +49,7 @@
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <h2 class="h5 mb-0">{{ table.standing.name }}</h2>
                         <span class="badge bg-secondary">{{ ('competition.round.category.' ~ table.standing.category.value)|trans }}</span>
-                        <span class="small text-muted">{{ include('standing/_rules.html.twig', {rules: table.standing.rules}) }}</span>
+                        <span class="small text-muted">{% if table.stages is not null %}{{ 'competition_toolkit.standings.mode.stages'|trans }}{% if table.standing.numberedAcrossStages %} · {{ 'competition_toolkit.standings.rule_numbered'|trans }}{% endif %}{% else %}{{ include('standing/_rules.html.twig', {rules: table.standing.rules}) }}{% endif %}</span>
                         {% if table.standing.publishedAt is not null %}
                             <span class="badge bg-success" data-standing-published>{{ 'public_standing.organiser.published'|trans }}</span>
                         {% else %}
@@ -83,7 +83,7 @@
                         </div>
                     </div>
 
-                    {{ include('competition_toolkit/_standing_table.html.twig') }}
+                    {{ include(table.stages is not null ? 'competition_toolkit/_stages_preview.html.twig' : 'competition_toolkit/_standing_table.html.twig') }}
                 </div>
             </section>
         {% else %}

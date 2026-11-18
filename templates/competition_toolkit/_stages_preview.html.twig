@@ -1,0 +1,26 @@
+{#
+    The organiser's preview of a `stages` standing (competition toolkit v2 S5): every round of the category's bracket,
+    published or not - a stage classified once each of its rounds has somebody in it. Variables: table (StandingTable).
+#}
+<div data-standing-preview="{{ table.standing.id }}">
+    <p class="small mb-2">
+        {% if table.provisional %}
+            <span class="badge bg-warning text-dark" data-standing-provisional>{{ 'competition_standing.preview.provisional'|trans }}</span>
+        {% else %}
+            <span class="badge bg-success">{{ 'competition_standing.preview.final'|trans }}</span>
+        {% endif %}
+        {% if not table.stagesClash %}<span class="text-muted">{{ 'public_standing.stage.after_stages'|trans({'%counted%': table.stagesClassified, '%count%': table.stagesTotal}) }}</span>{% endif %}
+        <span class="text-muted d-block">{{ 'competition_standing.preview.includes_unpublished'|trans }}</span>
+    </p>
+
+    {% if table.stagesClash %}
+        <p class="small text-danger mb-0" data-standing-stages-clash>{{ 'public_standing.stages_clash'|trans }}</p>
+    {% elseif table.rows is empty %}
+        <p class="small text-muted mb-0" data-standing-empty>{{ 'competition_standing.preview.no_results'|trans }}</p>
+    {% else %}
+        <div class="table-responsive">
+            {{ include('standing/_stages_table.html.twig', {table: table, items: table.rows, public: false}) }}
+        </div>
+        <p class="small text-muted mt-1 mb-0">{{ 'public_standing.legend.stages'|trans }}</p>
+    {% endif %}
+</div>

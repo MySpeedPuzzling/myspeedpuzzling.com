@@ -16,14 +16,15 @@ final class PublishedStanding
 {
     /**
      * @param list<string> $roundIds
+     * @param string $mode `sum` / `stages` (competition toolkit v2 S5 - its rounds are the bracket's, $roundIds empty)
      * @return string the standing's id
      */
-    public static function insert(Connection $database, string $competitionId, string $slug, string $name, string $category, array $roundIds, bool $published = true): string
+    public static function insert(Connection $database, string $competitionId, string $slug, string $name, string $category, array $roundIds, bool $published = true, string $mode = 'sum', bool $numberedAcrossStages = false): string
     {
         $id = Uuid::uuid7()->toString();
 
         $database->executeStatement(
-            'INSERT INTO competition_standing (id, competition_id, category, name, slug, round_ids, created_at, published_at) VALUES (:id, :competitionId, :category, :name, :slug, :roundIds, ' . TestClock::SQL_NOW . ', ' . ($published ? TestClock::SQL_NOW : 'NULL') . ')',
+            'INSERT INTO competition_standing (id, competition_id, category, name, slug, round_ids, created_at, published_at, mode, numbered_across_stages) VALUES (:id, :competitionId, :category, :name, :slug, :roundIds, ' . TestClock::SQL_NOW . ', ' . ($published ? TestClock::SQL_NOW : 'NULL') . ', :mode, :numbered)',
             [
                 'id' => $id,
                 'competitionId' => $competitionId,
@@ -31,6 +32,8 @@ final class PublishedStanding
                 'name' => $name,
                 'slug' => $slug,
                 'roundIds' => json_encode(array_map(strtolower(...), $roundIds), JSON_THROW_ON_ERROR),
+                'mode' => $mode,
+                'numbered' => $numberedAcrossStages ? 'true' : 'false',
             ],
         );
 

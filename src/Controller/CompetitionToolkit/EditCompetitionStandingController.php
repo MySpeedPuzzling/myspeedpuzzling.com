@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionStandings;
 use SpeedPuzzling\Web\Query\GetStandingResults;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingForms;
+use SpeedPuzzling\Web\Value\StandingMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -64,7 +65,8 @@ final class EditCompetitionStandingController extends AbstractController
 
         $this->denyAccessUnlessGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $standing->competitionId);
 
-        $form = $this->forms->create($standing->competitionId, CompetitionStandingFormData::fromStanding($standing), $request->getRequestUri());
+        $bracketCategories = $this->forms->bracketCategories($standing->competitionId);
+        $form = $this->forms->create($standing->competitionId, CompetitionStandingFormData::fromStanding($standing), $request->getRequestUri(), $bracketCategories);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -79,6 +81,8 @@ final class EditCompetitionStandingController extends AbstractController
                     category: $data->category,
                     roundIds: $data->roundIds,
                     rules: $data->rules(),
+                    mode: $data->mode ?? StandingMode::Sum,
+                    numberedAcrossStages: $data->numberedAcrossStages,
                 ));
 
                 $this->addFlash('success', $this->translator->trans('competition_standing.flash.saved'));
@@ -96,6 +100,7 @@ final class EditCompetitionStandingController extends AbstractController
             'form' => $form,
             'standing' => $standing,
             'table' => $this->getStandingResults->organiserView($standing),
+            'bracket_categories' => $bracketCategories,
         ]);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');

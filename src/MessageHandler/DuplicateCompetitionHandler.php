@@ -244,6 +244,7 @@ readonly final class DuplicateCompetitionHandler
                 orderRule: $standing->orderRule,
                 missingRule: $standing->missingRule,
                 penaliseFinishedMissing: $standing->penaliseFinishedMissing,
+                numberedAcrossStages: $standing->numberedAcrossStages,
             ));
         }
     }

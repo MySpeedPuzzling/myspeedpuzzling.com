@@ -42,7 +42,7 @@ Open from the hardening list (`toolkit/STATUS.md` "Hardening list"):
 - [ ] Panther `tests/Panther/LiveEntryOfflineTest.php` (R §4.4 step 4, C §7.4) does not exist - the offline flows were walked by hand only; write it or drop it from the plan
 - [ ] Judge page leftovers: `?entries=0` is served but no client asks for it (C §1.3) - the conditional `entriesKnown` (v2 J2) replaced its purpose; `SnapshotStore.wipe()` has no production caller (`judge-offline.md` "Design vs build"). ~~`scanAfterSave` / `myTables` unused~~ - **used since v2 J3/J4**
 - [x] A3 review: loop `testEveryNewReasonIsTranslated` over all 6 locales - **done in G3 (also `TimeProposalResolverTest`)**
-- [ ] A3 review leftovers: the JS twin `official_results_puzzles.js` lacks the PHP shape rules (add or document); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
+- [ ] A3 review leftovers: ~~the JS twin `official_results_puzzles.js` lacks the PHP shape rules~~ (follow-ups FU-M #468: `shapeRefusal()` mirrors `RoundEntryPuzzles::fromWire()`, parity test; server-only edges in `round-formats.md`); a catalogue `pieces_count` change can make a stored unfinished record inconsistent - a clearer path than "Clear per-puzzle record" on the desk
 - [x] C9 polish: proposer name on solo cards too (only pair/team today); document/decide "undo of a confirmation clears the result, the proposal stays confirmed" - **done in H1 (name on pair/team cards only) + H3 (an undone confirmation supersedes the proposal)**
 - [x] B8 polish: pending/sending boxes in a neutral style (not `$primary` pink) - **done in H1**
 - [x] Standings: drop the category badge when the standing's name already says it - **done in H1**
@@ -59,13 +59,13 @@ v2 leftovers (`toolkit/STATUS.md` "v2", 2026-11-18):
 - [ ] Real phones: continuous scanning on iPhone Safari + Android Chrome (camera stays warm, 90 s idle release, Low Power Mode, lock/unlock - `judge-device-checklist.md` 6a-6d); proposal puzzle chips on a phone (C3)
 - [ ] OBS walk: standings, bracket, message + spotlight elements over a colour source (transparent); browser walk of C3 + S6
 - [ ] Load: 500 viewers on one live standings page (`tools/competition-load/`, goal fragment p95 < 50 ms); a 300-entrant studio warm on production
-- [ ] chaos `s14_puzzle_splits` fails on a scenario race (reads the card once before the waiting split renders) - real events team
+- [x] chaos `s14_puzzle_splits` fails on a scenario race (reads the card once before the waiting split renders) - fixed in follow-ups FU-M #468 (`tap_split()` waits for an enabled "Finished now", the second tap for split 1)
 - [ ] v3 list in `toolkit/STATUS.md` "v2" (table ranges per referee, typed splits, sheet per-puzzle editing, studio pair/team predictions, editor copy/paste/groups, per-display message overrides, live control for referees)
 
 Deferred by design (R §3):
 - [ ] Round formats: `every` as its own mode (= pick K = N today); ~~judge-side split times~~ (done 2026-11-17, real events W5 - round-formats.md "Judge split times"); ~~the participants sheet's per-puzzle popover~~ (done v2 C5 #439, read-only + desk deep link); internal API **writes** of format/labels (read-only output ships)
 - [ ] Standings: ~~the `stages` classification and `numbered_across_stages`~~ (v2 S5 #447/#450); ~~`missing_rule = as_zero_pieces`~~ (real events W1); ~~a standings Mercure topic~~ (v2 S4 #428); ~~public `public_standing_state` JSON~~ (v2 S1); "drop worst round" / season standings
-- [ ] QR / competitor pages: the `cards` layout (tags + tents ship); ~~a `competitor_list` page~~ (v2 C1 #429/#437); ~~proposal puzzle choice (`ChangeTimeProposalPuzzles`)~~ (v2 C2 #436 + C3 #459); a per-entry private Mercure topic (polling today); a 90-day prune of decided proposals (`competition_time_proposal`)
+- [ ] QR / competitor pages: the `cards` layout (tags + tents ship); ~~a `competitor_list` page~~ (v2 C1 #429/#437); ~~proposal puzzle choice (`ChangeTimeProposalPuzzles`)~~ (v2 C2 #436 + C3 #459); a per-entry private Mercure topic (polling today); ~~a 90-day prune of decided proposals~~ (follow-ups FU-M #468: `myspeedpuzzling:prune-decided-time-proposals`, lily cron daily 03:27, lily.srv 6851a4f)
 - [ ] Judge page: ~~ETag/304 on the round state~~ (v2 J2: conditional entries instead of a 304); ~~continuous scanning with a warm camera~~ (v2 J4 #440); ~~a "My tables" filter~~ (v2 J3 #435); ~~a referees-page activity column~~ (v2 J1); organiser-assigned table ranges (v3); the one-tap proposal sweep (ruled out by Jan)
 - [ ] Displays: ~~the standings/bracket overlay element~~ (v2 S2 #423, S6 #460); ~~multi-select / align / distribute; snapping to siblings~~ (v2 E1 #449); ~~live control (spotlight + message elements and page)~~ (v2 L1+L2 #451); "Copy from another event"; ticker `marquee`; more fonts; scenes, animations, 4:3/portrait, a series library
 
@@ -74,7 +74,7 @@ Event creation wizard (`docs/features/competitions-management/creation-wizard.md
 - [ ] Validate with 2-3 organisers (research §7) now that it is live - adjust from their findings
 - [x] Extras all or nothing (`SaveEventWizardExtras`), a series' "When it happens" from the Dates rule (`SeriesScheduleText`), rounds added later join the full-category standings (`StandingsJoiningNewRounds`; steps offered, never guessed), cross-brand puzzle search (`puzzle_search_autocomplete`) - **done in G2**; the "Were you there? Link my results" entry on event/edition pages + the waiting-link note on result detail / My data - **done in G1**
 - [ ] Open: "try" checklist items are tips without a tick (would need timestamps)
-- [ ] W9: the wizard is every player's "Add event" since WF (2026-11-17, no flag) - Jan decides when to retire the classic forms it still links (`add_competition?classic=1` "Use the classic form", "Add several dates" on the series page)
+- [x] W9: the wizard is every player's "Add event" since WF (2026-11-17, no flag) - Jan decides when to retire the classic forms it still links (`add_competition?classic=1` "Use the classic form", "Add several dates" on the series page). Retired 2026-11-18 (follow-ups FU-W #471): `add_competition` / `add_edition` / `add_editions` redirect to the wizard (POST 303, nothing created), calendar path for "Something else", the classic form is the edit form only
 
 ## Bot-blocker trust cookie (`BotTrustCookieSubscriber`, `GetBotTrustEligibility`, 2026-11-16)
 
@@ -1980,8 +1980,8 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
       the plan uses `custom_player_name_key` for the "Name and country" tier. Done 2026-11-18 on production
       (read-only): WJPC 2024 (812 without a profile) 7.9 ms, WJPC 2026 (702) 16.7 ms, the hub's count 6-7 ms; tier 3
       = `custom_player_name_key` index scan per person (702 loops, all buffer hits).
-- [ ] Link suggestions on the phone list and in the person editor (L5 built them on the desktop People grid only).
-- [ ] The sheet's setup checklist row "Help people link their profiles" (§7.5) - not built in L5.
+- [x] Link suggestions on the phone list and in the person editor (L5 built them on the desktop People grid only). Follow-ups FU-L #470.
+- [x] The sheet's setup checklist row "Help people link their profiles" (§7.5) - built as a "Get ready" tip on the edit page (`ParticipantLinksTip`, ≤ 14 days, someone not linked, → hub card `#participant-links`), follow-ups FU-L #470.
 
 
 ## Shared puzzles - explicit round (S3)

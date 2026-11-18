@@ -821,6 +821,13 @@ in, otherwise divisions are set in the sheet or through the internal API.
 - Keys `round_results.division.*` (English; the other locales in package H).
 
 
+## As built: displays (real events L2b, 2026-11-18)
+
+The §3.4 "Displays" row: leaderboard + ticker prop `division` (a division id; the `'all'` default is the missing key -
+stored only when set), that division's entries with their division rank (`rankWithin()` over every entry, A13); a round
+that does not use the division shows every entry. The editor offers the event's divisions. Details:
+[displays.md](displays.md) "Division and challenge views".
+
 ## As built: sandbox demo (real events DM, 2026-11-18)
 
 "Winter Carnival Jigsaw - demo" on the sandbox (`myspeedpuzzling:sandbox:demo-events`, `docs/features/sandbox/README.md`

@@ -724,8 +724,8 @@ everywhere, never re-implemented). Nothing on the write path, stopwatch, judge o
   total stays the round's. Labels ride on the standing's rounds statement (`labels_by_round_puzzle`, pick K ≥ 2 rounds
   only). The public standing JSON carries `challengeTimes` on a score only when there are some - every other score's
   JSON is unchanged.
-- **Displays "rank by challenge": v2** (not cheap: a new results option in the sanitizer + `schema.js` + fixtures, the
-  per-puzzle records in the display's results statement and payload, renderer ranks) - `displays.md` "Known gaps".
+- **Displays "rank by challenge"**: built in real events L2b (2026-11-18) - a leaderboard's `challenge` prop ranks a
+  block by that puzzle's own time, only a puzzle shown to everybody; `displays.md` "Division and challenge views".
 - Tests: `tests/CompetitionToolkit/ChallengeTimesTest.php` (+ `SolveAllBlockSetup`), `PickRoundPublicPageTest` (chip
   texts now include the own time), `BlocklistCanaryTest::testBlockedPlayerIsNowhereInAChallengeRanking`,
   `PrivateProfileCanaryTest::testAChallengeRankingLinksHerProfileForTheFriendOnly`, the desk harness.

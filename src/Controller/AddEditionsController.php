@@ -37,11 +37,11 @@ final class AddEditionsController extends AbstractController
     public function __invoke(Request $request, string $seriesId): Response
     {
         // The rule's fields only - never the classic page's own return link
-        $query = array_diff_key($request->query->all(), ['return' => true, 'return_title' => true]);
+        $query = array_diff_key($request->query->all(), ['return' => true, 'return_title' => true, 'seriesId' => true, '_locale' => true]);
 
         return $this->redirectToRoute(
             'event_wizard_series_next_dates',
-            ['seriesId' => $seriesId, ...$query],
+            [...$query, 'seriesId' => $seriesId],
             $request->isMethod('GET') ? Response::HTTP_FOUND : Response::HTTP_SEE_OTHER,
         );
     }

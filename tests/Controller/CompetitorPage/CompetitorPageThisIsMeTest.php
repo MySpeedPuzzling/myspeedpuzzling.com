@@ -179,7 +179,7 @@ final class CompetitorPageThisIsMeTest extends WebTestCase
     }
 
     /**
-     * @return array<string, array<mixed>>
+     * @return array<mixed>
      */
     private function flashes(KernelBrowser $browser): array
     {

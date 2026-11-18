@@ -163,7 +163,13 @@ SQL;
             onlineToken: $row['online_token'] ?? null,
             pendingRequestParticipantName: $row['pending_request_participant_name'],
             claimCandidate: $row['is_going'] === false && $row['pending_request_participant_name'] === null
-                ? self::claimCandidate($row, $focusParticipantId !== null)
+                ? self::claimCandidate(
+                    $row['claim_match_count'] ?? null,
+                    $row['claim_participant_id'] ?? null,
+                    $row['claim_participant_name'] ?? null,
+                    $row['claim_participant_country'] ?? null,
+                    $focusParticipantId !== null,
+                )
                 : null,
         );
     }
@@ -379,7 +385,13 @@ SQL;
             onlineToken: $row['online_token'] ?? null,
             pendingRequestParticipantName: $row['pending_request_participant_name'],
             claimCandidate: $isGoing === false && $row['pending_request_participant_name'] === null
-                ? self::claimCandidate($row, $focusParticipantId !== null)
+                ? self::claimCandidate(
+                    $row['claim_match_count'] ?? null,
+                    $row['claim_participant_id'] ?? null,
+                    $row['claim_participant_name'] ?? null,
+                    $row['claim_participant_country'] ?? null,
+                    $focusParticipantId !== null,
+                )
                 : null,
         );
     }
@@ -388,21 +400,23 @@ SQL;
      * The card's participant (participant-linking.md §6.1): exactly one - two people of that name are the join page's
      * pick ("2 people on the list are called …").
      *
-     * @param array{claim_match_count?: null|int|string, claim_participant_id?: null|string, claim_participant_name?: null|string, claim_participant_country?: null|string} $row
+     * The match columns are absent (null) when the statement did not read them.
      */
-    private static function claimCandidate(array $row, bool $fromScan): null|ParticipantClaimCandidate
-    {
-        $id = $row['claim_participant_id'] ?? null;
-        $name = $row['claim_participant_name'] ?? null;
-
-        if ((int) ($row['claim_match_count'] ?? 0) !== 1 || $id === null || $name === null) {
+    private static function claimCandidate(
+        null|int|string $count,
+        null|string $id,
+        null|string $name,
+        null|string $country,
+        bool $fromScan,
+    ): null|ParticipantClaimCandidate {
+        if ((int) $count !== 1 || $id === null || $name === null) {
             return null;
         }
 
         return new ParticipantClaimCandidate(
             participantId: strtolower($id),
             name: $name,
-            country: CountryCode::fromCode($row['claim_participant_country'] ?? null),
+            country: CountryCode::fromCode($country),
             fromScan: $fromScan,
         );
     }

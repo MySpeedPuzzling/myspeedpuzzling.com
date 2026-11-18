@@ -205,7 +205,7 @@ readonly final class GetCompetitorPage
         // A person or a line-up only (a table or one round's entry is not a person - §6.4); the handler decides the rest
         $claimable = $viewerPlayerId !== null
             && $viewerIsEntrant === false
-            && $competition['is_draft'] === false
+            && $competition['is_hidden'] === false
             && $headerRow !== null
             && in_array($tag->kind, [CompetitionTagKind::Participant, CompetitionTagKind::Lineup], true)
             ? $headerRow['unlinked']

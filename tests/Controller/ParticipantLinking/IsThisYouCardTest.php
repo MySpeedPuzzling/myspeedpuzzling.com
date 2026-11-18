@@ -40,7 +40,8 @@ final class IsThisYouCardTest extends WebTestCase
         $card = $page->filter('[data-participant-claim-card="' . self::UNCONNECTED . '"]');
         self::assertCount(1, $card);
         self::assertStringContainsString('Is this you?', $card->text());
-        self::assertStringContainsString('Admin  user', $card->filter('[data-participant-claim-name]')->text());
+        // The organiser's spelling (the crawler's text() folds the double space)
+        self::assertStringContainsString('Admin user', $card->filter('[data-participant-claim-name]')->text());
         self::assertCount(1, $card->filter('[data-participant-claim-no]'));
         self::assertSame('/en/join-event/' . CompetitionFixture::COMPETITION_WJPC_2024 . '?participant=' . self::UNCONNECTED, $card->filter('[data-participant-claim-find]')->attr('href'));
         // The header's "I'm going" leads down to the card, not into a GET that would link
@@ -194,6 +195,7 @@ final class IsThisYouCardTest extends WebTestCase
         $this->rename(self::UNCONNECTED, 'Admin User', 'cz');
         $crawler = $browser->request('GET', $join . self::UNCONNECTED);
         $this->assertResponseIsSuccessful();
+        self::assertSame(self::UNCONNECTED, $crawler->filter('select[name="participant_id"] option[selected]')->attr('value'));
         self::assertNull($this->linkOf(self::UNCONNECTED));
 
         foreach ([CompetitionParticipantFixture::PARTICIPANT_CONNECTED, CompetitionParticipantFixture::PARTICIPANT_DELETED, OfficialResultsFixture::PARTICIPANT_IVAN] as $ignored) {

@@ -15560,6 +15560,36 @@ participant_linking:
         confirm: "%name% auf der Teilnehmerliste mit Ihrem Profil verknüpfen?"
         flash_linked: "Erledigt – dieser Name auf der Teilnehmerliste ist mit Ihrem Profil verknüpft."
         flash_already_yours: "Dieser Name ist bereits mit Ihrem Profil verknüpft."
+participant_link_suggestions:
+    hub:
+        count: "{0}Niemand hat vielleicht schon ein Profil|{1}1 Person hat vielleicht schon ein Profil|]1,Inf[%count% Personen haben vielleicht schon ein Profil"
+    import_flash:
+        text: "{0}Niemand hat vielleicht schon ein MySpeedPuzzling-Profil.|{1}1 Person hat vielleicht schon ein MySpeedPuzzling-Profil.|]1,Inf[%count% Personen haben vielleicht schon ein MySpeedPuzzling-Profil."
+        review: "Vorschläge prüfen"
+    sheet:
+        filter: "Vorschläge"
+        action: "Vorgeschlagene Profile verknüpfen"
+        failed: "Die Vorschläge konnten nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+        title: "Wer vielleicht schon ein Profil hat"
+        help: "Profile, die zu Personen auf Ihrer Liste gehören könnten. Nichts wird verknüpft, bevor Sie es ankreuzen und bestätigen – prüfen Sie zuerst den #Code, das Land und die Termine."
+        empty: "Gerade keine Vorschläge – niemand ohne Profil passt zu einem uns bekannten Spieler."
+        submit: "Angekreuzte verknüpfen (%count%)"
+        cancel: "Abbrechen"
+        several: "– mehrere Profile könnten passen, wählen Sie eines"
+        not_now: "Nicht jetzt"
+        follows: "folgt dieser Veranstaltung"
+        joined_at: "hat sich am %date% selbst angemeldet"
+        linked_at: "verknüpft bei %event% %date%"
+        merge_by_hand: "Von Hand zusammenführen"
+        tier_joined_themselves: "Selbst angemeldet"
+        tier_linked_before: "An einem anderen Termin verknüpft"
+        tier_name_country: "Gleicher Name und gleiches Land"
+        refusal_official_data: "die eigene Zeile hat Ergebnisse"
+        refusal_round_entries: "die eigene Zeile ist in einer Runde"
+        refusal_paid: "die eigene Anmeldung ist bezahlt"
+        refusal_waitlisted: "die eigene Anmeldung steht auf der Warteliste"
+        refusal_registered: "die eigene Anmeldung belegt einen Platz"
+        done: "{0}Niemand verknüpft|{1}1 Person verknüpft|]1,Inf[%count% Personen verknüpft"
 event_wizard_more:
     puzzle_search:
         label: "Puzzle finden"

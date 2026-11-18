@@ -5741,6 +5741,7 @@ name_tags:
         empty_lineups: "No pairs or teams yet - build them on the participants sheet first."
         empty_entries: "Nobody is in this round yet."
         print_tags: "Print tags"
+        show_flags: "Show country flags"
 
 series:
     meta:

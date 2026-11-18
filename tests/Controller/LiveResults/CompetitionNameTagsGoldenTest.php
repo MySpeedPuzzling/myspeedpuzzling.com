@@ -28,6 +28,8 @@ final class CompetitionNameTagsGoldenTest extends WebTestCase
     {
         yield 'every participant, by name' => ['', 'default'];
         yield 'one round, by table' => ['?round=' . OfficialResultsFixture::ROUND_GROUP_A . '&sort=table', 'group-a-by-table'];
+        // "Show country flags" belongs to the toolkit's print page: the name tags of before ignore it
+        yield 'the flags option alone changes nothing' => ['?flags=1', 'default'];
     }
 
     #[DataProvider('pages')]

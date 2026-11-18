@@ -14891,6 +14891,14 @@ competition_display:
             title: "Show the standing's name"
             whenEmpty: "Without a published standing"
             emptyText: "Text without a published standing"
+            division: "Division"
+            division_all: "All divisions"
+            division_help: "Shows only that division's entries with their place in it. A round without this division shows every entry."
+            division_with_challenge: "A challenge ranking lists every division - the division is used on rounds that are not a block."
+            challenge: "Rank by"
+            challenge_round: "The whole round"
+            challenge_puzzle: "Puzzle %position%"
+            challenge_help: "On a solve-all block, ranks by that puzzle's own time - once the puzzle is revealed. Other rounds show the whole round."
             image:
                 source: "Picture"
             clock:

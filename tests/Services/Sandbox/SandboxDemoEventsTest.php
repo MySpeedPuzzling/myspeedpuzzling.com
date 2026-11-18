@@ -116,7 +116,14 @@ SQL, ['first' => $block['id'], 'next' => $nextBlock['id']]));
             self::assertSame([5, 'total_only', 'as_zero_pieces', true, true], [is_numeric($standing['penalty']) ? (int) $standing['penalty'] : null, $standing['order_rule'], $standing['missing_rule'], $standing['penalise_finished_missing'], $standing['published']]);
         }
 
-        self::assertSame(['Hall timer screen', 'Stream overlay'], $database->fetchFirstColumn('SELECT name FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $spws]));
+        self::assertSame(['Challenges board', 'Hall timer screen', 'Stream overlay'], $database->fetchFirstColumn('SELECT name FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $spws]));
+        // Real events L2b: the challenges board pinned to the first block, one leaderboard per challenge
+        $board = $database->fetchAssociative("SELECT design::text AS design, pinned_round_id FROM competition_display WHERE competition_id = :id AND name = 'Challenges board'", ['id' => $spws]);
+        self::assertIsArray($board);
+        self::assertSame($this->round($spws, 'Pairs - Challenges 1 + 2')['id'], $board['pinned_round_id']);
+        self::assertIsString($board['design']);
+        self::assertStringContainsString('"challenge": 1', $board['design']);
+        self::assertStringContainsString('"challenge": 2', $board['design']);
         $overlayDesign = $database->fetchOne("SELECT design::text FROM competition_display WHERE competition_id = :id AND name = 'Stream overlay'", ['id' => $spws]);
         self::assertIsString($overlayDesign);
         self::assertStringContainsString('"standings"', $overlayDesign);
@@ -128,6 +135,15 @@ SQL, ['first' => $block['id'], 'next' => $nextBlock['id']]));
         self::assertSame(25, $this->rowCount('SELECT COUNT(*) FROM competition_participant_round WHERE round_id = :id AND division_id IS NOT NULL', ['id' => $solo['id']]));
         self::assertGreaterThan(0, $this->rowCount("SELECT COUNT(*) FROM competition_participant_round cpr JOIN competition_division d ON d.id = cpr.division_id WHERE cpr.round_id = :id AND d.name = :junior", ['id' => $solo['id'], 'junior' => SandboxDemoEventDefinitions::JUNIOR]));
         self::assertSame(16, $this->rowCount('SELECT COUNT(*) FROM competition_team WHERE round_id = :id AND division_id IS NOT NULL', ['id' => $this->round($carnival, '500 PAIRS')['id']]));
+
+        // Real events L2b: the divisions board pinned to SOLO (3 divisions), one leaderboard per division
+        $board = $database->fetchAssociative("SELECT design::text AS design, pinned_round_id FROM competition_display WHERE competition_id = :id AND name = 'Divisions board'", ['id' => $carnival]);
+        self::assertIsArray($board);
+        self::assertSame($solo['id'], $board['pinned_round_id']);
+        self::assertIsString($board['design']);
+        foreach ($divisions as $division) {
+            self::assertStringContainsString('"division": "' . strtolower($division->id) . '"', $board['design']);
+        }
 
         // Carnival Saturday published; OPEN #1 shares CHALLENGE's puzzle (shared puzzles S2)
         self::assertNotNull($this->round($carnival, '1000 Teams')['results_published_at']);

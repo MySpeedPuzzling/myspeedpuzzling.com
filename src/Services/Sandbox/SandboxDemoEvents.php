@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\ApproveCompetition;
 use SpeedPuzzling\Web\Message\ArrangeRoundPuzzles;
 use SpeedPuzzling\Web\Message\AssignTableNumbers;
+use SpeedPuzzling\Web\Message\ChangeCompetitionDisplayFollow;
 use SpeedPuzzling\Web\Message\ChangeCompetitorPageSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundUnboxed;
 use SpeedPuzzling\Web\Message\CopyRoundTableNumbers;
@@ -42,6 +43,7 @@ use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayPresets;
 use SpeedPuzzling\Web\Services\SameTablesCopy;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
+use SpeedPuzzling\Web\Value\DisplayFollowMode;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\DivisionInput;
 use SpeedPuzzling\Web\Value\EntryDivisionInput;
@@ -149,6 +151,9 @@ final readonly class SandboxDemoEvents
         if ($event->displays) {
             $this->displays($competitionId, $organizerPlayerId, $say);
         }
+
+        // Real events L2b: a board per challenge of the first block, a board per division of the round with the most
+        $this->viewDisplays($event, $competitionId, $roundIds, $organizerPlayerId, $say);
 
         $this->urls($event, $competitionId, $say);
     }
@@ -755,6 +760,106 @@ final readonly class SandboxDemoEvents
                 liveConfirmed: true,
             ));
             $say('Display "Stream overlay" added (with the standings element)');
+        }
+    }
+
+    /**
+     * Real events L2b (displays.md "Division and challenge views"): "Challenges board" - pinned to the event's first
+     * solve-all block, a leaderboard per challenge ranked by that puzzle's own time; "Divisions board" - pinned to the
+     * round using the most divisions, a leaderboard per division (up to 3) with the division ranks. Found again by name.
+     *
+     * @param array<string, string> $roundIds round key => round id
+     * @param \Closure(string): void $say
+     */
+    private function viewDisplays(SandboxDemoEvent $event, string $competitionId, array $roundIds, string $organizerPlayerId, \Closure $say): void
+    {
+        $existing = $this->demoData->displays($competitionId);
+        $block = null;
+        $divided = null;
+
+        foreach ($event->rounds as $round) {
+            if ($block === null && $round->solveAll && $round->puzzles >= 2) {
+                $block = $round;
+            }
+
+            // The round with the most divisions (the first of equals)
+            if (count($round->divisions) >= 2 && ($divided === null || count($round->divisions) > count($divided->divisions))) {
+                $divided = $round;
+            }
+        }
+
+        $boards = [];
+
+        if ($block !== null && isset($roundIds[$block->key]) && !isset($existing['Challenges board'])) {
+            $columns = [];
+
+            for ($position = 1; $position <= min(3, $block->puzzles); $position++) {
+                $columns[] = [$block->labels[$position - 1] ?? 'Puzzle ' . $position, ['challenge' => $position]];
+            }
+
+            $boards['Challenges board'] = [$roundIds[$block->key], $columns];
+        }
+
+        if ($divided !== null && isset($roundIds[$divided->key]) && !isset($existing['Divisions board'])) {
+            $ids = [];
+            foreach ($this->getCompetitionDivisions->ofCompetition($competitionId) as $division) {
+                $ids[$division->name] = $division->id;
+            }
+
+            $columns = [];
+            foreach (array_slice($divided->divisions, 0, 3) as $name) {
+                if (isset($ids[$name])) {
+                    $columns[] = [$name, ['division' => $ids[$name]]];
+                }
+            }
+
+            $boards['Divisions board'] = [$roundIds[$divided->key], $columns];
+        }
+
+        foreach ($boards as $name => [$roundId, $columns]) {
+            $displayId = Uuid::uuid7();
+            $this->messageBus->dispatch(new AddCompetitionDisplay($displayId, $competitionId, DisplayKind::Screen, $name, 'en', $organizerPlayerId, DisplayPreset::Blank));
+            $this->messageBus->dispatch(new ChangeCompetitionDisplayFollow($displayId->toString(), DisplayFollowMode::Pinned, $roundId));
+
+            $elements = [[
+                'id' => 'roundnm1',
+                'type' => 'field',
+                'name' => 'Round',
+                'frame' => ['x' => 3, 'y' => 3, 'w' => 94, 'h' => 10, 'rotate' => 0],
+                'style' => ['fontSize' => 64, 'fontWeight' => 700, 'align' => 'center'],
+                'props' => ['field' => 'round_name'],
+            ]];
+            $width = 94 / max(1, count($columns));
+
+            foreach ($columns as $index => [$title, $view]) {
+                $x = round(3 + $index * $width, 2);
+                $elements[] = [
+                    'id' => sprintf('title%03d', $index),
+                    'type' => 'text',
+                    'name' => $title,
+                    'frame' => ['x' => $x, 'y' => 16, 'w' => round($width - 2, 2), 'h' => 7, 'rotate' => 0],
+                    'style' => ['fontSize' => 44, 'align' => 'center'],
+                    'props' => ['text' => $title],
+                ];
+                $elements[] = [
+                    'id' => sprintf('board%03d', $index),
+                    'type' => 'leaderboard',
+                    'name' => $title,
+                    'frame' => ['x' => $x, 'y' => 25, 'w' => round($width - 2, 2), 'h' => 72, 'rotate' => 0],
+                    'style' => ['fontSize' => 32],
+                    'props' => ['rows' => 10, 'columns' => ['rank', 'name', 'result'], ...$view],
+                ];
+            }
+
+            $design = DisplayPresets::definition(DisplayPreset::Blank, DisplayKind::Screen);
+            $design['elements'] = $elements;
+
+            $this->messageBus->dispatch(new SaveCompetitionDisplayDesign(
+                displayId: $displayId->toString(),
+                design: json_decode(json_encode($design, JSON_THROW_ON_ERROR), false, flags: JSON_THROW_ON_ERROR),
+                baseVersion: 1,
+            ));
+            $say(sprintf('Display "%s" added', $name));
         }
     }
 

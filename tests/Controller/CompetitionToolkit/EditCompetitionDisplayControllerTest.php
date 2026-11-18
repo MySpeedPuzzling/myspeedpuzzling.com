@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\CompetitionToolkit;
 
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\Divisions\DivisionsSetup;
+use SpeedPuzzling\Web\Tests\CompetitionToolkit\SolveAllBlockSetup;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -22,6 +25,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class EditCompetitionDisplayControllerTest extends WebTestCase
 {
+    use DivisionsSetup;
+
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
 
@@ -64,6 +69,10 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
         self::assertIsArray($config['labels']);
         self::assertSame('Timer', $config['labels']['type.timer']);
         self::assertSame('Font size (px at 1080p)', $config['labels']['style.fontSize']);
+
+        // Real events L2b: no division / challenge field for an event without divisions and blocks
+        self::assertSame([], $config['divisions']);
+        self::assertSame([], $config['challenges']);
 
         // The display's link opens in a new tab
         $open = $page->filter('[data-display-editor-open]');
@@ -169,6 +178,33 @@ final class EditCompetitionDisplayControllerTest extends WebTestCase
 
         $browser->request('GET', '/en/display-editor/' . Uuid::uuid7()->toString());
         self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * Real events L2b: the results views' options - the event's divisions and its blocks' puzzle positions with labels
+     */
+    public function testTheEditorOffersTheEventsDivisionsAndChallenges(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
+        $this->setUpStPaulDivisions(self::getContainer()->get(MessageBusInterface::class), withEntries: false);
+        SolveAllBlockSetup::seed(self::getContainer()->get(Connection::class));
+        self::getContainer()->get(Connection::class)->executeStatement("UPDATE competition_round_puzzle SET label = 'Challenge 1' WHERE id = :id", ['id' => SolveAllBlockSetup::CHALLENGE_ONE]);
+        $displayId = $this->addDisplay(DisplayPreset::TimerWithLiveBoard);
+
+        $page = $browser->request('GET', '/en/display-editor/' . $displayId);
+        self::assertResponseIsSuccessful();
+
+        /** @var array<string, mixed> $config */
+        $config = json_decode((string) $page->filter('[data-controller="display-editor"]')->attr('data-display-editor-config-value'), true, flags: JSON_THROW_ON_ERROR);
+
+        self::assertSame([
+            ['id' => strtolower($this->regular), 'name' => 'Regular', 'shortName' => null],
+            ['id' => strtolower($this->senior), 'name' => 'Senior 55+', 'shortName' => 'S'],
+            ['id' => strtolower($this->junior), 'name' => 'Junior U16', 'shortName' => 'J'],
+        ], $config['divisions']);
+        self::assertSame([['position' => 1, 'labels' => ['Challenge 1']], ['position' => 2, 'labels' => ['B']]], $config['challenges']);
+        self::assertIsArray($config['labels']);
+        self::assertSame('All divisions', $config['labels']['prop.division_all']);
     }
 
     private function addDisplay(DisplayPreset $preset): string

@@ -42,6 +42,12 @@ final readonly class DisplayDesignSanitizer
     /** Elements that show official results - each has a `source` (published | live) */
     public const array RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker'];
 
+    /** Results elements that may show one view of the round (real events L2b): a division, a challenge (leaderboard only) */
+    public const array RESULTS_VIEW_TYPES = ['leaderboard', 'ticker'];
+
+    /** The highest round puzzle position a `challenge` may name - RoundEntryPuzzles::MAX_ITEMS */
+    public const int MAX_CHALLENGE = 50;
+
     /** Columns of the standings element (competition toolkit v2 S2) - `stage` shows only once a standing has stages */
     public const array STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
 
@@ -169,6 +175,11 @@ final readonly class DisplayDesignSanitizer
         $demand = [];
 
         foreach (self::shownResultsElements($design) as $element) {
+            // An element showing a view (a division, a challenge) gets its own rows - resultsViews()
+            if (self::view($element) !== null) {
+                continue;
+            }
+
             $type = $element['type'];
             assert(is_string($type));
             $props = is_array($element['props'] ?? null) ? $element['props'] : [];
@@ -181,6 +192,42 @@ final readonly class DisplayDesignSanitizer
         }
 
         return $demand;
+    }
+
+    /**
+     * The shown results elements that show one view of the round instead of the whole round (real events L2b): a
+     * division (`division`: a division id - its entries with their division rank) or a challenge of a solve-all block
+     * (`challenge`: a round puzzle position - ranked by that puzzle's own time). Each gets its own rows in the state's
+     * `results.views` (GetCompetitionDisplayState); resultsDemand() leaves them out. A design without such an element
+     * answers [] - its state is unchanged.
+     *
+     * @param array<string, mixed> $design a normalised design
+     * @return array<string, array{type: string, live: bool, rows: int, division: null|string, challenge: null|int}> element id => what it shows
+     */
+    public static function resultsViews(array $design): array
+    {
+        $views = [];
+
+        foreach (self::shownResultsElements($design) as $element) {
+            $view = self::view($element);
+            $id = $element['id'] ?? null;
+            $type = $element['type'] ?? null;
+
+            if ($view === null || !is_string($id) || !is_string($type)) {
+                continue;
+            }
+
+            $props = is_array($element['props'] ?? null) ? $element['props'] : [];
+
+            $views[$id] = [
+                'type' => $type,
+                'live' => self::isLive($element),
+                'rows' => is_int($props['rows'] ?? null) ? $props['rows'] : 0,
+                ...$view,
+            ];
+        }
+
+        return $views;
     }
 
     /**
@@ -261,6 +308,30 @@ final readonly class DisplayDesignSanitizer
                 yield $element;
             }
         }
+    }
+
+    /**
+     * The view a results element asks for, or null for the whole round (no `division`, no `challenge`).
+     *
+     * @param array<mixed> $element
+     * @return null|array{division: null|string, challenge: null|int}
+     */
+    private static function view(array $element): null|array
+    {
+        if (!in_array($element['type'] ?? null, self::RESULTS_VIEW_TYPES, true) || !is_array($element['props'] ?? null)) {
+            return null;
+        }
+
+        $division = $element['props']['division'] ?? null;
+        $challenge = $element['type'] === 'leaderboard' ? ($element['props']['challenge'] ?? null) : null;
+        $division = is_string($division) && preg_match(self::UUID_PATTERN, $division) === 1 ? strtolower($division) : null;
+        $challenge = is_int($challenge) && $challenge >= 1 && $challenge <= self::MAX_CHALLENGE ? $challenge : null;
+
+        if ($division === null && $challenge === null) {
+            return null;
+        }
+
+        return ['division' => $division, 'challenge' => $challenge];
     }
 
     /**
@@ -600,10 +671,12 @@ final readonly class DisplayDesignSanitizer
                     'gap' => self::integer(self::get(self::get($input, 'rowStyle'), 'gap'), 0, 40, 4),
                 ],
                 ...self::resultsSource($input),
+                ...self::resultsView($input, withChallenge: true),
             ],
             'ticker' => [
                 'rows' => self::integer(self::get($input, 'rows'), 1, 10, 5),
                 ...self::resultsSource($input),
+                ...self::resultsView($input, withChallenge: false),
             ],
             'qr' => self::qrProps($input),
             'standings' => [
@@ -636,6 +709,39 @@ final readonly class DisplayDesignSanitizer
             'whenUnpublished' => self::enum(self::get($input, 'whenUnpublished'), ['nothing', 'text'], 'nothing'),
             'unpublishedText' => self::plain(self::get($input, 'unpublishedText'), 80, multiline: false, trim: true),
         ];
+    }
+
+    /**
+     * Real events L2b: one view of the round instead of all of it - optional keys, present only when set, so every
+     * design without them normalises exactly as before. `division` = a division's id (lowercased; anything else, `all`
+     * included, = none) - whether the shown round uses it is the state's question (a round without it shows the whole
+     * round). `challenge` (leaderboard only) = a round puzzle's position 1..MAX_CHALLENGE (a whole number; anything else
+     * = none) - the state ranks by that puzzle's own time on a solve-all block whose puzzle is shown to everybody, and
+     * shows the whole round otherwise.
+     *
+     * @return array{division?: string, challenge?: int}
+     */
+    private static function resultsView(mixed $input, bool $withChallenge): array
+    {
+        $view = [];
+        $division = self::get($input, 'division');
+
+        if (is_string($division) && preg_match(self::UUID_PATTERN, $division) === 1) {
+            $view['division'] = strtolower($division);
+        }
+
+        $challenge = self::get($input, 'challenge');
+
+        if ($withChallenge && self::isNumber($challenge)) {
+            // Half away from zero, as optionalInteger() - but out of range is none, never clamped (0 = the whole round)
+            $position = ($challenge < 0 ? -1 : 1) * floor(abs((float) $challenge) + 0.5);
+
+            if ($position >= 1 && $position <= self::MAX_CHALLENGE) {
+                $view['challenge'] = (int) $position;
+            }
+        }
+
+        return $view;
     }
 
     /**

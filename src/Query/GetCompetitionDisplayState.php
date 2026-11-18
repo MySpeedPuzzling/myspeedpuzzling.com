@@ -12,8 +12,10 @@ use SpeedPuzzling\Web\Results\CompetitionDisplayState;
 use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\DisplayResultRow;
 use SpeedPuzzling\Web\Results\DisplayResults;
+use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
+use SpeedPuzzling\Web\Services\ChallengeRanking;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayStandings;
@@ -26,8 +28,10 @@ use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundClock;
+use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
@@ -88,6 +92,7 @@ readonly final class GetCompetitionDisplayState
         $roundId = $round['id'] ?? null;
 
         $puzzles = [];
+        $slots = [];
         $anyRevealed = false;
         $refreshAtMs = $display['follow_mode'] === DisplayFollowMode::Pinned->value && $round !== null && $round['id'] === $display['pinned_round_id']
             ? null
@@ -96,6 +101,8 @@ readonly final class GetCompetitionDisplayState
         if ($roundId !== null) {
             $visible = $this->roundPuzzlesVisibleNow->forRound($roundId, $now);
             $anyRevealed = $visible->anyRevealed();
+            // Only the views use them (a challenge's puzzle must be shown to everybody) - never sent
+            $slots = $visible->slots;
 
             foreach ($visible->puzzles as $puzzle) {
                 $puzzles[] = [
@@ -115,7 +122,7 @@ readonly final class GetCompetitionDisplayState
         $results = null;
 
         if ($round !== null && $display['uses_results']) {
-            $results = $this->results($round, $design, $display['uses_live_results'], $display['token']);
+            $results = $this->results($round, $design, $display['uses_live_results'], $display['token'], $slots);
         }
 
         // Published standings (v2 S2) - guest snapshots, cached per generation; a failure is an empty element, never a
@@ -420,25 +427,38 @@ SQL,
     /**
      * @param Round $round
      * @param array<string, mixed> $design
+     * @param list<RoundPuzzleSlot> $slots the round's puzzles as RoundPuzzlesVisibleNow gives them now
      */
-    private function results(array $round, array $design, bool $usesLiveResults, string $token): null|DisplayResults
+    private function results(array $round, array $design, bool $usesLiveResults, string $token, array $slots): null|DisplayResults
     {
         $demand = DisplayDesignSanitizer::resultsDemand($design);
+        $views = DisplayDesignSanitizer::resultsViews($design);
 
-        if ($demand === []) {
+        if ($demand === [] && $views === []) {
             return null;
         }
 
         $published = $round['results_published_at'] !== null;
         // Before publishing, only what an element the organiser switched to live shows (context rule 5)
         $allowed = static fn (string $type): bool => isset($demand[$type]) && ($published || ($usesLiveResults && $demand[$type]['live']));
+        $allowedViews = array_filter($views, static fn (array $view): bool => $published || ($usesLiveResults && $view['live']));
+        // `views` only for a design that has an element showing a division or a challenge (real events L2b)
+        $emptyViews = $views === [] ? null : [];
 
-        if (!$allowed('finished_count') && !$allowed('leaderboard') && !$allowed('ticker')) {
-            return new DisplayResults($published, null, null, [], []);
+        if (!$allowed('finished_count') && !$allowed('leaderboard') && !$allowed('ticker') && $allowedViews === []) {
+            return new DisplayResults($published, null, null, [], [], $emptyViews);
         }
 
-        $entries = $round['category'] === 'solo' ? $this->people($round['id']) : $this->teams($round['id']);
-        $ranks = OfficialResultsRanking::rank(array_map(static fn (array $entry): RoundEntryResult => $entry['result'], $entries));
+        // What the views need of the round (one statement, only for a design with an allowed view)
+        $facts = $allowedViews === [] ? null : $this->viewFacts($round['id']);
+        $withDivisions = $facts !== null && $facts['division_ids'] !== [] && array_filter($allowedViews, static fn (array $view): bool => $view['division'] !== null) !== [];
+        $withPuzzles = $facts !== null && $facts['block'] && array_filter($allowedViews, static fn (array $view): bool => $view['challenge'] !== null) !== [];
+
+        $entries = $round['category'] === 'solo'
+            ? $this->people($round['id'], $withDivisions, $withPuzzles)
+            : $this->teams($round['id'], $withDivisions, $withPuzzles);
+        $results = array_map(static fn (array $entry): RoundEntryResult => $entry['result'], $entries);
+        $ranks = OfficialResultsRanking::rank($results);
 
         $rows = [];
         $total = 0;
@@ -455,33 +475,28 @@ SQL,
                 continue;
             }
 
-            $rows[] = new DisplayResultRow(
-                // Opaque per display (keyed by its token): stable for DOM diffing, says nothing about the entry
-                key: substr(hash_hmac('sha256', $entry['ref']->toString(), $token), 0, 16),
-                rank: $rank,
-                name: $entry['name'],
-                members: $entry['members'],
-                countries: $entry['countries'],
-                resultSeconds: $entry['result']->seconds,
-                piecesPlaced: $entry['result']->piecesPlaced,
-                didNotFinish: $entry['result']->isUnfinished(),
-                tableNumber: $entry['table_number'],
-                enteredAtMs: $entry['entered_at'] !== null ? RoundClock::milliseconds($entry['entered_at']) : null,
-            );
+            $rows[$index] = self::row($entry, $rank, $token);
         }
 
         $top = [];
         if ($allowed('leaderboard')) {
-            $top = $rows;
-            usort($top, static fn (DisplayResultRow $a, DisplayResultRow $b): int => $a->rank <=> $b->rank ?: strcasecmp($a->name, $b->name) ?: strcmp($a->key, $b->key));
-            $top = array_slice($top, 0, $demand['leaderboard']['rows']);
+            $top = self::best($rows, $demand['leaderboard']['rows']);
         }
 
         $latest = [];
         if ($allowed('ticker')) {
-            $latest = $rows;
-            usort($latest, static fn (DisplayResultRow $a, DisplayResultRow $b): int => ($b->enteredAtMs ?? 0) <=> ($a->enteredAtMs ?? 0) ?: $a->rank <=> $b->rank ?: strcmp($a->key, $b->key));
-            $latest = array_slice($latest, 0, $demand['ticker']['rows']);
+            $latest = self::newest($rows, $demand['ticker']['rows']);
+        }
+
+        $viewRows = $emptyViews;
+
+        if ($facts !== null) {
+            $viewRows = [];
+
+            foreach ($allowedViews as $elementId => $view) {
+                $chosen = $this->viewRows($view, $facts, $entries, $results, $rows, $token, $slots);
+                $viewRows[$elementId] = $view['type'] === 'ticker' ? self::newest($chosen, $view['rows']) : self::best($chosen, $view['rows']);
+            }
         }
 
         return new DisplayResults(
@@ -490,18 +505,189 @@ SQL,
             total: $allowed('finished_count') ? $total : null,
             top: $top,
             latest: $latest,
+            views: $viewRows,
         );
     }
 
     /**
-     * @return list<array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable}>
+     * The rows of one view (real events L2b), keyed by entry index:
+     * - a **challenge** of a solve-all block (`pick`, K ≥ 2) whose puzzle at that position is shown to everybody
+     *   (RoundPuzzlesVisibleNow - a hidden puzzle never gets a ranking): its own time (RoundEntryPuzzles::duration(),
+     *   the public round page's rule) ranked by ChallengeRanking over every entry that did that puzzle; the division is
+     *   not applied (the public page's challenge view lists every division too);
+     * - else a **division** the round uses: its entries with their division rank (OfficialResultsRanking::rankWithin(),
+     *   over every entry - A13);
+     * - else (a round without that division, not a block, a hidden or missing puzzle) the whole round, as the public
+     *   page does for a value that names nothing.
+     *
+     * @param array{type: string, live: bool, rows: int, division: null|string, challenge: null|int} $view
+     * @param array{block: bool, division_ids: list<string>} $facts
+     * @param list<array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles}> $entries
+     * @param list<RoundEntryResult> $results
+     * @param array<int, DisplayResultRow> $rows the whole round's ranked rows
+     * @param list<RoundPuzzleSlot> $slots
+     * @return array<int, DisplayResultRow>
      */
-    private function people(string $roundId): array
+    private function viewRows(array $view, array $facts, array $entries, array $results, array $rows, string $token, array $slots): array
     {
-        $going = CompetitionParticipantGoing::sql('cp');
-        $rows = $this->database->fetchAllAssociative(
+        $slot = null;
+
+        if ($view['challenge'] !== null && $facts['block']) {
+            foreach ($slots as $candidate) {
+                if ($candidate->position === $view['challenge'] && $candidate->isHidden() === false) {
+                    $slot = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if ($view['type'] === 'leaderboard' && $slot !== null) {
+            $roundPuzzleId = strtolower($slot->roundPuzzleId);
+            $ownSeconds = [];
+
+            foreach ($entries as $index => $entry) {
+                if ($entry['result']->didNotStart) {
+                    continue;
+                }
+
+                if ($entry['puzzles'] === null) {
+                    // No per-puzzle record to tell: unranked, as on the public page
+                    $ownSeconds[$index] = null;
+                    continue;
+                }
+
+                foreach ($entry['puzzles']->items as $at => $item) {
+                    if ($item->roundPuzzleId === $roundPuzzleId) {
+                        $ownSeconds[$index] = $item->done ? $entry['puzzles']->duration($at) : null;
+                        break;
+                    }
+                }
+
+                // A record without this puzzle (not in $ownSeconds): the entry did another one (pick K of N)
+            }
+
+            $chosen = [];
+
+            foreach (ChallengeRanking::rank($ownSeconds) as $index => $place) {
+                if ($place !== null) {
+                    $chosen[$index] = self::row($entries[$index], $place, $token, ownSeconds: $ownSeconds[$index]);
+                }
+            }
+
+            return $chosen;
+        }
+
+        if ($view['division'] !== null && in_array($view['division'], $facts['division_ids'], true)) {
+            $divisionRanks = OfficialResultsRanking::rankWithin($results, array_map(
+                static fn (array $entry): null|string => $entry['division_id'] !== null && in_array($entry['division_id'], $facts['division_ids'], true) ? $entry['division_id'] : null,
+                $entries,
+            ));
+            $chosen = [];
+
+            foreach ($entries as $index => $entry) {
+                $place = $divisionRanks[$index];
+
+                if ($entry['division_id'] === $view['division'] && $place !== null && !$entry['result']->didNotStart) {
+                    $chosen[$index] = self::row($entry, $place, $token);
+                }
+            }
+
+            return $chosen;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Whether the round is a solve-all block (`pick`, K ≥ 2) and the divisions it uses - the views' facts.
+     *
+     * @return array{block: bool, division_ids: list<string>}
+     */
+    private function viewFacts(string $roundId): array
+    {
+        /** @var false|array{puzzle_format: string, puzzles_to_solve: null|int, division_ids: null|string} $row */
+        $row = $this->database->fetchAssociative(
             <<<SQL
 SELECT
+    cr.puzzle_format,
+    cr.puzzles_to_solve,
+    (SELECT json_agg(crd.division_id) FROM competition_round_division crd WHERE crd.round_id = cr.id) AS division_ids
+FROM competition_round cr
+WHERE cr.id = :roundId
+SQL,
+            ['roundId' => $roundId],
+        );
+
+        if ($row === false) {
+            return ['block' => false, 'division_ids' => []];
+        }
+
+        $divisionIds = $row['division_ids'] !== null ? json_decode($row['division_ids'], true, flags: JSON_THROW_ON_ERROR) : [];
+
+        return [
+            'block' => $row['puzzle_format'] === RoundPuzzleFormat::Pick->value && $row['puzzles_to_solve'] !== null && $row['puzzles_to_solve'] >= 2,
+            'division_ids' => is_array($divisionIds) ? array_values(array_map(strtolower(...), array_filter($divisionIds, is_string(...)))) : [],
+        ];
+    }
+
+    /**
+     * @param array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles} $entry
+     * @param null|int $ownSeconds a challenge's own time - shown instead of the round's result
+     */
+    private static function row(array $entry, int $rank, string $token, null|int $ownSeconds = null): DisplayResultRow
+    {
+        return new DisplayResultRow(
+            // Opaque per display (keyed by its token): stable for DOM diffing, says nothing about the entry
+            key: substr(hash_hmac('sha256', $entry['ref']->toString(), $token), 0, 16),
+            rank: $rank,
+            name: $entry['name'],
+            members: $entry['members'],
+            countries: $entry['countries'],
+            resultSeconds: $ownSeconds ?? $entry['result']->seconds,
+            piecesPlaced: $ownSeconds !== null ? null : $entry['result']->piecesPlaced,
+            didNotFinish: $ownSeconds !== null ? false : $entry['result']->isUnfinished(),
+            tableNumber: $entry['table_number'],
+            enteredAtMs: $entry['entered_at'] !== null ? RoundClock::milliseconds($entry['entered_at']) : null,
+        );
+    }
+
+    /**
+     * @param array<int, DisplayResultRow> $rows
+     * @return list<DisplayResultRow> best first
+     */
+    private static function best(array $rows, int $limit): array
+    {
+        $rows = array_values($rows);
+        usort($rows, static fn (DisplayResultRow $a, DisplayResultRow $b): int => $a->rank <=> $b->rank ?: strcasecmp($a->name, $b->name) ?: strcmp($a->key, $b->key));
+
+        return array_slice($rows, 0, $limit);
+    }
+
+    /**
+     * @param array<int, DisplayResultRow> $rows
+     * @return list<DisplayResultRow> newest first
+     */
+    private static function newest(array $rows, int $limit): array
+    {
+        $rows = array_values($rows);
+        usort($rows, static fn (DisplayResultRow $a, DisplayResultRow $b): int => ($b->enteredAtMs ?? 0) <=> ($a->enteredAtMs ?? 0) ?: $a->rank <=> $b->rank ?: strcmp($a->key, $b->key));
+
+        return array_slice($rows, 0, $limit);
+    }
+
+    /**
+     * @param bool $withDivisions read the entries' divisions (a division view - real events L2b)
+     * @param bool $withPuzzles read the per-puzzle records (a challenge view)
+     * @return list<array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles}>
+     */
+    private function people(string $roundId, bool $withDivisions = false, bool $withPuzzles = false): array
+    {
+        $going = CompetitionParticipantGoing::sql('cp');
+        // Only a design with a division / challenge view reads more - every other display runs the statement as before
+        $extra = ($withDivisions ? "\n    cpr.division_id," : '') . ($withPuzzles ? "\n    cpr.result_puzzles::text AS result_puzzles," : '');
+        $rows = $this->database->fetchAllAssociative(
+            <<<SQL
+SELECT{$extra}
     cpr.id,
     cpr.table_number,
     cpr.result_seconds,
@@ -521,7 +707,7 @@ SQL,
         $entries = [];
 
         foreach ($rows as $row) {
-            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, name: string, country: null|string} $row */
+            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, name: string, country: null|string, division_id?: null|string, result_puzzles?: null|string} $row */
             $country = CountryCode::fromCode($row['country'])?->name;
             $entries[] = [
                 'ref' => RoundEntryRef::participantRound($row['id']),
@@ -531,6 +717,8 @@ SQL,
                 'result' => RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], $row['result_did_not_start']),
                 'table_number' => $row['table_number'],
                 'entered_at' => self::date($row['result_entered_at']),
+                'division_id' => isset($row['division_id']) ? strtolower($row['division_id']) : null,
+                'puzzles' => isset($row['result_puzzles']) ? RoundEntryPuzzles::fromStored($row['result_puzzles']) : null,
             ];
         }
 
@@ -538,14 +726,15 @@ SQL,
     }
 
     /**
-     * @return list<array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable}>
+     * @return list<array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles}>
      */
-    private function teams(string $roundId): array
+    private function teams(string $roundId, bool $withDivisions = false, bool $withPuzzles = false): array
     {
         $going = CompetitionParticipantGoing::sql('cp');
+        $extra = ($withDivisions ? "\n    ct.division_id," : '') . ($withPuzzles ? "\n    ct.result_puzzles::text AS result_puzzles," : '');
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT
+SELECT{$extra}
     ct.id,
     ct.name,
     ct.table_number,
@@ -572,7 +761,7 @@ SQL,
         $entries = [];
 
         foreach ($rows as $row) {
-            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, members: null|string} $row */
+            /** @var array{id: string, name: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, members: null|string, division_id?: null|string, result_puzzles?: null|string} $row */
             /** @var list<array{name: string, country: null|string}> $members */
             $members = $row['members'] !== null ? json_decode($row['members'], true, flags: JSON_THROW_ON_ERROR) : [];
             $names = array_map(static fn (array $member): string => $member['name'], $members);
@@ -595,6 +784,8 @@ SQL,
                 'result' => RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], $row['result_did_not_start']),
                 'table_number' => $row['table_number'],
                 'entered_at' => self::date($row['result_entered_at']),
+                'division_id' => isset($row['division_id']) ? strtolower($row['division_id']) : null,
+                'puzzles' => isset($row['result_puzzles']) ? RoundEntryPuzzles::fromStored($row['result_puzzles']) : null,
             ];
         }
 

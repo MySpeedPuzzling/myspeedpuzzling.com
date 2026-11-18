@@ -103,10 +103,14 @@ export function layerLabel(element, t) {
 }
 
 export class EditorPanel {
-    constructor({ document, t, commit, act = () => {}, getImages, upload, uploadAvailable, kind, standings = [] }) {
+    constructor({ document, t, commit, act = () => {}, getImages, upload, uploadAvailable, kind, standings = [], divisions = [], challenges = [] }) {
         this.document = document;
         // The event's standings for the standings element's picker: [{id, name, published}]
         this.standings = Array.isArray(standings) ? standings : [];
+        // A results element's views (real events L2b): the event's divisions [{id, name, shortName}] and the puzzle
+        // positions of its solve-all blocks [{position, labels}] - no field without them
+        this.divisions = Array.isArray(divisions) ? divisions : [];
+        this.challenges = Array.isArray(challenges) ? challenges : [];
         this.t = t;
         this.commit = commit;
         // The multi-selection's actions: act('align', edge), act('distribute', axis), act('frame', {key, value}),
@@ -860,6 +864,12 @@ export class EditorPanel {
                 case 'standing':
                     this.standingField(parent, { label, fieldKey, value, onValue: (v) => set(v, null, true) });
                     break;
+                case 'division':
+                    this.divisionField(parent, { label, fieldKey, value, challenge: values.challenge, onValue: (v) => set(v, null, true) });
+                    break;
+                case 'challenge':
+                    this.challengeField(parent, { label, fieldKey, value, onValue: (v) => set(v, null, true) });
+                    break;
                 default:
                     break;
             }
@@ -905,6 +915,70 @@ export class EditorPanel {
         } else {
             this.el('div', 'form-text mt-0 mb-2', this.t(value === 'auto' ? 'prop.standing_auto_help' : 'prop.standing_help'), parent);
         }
+
+        return select;
+    }
+
+    // A select over `options` [{value, text}] with a first "none" option ('' = the prop removed) - the views' fields
+    viewSelect(parent, { label, fieldKey, value, noneText, options, onValue }) {
+        const { row, id } = this.row(parent, label, fieldKey);
+        const select = this.el('select', 'form-select form-select-sm', null, row);
+        select.id = id;
+        select.dataset.field = fieldKey;
+        const all = [{ value: '', text: noneText }, ...options];
+
+        // A chosen value the event no longer has (a deleted division, a block made smaller) still shows as chosen
+        if (value !== null && value !== undefined && !all.some((item) => item.value === String(value))) {
+            all.push({ value: String(value), text: `? (${value})` });
+        }
+
+        for (const item of all) {
+            const option = this.el('option', null, item.text, select);
+            option.value = item.value;
+            option.selected = item.value === (value === null || value === undefined ? '' : String(value));
+        }
+
+        select.addEventListener('change', () => onValue(select.value));
+
+        return select;
+    }
+
+    // Real events L2b: one division's entries with their division rank - only when the event has divisions
+    divisionField(parent, { label, fieldKey, value, challenge, onValue }) {
+        if (this.divisions.length === 0 && (value === null || value === undefined)) {
+            return null;
+        }
+
+        const options = this.divisions
+            .filter((division) => typeof division?.id === 'string' && typeof division.name === 'string')
+            .map((division) => ({ value: division.id, text: division.name }));
+        const select = this.viewSelect(parent, {
+            label, fieldKey, value, noneText: this.t('prop.division_all'), options, onValue: (v) => onValue(v === '' ? null : v),
+        });
+        const help = typeof challenge === 'number' && value !== null && value !== undefined ? 'prop.division_with_challenge' : 'prop.division_help';
+        this.el('div', 'form-text mt-0 mb-2', this.t(help), parent);
+
+        return select;
+    }
+
+    // Real events L2b: one puzzle of a solve-all block ranked by its own time - only when the event has a block
+    challengeField(parent, { label, fieldKey, value, onValue }) {
+        if (this.challenges.length === 0 && (value === null || value === undefined)) {
+            return null;
+        }
+
+        const options = this.challenges
+            .filter((challenge) => Number.isInteger(challenge?.position))
+            .map((challenge) => {
+                const labels = (Array.isArray(challenge.labels) ? challenge.labels : []).filter((item) => typeof item === 'string');
+                const name = this.t('prop.challenge_puzzle').split('%position%').join(String(challenge.position));
+
+                return { value: String(challenge.position), text: labels.length > 0 ? `${name} - ${labels.join(' / ')}` : name };
+            });
+        const select = this.viewSelect(parent, {
+            label, fieldKey, value, noneText: this.t('prop.challenge_round'), options, onValue: (v) => onValue(v === '' ? null : Number(v)),
+        });
+        this.el('div', 'form-text mt-0 mb-2', this.t('prop.challenge_help'), parent);
 
         return select;
     }

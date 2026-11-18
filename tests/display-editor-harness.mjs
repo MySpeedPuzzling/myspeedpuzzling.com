@@ -820,18 +820,19 @@ check('state: undo prunes the selection to elements that exist', () => {
 
 const { JSDOM } = createRequire(import.meta.url)('jsdom');
 
-function panelFor(state, acts = []) {
+function panelFor(state, acts = [], options = {}) {
     const { window } = new JSDOM('<div id="panel"></div><ul id="layers"></ul>');
     const document = window.document;
     const panel = new EditorPanel({
         document,
-        t: (key) => (key === 'selected_count' ? '%count% elements selected' : key),
+        t: (key) => ({ selected_count: '%count% elements selected', 'prop.challenge_puzzle': 'Puzzle %position%' }[key] ?? key),
         commit: () => {},
         act: (name, arg) => acts.push([name, arg]),
         getImages: () => ({}),
         upload: async () => null,
         uploadAvailable: false,
         kind: 'screen',
+        ...options,
     });
     const container = document.getElementById('panel');
     panel.render(container, state);
@@ -882,6 +883,48 @@ check('panel: one element keeps its view plus the canvas align row; layers mark 
     equal(layers.querySelectorAll('.display-editor__layer-tools').length, 0, 'per-row tools only for one');
     layers.querySelector('[data-layer="aaaa0002"] .display-editor__layer-name').dispatchEvent(new window.MouseEvent('click', { shiftKey: true, bubbles: true }));
     equal(picks, [['aaaa0002', true]], 'the click carries the modifier');
+});
+
+check('panel: division and challenge fields only when the event has divisions / a block; choosing sets or removes the prop', () => {
+    const DIVISION = '018d0004-0000-0000-0000-00000000d1d1';
+    const state = editor(normaliseDesign({ schema: 1, elements: [{ id: 'aaaa0001', type: 'leaderboard', frame: frame(0, 0, 30, 30) }] }, { competitionId: COMPETITION }).design);
+    state.select('aaaa0001');
+    const field = (container, key) => container.querySelector(`[data-field="aaaa0001.props.${key}"]`);
+
+    const plain = panelFor(state);
+    assert(field(plain.container, 'division') === null && field(plain.container, 'challenge') === null, 'no fields without divisions / blocks');
+
+    const commit = (change, key) => state.changeDesign(change, key);
+    const options = {
+        commit,
+        divisions: [{ id: DIVISION, name: 'Senior 55+', shortName: 'S' }],
+        challenges: [{ position: 1, labels: ['Challenge 1'] }, { position: 2, labels: ['Challenge 2', 'B'] }],
+    };
+    let { container, window } = panelFor(state, [], options);
+    const division = field(container, 'division');
+    const challenge = field(container, 'challenge');
+    equal([...division.options].map((option) => [option.value, option.textContent]), [['', 'prop.division_all'], [DIVISION, 'Senior 55+']], 'division options');
+    equal([...challenge.options].map((option) => option.textContent), ['prop.challenge_round', 'Puzzle 1 - Challenge 1', 'Puzzle 2 - Challenge 2 / B'], 'challenge options');
+    division.value = DIVISION;
+    division.dispatchEvent(new window.Event('change'));
+    challenge.value = '2';
+    challenge.dispatchEvent(new window.Event('change'));
+    equal([state.element('aaaa0001').props.division, state.element('aaaa0001').props.challenge], [DIVISION, 2], 'set');
+    ({ container, window } = panelFor(state, [], options));
+    equal([field(container, 'division').value, field(container, 'challenge').value], [DIVISION, '2'], 'shown as chosen');
+    field(container, 'challenge').value = '';
+    field(container, 'challenge').dispatchEvent(new window.Event('change'));
+    field(container, 'division').value = '';
+    field(container, 'division').dispatchEvent(new window.Event('change'));
+    equal(Object.hasOwn(state.element('aaaa0001').props, 'division') || Object.hasOwn(state.element('aaaa0001').props, 'challenge'), false, 'removed, not stored as null');
+
+    // A ticker has a division, never a challenge
+    state.changeDesign((next) => {
+        next.elements[0].type = 'ticker';
+        next.elements[0].props = { division: DIVISION };
+    });
+    ({ container } = panelFor(state, [], options));
+    assert(field(container, 'division') !== null && field(container, 'challenge') === null, 'ticker: division only');
 });
 
 check('no innerHTML in the editor modules', () => {

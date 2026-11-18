@@ -124,6 +124,47 @@ final class DisplayDesignSanitizerTest extends TestCase
         self::assertFalse(DisplayDesignSanitizer::usesLiveResults($design));
     }
 
+    /**
+     * Real events L2b: a leaderboard/ticker showing a division or a challenge gets rows of its own (resultsViews) and
+     * asks nothing of the whole round's rows (resultsDemand); a design without one has no views.
+     */
+    public function testResultsViewsListTheShownElementsWithADivisionOrAChallenge(): void
+    {
+        $division = '018d0004-0000-0000-0000-00000000d1d1';
+        $design = new DisplayDesignSanitizer()->normaliseArray([
+            'schema' => 1,
+            'elements' => [
+                ['id' => 'board001', 'type' => 'leaderboard', 'frame' => [], 'props' => ['rows' => 8]],
+                ['id' => 'board002', 'type' => 'leaderboard', 'frame' => [], 'props' => ['division' => strtoupper($division), 'rows' => 12, 'source' => 'live']],
+                ['id' => 'board003', 'type' => 'leaderboard', 'frame' => [], 'props' => ['challenge' => 2, 'division' => $division]],
+                ['id' => 'ticker01', 'type' => 'ticker', 'frame' => [], 'props' => ['division' => $division, 'challenge' => 1, 'rows' => 3]],
+                ['id' => 'ticker02', 'type' => 'ticker', 'frame' => [], 'props' => ['rows' => 4]],
+                ['id' => 'hidden01', 'type' => 'leaderboard', 'frame' => [], 'hidden' => true, 'props' => ['division' => $division]],
+                ['id' => 'count001', 'type' => 'finished_count', 'frame' => [], 'props' => ['division' => $division]],
+            ],
+        ], '018d0004-0000-0000-0000-00000000c0de');
+
+        self::assertSame([
+            'board002' => ['type' => 'leaderboard', 'live' => true, 'rows' => 12, 'division' => $division, 'challenge' => null],
+            'board003' => ['type' => 'leaderboard', 'live' => false, 'rows' => 10, 'division' => $division, 'challenge' => 2],
+            'ticker01' => ['type' => 'ticker', 'live' => false, 'rows' => 3, 'division' => $division, 'challenge' => null],
+        ], DisplayDesignSanitizer::resultsViews($design));
+        self::assertSame([
+            'leaderboard' => ['live' => false, 'rows' => 8],
+            'ticker' => ['live' => false, 'rows' => 4],
+            'finished_count' => ['live' => false, 'rows' => 0],
+        ], DisplayDesignSanitizer::resultsDemand($design));
+        self::assertTrue(DisplayDesignSanitizer::usesLiveResults($design));
+
+        $plain = new DisplayDesignSanitizer()->normaliseArray([
+            'schema' => 1,
+            'elements' => [['id' => 'board001', 'type' => 'leaderboard', 'frame' => [], 'props' => ['division' => 'all', 'challenge' => 0]]],
+        ], '018d0004-0000-0000-0000-00000000c0de');
+
+        self::assertSame([], DisplayDesignSanitizer::resultsViews($plain));
+        self::assertSame(['leaderboard' => ['live' => false, 'rows' => 10]], DisplayDesignSanitizer::resultsDemand($plain));
+    }
+
     private static function input(object $case): mixed
     {
         assert($case instanceof stdClass);

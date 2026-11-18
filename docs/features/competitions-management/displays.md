@@ -138,7 +138,7 @@ keeps its version, so open displays do not reload.
 
 - `DisplayDesignSanitizer` (PHP, the boundary) and `assets/displays/schema.js` (`normaliseDesign()`: the editor
   normalises what it saves, the renderer what it draws) implement the **same rules**. Both run over
-  `tests/fixtures/display-design-cases.json` (42 cases: input → normalised output or error paths), from
+  `tests/fixtures/display-design-cases.json` (45 cases: input → normalised output or error paths), from
   `DisplayDesignSanitizerTest` and `tests/display-schema-harness.mjs` (`DisplaySchemaScriptTest`). Change both
   together, errors in document order.
 - Shape: `{schema: 1, canvas: {aspect "16:9", background: {type color|transparent|image|chroma, color, chroma, image:
@@ -157,7 +157,8 @@ keeps its version, so open displays do not reload.
   `text`, `field`, `round_badge`, `image` (upload or the event/series/organization logo), `rotator` (≤ 30 pictures),
   `clock`, `puzzle` (+ `hiddenText`), `finished_count`, `leaderboard` (≤ 30 rows), `ticker` (latest finishers, ≤ 10,
   list only), `qr`, `box`, `standings`. The results types (`RESULTS_TYPES`: `finished_count`, `leaderboard`, `ticker`) carry `source`
-  published|live + `whenUnpublished` + `unpublishedText`.
+  published|live + `whenUnpublished` + `unpublishedText`; leaderboard + ticker the optional view keys `division` /
+  `challenge` (leaderboard only) - below "Division and challenge views".
 - **Fonts (4):** `rubik`, `bebas`, `roboto_mono`, `courier_prime`. They are self-hosted woff2 latin + latin-ext
   (`public/fonts/rubik/`, `public/fonts/display/`, OFL), as `@font-face` "MSP Display …" in
   `competition_display/_fonts.html.twig`, which both the display page and the editor include. They are inline because
@@ -388,6 +389,50 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §3.2. As built 202
   failure → null + warning), fixture cases `standings: …`, `DisplayDesignSanitizerTest::testStandingsDemand…`,
   render harness `standings: …` + XSS, editor harness sample standing.
 
+## Division and challenge views (real events L2b, 2026-11-18)
+
+A leaderboard or ticker can show **one view of the round** instead of all of it (designs of record:
+[shared-puzzles-and-divisions.md](shared-puzzles-and-divisions.md) A13 + "As built: D5",
+[world-series-rules.md](world-series-rules.md) "As built: W4").
+
+- **Props** (sanitizer `resultsView()`, `schema.js` kinds `division` / `challenge` with `optional: true`, fixture case
+  "results views: …"): **optional keys, stored only when set**, after `unpublishedText` - every other design normalises
+  byte for byte as before (the older cases and every preset unchanged). `division` (leaderboard, ticker) = a division
+  id, lowercased; anything else (`all`, a name) = none. `challenge` (leaderboard only) = a round puzzle position 1..50
+  (`MAX_CHALLENGE`, half away from zero; out of range = none, never clamped - 0 is the whole round). Whether the shown
+  round uses the division / has the puzzle is the state's question (a display may follow several rounds).
+- **Demand**: `resultsViews()` lists the shown leaderboards/tickers with a view (`{type, live, rows, division,
+  challenge}` by element id); `resultsDemand()` leaves them out (they ask nothing of the whole round's `top`/`latest`).
+- **State** (`GetCompetitionDisplayState::results()` / `viewRows()`): `results.views` = `{elementId: [rows]}` only for a
+  design with a view element (`DisplayResults::$views`; no key otherwise), an empty object while none may show. Gating
+  as for every results element (published round, or the element itself `source: live`). **+1 statement only when a view
+  may show** (`viewFacts()`: format, K, the round's divisions); the entries statement reads `division_id` /
+  `result_puzzles` only when a view needs them - every other design runs exactly its old statements (4/3/3 pins
+  unchanged). Per view:
+  - **challenge** on a solve-all block (`pick`, K ≥ 2) whose puzzle at that position is **shown to everybody**
+    (`RoundPuzzlesVisibleNow` slots, never sent): the puzzle's own time (`RoundEntryPuzzles::duration()`) ranked by
+    `ChallengeRanking` - the public page's rule (no per-puzzle record = unranked, another puzzle chosen = left out);
+    `resultSeconds` = the own time. A challenge **wins over a division** (the public challenge view lists every
+    division too);
+  - else a **division** the round uses: its entries with the division rank (`rankWithin()` over every entry - A13),
+    did-not-start left out;
+  - else (a round without that division, not a block, a hidden or missing puzzle) **the whole round**, as the public
+    page does for a value that names nothing.
+
+  A leaderboard view is sorted by rank, a ticker view by entry time, each cut to its element's rows.
+- **Renderer**: `resultRows()` (`render.js`) - an element with a view reads `results.views[element id]`, without one
+  (the editor's sample data, an unsaved element) the whole round's list; the per-element gate is unchanged.
+- **Editor**: `config.divisions` + `config.challenges` (`GetDisplayEditorResultsOptions`, 2 statements on the editor
+  page; positions of the event's blocks with their labels, "Puzzle 2 - Challenge 2"). "Division" only when the event
+  has divisions, "Rank by" only when it has a block (or a value is set - it can then be cleared). Keys
+  `competition_display.editor.prop.division*` / `challenge*`.
+- **Sandbox demo**: "Challenges board" (World Series) and "Divisions board" (Carnival) - `../sandbox/README.md`.
+- Not built: a finished count per division, a ticker per challenge, the challenge label on the element (a text element
+  above it, as the demo boards do).
+- Tests: `DisplayDesignSanitizerTest::testResultsViews…`, the fixture case, `DisplayResultsViewsTest` (division ranks,
+  unused division, challenges 1/2/7, hidden puzzle, no block, challenge over division, live gating, statements), render
+  harness "views: …", editor harness "panel: division and challenge fields …", `SandboxDemoEventsTest`.
+
 ## Build and service worker
 
 - Encore entry `display` (`assets/display.js` + `assets/styles/display.scss`) gets its own file without shared split
@@ -405,9 +450,6 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §3.2. As built 202
 - v2 (R §3): live control (spotlight/message elements and page), copy from another event, ticker marquee,
   the bracket overlay element, scenes, animations, 4:3 and portrait
   (the standings element is built - v2 S2 above).
-- v2 (real events W4): the results element's "rank by challenge" (a solve-all block's puzzle ranked by its own time,
-  [world-series-rules.md](world-series-rules.md) "As built: W4") - needs a results option in the sanitizer + `schema.js`
-  + `display-design-cases.json`, the per-puzzle records in the results statement and payload, and the renderer's ranks.
 
 ## Tests
 

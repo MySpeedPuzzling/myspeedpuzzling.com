@@ -14635,6 +14635,14 @@ competition_display:
             title: "Namen der Gesamtwertung zeigen"
             whenEmpty: "Ohne veröffentlichte Gesamtwertung"
             emptyText: "Text ohne veröffentlichte Gesamtwertung"
+            division: "Wertungsklasse"
+            division_all: "Alle Wertungsklassen"
+            division_help: "Zeigt nur die Einträge dieser Wertungsklasse mit ihrem Platz darin. Eine Runde ohne diese Wertungsklasse zeigt alle Einträge."
+            division_with_challenge: "Eine Challenge-Rangliste zeigt alle Wertungsklassen - die Wertungsklasse gilt in Runden, die kein Block sind."
+            challenge: "Sortieren nach"
+            challenge_round: "Die ganze Runde"
+            challenge_puzzle: "Puzzle %position%"
+            challenge_help: "In einem „Alle lösen“-Block nach der eigenen Zeit dieses Puzzles - sobald es enthüllt ist. Andere Runden zeigen die ganze Runde."
             image:
                 source: "Bild"
             clock:

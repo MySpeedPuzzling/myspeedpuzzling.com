@@ -5623,6 +5623,638 @@
         "results": false,
         "live": false
       }
+    },
+    {
+      "name": "results views: a division (leaderboard, ticker) and a challenge (leaderboard only), anything else is none",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "view0001",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "division": "018D0004-0000-0000-0000-00000000D1D1",
+              "challenge": 2
+            }
+          },
+          {
+            "id": "view0002",
+            "type": "ticker",
+            "frame": {},
+            "props": {
+              "division": "018d0004-0000-0000-0000-00000000d1d1",
+              "challenge": 1
+            }
+          },
+          {
+            "id": "view0003",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "division": "all",
+              "challenge": 0
+            }
+          },
+          {
+            "id": "view0004",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "division": "Senior 55+",
+              "challenge": 51
+            }
+          },
+          {
+            "id": "view0005",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "division": null,
+              "challenge": "2"
+            }
+          },
+          {
+            "id": "view0006",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "division": [
+                "018d0004-0000-0000-0000-00000000d1d1"
+              ],
+              "challenge": 2.5
+            }
+          },
+          {
+            "id": "view0007",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "challenge": 0.4
+            }
+          },
+          {
+            "id": "view0008",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "challenge": -3
+            }
+          },
+          {
+            "id": "view0009",
+            "type": "finished_count",
+            "frame": {},
+            "props": {
+              "division": "018d0004-0000-0000-0000-00000000d1d1",
+              "challenge": 1
+            }
+          },
+          {
+            "id": "view0010",
+            "type": "text",
+            "frame": {},
+            "props": {
+              "division": "018d0004-0000-0000-0000-00000000d1d1",
+              "challenge": 1
+            }
+          },
+          {
+            "id": "view0011",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "challenge": 50,
+              "source": "live"
+            }
+          },
+          {
+            "id": "view0012",
+            "type": "ticker",
+            "frame": {},
+            "props": {
+              "division": "018d0004-0000-0000-0000-00000000d1d"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "view0001",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "division": "018d0004-0000-0000-0000-00000000d1d1",
+              "challenge": 2
+            }
+          },
+          {
+            "id": "view0002",
+            "type": "ticker",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 5,
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "division": "018d0004-0000-0000-0000-00000000d1d1"
+            }
+          },
+          {
+            "id": "view0003",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "view0004",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "view0005",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "view0006",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "challenge": 3
+            }
+          },
+          {
+            "id": "view0007",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "view0008",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "view0009",
+            "type": "finished_count",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "format": "fraction",
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "view0010",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": ""
+            }
+          },
+          {
+            "id": "view0011",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "challenge": 50
+            }
+          },
+          {
+            "id": "view0012",
+            "type": "ticker",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 5,
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": true
+      }
     }
   ]
 }

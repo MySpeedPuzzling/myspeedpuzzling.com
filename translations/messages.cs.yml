@@ -14638,6 +14638,14 @@ competition_display:
             title: "Zobrazit název celkového pořadí"
             whenEmpty: "Bez zveřejněného celkového pořadí"
             emptyText: "Text bez zveřejněného celkového pořadí"
+            division: "Divize"
+            division_all: "Všechny divize"
+            division_help: "Ukáže jen záznamy této divize s jejich umístěním v ní. Kolo bez této divize ukáže všechny záznamy."
+            division_with_challenge: "Pořadí výzvy ukazuje všechny divize - divize se použije u kol, která nejsou blokem."
+            challenge: "Řadit podle"
+            challenge_round: "Celé kolo"
+            challenge_puzzle: "Puzzle %position%"
+            challenge_help: "V bloku „vyskládat vše“ řadí podle vlastního času daného puzzle - jakmile je odhalené. Ostatní kola ukazují celé kolo."
             image:
                 source: "Obrázek"
             clock:

@@ -15,7 +15,7 @@ import {
     saveEditor as saveEditorValue,
 } from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
-import { editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
+import { deskEntryFromQuery, editorOutcome, editorRows, pickFormat, puzzleOptions, recordChips, recordText } from '../official_results_desk_puzzles.js';
 import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 
@@ -111,7 +111,24 @@ export default class extends Controller {
         }, RESYNC_EVERY_MS);
 
         this.render();
+        this.openLinkedEntry();
         this.events.start();
+    }
+
+    /**
+     * `?entry=<ref>` (the participants sheet's "Edit on the results desk", competition toolkit v2 C5): that entry's
+     * editor opens once the state is there - the per-puzzle editor on a `pick` round. An invalid or unknown ref, or a row
+     * a search restored by the browser hides, is ignored.
+     */
+    openLinkedEntry() {
+        const ref = deskEntryFromQuery(window.location.search);
+
+        if (ref === null || !this.entries.has(ref) || !this.rows.has(ref)) {
+            return;
+        }
+
+        this.openEditor(ref, RESULT);
+        this.rows.get(ref)?.scrollIntoView({ block: 'center' });
     }
 
     disconnect() {

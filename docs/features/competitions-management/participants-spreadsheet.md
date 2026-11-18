@@ -1298,7 +1298,11 @@ included); every text by `tests/ParticipantsSheetRoundTextsTest.php` (round text
 - **Solo tab**: Table, Name (read-only - Enter/Space opens the person editor, else People at the person; Delete takes
   them out of the round), Country, Result / Rank / Qualified, ⋯; the new row puts a person (or a new one) into the
   round; people on the waitlist are listed, their results cells say why they cannot be edited.
-- **`pick` rounds** (competition toolkit A4): a read-only "Puzzles" column (the record by label); a result typed or
+- **`pick` rounds** (competition toolkit A4): a read-only "Puzzles" column (the record by label - an action cell since
+  v2 C5: Enter, Space, a double click or its icon open a read-only popover, a RoundDialog anchored to the cell - Esc or
+  a click outside closes it and gives the cell its focus back: the record in solving order, a hidden puzzle by its
+  label alone, ✓ + finished at + own time or "312 / 500 pcs", unsaved values too, and "Edit on the results desk" in a
+  new tab with that entry's editor open, `?entry=`; `sheet_puzzles.js` `sheetPuzzlesPopover()`); a result typed or
   pasted for an entry with a record goes with the consistent `puzzles` change as one group and one undo step
   (`sheet_puzzles.js`, applied in the controller's `act()`) - see round-formats.md "Results desk, participants sheet and export of
   `pick` rounds".

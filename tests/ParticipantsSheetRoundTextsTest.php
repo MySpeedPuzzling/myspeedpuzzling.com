@@ -126,7 +126,10 @@ final class ParticipantsSheetRoundTextsTest extends KernelTestCase
         self::assertIsArray($texts);
         self::assertArrayNotHasKey('col_puzzles', $texts);
         self::assertArrayNotHasKey('puzzles_cleared', $texts);
-        self::assertSame(array_keys($texts), array_values(array_diff(array_keys($withPick), ['col_puzzles', 'puzzles_cleared'])));
+        self::assertArrayNotHasKey('puzzles_popover_title', $texts);
+        self::assertSame('Per-puzzle record', $withPick['puzzles_popover_title'] ?? null);
+        self::assertSame('Finished', $withPick['puzzles_popover_done'] ?? null);
+        self::assertSame(array_keys($texts), array_values(array_diff(array_keys($withPick), ['col_puzzles', 'puzzles_cleared', 'puzzles_popover_title', 'puzzles_popover_none', 'puzzles_popover_done', 'puzzles_popover_own_time', 'puzzles_popover_edit_on_desk'])));
     }
 
     /**

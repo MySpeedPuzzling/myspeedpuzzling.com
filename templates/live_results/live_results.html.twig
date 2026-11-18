@@ -281,6 +281,8 @@
         .lr-overlay-head { position: sticky; top: 0; display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: inherit; border-bottom: 1px solid var(--bs-border-color, #e3e9ef); }
         .lr-scanner { background: #000; color: #fff; }
         .lr-scanner .lr-overlay-head { background: rgba(0,0,0,.6); border-color: transparent; }
+        {# The close button is light on the dark head - its X takes the button's own dark colour, not the white of .lr-scanner (.lr-icon-btn inherits) #}
+        .lr-scanner .btn-light.lr-icon-btn { color: #212529; }
         .lr-scanner video { flex: 1 1 auto; width: 100%; min-height: 0; object-fit: cover; }
         .lr-scanner-foot { padding: .75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); text-align: center; }
         .lr-scanner-hint { margin-bottom: .75rem; }

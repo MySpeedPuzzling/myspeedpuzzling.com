@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
@@ -31,8 +32,16 @@ readonly final class LeaveCompetitionHandler
     ) {
     }
 
-    public function __invoke(LeaveCompetition $message): void
+    /**
+     * @return bool false = "Not me" refused (not a participant of this event linked to the player by the organiser),
+     *     nothing changed; true otherwise
+     */
+    public function __invoke(LeaveCompetition $message): bool
     {
+        if ($message->notMeParticipantId !== null) {
+            return $this->notMe($message, $message->notMeParticipantId);
+        }
+
         // Every row, not just one — a player who joined twice would otherwise still be going
         $participantIds = $this->getCompetitionParticipants->getPlayerConnections($message->competitionId, $message->playerId);
         $player = $participantIds !== [] ? $this->playerRepository->get($message->playerId) : null;
@@ -54,5 +63,51 @@ readonly final class LeaveCompetitionHandler
         $this->partnerListingRepository
             ->findOpenFor($message->competitionId, $message->playerId)
             ?->close(PartnerListingClosedReason::NotGoing, $this->clock->now());
+
+        return true;
+    }
+
+    /**
+     * "Not me" (participant-linking.md §6.6, D11): the participant the organiser (sheet or import) linked the player to is
+     * let go of as `not_me` - a refused pair, so the import never links it again and the player cannot claim it back by
+     * themselves; the organiser still can in the sheet. Only that row: the player's other rows stay. A row the player
+     * linked themselves, their own self-joined row or somebody else's participant is refused - the event page's
+     * "Disconnect" / "Leave" are for those.
+     */
+    private function notMe(LeaveCompetition $message, string $participantId): bool
+    {
+        try {
+            $participant = $this->participantRepository->get($participantId);
+        } catch (CompetitionParticipantNotFound) {
+            return false;
+        }
+
+        $player = $this->playerRepository->get($message->playerId);
+
+        if (
+            $participant->competition->id->toString() !== strtolower($message->competitionId)
+            || $participant->isConnectedTo($player) === false
+            || $participant->isDeleted()
+            || $participant->source === ParticipantSource::SelfJoined
+            || $participant->connectedVia?->isThePlayersOwn() === true
+        ) {
+            return false;
+        }
+
+        $this->participantLinks->unlink($participant, ParticipantLinkAction::NotMe, $player, $this->clock->now());
+
+        // Nothing else links the player to the event any more = not going there either (as Leave)
+        $otherRows = array_filter(
+            $this->getCompetitionParticipants->getPlayerConnections($message->competitionId, $message->playerId),
+            static fn (string $id): bool => $id !== $participant->id->toString(),
+        );
+
+        if ($otherRows === []) {
+            $this->partnerListingRepository
+                ->findOpenFor($message->competitionId, $message->playerId)
+                ?->close(PartnerListingClosedReason::NotGoing, $this->clock->now());
+        }
+
+        return true;
     }
 }

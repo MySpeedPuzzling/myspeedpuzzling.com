@@ -225,7 +225,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -343,7 +351,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
     LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
@@ -458,7 +474,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN puzzle_change_request pcr ON notification.target_change_request_id = pcr.id
     INNER JOIN puzzle ON pcr.puzzle_id = puzzle.id
@@ -568,7 +592,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
     INNER JOIN puzzle source_puzzle ON pmr.source_puzzle_id = source_puzzle.id
@@ -684,7 +716,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
@@ -796,7 +836,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
@@ -908,7 +956,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     -- … and the one about the reader's unlisted puzzles: it has no target either, and nothing of them is read here
     WHERE notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived', 'UnlistedPuzzlesFound')
@@ -1017,7 +1073,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN competition_round ON competition_round.id = notification.target_competition_round_id
     INNER JOIN competition ON competition.id = competition_round.competition_id
@@ -1128,7 +1192,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1239,7 +1311,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN guest_link_request ON guest_link_request.id = notification.target_guest_link_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1352,7 +1432,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN partner_request ON partner_request.id = notification.target_partner_request_id
     INNER JOIN partner_listing ON partner_listing.id = partner_request.listing_id
@@ -1474,7 +1562,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN partner_listing ON partner_listing.id = notification.target_partner_listing_id
     INNER JOIN competition ON competition.id = partner_listing.competition_id
@@ -1588,7 +1684,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN borrow_request ON borrow_request.id = notification.target_borrow_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1705,7 +1809,15 @@ SELECT * FROM (
         NULL::int AS import_rows_already_yours,
         NULL::int AS import_rows_not_added,
         NULL::int AS import_results_taken_back,
-        NULL::varchar AS import_taken_back_reason
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     INNER JOIN listing_request ON listing_request.id = notification.target_listing_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1824,7 +1936,15 @@ SELECT * FROM (
         import_batch.rows_already_yours AS import_rows_already_yours,
         (import_batch.rows_refused + import_batch.rows_failed) AS import_rows_not_added,
         import_undo.results_deleted AS import_results_taken_back,
-        import_undo.reason AS import_taken_back_reason
+        import_undo.reason AS import_taken_back_reason,
+        -- Participant link fields (NULL)
+        NULL::uuid AS participant_link_competition_id,
+        NULL::varchar AS participant_link_competition_name,
+        NULL::varchar AS participant_link_competition_slug,
+        NULL::varchar AS participant_link_series_slug,
+        NULL::uuid AS participant_link_participant_id,
+        NULL::varchar AS participant_link_participant_name,
+        NULL::boolean AS participant_link_not_me
     FROM page notification
     LEFT JOIN data_import_batch import_batch ON import_batch.id = notification.target_data_import_batch_id
     LEFT JOIN data_import_undo import_undo ON import_undo.id = notification.target_data_import_undo_id
@@ -1833,6 +1953,136 @@ SELECT * FROM (
     LEFT JOIN player actor ON actor.id = notification.actor_player_id AND notification.type = 'ImportResultsAddedWithYou'
     WHERE notification.target_data_import_batch_id IS NOT NULL
         OR notification.target_data_import_undo_id IS NOT NULL
+
+    UNION ALL
+
+    -- Participant linking (docs/features/competitions-management/participant-linking.md §9.2): an organiser's "people are
+    -- waiting for you to confirm", a claimant's approved / not confirmed (target = the request) and "you are on the
+    -- participant list" (target = the participant). Nobody but the reader is named - the participant's name is the
+    -- organiser's record of the event, a decline names no who - so nothing of it can be hidden or masked.
+    -- participant_link_not_me: "Not me" is offered while the organiser's link of the reader stands (§6.6)
+    SELECT
+        notification.id AS notification_id,
+        notification.notified_at,
+        notification.read_at,
+        notification.type AS notification_type,
+        NULL::uuid AS target_player_id,
+        NULL::varchar AS target_player_name,
+        NULL::varchar AS target_player_code,
+        NULL::varchar AS target_player_country,
+        NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
+        NULL::uuid AS puzzle_id,
+        NULL::varchar AS puzzle_name,
+        NULL::varchar AS manufacturer_name,
+        NULL::int AS pieces_count,
+        NULL::int AS time,
+        NULL::int AS pieces_placed,
+        NULL::int AS finished_later_seconds,
+        NULL::boolean AS first_attempt,
+        NULL::boolean AS unboxed,
+        NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
+        NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
+        NULL::uuid AS guest_link_request_id,
+        NULL::varchar AS guest_link_guest_name,
+        NULL::json AS players,
+        -- Lending fields (NULL)
+        NULL::uuid AS transfer_id,
+        NULL::varchar AS transfer_type,
+        NULL::uuid AS from_player_id,
+        NULL::varchar AS from_player_name,
+        NULL::varchar AS from_player_avatar,
+        NULL::uuid AS to_player_id,
+        NULL::varchar AS to_player_name,
+        NULL::varchar AS to_player_avatar,
+        NULL::uuid AS owner_player_id,
+        NULL::varchar AS owner_player_name,
+        NULL::uuid AS lending_puzzle_id,
+        NULL::varchar AS lending_puzzle_name,
+        NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
+        NULL::varchar AS lending_manufacturer_name,
+        NULL::int AS lending_pieces_count,
+        -- Puzzle report fields (NULL)
+        NULL::uuid AS change_request_id,
+        NULL::uuid AS change_request_puzzle_id,
+        NULL::varchar AS change_request_puzzle_name,
+        NULL::varchar AS change_request_puzzle_image,
+        NULL::varchar AS change_request_rejection_reason,
+        NULL::uuid AS merge_request_id,
+        NULL::uuid AS merge_request_puzzle_id,
+        NULL::varchar AS merge_request_puzzle_name,
+        NULL::varchar AS merge_request_puzzle_image,
+        NULL::varchar AS merge_request_rejection_reason,
+        -- Rating notification fields (NULL)
+        NULL::uuid AS sold_swapped_item_id,
+        NULL::varchar AS rating_puzzle_name,
+        NULL::varchar AS rating_puzzle_image,
+        NULL::varchar AS rating_other_player_name,
+        NULL::uuid AS rating_other_player_id,
+        -- Conversation request fields (NULL)
+        NULL::uuid AS conversation_id,
+        NULL::uuid AS conversation_initiator_id,
+        NULL::varchar AS conversation_initiator_name,
+        NULL::varchar AS conversation_initiator_avatar,
+        NULL::boolean AS conversation_is_marketplace,
+        NULL::varchar AS conversation_puzzle_name,
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug,
+        -- Partner finder request fields (NULL)
+        NULL::uuid AS partner_request_id,
+        NULL::varchar AS partner_request_kind,
+        NULL::varchar AS partner_request_note,
+        NULL::boolean AS partner_request_replied,
+        NULL::varchar AS partner_competition_name,
+        NULL::varchar AS partner_competition_slug,
+        NULL::varchar AS partner_series_slug,
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes,
+        -- Listing request fields (NULL)
+        NULL::uuid AS listing_request_id,
+        NULL::int AS listing_items_total,
+        NULL::int AS listing_items_yes,
+        -- Spreadsheet import fields (NULL)
+        NULL::uuid AS import_id,
+        NULL::varchar AS import_file_name,
+        NULL::int AS import_rows_added,
+        NULL::int AS import_rows_already_yours,
+        NULL::int AS import_rows_not_added,
+        NULL::int AS import_results_taken_back,
+        NULL::varchar AS import_taken_back_reason,
+        -- Participant link fields
+        competition.id AS participant_link_competition_id,
+        competition.name AS participant_link_competition_name,
+        competition.slug AS participant_link_competition_slug,
+        competition_series.slug AS participant_link_series_slug,
+        competition_participant.id AS participant_link_participant_id,
+        competition_participant.name AS participant_link_participant_name,
+        (
+            notification.type = 'ParticipantListedYou'
+            AND competition_participant.player_id = notification.player_id
+            AND competition_participant.deleted_at IS NULL
+            AND competition_participant.source <> 'self_joined'
+            AND (competition_participant.connected_via IS NULL OR competition_participant.connected_via IN ('organiser', 'import'))
+        ) AS participant_link_not_me
+    FROM page notification
+    LEFT JOIN participant_link_request ON participant_link_request.id = notification.target_participant_link_request_id
+    INNER JOIN competition_participant ON competition_participant.id = COALESCE(participant_link_request.participant_id, notification.target_competition_participant_id)
+    INNER JOIN competition ON competition.id = competition_participant.competition_id
+    LEFT JOIN competition_series ON competition_series.id = competition.series_id
+    WHERE notification.target_participant_link_request_id IS NOT NULL
+        OR notification.target_competition_participant_id IS NOT NULL
 ) AS combined_notifications
 -- The page's own order: notified_at alone ties (a burst of notifications in one second), and a tie must not move a row
 -- past the one more asked for "Show more"

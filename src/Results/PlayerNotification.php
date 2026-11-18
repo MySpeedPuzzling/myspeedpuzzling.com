@@ -124,6 +124,16 @@ readonly final class PlayerNotification
         // the pieces placed when the round's time ran out - $time is null, and it is no relax solve
         public null|int $piecesPlaced = null,
         public null|int $finishedLaterSeconds = null,
+        // ParticipantLinkRequested / Approved / Declined / ParticipantListedYou (participant-linking.md §9.2): the event
+        // (its page URL built from the slugs, the organiser's sheet from its id) and the participant, by the organiser's
+        // name; participantLinkNotMe = "Not me" is offered (the organiser's link of the reader stands)
+        public null|string $participantLinkCompetitionId = null,
+        public null|string $participantLinkCompetitionName = null,
+        public null|string $participantLinkCompetitionSlug = null,
+        public null|string $participantLinkSeriesSlug = null,
+        public null|string $participantLinkParticipantId = null,
+        public null|string $participantLinkParticipantName = null,
+        public bool $participantLinkNotMe = false,
     ) {
     }
 
@@ -269,6 +279,13 @@ readonly final class PlayerNotification
             importTakenBackReason: is_string($row['import_taken_back_reason'] ?? null) ? $row['import_taken_back_reason'] : null,
             piecesPlaced: is_numeric($row['pieces_placed'] ?? null) ? (int) $row['pieces_placed'] : null,
             finishedLaterSeconds: is_numeric($row['finished_later_seconds'] ?? null) ? (int) $row['finished_later_seconds'] : null,
+            participantLinkCompetitionId: is_string($row['participant_link_competition_id'] ?? null) ? $row['participant_link_competition_id'] : null,
+            participantLinkCompetitionName: is_string($row['participant_link_competition_name'] ?? null) ? $row['participant_link_competition_name'] : null,
+            participantLinkCompetitionSlug: is_string($row['participant_link_competition_slug'] ?? null) ? $row['participant_link_competition_slug'] : null,
+            participantLinkSeriesSlug: is_string($row['participant_link_series_slug'] ?? null) ? $row['participant_link_series_slug'] : null,
+            participantLinkParticipantId: is_string($row['participant_link_participant_id'] ?? null) ? $row['participant_link_participant_id'] : null,
+            participantLinkParticipantName: is_string($row['participant_link_participant_name'] ?? null) ? $row['participant_link_participant_name'] : null,
+            participantLinkNotMe: ($row['participant_link_not_me'] ?? false) === true,
         );
     }
 
@@ -384,6 +401,19 @@ readonly final class PlayerNotification
             NotificationType::ListingRequestAnswered,
             NotificationType::ListingRequestExpired,
             NotificationType::ListingRequestUnavailable,
+        ], true);
+    }
+
+    /**
+     * Participant linking (docs/features/competitions-management/participant-linking.md §9.2)
+     */
+    public function isParticipantLinkNotification(): bool
+    {
+        return $this->participantLinkCompetitionId !== null && in_array($this->notificationType, [
+            NotificationType::ParticipantLinkRequested,
+            NotificationType::ParticipantLinkApproved,
+            NotificationType::ParticipantLinkDeclined,
+            NotificationType::ParticipantListedYou,
         ], true);
     }
 

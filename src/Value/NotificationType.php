@@ -96,4 +96,15 @@ enum NotificationType: string
     // (docs/features/data-import/unlisted-puzzles.md "When the catalogue grows"): one per run whatever their number,
     // no target - the player confirms each on their own Unlisted puzzles page
     case UnlistedPuzzlesFound = 'UnlistedPuzzlesFound';
+
+    // Participant linking (docs/features/competitions-management/participant-linking.md §9.2), in-app only. Requested: to
+    // each organiser of the event (the COMPETITION_EDIT team, admins excluded) - one while unread per event. Approved /
+    // Declined: to the claimant (a superseded request reads as Declined, R10 - no reason, no who). Target = the request
+    case ParticipantLinkRequested = 'ParticipantLinkRequested';
+    case ParticipantLinkApproved = 'ParticipantLinkApproved';
+    case ParticipantLinkDeclined = 'ParticipantLinkDeclined';
+
+    // The organiser's sheet or import linked the player to a participant of a publicly visible event (D8) - with "Not me"
+    // (§6.6). Target = the participant
+    case ParticipantListedYou = 'ParticipantListedYou';
 }

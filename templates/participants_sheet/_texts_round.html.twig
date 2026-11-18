@@ -311,9 +311,9 @@
 }|merge(state is defined and state.rounds|filter(round => round.puzzleFormat is not null)|length > 0 ? {
     col_puzzles: 'competition_toolkit.desk_puzzles.sheet_column'|trans,
     puzzles_cleared: 'competition_toolkit.desk_puzzles.sheet_cleared'|trans,
-    puzzles_popover_title: 'participants_sheet.puzzles_popover.title'|trans,
-    puzzles_popover_none: 'participants_sheet.puzzles_popover.none'|trans,
+    puzzles_popover_title: 'participants_sheet_core.puzzles_popover.title'|trans,
+    puzzles_popover_none: 'participants_sheet_core.puzzles_popover.none'|trans,
     puzzles_popover_done: 'competition_toolkit.desk_puzzles.status_done'|trans,
-    puzzles_popover_own_time: 'participants_sheet.puzzles_popover.own_time'|trans,
-    puzzles_popover_edit_on_desk: 'participants_sheet.puzzles_popover.edit_on_desk'|trans,
+    puzzles_popover_own_time: 'participants_sheet_core.puzzles_popover.own_time'|trans,
+    puzzles_popover_edit_on_desk: 'participants_sheet_core.puzzles_popover.edit_on_desk'|trans,
 } : {})|json_encode|raw -}}

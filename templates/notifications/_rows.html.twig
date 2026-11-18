@@ -379,6 +379,58 @@
                     {{- (listing_type == 'ListingRequested' ? 'listing_request.notification.answer' : 'listing_request.notification.open')|trans -}}
                 </a>
             </td>
+        {% elseif notification.isParticipantLinkNotification %}
+            {# Participant linking (docs/features/competitions-management/participant-linking.md §9.2): an organiser's
+               "people are waiting" leads to the sheet's "Asks to be linked" filter, a player's to the event page; "Not me"
+               while the organiser's link of the reader stands (§6.6) #}
+            {% set link_type = notification.notificationType.value %}
+            {% if notification.participantLinkCompetitionSlug is null %}
+                {% set link_event_url = path('events') %}
+            {% else %}
+                {% set link_event_url = notification.participantLinkSeriesSlug is not null
+                    ? path('edition_detail', {seriesSlug: notification.participantLinkSeriesSlug, editionSlug: notification.participantLinkCompetitionSlug})
+                    : path('event_detail', {slug: notification.participantLinkCompetitionSlug}) %}
+            {% endif %}
+            {% set link_texts = {
+                '%event%': '<b>' ~ notification.participantLinkCompetitionName|e ~ '</b>',
+                '%name%': '<b>' ~ notification.participantLinkParticipantName|e ~ '</b>',
+            } %}
+            <td class="text-center" style="width: 60px;">
+                <i class="bi {{ link_type == 'ParticipantLinkRequested' ? 'bi-hourglass-split text-warning' : (link_type == 'ParticipantLinkDeclined' ? 'bi-person-x text-muted' : 'bi-person-check text-primary') }} fs-3" aria-hidden="true"></i>
+            </td>
+
+            <td class="align-middle fs-sm text-muted" data-testid="participant-link-notification" data-type="{{ link_type }}">
+                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                {% if link_type == 'ParticipantLinkRequested' %}
+                    {{ 'participant_linking.notification.requested'|trans(link_texts)|raw }}
+                {% elseif link_type == 'ParticipantLinkApproved' %}
+                    {{ 'participant_linking.notification.approved'|trans(link_texts)|raw }}
+                {% elseif link_type == 'ParticipantLinkDeclined' %}
+                    {{ 'participant_linking.notification.declined'|trans(link_texts)|raw }}
+                {% else %}
+                    {{ 'participant_linking.notification.listed_you'|trans(link_texts)|raw }}
+                {% endif %}
+            </td>
+
+            <td class="" style="width: 80px;">
+                {% if link_type == 'ParticipantLinkRequested' %}
+                    <a href="{{ path('participants_sheet', {competitionId: notification.participantLinkCompetitionId, tab: 'people', filter: 'asks'}) }}" class="btn btn-sm btn-primary text-nowrap" data-testid="participant-link-notification-review">
+                        {{ 'participant_linking.notification.review'|trans }}
+                    </a>
+                {% else %}
+                    <a href="{{ link_event_url }}" class="btn btn-sm btn-outline-primary" aria-label="{{ 'participant_linking.notification.open_event'|trans }}">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                {% endif %}
+                {% if link_type == 'ParticipantListedYou' and notification.participantLinkNotMe %}
+                    <form action="{{ path('leave_competition', {competitionId: notification.participantLinkCompetitionId}) }}" method="post" class="mt-1" data-turbo="false" data-testid="participant-link-not-me">
+                        <input type="hidden" name="not_me" value="1">
+                        <input type="hidden" name="participant" value="{{ notification.participantLinkParticipantId }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\LeaveCompetitionController::CSRF_NOT_ME_PREFIX') ~ notification.participantLinkParticipantId) }}">
+                        <button type="submit" class="btn btn-sm btn-link text-muted p-0 text-start text-wrap" style="min-height: 44px;" title="{{ 'participant_linking.notification.not_me_help'|trans }}">{{ 'participant_linking.notification.not_me'|trans }}</button>
+                    </form>
+                {% endif %}
+            </td>
         {% elseif notification.isOfficialResultNotification %}
             {# The official results of a round the player has a result in were published #}
             {% if notification.roundCompetitionSlug is null %}

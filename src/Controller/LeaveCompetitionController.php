@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
@@ -15,6 +16,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -28,6 +30,11 @@ final class LeaveCompetitionController extends AbstractController
      * main's plain button.
      */
     public const string CSRF_PREFIX = 'competition-leave-';
+
+    /**
+     * "Not me" of the ParticipantListedYou notification (participant-linking.md §6.6) - per participant
+     */
+    public const string CSRF_NOT_ME_PREFIX = 'participant-not-me-';
 
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
@@ -64,6 +71,10 @@ final class LeaveCompetitionController extends AbstractController
 
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
+        if ($request->request->getBoolean('not_me')) {
+            return $this->notMe($competitionId, $profile?->playerId, $request, $competitionUrl);
+        }
+
         // A registration (possibly paid) is cancelled only through the card's confirmation, never by a bare POST
         if (
             $profile !== null
@@ -88,5 +99,48 @@ final class LeaveCompetitionController extends AbstractController
         }
 
         return $this->redirect($competitionUrl);
+    }
+
+    /**
+     * "Not me": only the participant the notification names is let go of, as a refused pair (`not_me`); the event page's
+     * own "Disconnect" / "Leave" keep their meaning. Its own CSRF token on every event, 303 back to the event page.
+     */
+    private function notMe(string $competitionId, null|string $playerId, Request $request, string $competitionUrl): Response
+    {
+        $participantId = strtolower($request->request->getString('participant'));
+
+        if ($playerId === null) {
+            return $this->redirect($competitionUrl, Response::HTTP_SEE_OTHER);
+        }
+
+        if (Uuid::isValid($participantId) === false) {
+            $this->addFlash('warning', $this->translator->trans('participant_linking.flash.not_me_refused'));
+
+            return $this->redirect($competitionUrl, Response::HTTP_SEE_OTHER);
+        }
+
+        if ($this->isCsrfTokenValid(self::CSRF_NOT_ME_PREFIX . $participantId, $request->request->getString('_token')) === false) {
+            $this->addFlash('warning', $this->translator->trans('participant_linking.flash.form_expired'));
+
+            return $this->redirect($competitionUrl, Response::HTTP_SEE_OTHER);
+        }
+
+        $done = $this->messageBus->dispatch(new LeaveCompetition(
+            competitionId: strtolower($competitionId),
+            playerId: $playerId,
+            notMeParticipantId: $participantId,
+        ))->last(HandledStamp::class)?->getResult();
+
+        if ($done !== true) {
+            $this->addFlash('warning', $this->translator->trans('participant_linking.flash.not_me_refused'));
+
+            return $this->redirect($competitionUrl, Response::HTTP_SEE_OTHER);
+        }
+
+        // The organiser's open participants sheets learn about it (participant-linking.md §5.8)
+        $this->sheetLiveUpdates->changedAfterResponse(strtolower($competitionId));
+        $this->addFlash('success', $this->translator->trans('participant_linking.flash.not_me'));
+
+        return $this->redirect($competitionUrl, Response::HTTP_SEE_OTHER);
     }
 }

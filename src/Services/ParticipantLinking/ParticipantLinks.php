@@ -24,6 +24,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * (ParticipantLinkCoverageTest); account deletion is the set-based exception (ParticipantLinksOfDeletedAccount, §11).
  *
  * Requests (§3.3) are written here too - request(), decline(), withdraw(), and link()'s approval / superseding (§4 step 3).
+ * So are the notifications of both (§9.2, ParticipantLinkNotifications), in the same transaction.
  *
  * Persist only, called by handlers under CompetitionParticipantsLock. The live push to the open participants sheets
  * (§5.8) is the callers' controllers' (after the commit, ParticipantsSheetLiveUpdates::changedAfterResponse()).
@@ -42,6 +43,7 @@ final class ParticipantLinks implements ResetInterface
     public function __construct(
         private readonly ParticipantLinkLogRepository $logRepository,
         private readonly ParticipantLinkRequestRepository $requestRepository,
+        private readonly ParticipantLinkNotifications $notifications,
     ) {
     }
 
@@ -85,6 +87,13 @@ final class ParticipantLinks implements ResetInterface
      * link - an organiser's link of a claimant is an approval (`claim_approved`), and approving a dispute lets go of the
      * row's current player as "not this person"; everybody else's pending request on the row and the player's own pending
      * request for another row of the event are superseded.
+     *
+     * Notifications (§9.2, §4 step 4): the claimant hears of the approval when somebody else linked them (the organiser);
+     * a claimant whose request on the row was superseded hears the neutral "not confirmed" (R10) - the player's own
+     * request for another row goes silently. A link by `organiser` / `import` that is no approval tells the player
+     * "you are on the participant list" with "Not me" - only while the event is publicly visible (a draft's links are
+     * never announced, §11), and never for an unchanged link (R12: a re-import, or the import matching the player's own
+     * row - both return above).
      */
     public function link(
         CompetitionParticipant $participant,
@@ -121,12 +130,28 @@ final class ParticipantLinks implements ResetInterface
 
         $this->connect($participant, $player, $via, $by, $now);
 
+        $bySomebodyElse = $by === null || $by->id->equals($player->id) === false;
+
         foreach ($pendingOnRow as $request) {
             if ($request === $approved) {
                 $request->approve($by, $now);
+
+                if ($bySomebodyElse) {
+                    $this->notifications->approved($request, $now);
+                }
             } else {
                 $this->supersede($request, $now);
+                $this->notifications->declined($request, $now);
             }
+        }
+
+        if (
+            $approved === null
+            && $bySomebodyElse
+            && ($via === ParticipantLinkMethod::Organiser || $via === ParticipantLinkMethod::Import)
+            && $participant->competition->isPubliclyVisible()
+        ) {
+            $this->notifications->listedYou($participant, $player, $now);
         }
 
         foreach ($this->pendingOfPlayer($participant->competition->id->toString(), $player) as $request) {
@@ -175,6 +200,7 @@ final class ParticipantLinks implements ResetInterface
         }
 
         $this->log($participant, $player, ParticipantLinkAction::Requested, null, $player, $now);
+        $this->notifications->requested($request, $now);
 
         return $request;
     }
@@ -191,6 +217,7 @@ final class ParticipantLinks implements ResetInterface
 
         $request->decline($by, $now);
         $this->log($request->participant, $request->player, ParticipantLinkAction::Declined, null, $by, $now);
+        $this->notifications->declined($request, $now);
     }
 
     public function withdraw(ParticipantLinkRequest $request, DateTimeImmutable $now): void

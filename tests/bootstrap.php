@@ -437,6 +437,9 @@ function createCustomIndexes(): void
         'target_puzzling_team_id' => 'idx_bf5476caa3e76637',
         'target_sold_swapped_item_id' => 'idx_bf5476ca343e61b1',
         'target_transfer_id' => 'idx_bf5476cad44a07a5',
+        // Participant linking notifications (Version20261118000200)
+        'target_participant_link_request_id' => 'idx_bf5476ca15541f44',
+        'target_competition_participant_id' => 'idx_bf5476ca12667544',
     ];
 
     foreach ($notificationPartialIndexes as $column => $replacedIndex) {

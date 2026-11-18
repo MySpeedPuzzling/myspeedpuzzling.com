@@ -122,6 +122,30 @@ readonly final class NotificationRepository
         return (int) $count > 0;
     }
 
+    /**
+     * The organiser has an unread "people are waiting for you to confirm" of this event already (participant-linking.md
+     * D16): one while unread per organiser and event, however many people ask. custom_notification_unread finds the
+     * organiser's unread ones, the request names the event.
+     */
+    public function hasUnreadParticipantLinkRequested(string $playerId, string $competitionId): bool
+    {
+        $count = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(n.id)')
+            ->from(Notification::class, 'n')
+            ->innerJoin('n.targetParticipantLinkRequest', 'r')
+            ->where('n.player = :player')
+            ->andWhere('n.type = :type')
+            ->andWhere('n.readAt IS NULL')
+            ->andWhere('r.competition = :competition')
+            ->setParameter('player', $playerId)
+            ->setParameter('type', NotificationType::ParticipantLinkRequested)
+            ->setParameter('competition', $competitionId)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $count > 0;
+    }
+
     public function hasUnreadTeamRenamedNotification(Player $player, PuzzlingTeam $team, Player $renamedBy): bool
     {
         $count = $this->entityManager->createQueryBuilder()

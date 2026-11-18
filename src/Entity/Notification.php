@@ -109,6 +109,17 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|DataImportUndo $targetDataImportUndo = null,
+        // ParticipantLinkRequested / ParticipantLinkApproved / ParticipantLinkDeclined: the link request it is about
+        // (docs/features/competitions-management/participant-linking.md §9.2)
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|ParticipantLinkRequest $targetParticipantLinkRequest = null,
+        // ParticipantListedYou: the participant the organiser linked the player to
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|CompetitionParticipant $targetCompetitionParticipant = null,
     ) {
     }
 }

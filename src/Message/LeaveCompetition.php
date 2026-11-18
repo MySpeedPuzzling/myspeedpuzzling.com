@@ -12,6 +12,9 @@ readonly final class LeaveCompetition implements SerializedByLock
     public function __construct(
         public string $competitionId,
         public string $playerId,
+        // "Not me" from the ParticipantListedYou notification (participant-linking.md §6.6): only this participant is let
+        // go of, as a refused pair (`not_me`) - the import never links it to the player again. Null = leaving the event
+        public null|string $notMeParticipantId = null,
     ) {
     }
 

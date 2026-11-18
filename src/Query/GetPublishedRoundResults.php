@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Results\PublishedEntryPuzzle;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
 use SpeedPuzzling\Web\Results\PublishedRoundResults;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Services\ChallengeRanking;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
@@ -39,6 +40,11 @@ use Doctrine\DBAL\Connection;
  * - A challenge view (real events W4, `?challenge=` - a shown puzzle of a pick round of K ≥ 2): the entries by that
  *   puzzle's own time (ChallengeRanking over every entry, the rows hidden from the viewer dropped after, never
  *   renumbered), the unranked after. It offers no "Add to my profile" (the round's view does) - no statement more.
+ *
+ * - A round that uses divisions (shared-puzzles-and-divisions.md D5): every row carries its division and division rank;
+ *   `?division=` (id, short label or name) shows one division's entries only, and "N ranked" counts that division (A12).
+ *   An unknown value - or any on a round without divisions - shows every entry, exactly as without it. A challenge view
+ *   (`?challenge=`) ignores `?division=`: the two are exclusive, each one's links drop the other.
  *
  * One statement for the entries (OfficialEntrantsView; it also tells whether the viewer is linked to any entry of the
  * round, and their name), one more for the viewer's own times in the round - only when a row could offer "Add to my
@@ -86,8 +92,10 @@ SQL;
     /**
      * Null when the round's results are not published or nothing is ranked - the page then stays exactly as without
      * official results.
+     *
+     * @param null|string $division `?division=` of the page - a division's id, short label or name
      */
-    public function forRound(EditionRoundDetail $round, null|string $viewerPlayerId, null|string $challengeParameter = null): null|PublishedRoundResults
+    public function forRound(EditionRoundDetail $round, null|string $viewerPlayerId, null|string $challengeParameter = null, null|string $division = null): null|PublishedRoundResults
     {
         if ($round->resultsPublished === false) {
             return null;
@@ -112,6 +120,17 @@ SQL;
         $entries = $view->entries;
         $challengeRows = [];
         $linkableTimeIds = [];
+        // One division (D5) - only on the round's own ranking: a challenge view (W4) ignores `?division=`
+        $chosenDivision = $challenge === null ? self::chosenDivision($view->divisions, $division) : null;
+        $rankedCount = $view->rankedCount;
+
+        if ($chosenDivision !== null) {
+            $entries = array_values(array_filter(
+                $entries,
+                static fn (PublishedRoundEntry $entry): bool => $entry->division?->id === $chosenDivision->id,
+            ));
+            $rankedCount = $view->rankedCountByDivision[$chosenDivision->id] ?? 0;
+        }
 
         if ($challenge !== null) {
             $entries = array_map(
@@ -149,7 +168,7 @@ SQL;
             entries: $entries,
             piecesCount: $onlyPuzzle?->piecesCount,
             profilePuzzleId: $profilePuzzleId,
-            rankedCount: $view->rankedCount,
+            rankedCount: $rankedCount,
             // Somebody signed in, linked to nothing here, on a round with names nobody is linked to: maybe one is theirs
             offersConnecting: $viewerPlayerId !== null
                 && $viewer['has_entry'] === false
@@ -160,6 +179,8 @@ SQL;
             challenge: $challenge,
             challengeRows: $challengeRows,
             linkableTimeIds: $linkableTimeIds,
+            divisions: $view->divisions,
+            division: $chosenDivision,
         );
     }
 
@@ -214,6 +235,35 @@ SQL;
             ?: $a->entry->rank <=> $b->entry->rank);
 
         return $rows;
+    }
+
+    /**
+     * The round's division `?division=` names - by id, short label or name (case-insensitive); null for none, an unknown
+     * one, or a round without divisions.
+     *
+     * @param list<RoundDivision> $divisions
+     */
+    private static function chosenDivision(array $divisions, null|string $value): null|RoundDivision
+    {
+        $value = mb_strtolower(trim((string) $value));
+
+        if ($value === '') {
+            return null;
+        }
+
+        foreach ($divisions as $division) {
+            if ($division->id === $value || ($division->shortName !== null && mb_strtolower($division->shortName) === $value)) {
+                return $division;
+            }
+        }
+
+        foreach ($divisions as $division) {
+            if (mb_strtolower($division->name) === $value) {
+                return $division;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -14,7 +14,9 @@ use SpeedPuzzling\Web\Results\CompetitionNameTag;
  * number. A pair/team round's number is the pair's/team's.
  * Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no blocklist. A tag is worn in
  * public, so a linked player's #CODE is printed only when their profile is public - whoever prints (the organiser's own
- * view of private profiles must not decide what strangers read on a badge). One statement.
+ * view of private profiles must not decide what strangers read on a badge). The division label of the entry whose table
+ * is printed rides along (EntryDivisionLabel, shared-puzzles-and-divisions.md D5) - a solo round's own, a pair/team
+ * round's the pair's/team's. One statement.
  */
 readonly final class GetCompetitionNameTags
 {
@@ -38,6 +40,9 @@ readonly final class GetCompetitionNameTags
             ? 'entry.table_number NULLS LAST, LOWER(cp.name), cp.id'
             : 'LOWER(cp.name), cp.id';
 
+        $soloDivision = EntryDivisionLabel::sql('cpr.division_id', 'cr.id');
+        $teamDivision = EntryDivisionLabel::sql('ct.division_id', 'cr.id');
+
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -47,7 +52,8 @@ SELECT
     CASE WHEN p.is_private THEN NULL ELSE p.code END AS player_code,
     cp.registration_status = 'waitlisted' AS waitlisted,
     entry.table_number,
-    entry.round_name
+    entry.round_name,
+    entry.division
 FROM competition_participant cp
 LEFT JOIN player p ON p.id = cp.player_id
 LEFT JOIN LATERAL (
@@ -58,7 +64,8 @@ LEFT JOIN LATERAL (
             WHEN cr.table_numbers_off THEN NULL
             WHEN cr.category = 'solo' THEN cpr.table_number
             ELSE ct.table_number
-        END AS table_number
+        END AS table_number,
+        CASE WHEN cr.category = 'solo' THEN {$soloDivision} ELSE {$teamDivision} END AS division
     FROM competition_participant_round cpr
     INNER JOIN competition_round cr ON cr.id = cpr.round_id
     LEFT JOIN competition_team ct ON ct.id = cpr.team_id
@@ -76,7 +83,7 @@ SQL,
         );
 
         return array_map(static function (array $row): CompetitionNameTag {
-            /** @var array{id: string, name: string, country: null|string, player_code: null|string, waitlisted: null|bool, table_number: null|int, round_name: null|string} $row */
+            /** @var array{id: string, name: string, country: null|string, player_code: null|string, waitlisted: null|bool, table_number: null|int, round_name: null|string, division: null|string} $row */
             return new CompetitionNameTag(
                 participantId: $row['id'],
                 name: $row['name'],
@@ -85,6 +92,7 @@ SQL,
                 tableNumber: $row['table_number'],
                 roundName: $row['round_name'],
                 waitlisted: $row['waitlisted'] === true,
+                division: $row['division'],
             );
         }, $rows);
     }

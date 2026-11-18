@@ -407,6 +407,52 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * One division of a round's published official results (`?division=`, shared-puzzles-and-divisions.md D5): her row
+     * there names her by the organiser's name only, like the whole round - except for the friend.
+     */
+    public function testOneDivisionOfPublishedOfficialResultsLinksHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $url = '/en/events/results-cup/results/group-b?division=J';
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        $database->executeStatement(
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['id' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+        $division = Uuid::uuid7()->toString();
+        $database->executeStatement(
+            "INSERT INTO competition_division (id, competition_id, name, short_name, position, created_at) VALUES (:id, :competition, 'Junior U16', 'J', 0, " . TestClock::SQL_NOW . ')',
+            ['id' => $division, 'competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
+        );
+        $database->executeStatement(
+            'INSERT INTO competition_round_division (id, round_id, division_id) VALUES (:id, :round, :division)',
+            ['id' => Uuid::uuid7()->toString(), 'round' => OfficialResultsFixture::ROUND_GROUP_B, 'division' => $division],
+        );
+        $database->executeStatement(
+            'UPDATE competition_participant_round SET division_id = :division WHERE id = :entry',
+            ['division' => $division, 'entry' => OfficialResultsFixture::ENTRY_B_GINA],
+        );
+
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('Gina Quick', $content, 'No canary: the division does not list her.');
+        self::assertStringNotContainsString('Hugo Slow', $content, 'No canary: the page is not filtered to the division.');
+        self::assertStringNotContainsString($profileLink, $content, 'A guest is shown a private player.');
+        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString('Gina Quick', $content);
+            self::assertStringNotContainsString($profileLink, $content, "A signed-in stranger ({$who}) is shown a private player.");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
+    }
+
+    /**
      * The public standings (competition toolkit A7): her row names her by the organiser's name only ("Gina Quick") - no
      * profile name, link, #code or id - except for the friend, and the same in a pair's row (Edge Hunters).
      */

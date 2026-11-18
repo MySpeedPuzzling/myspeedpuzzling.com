@@ -20,6 +20,8 @@ readonly final class CompetitionNameTag
         public null|string $roundName,
         // On the waitlist - printed only when the organiser asks for the waitlist too
         public bool $waitlisted = false,
+        // The division label of the entry whose table is printed (shared-puzzles-and-divisions.md D5) - null without one
+        public null|string $division = null,
     ) {
     }
 }

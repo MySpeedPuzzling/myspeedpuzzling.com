@@ -1,0 +1,16 @@
+{#
+    The division chips of a round that uses divisions (shared-puzzles-and-divisions.md D5): All, then each division the
+    round uses - `?division=` on the round page (server-side, GetPublishedRoundResults). Filtered: "N ranked in <division>"
+    - the division's count (A12). Expects round_results/_official.html.twig's context.
+#}
+<nav class="d-flex flex-wrap align-items-center gap-2 mb-2" aria-label="{{ 'round_results.division.filter_label'|trans }}" data-official-divisions>
+    {% set round_url = path(round_route, round_route_params|merge({roundSlug: round.slug})) %}
+    <a href="{{ round_url }}" class="btn btn-sm rounded-pill {{ official.division is null ? 'btn-primary' : 'btn-outline-secondary' }}"{% if official.division is null %} aria-current="page"{% endif %} data-official-division-chip="all">{{ 'round_results.division.all'|trans }}</a>
+    {% for division in official.divisions %}
+        {% set chosen = official.division is not null and official.division.id == division.id %}
+        <a href="{{ round_url }}?division={{ official.divisionFilterValue(division)|url_encode }}" rel="nofollow" class="btn btn-sm rounded-pill {{ chosen ? 'btn-primary' : 'btn-outline-secondary' }}"{% if chosen %} aria-current="page"{% endif %} title="{{ division.name }}" data-official-division-chip="{{ division.id }}">{{ division.name }}</a>
+    {% endfor %}
+</nav>
+{% if official.division is not null %}
+    <p class="small text-muted mb-2" data-official-division-count="{{ official.rankedCount }}">{{ 'round_results.division.ranked'|trans({'%count%': official.rankedCount, '%division%': official.division.name}) }}</p>
+{% endif %}

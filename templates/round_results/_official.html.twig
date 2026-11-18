@@ -10,6 +10,11 @@
 
     Ranks are the official places (computed over every ranked entry, rows hidden from the viewer dropped without
     renumbering); the table number is the organiser's business and never shown here.
+
+    A round that uses divisions (shared-puzzles-and-divisions.md D5): the division chips (round_results/_divisions.html.twig),
+    each row's division and rank within it; filtered to one division the big number is the division rank, the overall
+    one small under it. All of it is appended to existing lines - a round without divisions renders byte for byte as before
+    (OfficialRoundResultsGoldenTest).
 #}
 {% set official = page.officialResults %}
 {% for puzzle in round.puzzles %}
@@ -18,7 +23,7 @@
 
 <section class="mt-4 mb-3" aria-labelledby="official-results-heading" data-official-results>
     <h2 class="h5 mb-1" id="official-results-heading"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'round_results.official.heading'|trans }}</h2>
-    <p class="small text-muted mb-2">{{ 'round_results.official.source'|trans }}</p>{{ round.challengeSlots is not empty and official.entries is not empty ? include('round_results/_challenge_nav.html.twig') }}
+    <p class="small text-muted mb-2">{{ 'round_results.official.source'|trans }}</p>{{ round.challengeSlots is not empty and (official.entries is not empty or official.division is not null) ? include('round_results/_challenge_nav.html.twig') }}{{ official.divisions is not empty and official.challenge is null ? include('round_results/_divisions.html.twig') : '' }}
 
     {% if official.entries is empty %}
         <p class="text-muted">{{ 'round_results.official.nothing_to_show'|trans }}</p>
@@ -35,9 +40,9 @@
                 </thead>
                 <tbody>
                 {% for entry in official.entries %}
-                    <tr class="{{ entry.isViewers ? 'table-active-player' }}" data-official-entry="{{ entry.ref.toString() }}" data-official-rank="{{ entry.rank }}">
+                    <tr class="{{ entry.isViewers ? 'table-active-player' }}" data-official-entry="{{ entry.ref.toString() }}" data-official-rank="{{ entry.rank }}"{% if entry.division is not null %} data-official-division="{{ entry.division.id }}" data-official-division-rank="{{ entry.divisionRank }}"{% endif %}>
                         <td class="rank">
-                            <span class="lb-rank{{ entry.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ entry.rank }}">{{ entry.rank }}</span>
+                            <span class="lb-rank{{ (official.division is null ? entry.rank : entry.divisionRank) <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ (official.division is null ? entry.rank : entry.divisionRank) }}">{{ official.division is null ? entry.rank : entry.divisionRank }}</span>{{ official.division is null ? '' : include('round_results/_division_overall.html.twig') }}
                         </td>
 
                         <td class="lb-solver">
@@ -45,13 +50,16 @@
                                 {{ include('_leaderboard_player.html.twig', {player: entrant, small: entry.isTeam, show_tier: false}) }}
                             {% endfor %}
 
-                            {% if (entry.isTeam and entry.teamName is not null) or entry.qualified %}
+                            {% if (entry.isTeam and entry.teamName is not null) or entry.qualified or (entry.division is not null and official.division is null) %}
                                 <div class="lb-badges">
                                     {%- if entry.isTeam and entry.teamName is not null -%}
                                         <span class="badge rounded-pill lb-team-badge" data-official-team-name><i class="bi bi-people-fill" aria-hidden="true"></i> {{ entry.teamName }}</span>
                                     {%- endif -%}
                                     {%- if entry.qualified -%}
                                         <span class="badge rounded-pill official-qualified-badge" title="{{ 'official_results.qualified'|trans }}" data-official-qualified><span aria-hidden="true">{{ 'round_results.official.qualified_short'|trans }}</span><span class="visually-hidden">{{ 'official_results.qualified'|trans }}</span></span>
+                                    {%- endif -%}
+                                    {%- if entry.division is not null and official.division is null -%}
+                                        <span class="badge rounded-pill text-bg-light border fw-normal" title="{{ entry.division.name }}" data-official-division-badge>{{ 'round_results.division.place'|trans({'%division%': entry.division.label(), '%place%': entry.divisionRank is not null ? entry.divisionRank|format_number({}, 'ordinal') : '–'}) }}</span>
                                     {%- endif -%}
                                 </div>
                             {% endif %}{% if entry.puzzleChips is not empty %}{{ include('round_results/_entry_puzzles.html.twig') }}{% endif %}

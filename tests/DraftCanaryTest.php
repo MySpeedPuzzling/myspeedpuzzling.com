@@ -665,6 +665,55 @@ final class DraftCanaryTest extends WebTestCase
     }
 
     /**
+     * One division of a round's published official results (`?division=`, shared-puzzles-and-divisions.md D5): Draft
+     * Night's round with a division and a ranked entry in it - the filtered page once the event is published, a 404
+     * while it is a draft, for a guest and a player off its team.
+     */
+    public function testOneDivisionOfADraftsRoundResultsIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = OrganizationFixture::COMPETITION_DRAFT_NIGHT;
+        $participantId = Uuid::uuid7()->toString();
+        $division = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_division (id, competition_id, name, short_name, position, created_at) VALUES (:id, :competition, 'Senior 55+', 'S', 0, " . TestClock::SQL_NOW . ')',
+            ['id' => $division, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_round_division (id, round_id, division_id) VALUES (:id, :round, :division)',
+            ['id' => Uuid::uuid7()->toString(), 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT, 'division' => $division],
+        );
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, registration_status) VALUES (:id, 'Nora Nightowl', 'cz', :competition, 'imported', 'registered')",
+            ['id' => $participantId, 'competition' => $draftNight],
+        );
+        $connection->executeStatement(
+            'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start, division_id) VALUES (:id, :participant, :round, 3000, false, :division)',
+            ['id' => Uuid::uuid7()->toString(), 'participant' => $participantId, 'round' => OrganizationFixture::ROUND_DRAFT_NIGHT, 'division' => $division],
+        );
+        $connection->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]);
+        $url = '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '/results/main-round?division=S';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $browser->restart();
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, $draftNight, false);
+            $crawler = $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('No canary: the division\'s results are not there once published');
+            self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
+            self::assertCount(1, $crawler->filter('[data-official-division-count="1"]'), 'No canary: the page is not filtered to the division');
+
+            $this->setDraft(self::COMPETITION, $draftNight, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'One division of a draft\'s round results is public');
+        }
+    }
+
+    /**
      * The public bracket (competition toolkit A9): Draft Night with a declared step (its round published, a qualified
      * entry) has a bracket page, a sitemap entry and a link on its page once published - and a 404, no sitemap entry
      * and no link while it is a draft, for a guest and a player off its team.

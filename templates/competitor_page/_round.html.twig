@@ -93,7 +93,7 @@
             <div class="competitor-round-result-value">
                 {%- if entry.rank is not null %}<span class="lb-rank{{ entry.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ entry.rank }}" data-competitor-rank="{{ entry.rank }}" title="{{ 'round_results.official.rank'|trans }}">{{ entry.rank }}</span> {% endif -%}
                 <span class="competitor-round-time">{{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: entry.piecesCount}) }}</span>
-                {%- if entry.qualified %} <span class="badge rounded-pill official-qualified-badge" data-competitor-qualified>{{ 'official_results.qualified'|trans }}</span>{% endif -%}
+                {%- if entry.qualified %} <span class="badge rounded-pill official-qualified-badge" data-competitor-qualified>{{ 'official_results.qualified'|trans }}</span>{% endif -%}{% if entry.division is not null %} <span class="badge rounded-pill text-bg-light border fw-normal" data-competitor-division="{{ entry.division.id }}">{{ 'round_results.division.place'|trans({'%division%': entry.division.name, '%place%': entry.divisionRank is not null ? entry.divisionRank|format_number({}, 'ordinal') : '–'}) }}</span>{% endif -%}
             </div>
             <div class="small {{ state == 'official' ? 'text-success' : 'text-muted' }}">{{ ('competitor_page.result.' ~ state)|trans }}</div>
             {% if entry.puzzleChips is not empty %}

@@ -319,6 +319,8 @@ readonly final class GetCompetitorPage
         $rank = null;
         $qualified = false;
         $record = null;
+        $division = null;
+        $divisionRank = null;
 
         if ($row['kind'] === 'unpaired') {
             // In a pair/team round without a pair/team yet - nothing recorded for them alone
@@ -337,6 +339,8 @@ readonly final class GetCompetitorPage
                 $rank = $publishedEntry->rank;
                 $qualified = $publishedEntry->qualified;
                 $record = $publishedEntry->puzzles;
+                $division = $publishedEntry->division;
+                $divisionRank = $publishedEntry->divisionRank;
             } elseif ($ownResult->didNotStart && $isViewers) {
                 // Not ranked, so not among the round page's rows - official, but "Did not start" is never shown
                 // publicly (H1): only the competitor themself sees it, everybody else sees no result like on the round page
@@ -367,6 +371,8 @@ readonly final class GetCompetitorPage
             puzzleChips: $chips,
             piecesCount: $result !== null && $result->isUnfinished() ? UnfinishedPiecesCount::of($isPick, $round['puzzles_to_solve'], $chips, $puzzles) : null,
             unpaired: $row['kind'] === 'unpaired',
+            division: $division,
+            divisionRank: $divisionRank,
         );
     }
 

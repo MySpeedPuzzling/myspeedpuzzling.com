@@ -88,7 +88,7 @@
                 <div class="tag">
                     <div class="tag-text">
                         <div class="tag-event">{{ competition.name }}{% if round is not null %} · {{ round.name }}{% endif %}</div>
-                        <div class="tag-name{{ tag.name|length > 24 ? ' long' }}">{{ tag.name }}</div>
+                        <div class="tag-name{{ tag.name|length > 24 ? ' long' }}">{{ tag.name }}</div>{{ tag.division is not null ? include('live_results/_tag_division.html.twig', {division: tag.division}) : '' }}
                         {% if tag.country or tag.playerCode %}
                             <div class="tag-who">
                                 {% if tag.country %}

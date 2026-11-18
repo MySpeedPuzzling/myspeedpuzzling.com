@@ -199,6 +199,13 @@ round_results:
         no_split: "Finished, time not recorded"
         not_recorded: "Not recorded"
         round_result: "Round: %rank%. · %result%"
+    division:
+        filter_label: "Divisions"
+        all: "All"
+        place: "%division% · %place%"
+        ranked: "%count% ranked in %division%|%count% ranked in %division%"
+        overall: "%rank% overall"
+        overall_title: "Official place among all entries of the round"
 
 badge:
     relax: "Relax"

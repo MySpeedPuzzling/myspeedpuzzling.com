@@ -22,6 +22,8 @@ readonly final class CompetitionLineupTag
         public null|int $tableNumber,
         public string $roundName,
         public array $roundNames,
+        // The division label of the printed round's pair/team (shared-puzzles-and-divisions.md D5) - null without one
+        public null|string $division = null,
     ) {
     }
 

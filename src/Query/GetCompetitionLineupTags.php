@@ -22,7 +22,8 @@ use SpeedPuzzling\Web\Value\CompetitionLineupId;
  * only the old line-up's rounds (R-review-and-plan.md §2.11), the print page says so.
  *
  * Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no blocklist; a linked player's
- * #CODE only for a public profile, whoever prints (the name tags' rule, GetCompetitionNameTags). One statement.
+ * #CODE only for a public profile, whoever prints (the name tags' rule, GetCompetitionNameTags). The division label of
+ * the printed round's pair/team rides along (EntryDivisionLabel, shared-puzzles-and-divisions.md D5). One statement.
  */
 readonly final class GetCompetitionLineupTags
 {
@@ -36,7 +37,9 @@ readonly final class GetCompetitionLineupTags
 
     public function ofCompetition(string $competitionId, null|string $roundId, string $sort): CompetitionLineupTags
     {
-        /** @var list<array{team_id: string, team_name: null|string, round_id: string, round_name: string, category: string, starts_at: string, table_number: null|int, members: string}> $rows */
+        $division = EntryDivisionLabel::sql('ct.division_id', 'cr.id');
+
+        /** @var list<array{team_id: string, team_name: null|string, round_id: string, round_name: string, category: string, starts_at: string, table_number: null|int, members: string, division: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -52,7 +55,8 @@ SELECT
         'name', cp.name,
         'country', cp.country,
         'code', CASE WHEN p.is_private THEN NULL ELSE p.code END
-    ) ORDER BY LOWER(cp.name), cp.id) AS members
+    ) ORDER BY LOWER(cp.name), cp.id) AS members,
+    {$division} AS division
 FROM competition_team ct
 INNER JOIN competition_round cr ON cr.id = ct.round_id AND cr.category <> 'solo'
 INNER JOIN competition_participant_round cpr ON cpr.team_id = ct.id
@@ -65,7 +69,7 @@ SQL,
             ['competitionId' => $competitionId],
         );
 
-        /** @var array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int}>}> $lineups */
+        /** @var array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int, division: null|string}>}> $lineups */
         $lineups = [];
 
         foreach ($rows as $row) {
@@ -83,6 +87,7 @@ SQL,
                 'category' => $row['category'],
                 'startsAt' => $row['starts_at'],
                 'tableNumber' => $row['table_number'],
+                'division' => $row['division'],
             ];
         }
 
@@ -112,6 +117,7 @@ SQL,
                 tableNumber: $printedRound['tableNumber'],
                 roundName: $printedRound['name'],
                 roundNames: array_map(static fn (array $round): string => $round['name'], $lineup['rounds']),
+                division: $printedRound['division'],
             );
         }
 
@@ -131,7 +137,7 @@ SQL,
      * A line-up changed when one of its people plays in another line-up of the same category in a round that starts
      * after one of the line-up's rounds - reported once per old and new line-up, at the first such round.
      *
-     * @param array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int}>}> $lineups
+     * @param array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int, division: null|string}>}> $lineups
      * @return list<CompetitionLineupChange>
      */
     private static function changes(array $lineups): array

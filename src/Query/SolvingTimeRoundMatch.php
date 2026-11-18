@@ -55,12 +55,18 @@ readonly final class SolvingTimeRoundMatch
         $maxBit = self::MAX_PERSON_BIT;
         $savedLive = self::SQL_SAVED_LIVE;
 
+        // Shaped for the reconciler's cost (production 2026-11-18): only the narrow columns go through the window; a time
+        // with one candidate (nearly all) never reaches the evidence nor the aggregation - sqlAnswer() takes it straight
+        // from round_match_counted. The wide columns (team JSON, the dates) are joined back for several candidates only,
+        // so the time source is inlined (NOT MATERIALIZED) rather than materialized whole.
         return <<<SQL
-round_match_time AS (
+round_match_time AS NOT MATERIALIZED (
 {$timesSelect}
 ),
 round_match_counted AS (
-    SELECT t.*,
+    SELECT t.time_id,
+        t.current_round_id,
+        t.chosen,
         cr.id AS round_id,
         cr.competition_id AS round_competition_id,
         cr.starts_at AS round_starts_at,
@@ -71,6 +77,29 @@ round_match_counted AS (
     INNER JOIN competition_round cr ON cr.competition_id = t.competition_id AND cr.category = t.category
     WHERE EXISTS (SELECT 1 FROM competition_round_puzzle crp WHERE crp.round_id = cr.id AND crp.puzzle_id = t.puzzle_id)
 ),
+round_match_several AS (
+    SELECT c.*,
+        t.owner_id,
+        t.team_json,
+        t.seconds,
+        t.pieces_placed,
+        t.solve_day,
+        t.tracked_at,
+        t.created_via
+    FROM round_match_counted c
+    CROSS JOIN LATERAL (
+        SELECT time_source.owner_id,
+            time_source.team_json,
+            time_source.seconds,
+            time_source.pieces_placed,
+            time_source.solve_day,
+            time_source.tracked_at,
+            time_source.created_via
+        FROM round_match_time time_source
+        WHERE time_source.time_id = c.time_id
+    ) t
+    WHERE c.n > 1
+),
 round_match_candidate AS (
     SELECT c.time_id,
         c.current_round_id,
@@ -80,7 +109,7 @@ round_match_candidate AS (
         COALESCE(ev.excluded, false) AS excluded,
         COALESCE(ev.entry_mask, 0) AS entry_mask,
         COALESCE(ev.result_match, false) AS result_match
-    FROM round_match_counted c
+    FROM round_match_several c
     LEFT JOIN LATERAL (
         SELECT entries.has_dns
                 OR (c.round_start_time_known AND c.created_via IN ({$savedLive}) AND c.tracked_at < c.round_starts_at)
@@ -89,7 +118,8 @@ round_match_candidate AS (
             entries.result_match
         FROM (
             -- A zone PHP knows but this Postgres does not is never read (AT TIME ZONE would fail the whole statement):
-            -- the day exclusion is skipped for it
+            -- the day exclusion is skipped for it. The zone list is read once, and only when a time has several
+            -- candidates (a hashed subplan is built on its first use)
             SELECT resolved.name, resolved.name IN (SELECT known.name FROM pg_timezone_names known) AS known
             FROM (
                 SELECT {$zone} AS name
@@ -119,7 +149,6 @@ round_match_candidate AS (
                     CASE WHEN cpr.team_id IS NULL THEN cpr.result_pieces_placed ELSE ct.result_pieces_placed END AS pieces_placed
             ) entry
         ) entries
-        WHERE c.n > 1
     ) ev ON true
 ),
 round_match_evaluated AS (
@@ -152,9 +181,15 @@ SQL;
         $qualifies = 'e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask';
 
         return <<<SQL
+SELECT one.time_id,
+    one.round_id,
+    COALESCE(one.chosen AND one.round_id = one.current_round_id, false) AS chosen,
+    one.n AS candidates
+FROM round_match_counted one
+WHERE one.n = 1
+UNION ALL
 SELECT e.time_id,
     CASE
-        WHEN MAX(e.n) = 1 THEN (array_agg(e.round_id))[1]
         WHEN bool_or(e.chosen AND e.round_id = e.current_round_id) THEN (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id))[1]
         WHEN bool_or(e.chosen) THEN NULL
         -- The evidence's answer, else (A3b, sticky) the round the time already holds while it is a remaining candidate

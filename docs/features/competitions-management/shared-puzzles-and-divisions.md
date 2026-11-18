@@ -556,8 +556,13 @@ in, otherwise divisions are set in the sheet or through the internal API.
   `changeCompetitionRound()` (clears the flag), `roundResolved(round, chosen)` - what every resolver caller applies.
 - **The rule** `src/Query/SolvingTimeRoundMatch.php`: `sqlCandidates($timesSelect)` + `sqlAnswer()`. The times select
   has the same columns for the resolver (one row of parameters, `team` JSON written by `PuzzlersGroupDoctrineType` -
-  the one membership source) and the reconciler (`puzzle_solving_time`). Evidence is computed in a `LATERAL` gated by
-  `WHERE n > 1` (a one-time filter: never evaluated for a single candidate). A3 "consistent for every person" is a
+  the one membership source) and the reconciler (`puzzle_solving_time`). A time with one candidate takes its round
+  straight from `round_match_counted` (a `UNION ALL` branch of `sqlAnswer()`) - no evidence, no aggregation; only narrow
+  columns go through the window, and the wide ones (team JSON, dates, `created_via`) are joined back from the inlined
+  (`NOT MATERIALIZED`) time source for times with several candidates only (`round_match_several`). The first shape - a
+  `LATERAL` gated by `WHERE n > 1` - did not gate: Postgres pulled the subquery up and applied `n > 1` as a join filter
+  after computing the evidence for every candidate row (production 2026-11-18: link statement 47 → 229 ms; the
+  rewrite measured 75 ms with identical answers). A3 "consistent for every person" is a
   bit mask per round (bit 0 = owner, bit k = the k-th puzzler of the JSON; > 62 puzzlers share the last bit): a round
   qualifies when its mask equals the union over the remaining rounds. The round's local day uses
   `RoundTimezone::sqlResolve()` - `resolve()` written as SQL (PHP's zone list + `CountryCode::defaultTimezone()`), so

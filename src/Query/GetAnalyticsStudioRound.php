@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\AnalyticsStudioNotFound;
 use SpeedPuzzling\Web\Results\AnalyticsStudioEventRound;
 use SpeedPuzzling\Web\Results\AnalyticsStudioRound;
+use SpeedPuzzling\Web\Value\LiveResultsBeforePublishing;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
 /**
@@ -61,6 +62,7 @@ readonly final class GetAnalyticsStudioRound
     private function fetch(string $where, array $parameters): AnalyticsStudioRound
     {
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $liveResults = LiveResultsBeforePublishing::sql('c');
 
         /** @var Row|false $row */
         $row = $this->database->fetchAssociative(
@@ -85,7 +87,7 @@ SELECT
     c.slug AS event_slug,
     cs.name AS series_name,
     cs.slug AS series_slug,
-    (c.competitor_pages AND c.competitor_pages_live_results) AS live_results,
+    {$liveResults} AS live_results,
     (
         SELECT json_agg(json_build_object(
             'id', other.id,

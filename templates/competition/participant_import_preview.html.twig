@@ -130,6 +130,14 @@
                             </div>
                         {% endif %}
 
+                        {# An event with divisions reads a "Division" column as the entries' division, never as rounds (A14) #}
+                        {% set divisions_header = preview.divisionsHeaderNotice %}
+                        {% if divisions_header is not null %}
+                            <div class="alert alert-info py-2 small" role="status" id="participant-import-division-notice">
+                                {{ 'entry_divisions.import.header_read_as_division'|trans({'%column%': divisions_header}) }}
+                            </div>
+                        {% endif %}
+
                         {% set duplicate_columns = preview.duplicateColumns %}
                         {# position-relative: the visually hidden labels stay inside the scroller (no page overflow on a phone) #}
                         <div class="table-responsive position-relative mb-3">
@@ -170,6 +178,12 @@
                                                             {% for round in preview.rounds|filter(round => round.hasTeams) %}
                                                                 {% set team_value = constant('SpeedPuzzling\\Web\\Value\\ColumnMapping::TEAM_IN_ROUND_PREFIX') ~ round.id %}
                                                                 <option value="{{ team_value }}" {{ value == team_value ? 'selected' }}>{{ 'competition.participants.import.mapping.team_in_round'|trans({'%round%': round.name}) }}</option>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        {% if field.value == 'division' %}
+                                                            {% for round in preview.divisionRounds %}
+                                                                {% set division_value = constant('SpeedPuzzling\\Web\\Value\\ColumnMapping::DIVISION_IN_ROUND_PREFIX') ~ round.id %}
+                                                                <option value="{{ division_value }}" {{ value == division_value ? 'selected' }}>{{ 'entry_divisions.import.division_in_round'|trans({'%round%': round.name}) }}</option>
                                                             {% endfor %}
                                                         {% endif %}
                                                     {% endfor %}

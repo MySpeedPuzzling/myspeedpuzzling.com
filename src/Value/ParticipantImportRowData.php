@@ -12,6 +12,8 @@ readonly final class ParticipantImportRowData
 {
     /**
      * @param array<string, string> $teamsByRound round id => cell of that round's own team column (key present = mapped)
+     * @param array<string, string> $divisionsByRound round id => cell of that round's own division column (key present =
+     *        mapped, shared-puzzles-and-divisions.md §3.5)
      */
     public function __construct(
         public int $rowNumber,
@@ -31,6 +33,9 @@ readonly final class ParticipantImportRowData
         public array $teamsByRound = [],
         /** The organiser's address of the person - an empty cell never clears one (participant-linking.md §7.3) */
         public null|string $email = null,
+        /** The Division cell - the division in every round of the row that uses it; null = no column mapped */
+        public null|string $division = null,
+        public array $divisionsByRound = [],
     ) {
     }
 
@@ -52,6 +57,9 @@ readonly final class ParticipantImportRowData
             'team' => $this->team,
             'teamsByRound' => $this->teamsByRound,
             'email' => $this->email,
+            // Only when mapped: an event without divisions hashes its rows exactly as before
+            ...($this->division !== null ? ['division' => $this->division] : []),
+            ...($this->divisionsByRound !== [] ? ['divisionsByRound' => $this->divisionsByRound] : []),
         ];
     }
 }

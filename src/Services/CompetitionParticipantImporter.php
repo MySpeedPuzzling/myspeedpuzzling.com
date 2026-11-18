@@ -43,6 +43,9 @@ readonly final class CompetitionParticipantImporter
     /** Row messages that were errors (not warnings) of the import - the console prints them as such */
     private const array ERROR_MESSAGES = ['missing_name', 'linking.invalid_player_reference', 'linking.unknown_player_reference', 'linking.code_changed_owner', 'linking.player_in_file_twice'];
 
+    /** A division value naming no division of the event (shared-puzzles-and-divisions.md §3.5) - an error of the row */
+    private const string DIVISION_ERROR = 'entry_divisions.import.unknown';
+
     public function __construct(
         private CompetitionRepository $competitionRepository,
         private ParticipantImportPlanner $planner,
@@ -70,8 +73,8 @@ readonly final class CompetitionParticipantImporter
             return new ParticipantImportResult(errors: [PlanBuilder::message('empty_file')]);
         }
 
-        $rounds = $this->planner->rounds($competitionId);
-        $mapping = ColumnMapping::detect($sheet->headers, $rounds);
+        [$rounds, $divisions] = $this->planner->roundsAndDivisions($competitionId);
+        $mapping = ColumnMapping::detect($sheet->headers, $rounds, $divisions !== []);
 
         if (!$mapping->hasName()) {
             return new ParticipantImportResult(errors: [PlanBuilder::message('name_column_missing')]);
@@ -160,7 +163,7 @@ readonly final class CompetitionParticipantImporter
             foreach ($row->messages as $message) {
                 $key = substr($message->getMessage(), strlen(PlanBuilder::MESSAGE_PREFIX));
 
-                if (in_array($key, self::ERROR_MESSAGES, true)) {
+                if (in_array($key, self::ERROR_MESSAGES, true) || $message->getMessage() === self::DIVISION_ERROR) {
                     $errors[] = $message;
                 } else {
                     $warnings[] = $message;

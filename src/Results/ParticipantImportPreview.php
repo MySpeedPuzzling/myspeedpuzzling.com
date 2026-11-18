@@ -27,6 +27,7 @@ readonly final class ParticipantImportPreview
      * @param list<ParticipantFileSheetInfo> $sheets
      * @param list<ParticipantImportRound> $rounds
      * @param list<TranslatableMessage> $mappingErrors
+     * @param list<RoundDivision> $divisions the event's divisions - none = no Division field (shared-puzzles-and-divisions.md §3.5)
      */
     public function __construct(
         public StashedParticipantImport $stashed,
@@ -45,7 +46,31 @@ readonly final class ParticipantImportPreview
         public null|ParticipantImportPlan $plan = null,
         /** Why the file or the chosen sheet could not be read (sheet = null) */
         public null|TranslatableMessage $fileError = null,
+        public array $divisions = [],
     ) {
+    }
+
+    /**
+     * The rounds whose own Division column the organiser may pick (`division_in_round:<id>`).
+     *
+     * @return list<ParticipantImportRound>
+     */
+    public function divisionRounds(): array
+    {
+        return $this->divisions === [] ? [] : array_values(array_filter($this->rounds, static fn (ParticipantImportRound $round): bool => $round->usesDivisions()));
+    }
+
+    /**
+     * A `division(s)` column of an event with divisions is read as the entries' division, not as rounds (A14) - the
+     * header, for the preview's line saying so; null otherwise.
+     */
+    public function divisionsHeaderNotice(): null|string
+    {
+        if ($this->divisions === [] || $this->sheet === null || $this->mapping === null) {
+            return null;
+        }
+
+        return $this->mapping->divisionsHeaderReadAsDivision($this->sheet->headers);
     }
 
     public function isCsv(): bool

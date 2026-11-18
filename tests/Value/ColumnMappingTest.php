@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Value;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Value\ColumnMapping;
 use SpeedPuzzling\Web\Value\ParticipantImportField;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
@@ -242,6 +243,61 @@ final class ColumnMappingTest extends TestCase
         self::assertFalse($rows->roundsMapped);
         self::assertSame('Edge Lords', $rows->rows[0]->team);
         self::assertSame([], $rows->unmappedHeaders);
+    }
+
+    /**
+     * Divisions (shared-puzzles-and-divisions.md §3.5): `division(s)` stay the Rounds column of an event without a
+     * division list - every WJPC-style file maps exactly as before - and are the Division column of an event with one.
+     */
+    public function testADivisionColumnIsRoundsWithoutADivisionListAndTheDivisionWithOne(): void
+    {
+        $headers = ['Name', 'Division', 'Solo division', 'division: Pair', 'Age group'];
+
+        $without = ColumnMapping::detect($headers, self::roundsWithDivisions(), false);
+        self::assertEquals([0 => ParticipantImportField::Name, 1 => ParticipantImportField::Rounds], $without->fields);
+        self::assertSame([], $without->divisionRounds);
+
+        $with = ColumnMapping::detect($headers, self::roundsWithDivisions(), true);
+        self::assertEquals([
+            0 => ParticipantImportField::Name,
+            1 => ParticipantImportField::Division,
+            2 => ParticipantImportField::DivisionInRound,
+            3 => ParticipantImportField::DivisionInRound,
+        ], $with->fields);
+        self::assertSame([2 => self::SOLO, 3 => self::PAIR], $with->divisionRounds);
+        self::assertSame('Division', $with->divisionsHeaderReadAsDivision($headers));
+
+        // A round's own division column only for a round that uses divisions (Team Relay does not)
+        self::assertSame([], ColumnMapping::detect(['Name', 'Team Relay division'], self::roundsWithDivisions(), true)->divisionRounds);
+
+        // The query round trip; an old URL never maps a Division column onto an event without divisions
+        $query = $with->toQuery($headers);
+        self::assertSame(['name', 'division', 'division_in_round:' . self::SOLO, 'division_in_round:' . self::PAIR, 'ignore'], array_values($query));
+        self::assertEquals($with, ColumnMapping::fromQuery($query, $headers, self::roundsWithDivisions(), true));
+        self::assertEquals([0 => ParticipantImportField::Name], ColumnMapping::fromQuery($query, $headers, self::roundsWithDivisions(), false)->fields);
+
+        $sheet = new ParticipantSheet(headers: $headers, rows: [2 => ['Casey Example', 'Senior 55+', 'J', '', '']]);
+        $row = $with->toRows($sheet)->rows[0];
+        self::assertSame('Senior 55+', $row->division);
+        self::assertSame([self::SOLO => 'J', self::PAIR => ''], $row->divisionsByRound);
+
+        // A file without divisions hashes its rows as before: no division keys in the row
+        self::assertArrayNotHasKey('division', $without->toRows($sheet)->rows[0]->toArray());
+    }
+
+    /**
+     * @return list<ParticipantImportRound>
+     */
+    private static function roundsWithDivisions(): array
+    {
+        $regular = new RoundDivision('d-regular', 'Regular', null);
+        $senior = new RoundDivision('d-senior', 'Senior 55+', 'S');
+
+        return [
+            new ParticipantImportRound(self::SOLO, 'Solo', RoundCategory::Solo, divisions: [$regular, $senior]),
+            new ParticipantImportRound(self::PAIR, 'Pair', RoundCategory::Duo, divisions: [$regular]),
+            new ParticipantImportRound(self::TEAM_RELAY, 'Team Relay', RoundCategory::Team),
+        ];
     }
 
     /**

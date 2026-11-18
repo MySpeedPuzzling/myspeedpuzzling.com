@@ -8,11 +8,20 @@ use Symfony\Component\Translation\TranslatableMessage;
 
 /**
  * Which column of an uploaded participant list holds what (docs/features/competitions-management/participant-import-preview.md D4-D6).
- * Lives in the preview's URL: `map[<column index>]=<field value>`, `team_in_round:<round id>` for a round's team column.
+ * Lives in the preview's URL: `map[<column index>]=<field value>`, `team_in_round:<round id>` for a round's team column,
+ * `division_in_round:<round id>` for a round's division column.
+ *
+ * Divisions (shared-puzzles-and-divisions.md §3.5): `division` / `divisions` are the Rounds column of an event without
+ * a division list - as always (WJPC lists call their rounds divisions) - and the Division column of an event with one;
+ * `<round> division` / `division: <round>` is that round's division (a round that uses divisions).
  */
 readonly final class ColumnMapping
 {
     public const string TEAM_IN_ROUND_PREFIX = 'team_in_round:';
+    public const string DIVISION_IN_ROUND_PREFIX = 'division_in_round:';
+
+    /** Headers of the Division column of an event with a division list - `division(s)` are Rounds without one */
+    private const array DIVISION_HEADERS = ['division', 'divisions', 'division name', 'age group', 'age category'];
 
     /**
      * Headers recognised without the organiser's help - normalised by normaliseHeader().
@@ -69,21 +78,25 @@ readonly final class ColumnMapping
     /**
      * @param array<int, ParticipantImportField> $fields column index => field (Ignore left out)
      * @param array<int, string> $teamRounds column index => round id, for the TeamInRound columns
+     * @param array<int, string> $divisionRounds column index => round id, for the DivisionInRound columns
      */
     public function __construct(
         public array $fields,
         public array $teamRounds = [],
+        public array $divisionRounds = [],
     ) {
     }
 
     /**
      * @param list<string> $headers
      * @param list<ParticipantImportRound> $rounds
+     * @param bool $hasDivisions the event has a division list (shared-puzzles-and-divisions.md §3.5)
      */
-    public static function detect(array $headers, array $rounds): self
+    public static function detect(array $headers, array $rounds, bool $hasDivisions = false): self
     {
         $fields = [];
         $teamRounds = [];
+        $divisionRounds = [];
 
         foreach ($headers as $index => $header) {
             $key = self::normaliseHeader($header);
@@ -103,7 +116,20 @@ readonly final class ColumnMapping
                 continue;
             }
 
-            $field = self::HEADERS[$key] ?? null;
+            $round = $hasDivisions ? self::divisionRoundOf($key, $rounds) : null;
+
+            if ($round !== null) {
+                if (!in_array($round->id, $divisionRounds, true)) {
+                    $fields[$index] = ParticipantImportField::DivisionInRound;
+                    $divisionRounds[$index] = $round->id;
+                }
+
+                continue;
+            }
+
+            $field = $hasDivisions && in_array($key, self::DIVISION_HEADERS, true)
+                ? ParticipantImportField::Division
+                : self::HEADERS[$key] ?? null;
 
             // The first column of a kind wins; a second one stays ignored until the organiser decides
             if ($field !== null && !in_array($field, $fields, true)) {
@@ -119,7 +145,7 @@ readonly final class ColumnMapping
             );
         }
 
-        return new self($fields, $teamRounds);
+        return new self($fields, $teamRounds, $divisionRounds);
     }
 
     /**
@@ -127,14 +153,20 @@ readonly final class ColumnMapping
      * @param list<string> $headers
      * @param list<ParticipantImportRound> $rounds
      */
-    public static function fromQuery(array $map, array $headers, array $rounds): self
+    public static function fromQuery(array $map, array $headers, array $rounds, bool $hasDivisions = false): self
     {
         $fields = [];
         $teamRounds = [];
+        $divisionRounds = [];
         $teamRoundIds = [];
+        $divisionRoundIds = [];
         foreach ($rounds as $round) {
             if ($round->hasTeams()) {
                 $teamRoundIds[] = $round->id;
+            }
+
+            if ($hasDivisions && $round->usesDivisions()) {
+                $divisionRoundIds[] = $round->id;
             }
         }
 
@@ -154,17 +186,34 @@ readonly final class ColumnMapping
                 continue;
             }
 
+            if (str_starts_with($value, self::DIVISION_IN_ROUND_PREFIX)) {
+                $roundId = substr($value, strlen(self::DIVISION_IN_ROUND_PREFIX));
+
+                if (in_array($roundId, $divisionRoundIds, true)) {
+                    $fields[$index] = ParticipantImportField::DivisionInRound;
+                    $divisionRounds[$index] = $roundId;
+                }
+
+                continue;
+            }
+
             $field = ParticipantImportField::tryFrom($value);
 
-            if ($field !== null && $field !== ParticipantImportField::Ignore && $field !== ParticipantImportField::TeamInRound) {
+            // A Division column only for an event with divisions - an old URL never maps one onto another event
+            if ($field === ParticipantImportField::Division && $hasDivisions === false) {
+                continue;
+            }
+
+            if ($field !== null && $field !== ParticipantImportField::Ignore && $field !== ParticipantImportField::TeamInRound && $field !== ParticipantImportField::DivisionInRound) {
                 $fields[$index] = $field;
             }
         }
 
         ksort($fields);
         ksort($teamRounds);
+        ksort($divisionRounds);
 
-        return new self($fields, $teamRounds);
+        return new self($fields, $teamRounds, $divisionRounds);
     }
 
     /**
@@ -190,6 +239,10 @@ readonly final class ColumnMapping
 
         if ($field === ParticipantImportField::TeamInRound) {
             return self::TEAM_IN_ROUND_PREFIX . ($this->teamRounds[$column] ?? '');
+        }
+
+        if ($field === ParticipantImportField::DivisionInRound) {
+            return self::DIVISION_IN_ROUND_PREFIX . ($this->divisionRounds[$column] ?? '');
         }
 
         return $field->value;
@@ -243,6 +296,11 @@ readonly final class ColumnMapping
                 $teamsByRound[$roundId] = (string) $cell($row, $column);
             }
 
+            $divisionsByRound = [];
+            foreach ($this->divisionRounds as $column => $roundId) {
+                $divisionsByRound[$roundId] = (string) $cell($row, $column);
+            }
+
             $data = new ParticipantImportRowData(
                 rowNumber: $rowNumber,
                 name: $name,
@@ -256,10 +314,12 @@ readonly final class ColumnMapping
                 team: $cell($row, $this->column(ParticipantImportField::Team)),
                 teamsByRound: $teamsByRound,
                 email: $cell($row, $this->column(ParticipantImportField::Email)),
+                division: $cell($row, $this->column(ParticipantImportField::Division)),
+                divisionsByRound: $divisionsByRound,
             );
 
             $mappedValues = array_filter(
-                [$data->name, $data->country, $data->externalId, $data->playerId, $data->participantId, $data->status, $data->roundNames, $data->roundName, $data->team, ...array_values($teamsByRound)],
+                [$data->name, $data->country, $data->externalId, $data->playerId, $data->participantId, $data->status, $data->roundNames, $data->roundName, $data->team, ...array_values($teamsByRound), $data->division, ...array_values($divisionsByRound)],
                 static fn (null|string $value): bool => $value !== null && $value !== '',
             );
 
@@ -321,7 +381,7 @@ readonly final class ColumnMapping
 
         $counts = [];
         foreach ($this->fields as $field) {
-            if ($field !== ParticipantImportField::TeamInRound) {
+            if ($field !== ParticipantImportField::TeamInRound && $field !== ParticipantImportField::DivisionInRound) {
                 $counts[$field->value] = ($counts[$field->value] ?? 0) + 1;
             }
         }
@@ -338,6 +398,13 @@ readonly final class ColumnMapping
         foreach ($roundCounts as $count) {
             if ($count > 1) {
                 $errors[] = new TranslatableMessage('competition.participants.import.mapping.team_round_twice');
+                break;
+            }
+        }
+
+        foreach (array_count_values($this->divisionRounds) as $count) {
+            if ($count > 1) {
+                $errors[] = new TranslatableMessage('entry_divisions.import.division_round_twice');
                 break;
             }
         }
@@ -377,6 +444,45 @@ readonly final class ColumnMapping
         }
 
         return null;
+    }
+
+    /**
+     * "division: <round>", "division name: <round>" or "<round> division" for a round of the event that uses divisions.
+     *
+     * @param list<ParticipantImportRound> $rounds
+     */
+    private static function divisionRoundOf(string $normalisedHeader, array $rounds): null|ParticipantImportRound
+    {
+        foreach ($rounds as $round) {
+            if (!$round->usesDivisions()) {
+                continue;
+            }
+
+            $roundKey = self::normaliseHeader($round->name);
+
+            if (in_array($normalisedHeader, ['division: ' . $roundKey, 'division name: ' . $roundKey, $roundKey . ' division'], true)) {
+                return $round;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The Division column was found by a `division(s)` header - which an event without divisions reads as its rounds:
+     * the preview says how it is read (A14), so a list of rounds called divisions is mapped by hand.
+     *
+     * @param list<string> $headers
+     */
+    public function divisionsHeaderReadAsDivision(array $headers): null|string
+    {
+        $column = $this->column(ParticipantImportField::Division);
+
+        if ($column === null || !in_array(self::normaliseHeader($headers[$column] ?? ''), ['division', 'divisions'], true)) {
+            return null;
+        }
+
+        return $headers[$column];
     }
 
     /**

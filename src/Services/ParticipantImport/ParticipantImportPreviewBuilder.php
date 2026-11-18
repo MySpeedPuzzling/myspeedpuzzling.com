@@ -42,8 +42,9 @@ readonly final class ParticipantImportPreviewBuilder
             return new ParticipantImportPreview($stashed, [], 0, $options, $mode, fileError: self::errorOf($e));
         }
 
-        $rounds = $this->planner->rounds($competitionId);
-        $sheetIndex = $this->chosenSheet($stashed, $competitionId, $sheets, $input['sheet'] ?? null, $options, $rounds);
+        [$rounds, $divisions] = $this->planner->roundsAndDivisions($competitionId);
+        $hasDivisions = $divisions !== [];
+        $sheetIndex = $this->chosenSheet($stashed, $competitionId, $sheets, $input['sheet'] ?? null, $options, $rounds, $hasDivisions);
 
         try {
             $sheet = $this->stash->sheet($stashed->token, $competitionId, $sheetIndex, $options);
@@ -56,8 +57,8 @@ readonly final class ParticipantImportPreviewBuilder
         $mappingFromInput = is_array($map) && ($input['headers'] ?? null) === $headersKey;
 
         $mapping = $mappingFromInput
-            ? ColumnMapping::fromQuery($map, $sheet->headers, $rounds)
-            : ColumnMapping::detect($sheet->headers, $rounds);
+            ? ColumnMapping::fromQuery($map, $sheet->headers, $rounds, $hasDivisions)
+            : ColumnMapping::detect($sheet->headers, $rounds, $hasDivisions);
 
         $mappingErrors = $mapping->errors();
 
@@ -73,6 +74,7 @@ readonly final class ParticipantImportPreviewBuilder
                 mapping: $mapping,
                 mappingFromInput: $mappingFromInput,
                 mappingErrors: $mappingErrors,
+                divisions: $divisions,
             );
         }
 
@@ -90,6 +92,7 @@ readonly final class ParticipantImportPreviewBuilder
             mappingFromInput: $mappingFromInput,
             rows: $rows,
             plan: $this->planner->plan($competitionId, $rows, $mode),
+            divisions: $divisions,
         );
     }
 
@@ -107,7 +110,7 @@ readonly final class ParticipantImportPreviewBuilder
      * @param list<ParticipantFileSheetInfo> $sheets
      * @param list<ParticipantImportRound> $rounds
      */
-    private function chosenSheet(StashedParticipantImport $stashed, string $competitionId, array $sheets, mixed $asked, ParticipantFileOptions $options, array $rounds): int
+    private function chosenSheet(StashedParticipantImport $stashed, string $competitionId, array $sheets, mixed $asked, ParticipantFileOptions $options, array $rounds, bool $hasDivisions): int
     {
         if (is_numeric($asked)) {
             foreach ($sheets as $sheet) {
@@ -134,7 +137,7 @@ readonly final class ParticipantImportPreviewBuilder
                 continue;
             }
 
-            if (ColumnMapping::detect($sheet->headers, $rounds)->hasName()) {
+            if (ColumnMapping::detect($sheet->headers, $rounds, $hasDivisions)->hasName()) {
                 return $info->index;
             }
         }

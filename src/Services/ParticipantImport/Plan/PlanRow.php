@@ -20,6 +20,9 @@ final class PlanRow
     /** @var list<string> pair/team rounds of the row, shown with the person's team after the import */
     public array $teamRoundIds = [];
 
+    /** @var array<string, array{before: null|string, after: string}> round name => the division the row gives the entry */
+    public array $divisionChanges = [];
+
     public function __construct(
         public readonly int $rowNumber,
         public readonly string $name,

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 /**
- * What a column of an uploaded participant list holds. `TeamInRound` is the only field that may be mapped
- * more than once - once per pair/team round (the round's id travels next to it in ColumnMapping).
+ * What a column of an uploaded participant list holds. `TeamInRound` and `DivisionInRound` are the only fields that may
+ * be mapped more than once - once per round (the round's id travels next to it in ColumnMapping). `Division` and
+ * `DivisionInRound` exist only for an event with divisions (shared-puzzles-and-divisions.md §3.5).
  */
 enum ParticipantImportField: string
 {
@@ -29,4 +30,8 @@ enum ParticipantImportField: string
     case Status = 'status';
     // The organiser's address of the person, for the claim invitation (participant-linking.md §7.3) - private
     case Email = 'email';
+    // The entry's division in every round of the row that uses it
+    case Division = 'division';
+    // The entry's division in one round (`division_in_round:<round id>`)
+    case DivisionInRound = 'division_in_round';
 }

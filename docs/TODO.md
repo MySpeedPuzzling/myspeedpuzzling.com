@@ -4,6 +4,12 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Embeddable standing (`docs/features/competitions-management/standings.md` "Embeddable standing", real events L3, 2026-11-18)
+
+- [ ] Browser walk: the embed in an `<iframe>` on another origin (a local HTML file / codepen), light + `?theme=dark`, phone width, a publish while it is open (the signal → refetch → "Updated at")
+- [ ] Production: check that lily's nginx / bot-blocker adds no `X-Frame-Options` of its own to `/embed/` (it would block the frame) and does not challenge a framed request; check the new site-wide `X-Frame-Options: SAMEORIGIN` breaks nothing that frames our pages from elsewhere
+- [ ] Maybe: auto-height through `postMessage` (the organiser sets the height today)
+
 ## Participant import - team rows (`docs/features/competitions-management/participant-import-preview.md` "As built: team rows", 2026-11-18)
 - [ ] Check the real Ticket Tailor export of St. Paul (column names, how an unanswered question is written - "", "-", "N/A") against the made-up one in `tests/Services/ParticipantImport/fixtures/`
 - [ ] Per-member references (`member N msp` / `member N email`) - today members are matched by name (+ the row's country) only

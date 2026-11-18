@@ -145,7 +145,7 @@ duplicates and never overwrites a recorded result):
 cd /srv/msp-sandbox && docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events --date=2026-12-02
 ```
 
-It prints every URL (event page, toolkit hub, participants sheet, competitor list, standings, displays, and per round
+It prints every URL (event page, toolkit hub, participants sheet, competitor list, standings and their embeds, displays, and per round
 the desk, the judge page, the stopwatch, the round results and the analytics studio). Options: `--organizer=<email>`,
 `--referee=<email>` (empty = none). A line starting with `TODO:` says what could not be built (no catalogue puzzle for a
 round - import the catalogue first).
@@ -168,6 +168,10 @@ name), reads in `Query\GetSandboxDemoData`. Test: `tests/Services/Sandbox/Sandbo
 2. **Round results** of "Pairs - Challenges 1 + 2": per-challenge chips and times, then `?challenge=1` and
    `?challenge=2` - each challenge's own ranking; the no-show, the time's up with pieces missing, "+ 1 piece missing".
 3. **Standing** "Pairs championship": provisional after 1 of 3 rounds, penalties in the totals, the no-show ranked.
+   **Embed** (the SPWS Wix site's view): open the printed `Standing embed` URL (`/embed/standing/<standingId>`, add
+   `?theme=dark`) - the same table, compact, "Results by MySpeedPuzzling"; to show it framed, paste the snippet from
+   the standings page's "Embed on your website" into any HTML page (e.g. a local file or codepen.io) - the sandbox's
+   welcome gate leaves `/embed/` open, so it works on another site without the gate's cookie.
 4. Sign in as `test-user+1` → **toolkit hub** → standings page (rules: 5 s, total only, as_zero_pieces) → **seating**
    of "Pairs - Challenges 3 + 4" (same tables as round 1).
 5. **Results desk** of "Pairs - Challenges 3 + 4": some finished, some with only Challenge 3's split, the standing

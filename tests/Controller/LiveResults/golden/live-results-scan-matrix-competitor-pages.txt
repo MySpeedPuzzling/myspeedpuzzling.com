@@ -16,14 +16,14 @@ organiser | participant in several rounds | 302 /en/live-results/018d0020-0000-0
 organiser | participant in one round | 302 /en/live-results/018d0020-0000-0000-0000-000000000102?entrant=018d0020-0000-0000-0000-000000000209 | no flash | noindex, nofollow
 organiser | participant of another event | 302 /en/live-results/018d0020-0000-0000-0000-000000000105?notice=tag_unknown | no flash | noindex, nofollow
 organiser | unknown participant | 302 /en/live-results/018d0020-0000-0000-0000-000000000105?notice=tag_unknown | no flash | noindex, nofollow
-organiser | event without rounds | 302 /en/events/unapproved-puzzle-event | no flash | noindex, nofollow
+organiser | event without rounds | 302 /en/competitor/018d0004-0000-0000-0000-000000000003?notice=tag_unknown | no flash | noindex, nofollow
 organiser | draft event | 302 /en/manage-event-rounds/018d0042-0000-0000-0000-000000000005 | flash warning | noindex, nofollow
 organiser | unknown event | 302 /en/events | no flash | noindex, nofollow
 referee | participant in several rounds | 302 /en/live-results/018d0020-0000-0000-0000-000000000103?entrant=018d0020-0000-0000-0000-000000000201 | no flash | noindex, nofollow
 referee | participant in one round | 302 /en/live-results/018d0020-0000-0000-0000-000000000102?entrant=018d0020-0000-0000-0000-000000000209 | no flash | noindex, nofollow
 referee | participant of another event | 302 /en/live-results/018d0020-0000-0000-0000-000000000105?notice=tag_unknown | no flash | noindex, nofollow
 referee | unknown participant | 302 /en/live-results/018d0020-0000-0000-0000-000000000105?notice=tag_unknown | no flash | noindex, nofollow
-referee | event without rounds | 302 /en/events/unapproved-puzzle-event | no flash | noindex, nofollow
+referee | event without rounds | 302 /en/competitor/018d0004-0000-0000-0000-000000000003?notice=tag_unknown | no flash | noindex, nofollow
 referee | draft event | 302 /en/manage-event-rounds/018d0042-0000-0000-0000-000000000005 | flash warning | noindex, nofollow
 referee | unknown event | 302 /en/events | no flash | noindex, nofollow
 admin | participant in several rounds | 302 /en/live-results/018d0020-0000-0000-0000-000000000103?entrant=018d0020-0000-0000-0000-000000000201 | no flash | noindex, nofollow

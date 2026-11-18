@@ -135,6 +135,10 @@ final class EventDetailController extends AbstractController
             zone: RoundTimezone::resolve(null, $competitionEvent->locationCountryCode?->name),
             standings: $competitionEvent->publishedStandings,
             hasBracket: $competitionEvent->hasBracket(),
+            // The list answers outsiders only on a public event (CompetitorPageLoader::list()) - the voter is asked only
+            // for an event that is not, so a public page pays no statement for it
+            competitorPages: $competitionEvent->competitorPages
+                && ($isPubliclyVisible || $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId)),
         );
 
         $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);

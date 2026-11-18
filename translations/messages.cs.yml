@@ -8815,6 +8815,7 @@ participants_sheet_people:
   "add_my_time": "Přidat můj čas"
   "more_puzzles": "Další puzzle této události"
   "taking_part": "Účast"
+  competitors_link: "Soutěžící"
   "facts":
     "next": "Další %date%"
     "with_results": "%count% kolo s výsledky|%count% kola s výsledky|%count% kol s výsledky"
@@ -14161,6 +14162,18 @@ competitor_page:
     print:
         scan_page: "Kdokoli jiný, kdo ho naskenuje, otevře veřejnou stránku soutěžícího."
         scan_event: "Kdokoli jiný, kdo ho naskenuje, skončí na stránce události."
+    list:
+        title: "Soutěžící"
+        meta_title: "Soutěžící - %event%"
+        lead: "Najděte soutěžícího a sledujte jeho kola živě."
+        search: "Hledat podle jména nebo #kódu"
+        people: "Jednotlivci"
+        lineups: "Páry a týmy"
+        none: "Nikdo neodpovídá"
+        empty: "Zatím žádní soutěžící."
+        you: "Vy"
+        tag_unknown: "Tato jmenovka v události není (už) - najděte se níže."
+        link: "Všichni soutěžící"
 competition_display:
     copy_name: "%name% (kopie)"
     kind:

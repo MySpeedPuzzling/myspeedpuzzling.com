@@ -1,0 +1,100 @@
+{#
+    The public competitor list of an event with competitor pages on (docs/features/competitions-management/
+    competitor-pages.md "Competitor list", CompetitorListController) - everybody going and every pair/team line-up, each
+    row one link to their competitor page. Mobile first: people open it with a phone at the venue. Never indexed.
+
+    From CompetitorListView only: names masked like the public round page (a #code only of a profile the viewer may see),
+    no avatars, no results, tables or puzzles. The search (competitor_list_controller.js, lazy) filters the rows the
+    server rendered by their `data-search` (SearchText::fold()); without JavaScript the field stays hidden and every row
+    shows.
+#}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competitor_page.list.meta_title'|trans({'%event%': view.competition.displayName}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block canonical %}{% endblock %}
+{% block hreflang %}{% endblock %}
+
+{% block content %}
+    {% set event_route = view.competition.routeName %}
+    <div class="competitor-page competitor-list" data-competitor-list data-controller="competitor-list">
+        <p class="competitor-page-event small mb-1">
+            {% if event_route is not null %}
+                <a href="{{ path(event_route, view.competition.routeParameters) }}" class="text-muted" data-competitor-event-link><i class="bi bi-chevron-left me-1" aria-hidden="true"></i>{{ view.competition.displayName }}</a>
+            {% else %}
+                <span class="text-muted">{{ view.competition.displayName }}</span>
+            {% endif %}
+        </p>
+
+        <header class="competitor-page-header">
+            <h1 class="competitor-page-title">{{ 'competitor_page.list.title'|trans }} <span class="text-muted competitor-list-total" data-competitor-list-total>{{ view.count }}</span></h1>
+            <p class="small text-muted mb-0">{{ 'competitor_page.list.lead'|trans }}</p>
+        </header>
+
+        {% if tag_unknown %}
+            <div class="alert alert-warning small mt-3 mb-0" role="status" data-competitor-list-notice>{{ 'competitor_page.list.tag_unknown'|trans }}</div>
+        {% endif %}
+
+        {% if view.count == 0 %}
+            <p class="text-muted mt-3" data-competitor-list-empty>{{ 'competitor_page.list.empty'|trans }}</p>
+        {% else %}
+            <div class="competitor-list-search mt-3" data-competitor-list-target="bar" hidden>
+                <label class="visually-hidden" for="competitor-list-search">{{ 'competitor_page.list.search'|trans }}</label>
+                <input type="search"
+                       id="competitor-list-search"
+                       class="form-control"
+                       placeholder="{{ 'competitor_page.list.search'|trans }}"
+                       autocomplete="off"
+                       autocapitalize="none"
+                       spellcheck="false"
+                       enterkeyhint="search"
+                       data-competitor-list-target="search"
+                       data-action="input->competitor-list#search keydown.enter->competitor-list#keepEnter">
+            </div>
+
+            {% if view.people is not empty %}
+                <section class="competitor-list-section" data-competitor-list-target="section" data-competitor-list-section="people" aria-labelledby="competitor-list-people">
+                    <h2 class="competitor-list-heading" id="competitor-list-people">{{ 'competitor_page.list.people'|trans }} <span class="text-muted" data-competitor-list-count>{{ view.people|length }}</span></h2>
+                    <ul class="competitor-list-rows">
+                        {% for person in view.people %}
+                            <li data-search="{{ person.search }}" data-competitor-list-row="p">
+                                <a class="competitor-list-row" href="{{ path('competitor_page', {competitionId: view.competitionId, kind: 'p', id: person.participantId}) }}">
+                                    <span class="competitor-list-name">
+                                        {%- if person.entrant.playerCountry is not null %}<span class="fi fi-{{ person.entrant.playerCountry.name }} shadow-custom me-1" aria-hidden="true"></span>{% endif -%}
+                                        <span data-competitor-list-name>{{ person.entrant.playerName }}</span>
+                                        {%- if person.code is not null %} <span class="competitor-page-code text-muted" data-competitor-list-code>#{{ person.code }}</span>{% endif -%}
+                                    </span>
+                                    {%- if person.isViewer %} <span class="badge rounded-pill competitor-page-you" data-competitor-list-you>{{ 'competitor_page.list.you'|trans }}</span>{% endif %}
+                                    <i class="bi bi-chevron-right text-muted competitor-list-chevron" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+
+            {% if view.lineups is not empty %}
+                <section class="competitor-list-section" data-competitor-list-target="section" data-competitor-list-section="lineups" aria-labelledby="competitor-list-lineups">
+                    <h2 class="competitor-list-heading" id="competitor-list-lineups">{{ 'competitor_page.list.lineups'|trans }} <span class="text-muted" data-competitor-list-count>{{ view.lineups|length }}</span></h2>
+                    <ul class="competitor-list-rows">
+                        {% for lineup in view.lineups %}
+                            <li data-search="{{ lineup.search }}" data-competitor-list-row="g">
+                                <a class="competitor-list-row" href="{{ path('competitor_page', {competitionId: view.competitionId, kind: 'g', id: lineup.lineupId}) }}">
+                                    <span class="competitor-list-name">
+                                        <i class="bi {{ lineup.isTeam ? 'bi-people-fill' : 'bi-person-fill-add' }} text-muted me-1" aria-hidden="true"></i><span data-competitor-list-name>{{ lineup.displayName }}</span>
+                                        {%- if lineup.teamName is not null %}<span class="competitor-list-members small text-muted">{{ lineup.membersNames }}</span>{% endif -%}
+                                    </span>
+                                    {%- if lineup.isViewers %} <span class="badge rounded-pill competitor-page-you" data-competitor-list-you>{{ 'competitor_page.list.you'|trans }}</span>{% endif %}
+                                    <i class="bi bi-chevron-right text-muted competitor-list-chevron" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+
+            <p class="text-muted mt-3" data-competitor-list-target="none" data-competitor-list-none hidden>{{ 'competitor_page.list.none'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

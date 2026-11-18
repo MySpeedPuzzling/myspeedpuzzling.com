@@ -56,7 +56,8 @@ final class LiveResultsTagRoutesTest extends WebTestCase
     /**
      * With competitor pages on only the public branch changes: organisers and referees land where they did; signed out
      * and puzzlers open the tag's competitor page (`/en/competitor/{cid}/{kind}/{id}`, CompetitorPageController) for a
-     * known tag (every table is one), the event page for an unknown one, the events list for a draft's.
+     * known tag (every table is one), the competitor list with `?notice=tag_unknown` for an unknown one (toolkit v2 D2),
+     * the events list for a draft's.
      */
     public function testCompetitorPagesOnEveryViewerAndEveryTagKind(): void
     {

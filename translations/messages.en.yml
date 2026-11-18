@@ -1196,6 +1196,7 @@ event_rounds:
     add_my_time: "Add my time"
     more_puzzles: "More puzzles of this event"
     taking_part: "Taking part"
+    competitors_link: "Competitors"
     facts:
         next: "Next %date%"
         with_results: "%count% round with results|%count% rounds with results"
@@ -14409,6 +14410,18 @@ competitor_page:
     print:
         scan_page: "Anybody else who scans it opens the public competitor page."
         scan_event: "Anybody else who scans it lands on the event page."
+    list:
+        title: "Competitors"
+        meta_title: "Competitors - %event%"
+        lead: "Find a competitor and follow their rounds live."
+        search: "Search by name or #code"
+        people: "People"
+        lineups: "Pairs & teams"
+        none: "Nobody matches"
+        empty: "No competitors yet."
+        you: "You"
+        tag_unknown: "This tag is not in the event (any more) - find yourself below."
+        link: "All competitors"
 competition_display:
     copy_name: "%name% (copy)"
     kind:

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\DeclaredAdvancementStep;
 use SpeedPuzzling\Web\Tests\CompetitionToolkit\PublishedStanding;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -425,9 +426,9 @@ final class DraftCanaryTest extends WebTestCase
      * @param self::COMPETITION|self::SERIES|self::ORGANIZATION $table
      */
     /**
-     * The public competitor pages and their state JSON (competition toolkit B4): a page of an event's own, open to
-     * anybody once the event is published and has competitor pages on, a 404 for a guest and a player off its team
-     * while it is a draft (or its series is) - and a scanned tag of a draft never redirects into it. Draft Night gets
+     * The public competitor pages, their state JSON (competition toolkit B4) and the competitor list (v2): a page of an
+     * event's own, open to anybody once the event is published and has competitor pages on, a 404 for a guest and a
+     * player off its team while it is a draft (or its series is) - and a scanned tag of a draft never redirects into it. Draft Night gets
      * competitor pages and an entry by SQL; Quiet Pines #1 (an edition of a draft series) a table page.
      */
     public function testTheCompetitorPagesOfADraftAreNotThere(): void
@@ -450,8 +451,8 @@ final class DraftCanaryTest extends WebTestCase
         );
 
         $items = [
-            [self::COMPETITION, $draftNight, ['/en/competitor/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight . '/t/3', '/competitor-state/' . $draftNight . '/p/' . $participantId], '/live/' . $draftNight . '/t/3'],
-            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, ['/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/competitor-state/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'], '/live/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'],
+            [self::COMPETITION, $draftNight, ['/en/competitor/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight . '/t/3', '/competitor-state/' . $draftNight . '/p/' . $participantId, '/en/competitor/' . $draftNight], '/live/' . $draftNight . '/t/3'],
+            [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, ['/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/competitor-state/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1', '/en/competitor/' . OrganizationFixture::EDITION_QUIET_PINES_1], '/live/' . OrganizationFixture::EDITION_QUIET_PINES_1 . '/t/1'],
         ];
 
         foreach ($items as [$table, $id, $urls, $tag]) {
@@ -478,6 +479,55 @@ final class DraftCanaryTest extends WebTestCase
                 self::assertResponseRedirects('/en/events', null, 'A tag leads into a draft: ' . $tag);
             }
         }
+    }
+
+    /**
+     * The competitor list (competition toolkit v2) is a public listing of people - of a publicly visible event only.
+     * An event waiting for approval (or rejected) has none for a guest or a player off its team, and a scan of a tag
+     * of nobody in it lands on the event page as before; its team sees the list; once approved everybody does.
+     */
+    public function testTheCompetitorListOfAnEventWaitingForApprovalIsItsTeamsOnly(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $competitionId = CompetitionFixture::COMPETITION_UNAPPROVED;
+        $connection->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $competitionId]);
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, 'Una Waiting', 'cz', :competition, 'imported')",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => $competitionId],
+        );
+        $list = '/en/competitor/' . $competitionId;
+        $scan = '/en/live/' . $competitionId . '/p/' . Uuid::uuid7()->toString();
+
+        foreach (['waiting for approval' => 'approved_at = NULL, rejected_at = NULL', 'rejected' => 'approved_at = ' . TestClock::SQL_NOW . ', rejected_at = ' . TestClock::SQL_NOW] as $state => $set) {
+            $connection->executeStatement('UPDATE competition SET ' . $set . ' WHERE id = :id', ['id' => $competitionId]);
+
+            foreach ([null, PlayerFixture::PLAYER_PRIVATE] as $viewer) {
+                $browser->restart();
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                $browser->request('GET', $list);
+                self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, "The competitor list of an event {$state} is public.");
+                $browser->request('GET', $scan);
+                self::assertStringNotContainsString('/competitor/', (string) $browser->getResponse()->headers->get('Location'), "A scan leads to the competitor list of an event {$state}.");
+            }
+
+            // Its team (the creator)
+            $browser->restart();
+            TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+            $browser->request('GET', $list);
+            self::assertResponseIsSuccessful("No canary: the team does not see the list of an event {$state}.");
+            self::assertStringContainsString('Una Waiting', (string) $browser->getResponse()->getContent());
+        }
+
+        $connection->executeStatement('UPDATE competition SET approved_at = ' . TestClock::SQL_NOW . ', rejected_at = NULL WHERE id = :id', ['id' => $competitionId]);
+        $browser->restart();
+        $browser->request('GET', $list);
+        self::assertResponseIsSuccessful('No canary: the list of an approved event is not there.');
+        $browser->request('GET', $scan);
+        self::assertStringContainsString('/competitor/' . $competitionId . '?notice=tag_unknown', (string) $browser->getResponse()->headers->get('Location'));
     }
 
     /**

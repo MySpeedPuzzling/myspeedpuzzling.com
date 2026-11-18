@@ -8715,6 +8715,7 @@ participants_sheet_people:
   "add_my_time": "自分のタイムを追加"
   "more_puzzles": "このイベントのその他のパズル"
   "taking_part": "参加"
+  competitors_link: "出場者"
   "facts":
     "next": "次回%date%"
     "with_results": "結果のあるラウンド%count%件"
@@ -14148,6 +14149,18 @@ competitor_page:
     print:
         scan_page: "他の人が読み取ると、公開の出場者ページが開きます。"
         scan_event: "他の人が読み取ると、イベントページが開きます。"
+    list:
+        title: "出場者"
+        meta_title: "出場者 - %event%"
+        lead: "出場者を探して、そのラウンドをライブで追いかけましょう。"
+        search: "名前または#コードで検索"
+        people: "個人"
+        lineups: "ペアとチーム"
+        none: "該当する人はいません"
+        empty: "まだ出場者はいません。"
+        you: "あなた"
+        tag_unknown: "このネームタグはイベントにありません（もうありません）。下から自分を探してください。"
+        link: "すべての出場者"
 competition_display:
     copy_name: "%name%（コピー）"
     kind:

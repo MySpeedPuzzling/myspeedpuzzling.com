@@ -74,7 +74,9 @@ whatever the mode**:
      `?entrant=` (person), `?table=` (table), `?entry=participant_round:…|team:…` (line-up, entry); a tag of nobody →
      current round `?notice=tag_unknown`. No round at all: organiser → rounds page, referee → event page, both with a
      "no rounds" flash.
-  2. **Anybody else, competitor pages on** and the tag known → `competitor_page` (`CompetitorPageUrl::of()`).
+  2. **Anybody else, competitor pages on** and the tag known → `competitor_page` (`CompetitorPageUrl::of()`); a tag of
+     nobody in the event (any more) → `competitor_list` `?notice=tag_unknown` (toolkit v2 D2, "Competitor list" below)
+     when the event is publicly visible or the viewer is its team - else the event page.
   3. Otherwise the event page; a draft (for anybody off its team) or unknown event → events list.
   Pages off = exactly as before the toolkit.
 - On the judge side the one parser is `parseCompetitionTagUrl()` (`assets/official_results_scan.js`, C8,
@@ -128,7 +130,9 @@ Where a scanned tag leads anybody but the event's organisers and referees while 
 - Both answers are `private, no-store` and `X-Robots-Tag: noindex, nofollow`; the page has `<meta name="robots"
   content="noindex, nofollow">` and no canonical/hreflang - viewer-dependent pages of people, never indexed.
 - The tag routes' "pages on" goldens (`live-results-tag-matrix-on.txt`, `live-results-scan-matrix-competitor-pages.txt`)
-  show every public row of a known tag landing here.
+  show every public row of a known tag landing here, of an unknown one on the competitor list.
+- The header line links the event back and "All competitors" (`competitor_list`, `data-competitor-list-link`) on every
+  kind of page - outside `[data-competitor-rounds]`, so the live redraws never touch it.
 
 ### What it shows (`GetCompetitorPage` → `CompetitorPageView`)
 
@@ -168,6 +172,44 @@ didNotStart, rank, qualified, puzzles}, entry? (the viewer's own entry ref only)
 Topics are the public `/round-stopwatch/{roundId}` of the tag's rounds. No player ids or codes (names as on the page).
 `private, no-store` for everybody (R §2.6). The page's root carries `data-competitor-page-state-url-value`,
 `-server-now-ms-value`, `-mercure-url-value`, `-topics-value` for B5's controller.
+
+## Competitor list (toolkit v2 C1)
+
+Design of record: `toolkit` v2 note `competitors-splits.md` §2.1 (decisions D1, D2). Everybody going and every pair/team
+of an event with competitor pages on, each row one link to their competitor page - where a phone at the venue finds
+somebody without a printed tag.
+
+- **Route** `competitor_list` (`CompetitorListController`): `/en/competitor/{competitionId}` (cs `/soutezici/…`, es
+  `/es/competidor/…`, fr `/fr/concurrent/…`, de `/de/teilnehmer/…`, ja `/ja/competitor/…` - the page route's prefixes
+  without kind/id). 404s (`CompetitorPageLoader::list()`): pages off (organisers too), an unknown event, and - a
+  public listing of people - **any event that is not publicly visible** (`IsCompetitionPubliclyVisible::SQL_CONDITION`:
+  a draft, an edition of a draft series, waiting for approval, rejected) for anybody off its team. The scan landing
+  and the event page's link offer the list only where it answers the viewer; else the event page, as before. `private, no-store`, `noindex, nofollow`,
+  no canonical/hreflang. `?notice=tag_unknown` (only that value is read) shows "This tag is not in the event (any
+  more) - find yourself below." - where a public scan of an unknown tag lands (`CompetitionTagLanding`, D2).
+- **Read model** `GetCompetitorList::of()` → `CompetitorListView` (`CompetitorListPerson`, `CompetitorListLineup`):
+  people = `CompetitionParticipantGoing` (not removed, not waitlisted - a waitlisted person keeps their page, just is
+  not listed); line-ups = every pair/team of a duo/team round grouped by `CompetitionLineupId` over its members not
+  removed from the event - exactly the line-up page's rule, so every listed `g` link answers 200; named by the latest
+  round's team name, else "A & B". Masked through `OfficialEntrantsView::entrant()` without avatars (#code only of a
+  profile the viewer may see); blocklist = `OfficialEntrantsView::isHiddenFromViewer()` per person and per line-up
+  (group rule: a member sees their own pair). "You" marks the viewer's row and pairs. Sorted by `SearchText::fold()`,
+  ties by id. Nothing about rounds, tables, results or puzzles (D1).
+- **Page** `templates/competitor_page/list.html.twig` (styles in `_competitor-page.scss`): back link, "Competitors N",
+  search field, "People (N)" and "Pairs & teams (N)" (each only when non-empty), "No competitors yet." for an empty
+  event. Search: lazy `competitor_list_controller.js` over the pure `assets/competitor_list_filter.js` (`foldSearchText`,
+  every typed word in the row's `data-search`), hides rows and empty sections, updates the counts, "Nobody matches";
+  without JavaScript the field stays hidden and every row shows. No pagination, no cache (viewer-dependent, D1).
+- **Links** (only while pages are on - off = byte-identical HTML): the event and edition pages' rounds heading
+  ("Competitors", `data-event-competitors-link`, `RoundsTimeline::$competitorsUrl` from `CompetitionEvent::$competitorPages`
+  = the `c.*` row of `GetCompetitionEvents::byId()`, +0 statements) and every competitor page's header line.
+- **Statements** (`CompetitorListQueryBudgetTest`): guest **2** (the competition, its people and pairs/teams with their
+  members), signed in 6 (+ the layout's account, profile, unread counts); +400 people and +120 pairs change nothing.
+- **Tests**: `CompetitorListControllerTest` (off/unknown/draft 404, order, masking, blocklist + own pair, waitlist,
+  removed member, every row's link 200, notice, links from the event and competitor pages), `CompetitorListScriptTest`
+  (+ `tests/competitor-list-harness.mjs`), the list cases in `BlocklistCanaryTest`, `PrivateProfileCanaryTest`,
+  `DraftCanaryTest` (drafts + an event waiting for approval / rejected), `SecretPuzzleRoutesTest` (no puzzle at all), `DetailPagesQueryBudgetTest` (+0 with pages on),
+  `CompetitionTagLandingTest` + the "on" goldens (only the unknown-tag rows of signed out / puzzler changed).
 
 ## Live clock (B5)
 

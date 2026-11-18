@@ -8808,6 +8808,7 @@ participants_sheet_people:
   "add_my_time": "Ajouter mon temps"
   "more_puzzles": "Autres puzzles de cet événement"
   "taking_part": "Participation"
+  competitors_link: "Concurrents"
   "facts":
     "next": "Prochaine %date%"
     "with_results": "%count% manche avec résultats|%count% manches avec résultats"
@@ -14154,6 +14155,18 @@ competitor_page:
     print:
         scan_page: "Toute autre personne qui le scanne ouvre la page publique du concurrent."
         scan_event: "Toute autre personne qui le scanne arrive sur la page de l'événement."
+    list:
+        title: "Concurrents"
+        meta_title: "Concurrents - %event%"
+        lead: "Trouvez un concurrent et suivez ses manches en direct."
+        search: "Rechercher par nom ou #code"
+        people: "Personnes"
+        lineups: "Paires et équipes"
+        none: "Aucun résultat"
+        empty: "Pas encore de concurrents."
+        you: "Vous"
+        tag_unknown: "Ce badge ne fait pas (plus) partie de l’événement - trouvez-vous ci-dessous."
+        link: "Tous les concurrents"
 competition_display:
     copy_name: "%name% (copie)"
     kind:

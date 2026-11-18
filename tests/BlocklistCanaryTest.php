@@ -678,6 +678,51 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The public competitor list (competition toolkit v2, competitor-pages.md "Competitor list"): a player the viewer
+     * blocked is not on it, nor is a pair/team with them - the group rule: the blocked player sees themself and their
+     * own pair; a bystander sees everybody.
+     */
+    public function testABlockedPlayerAndTheirPairAreNotOnTheCompetitorList(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        $database->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $cup]);
+        // "Ben Steady" (half of the Puzzle Sharks) is the blocked player
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $url = '/en/competitor/' . $cup;
+        $sharks = CompetitionLineupId::of($cup, [OfficialResultsFixture::PARTICIPANT_ANNA, OfficialResultsFixture::PARTICIPANT_BEN]);
+
+        foreach ([self::BYSTANDER, self::BLOCKED] as $viewer) {
+            TestingLogin::asPlayer($browser, $viewer);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringContainsString('Ben Steady', $content, 'No canary: the list does not show him.');
+            self::assertStringContainsString('Puzzle Sharks', $content, 'No canary: the list does not show his pair.');
+            self::assertStringContainsString($sharks, $content);
+        }
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Puzzle Sharks', $content, 'The blocker is shown a pair with a player they blocked.');
+        self::assertStringNotContainsString($sharks, $content);
+        self::assertStringNotContainsString(self::BLOCKED, $content);
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content);
+        self::assertStringContainsString('Anna Fast', $content, 'Only the blocked player and their pair go.');
+    }
+
+    /**
      * **Documented exemption: competition displays** (timer screens and stream overlays, toolkit
      * D-displays-overlays.md §9.4, R-review-and-plan.md §2.3). A display has no viewer - an anonymous capability URL
      * on a hall screen or a stream, read by the stateless firewall - so a viewer's blocklist cannot apply: the blocker

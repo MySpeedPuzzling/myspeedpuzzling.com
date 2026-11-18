@@ -69,7 +69,7 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
         // judge's write is its news: an edit, a clear, a new result
         foreach ([[['seconds' => 5000], ['seconds' => 4100]], [['seconds' => 4100], null], [null, ['seconds' => 4800]]] as [$from, $to]) {
             self::hub()->reset();
-            $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::result(F::ENTRY_B_IVAN, $from, $to)]]);
+            $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::resultChange(F::ENTRY_B_IVAN, $from, $to)]]);
 
             self::assertResponseIsSuccessful();
             self::assertSame([$signal], self::signals(), json_encode($to, JSON_THROW_ON_ERROR));
@@ -230,7 +230,7 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
      * @param null|array<string, int> $to
      * @return array<string, mixed>
      */
-    private static function result(string $entryId, null|array $from, null|array $to): array
+    private static function resultChange(string $entryId, null|array $from, null|array $to): array
     {
         return ['clientChangeId' => Uuid::uuid7()->toString(), 'entry' => 'participant_round:' . $entryId, 'field' => 'result', 'from' => $from, 'to' => $to];
     }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OfficialResults;
 
-use PHPUnit\Framework\TestCase;
 use DateTimeImmutable;
+use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\Bracket\Bracket;
 use SpeedPuzzling\Web\Results\Bracket\BracketRound;
 use SpeedPuzzling\Web\Results\RoundResultEntry;
@@ -14,9 +14,9 @@ use SpeedPuzzling\Web\Results\StandingRow;
 use SpeedPuzzling\Web\Services\AdvancementSeeding;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingCalculator;
 use SpeedPuzzling\Web\Services\OfficialResultsRanking;
-use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\BracketRoundStatus;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\StandingEntryInput;
 use SpeedPuzzling\Web\Value\StandingRoundInput;

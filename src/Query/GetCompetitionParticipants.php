@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
 
@@ -326,8 +327,8 @@ SQL;
     }
 
     /**
-     * The one not-connected participant whose name equals the given name, ignoring case, accents
-     * and extra whitespace. A participant with a different country does not match, and neither
+     * The one not-connected participant whose name equals the given name, ignoring case, accents, apostrophes, dash
+     * kinds and extra whitespace (ParticipantNameKey). A participant with a different country does not match, and neither
      * does an ambiguous name — then the player picks from the list themselves.
      *
      * With `$playerId`: a participant the log refuses for that player (a refused pair, participant-linking.md D11) is
@@ -352,7 +353,10 @@ SQL;
         }
 
         $going = CompetitionParticipantGoing::sql('competition_participant');
-        $nameKey = self::sqlNameKey('name') . ' = ' . self::sqlNameKey(':name');
+        // The name key of the import and the link suggestions (participant-linking.md §3.5) - curly apostrophes and
+        // dashes of every kind too
+        $nameKey = ParticipantNameKey::sql('name');
+        $typedKey = ParticipantNameKey::sql('CAST(:name AS TEXT)');
         $refusing = GetRefusedParticipantLinks::sqlRefusingActions();
         $notRefused = $playerId !== null ? <<<SQL
 AND NOT EXISTS (
@@ -370,7 +374,7 @@ FROM competition_participant
 WHERE competition_id = :competitionId
 AND player_id IS NULL
 AND {$going}
-AND {$nameKey}
+AND {$nameKey} = {$typedKey}
 AND (country IS NULL OR CAST(:country AS TEXT) IS NULL OR country = :country)
 {$notRefused}
 ORDER BY id
@@ -435,6 +439,6 @@ SQL,
      */
     public static function sqlNameKey(string $expression): string
     {
-        return "lower(regexp_replace(trim(immutable_unaccent({$expression})), '\\s+', ' ', 'g'))";
+        return ParticipantNameKey::sql($expression);
     }
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\SymfonyApplicationKernel;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingDatabaseCaching;
@@ -27,6 +28,8 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
 )
     // The fixtures' search keys are built by the code: a new key format (SearchText::VERSION) needs them built again
     . '-search-keys-' . SearchText::VERSION
+    // The players' name key index is built from the code's expression (custom_player_name_key)
+    . '-name-key-' . md5(ParticipantNameKey::sql('name'))
     // The fixtures take their dates from the frozen clock: a moved instant needs them built again
     . '-now-' . TestClock::FROZEN_NOW;
 
@@ -489,6 +492,10 @@ function createCustomIndexes(): void
 
     // Sell/swap requests: one open ask per buyer and listing (Version20261027093158)
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_listing_request_item_one_open ON listing_request_item (buyer_id, listing_id) WHERE status IN ('waiting', 'yes')");
+
+    // The name key of every player - link suggestions (Version20261118120000, participant-linking.md §3.5): the
+    // expression is ParticipantNameKey::sql('name') itself, which ParticipantNameKeySqlTest compares with the migration's
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_name_key ON player ((' . ParticipantNameKey::sql('name') . '))');
 
     // One pending time proposal per round entry (Version20261117044411, competition toolkit P1)
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_time_proposal_pending_solo ON competition_time_proposal (participant_round_id) WHERE status = 'pending'");

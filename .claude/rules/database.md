@@ -40,6 +40,10 @@ Example custom index (from `Version20260102200000.php`):
 CREATE INDEX custom_puzzle_name_trgm ON puzzle USING GIN (name gin_trgm_ops);
 ```
 
+An expression index whose expression comes from code (`custom_player_name_key` = `ParticipantNameKey::sql('name')`)
+keeps the text word for word in its migration (a constant), is built in `tests/bootstrap.php` from the code itself, and a
+test compares the two - a query uses the index only with exactly that expression.
+
 The `immutable_unaccent()` function is a custom wrapper around PostgreSQL's `unaccent()` that is marked IMMUTABLE (required for index expressions). Use it in queries that should leverage accent-insensitive trigram indexes.
 
 ## Ids created in SQL: `gen_uuid_v7()`

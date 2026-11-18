@@ -77,8 +77,9 @@ const ICON_FONT_KEY_PREFIXES = [
 // service worker at all), and the online competitions' style entries `compete`, `online_rounds`, `online_watch`
 // (participants and organisers of an online round only - the install precache was a silent no-op before toolkit C2
 // fixed it, so this keeps everyday visitors downloading only `app`), and `analytics_studio` (the commentators' per-round
-// page - docs/features/competitions-management/analytics-studio.md).
-const PRECACHE_SKIP_ENTRIES = ['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch', 'analytics_studio'];
+// page - docs/features/competitions-management/analytics-studio.md), and `standing_embed` (a standing inside an <iframe> on
+// an organiser's website - real events L3).
+const PRECACHE_SKIP_ENTRIES = ['display', 'live_entry', 'live_entry_native', 'compete', 'online_rounds', 'online_watch', 'analytics_studio', 'standing_embed'];
 
 // Patterns that should never be cached (network-only)
 const NETWORK_ONLY_PATHS = [

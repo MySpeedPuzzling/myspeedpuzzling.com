@@ -3,7 +3,8 @@
 {#
     The standings of an event (competition toolkit A6, competition_standings_manage): each with its live preview over
     every round, published or not. Variables: competition, rounds, tables (list<StandingTable>), missing_categories,
-    public_urls (standing id => its public page, published ones only - A7).
+    public_urls (standing id => its public page, published ones only - A7), embed_urls (standing id => its embeddable
+    page for the organiser's website, published ones only - real events L3).
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -91,6 +92,28 @@
                             </form>
                         </div>
                     </div>
+
+                    {# Real events L3: the published standing on the organiser's own website, as an <iframe> #}
+                    {% if embed_urls[table.standing.id] is defined %}
+                        {% set embed_snippet = '<iframe src="' ~ embed_urls[table.standing.id] ~ '" title="' ~ table.standing.name|e('html') ~ '" width="100%" height="600" style="border:0;width:100%;max-width:100%" loading="lazy"></iframe>' %}
+                        <details class="mb-3" data-standing-embed-box>
+                            <summary class="small fw-semibold">{{ 'standing_embed.organiser.title'|trans }}</summary>
+                            <div class="mt-2" style="max-width: 48rem;" data-controller="clipboard">
+                                <p class="small text-muted mb-2">{{ 'standing_embed.organiser.help'|trans }}</p>
+                                <textarea class="form-control form-control-sm font-monospace mb-2" rows="3" readonly
+                                          {{ stimulus_target('clipboard', 'input') }}
+                                          data-action="click->clipboard#selectInputContent focus->clipboard#selectInputContent"
+                                          data-standing-embed-snippet>{{ embed_snippet }}</textarea>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" {{ stimulus_action('clipboard', 'copyToClipboard', 'click') }}>
+                                        <i class="ci-share me-1" {{ stimulus_target('clipboard', 'buttonIcon') }}></i>{{ 'standing_embed.organiser.copy'|trans }}
+                                    </button>
+                                    <a href="{{ embed_urls[table.standing.id] }}" target="_blank" rel="noopener" class="small" data-standing-embed-preview>{{ 'standing_embed.organiser.preview'|trans }}</a>
+                                </div>
+                                <p class="small text-muted mt-2 mb-0">{{ 'standing_embed.organiser.options'|trans }}</p>
+                            </div>
+                        </details>
+                    {% endif %}
 
                     {{ include(table.stages is not null ? 'competition_toolkit/_stages_preview.html.twig' : 'competition_toolkit/_standing_table.html.twig') }}
                 </div>

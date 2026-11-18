@@ -1,0 +1,18 @@
+{#
+    The embeddable standing's 404 (real events L3, StandingEmbedController): an unknown or unpublished standing, or an
+    event that is not public. Still frameable, so the organiser's page shows one quiet line instead of a browser error.
+    Variables: theme.
+#}
+<!doctype html>
+<html lang="{{ app.request.locale }}" class="standing-embed-root standing-embed-root--{{ theme }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>MySpeedPuzzling</title>
+    <style>body{margin:0;padding:12px;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:{{ theme == 'dark' ? '#c9ced8' : '#5b616d' }};background:transparent}</style>
+</head>
+<body>
+    <p data-standing-embed-not-found>{{ 'standing_embed.not_found'|trans }}</p>
+</body>
+</html>

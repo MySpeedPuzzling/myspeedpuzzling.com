@@ -87,7 +87,9 @@ return App::config([
                 // answer is the same for everybody and can be cached per round (no blocklist, no allow list).
                 // /api/competition-standings/{standingId}: a published standing's public JSON (public_standing_state,
                 // competition toolkit v2 S1) - the guest snapshot, the same for everybody (no blocklist, no allow list).
-                'pattern' => '^(/api/competition-standings/[0-9a-fA-F-]{36}$|/(en|es|ja|fr|de)/live-results-shell$|/analytics-studio/[0-9a-fA-F-]{36}/(state|analytics|predictions|round-predictions|entrant/[0-9a-fA-F-]{36})$|/display/[1-9A-HJ-NP-Za-km-z]{22}(/state|/design)?$|/zadavani-vysledku-shell$|/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/competitor-heartbeat$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                // /embed/standing/{standingId}(/{locale}): a published standing as an <iframe> page for organisers' websites
+                // (StandingEmbedController, real events L3) - the same for everybody, never a session or a cookie.
+                'pattern' => '^(/api/competition-standings/[0-9a-fA-F-]{36}$|/embed/standing/[0-9a-fA-F-]{36}(/(en|cs|es|ja|fr|de))?$|/(en|es|ja|fr|de)/live-results-shell$|/analytics-studio/[0-9a-fA-F-]{36}/(state|analytics|predictions|round-predictions|entrant/[0-9a-fA-F-]{36})$|/display/[1-9A-HJ-NP-Za-km-z]{22}(/state|/design)?$|/zadavani-vysledku-shell$|/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/competitor-heartbeat$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
                 'stateless' => true,
                 'security' => false,
             ],

@@ -27,7 +27,8 @@ use Symfony\Contracts\Cache\ItemInterface;
  *   unsignalled edits (a participant renamed, a player turning private) heal within SNAPSHOT_LIFETIME.
  * - `event_{standingId}` - the standing's event (immutable, 1 day); `list_v1_{cid}_{gen}` - the event's standings.
  * - `html_v1_{standingId}_{locale}_{gen}` - the guests' HTML of the public page's table part (guestHtml(), competition
- *   toolkit v2 S4: the `public_standing_table` fragment every open page fetches after a standings signal).
+ *   toolkit v2 S4: the `public_standing_table` fragment every open page fetches after a standings signal);
+ *   `embed_v1_{standingId}_{locale}_{theme}_{gen}` - the embeddable standing's page (embedHtml(), real events L3).
  * - The cache failing is no failure: every read falls back to computing (a warning), nothing is ever stale for it.
  *
  * Statements: warm 0; cold: the event (1, once a day), the head (1), the rounds (1), the entries (1 - one category).
@@ -147,8 +148,27 @@ readonly final class PublicStandingSnapshots
      */
     public function guestHtml(string $standingId, string $competitionId, string $locale, \Closure $render): string
     {
+        return $this->html(sprintf('html_%s_%s_%s_%s', self::VERSION, strtolower($standingId), $locale, $this->generation($competitionId)), $render);
+    }
+
+    /**
+     * The embeddable standing's page (real events L3, `standing_embed`) in a locale and theme, rendered once per
+     * generation - the same for everybody (no viewer). Whether the event is public is the caller's, on every request.
+     *
+     * @param \Closure(): string $render
+     */
+    public function embedHtml(string $standingId, string $competitionId, string $locale, string $theme, \Closure $render): string
+    {
+        return $this->html(sprintf('embed_%s_%s_%s_%s_%s', self::VERSION, strtolower($standingId), $locale, $theme, $this->generation($competitionId)), $render);
+    }
+
+    /**
+     * @param \Closure(): string $render
+     */
+    private function html(string $key, \Closure $render): string
+    {
         $html = $this->cached(
-            sprintf('html_%s_%s_%s_%s', self::VERSION, strtolower($standingId), $locale, $this->generation($competitionId)),
+            $key,
             static function (ItemInterface $item) use ($render): string {
                 $item->expiresAfter(self::SNAPSHOT_LIFETIME);
 

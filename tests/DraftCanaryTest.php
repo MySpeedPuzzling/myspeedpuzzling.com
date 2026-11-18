@@ -635,6 +635,8 @@ final class DraftCanaryTest extends WebTestCase
         $json = '/api/competition-standings/' . $standingId;
         // The table fragment an open standing page reloads (public_standing_table, competition toolkit v2 S4)
         $fragment = '/en/standing-table/' . $standingId;
+        // The embeddable standing for organisers' websites (standing_embed, real events L3)
+        $embed = '/embed/standing/' . $standingId;
 
         foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
             $browser->restart();
@@ -652,6 +654,9 @@ final class DraftCanaryTest extends WebTestCase
             self::assertResponseIsSuccessful('No canary: the standing JSON is not there once published');
             $browser->request('GET', $fragment);
             self::assertResponseIsSuccessful('No canary: the standing table fragment is not there once published');
+            $browser->request('GET', $embed);
+            self::assertResponseIsSuccessful('No canary: the standing embed is not there once published');
+            self::assertStringContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
 
             $this->setDraft(self::COMPETITION, $draftNight, true);
             $browser->request('GET', $url);
@@ -660,6 +665,9 @@ final class DraftCanaryTest extends WebTestCase
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing JSON is public');
             $browser->request('GET', $fragment);
             self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing table fragment is public');
+            $browser->request('GET', $embed);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s standing embed is public');
+            self::assertStringNotContainsString('Nora Nightowl', (string) $browser->getResponse()->getContent());
             $browser->request('GET', self::SITEMAP);
             self::assertStringNotContainsString('/standings/night-overall', (string) $browser->getResponse()->getContent(), 'The sitemap lists a draft\'s standing');
         }

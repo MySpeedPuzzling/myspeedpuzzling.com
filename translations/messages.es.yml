@@ -5019,6 +5019,19 @@ live_results:
     no_worker: "Esta app no puede reabrir la página sin conexión: mantenla abierta o usa el navegador."
   prefs:
     auto_open_table: "Abrir una mesa en cuanto ningún otro número de mesa empiece por lo escrito (en este móvil)"
+  my_tables:
+    label: "Mis mesas"
+    placeholder: "p. ej. 1-20, 41-45"
+    help: "Solo en este teléfono, para este evento. Las listas muestran tus mesas primero; escribir o escanear sigue encontrando cualquier mesa."
+    error_syntax: "Escribe números de mesa y rangos como 1-20, 41-45 (el número menor primero)."
+    error_range: "Los números de mesa van del 1 al 9999."
+    error_too_many: "Como máximo 20 rangos."
+    chip: "Mis mesas %tables%"
+    edit: "Editar"
+    todo_title: "Pendiente en mis mesas (%count%)"
+    todo_empty: "Todas tus mesas tienen resultado."
+    other_tables: "{0}+ %count% en otras mesas|{1}+ 1 en otra mesa|]1,Inf[+ %count% en otras mesas"
+    others_divider: "Otras mesas"
   tags:
     foreign: "Este código QR no es una acreditación de este evento."
     lineup_not_in_round: "Esta pareja/equipo no juega en %round%."

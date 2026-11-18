@@ -5584,6 +5584,19 @@ live_results:
         no_worker: "This app cannot reopen the page without a connection - keep it open, or use the browser."
     prefs:
         auto_open_table: "Open a table as soon as no other table number starts with what is typed (on this phone)"
+    my_tables:
+        label: "My tables"
+        placeholder: "e.g. 1-20, 41-45"
+        help: "Only on this phone, for this event. Lists show your tables first - typing or scanning still finds every table."
+        error_syntax: "Write table numbers and ranges like 1-20, 41-45 (the smaller number first)."
+        error_range: "Table numbers go from 1 to 9999."
+        error_too_many: "At most 20 ranges."
+        chip: "My tables %tables%"
+        edit: "Edit"
+        todo_title: "To do at my tables (%count%)"
+        todo_empty: "Every table of yours has a result."
+        other_tables: "{1}+ 1 at another table|[0,Inf[+ %count% at other tables"
+        others_divider: "Other tables"
     tags:
         foreign: "This QR code is not a tag of this event."
         lineup_not_in_round: "This pair/team does not play in %round%."

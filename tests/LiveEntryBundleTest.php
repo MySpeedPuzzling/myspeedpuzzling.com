@@ -43,13 +43,15 @@ use Symfony\Component\Process\Process;
  *   further additions in pure modules and measure. 2026-11-17 (real events W5): 206.0 → 215.4 KB / 56.6 → 59.0 KB gzip
  *   (incl. the review fixes)
  *   - the judge's "Finished now" per puzzle on pick rounds (live_entry_splits.js + the card's split rows, tap, typed
- *   correction); budget 216 KB / 59 KB gzip;
+ *   correction); budget 216 KB / 59 KB gzip. 2026-11-18 (toolkit v2 J3): 215.4 → 221.4 KB / 59.0 → 60.7 KB gzip - "My
+ *   tables" per phone and event (live_entry_my_tables.js 2.0 KB: the range parser, mine-first lists, To-do, the stored
+ *   per-event preference; the chip, To-do and sheet field in the controller); budget 223 KB / 61.5 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 216_000;
-    private const int GZIP_BUDGET_BYTES = 59_000;
+    private const int MINIFIED_BUDGET_BYTES = 223_000;
+    private const int GZIP_BUDGET_BYTES = 61_500;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

@@ -106,6 +106,14 @@ final class LiveResultsPageTest extends WebTestCase
         $plurals = json_decode((string) $root->attr('data-live-results-plurals-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($plurals);
         self::assertSame(['message' => '{1}1 waiting|[0,Inf[%count% waiting', 'locale' => 'en'], $plurals['waiting']);
+
+        // My tables (judge-speed J3): the chip row and the To-do list stay hidden until this phone has tables for the event
+        self::assertCount(1, $root->filter('[data-live-results-target="myTablesRow"][hidden]'));
+        self::assertCount(1, $root->filter('[data-live-results-target="todoBlock"][hidden]'));
+        self::assertCount(1, $root->filter('[data-live-results-target="recentMore"][hidden]'));
+        self::assertCount(1, $root->filter('[data-live-results-prefs] [data-live-results-target="myTablesInput"]'));
+        self::assertSame('My tables %tables%', $messages['myTablesChip']);
+        self::assertSame(['message' => '{1}+ 1 at another table|[0,Inf[+ %count% at other tables', 'locale' => 'en'], $plurals['otherTables']);
     }
 
     public function testTheStateFillsThePageWithTheRoundsAndTheReader(): void

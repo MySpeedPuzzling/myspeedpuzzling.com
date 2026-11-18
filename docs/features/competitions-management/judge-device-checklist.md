@@ -13,6 +13,8 @@ part. There are no native apps - only the website (and its "Add to Home Screen" 
 3. Allow the camera when the scanner asks (Settings → Safari → Camera = Allow / Chrome site settings → Camera).
 4. Turn off Low Power Mode (iPhone) / Battery Saver (Android) and set Auto-Lock to 5 minutes or Never for the event.
 5. Charge to 100 %; a power bank for events over 3 hours.
+6. Tables of your own area: type them under "My tables" in the unsent-results sheet (tap the status pill), e.g.
+   `1-20, 41-45` - only on this phone, for this event; Find then lists your tables first and "To do at my tables".
 
 ## Walk - iPhone, Safari
 | # | Step | Expected |

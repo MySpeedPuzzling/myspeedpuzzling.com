@@ -37,6 +37,7 @@ import {
     samePlayer,
     SNAPSHOT_DATABASE,
 } from '../assets/live_entry_device.js';
+import { myTablesOf, withMyTables } from '../assets/live_entry_my_tables.js';
 
 const ANNA = '018d0020-0000-0000-0000-00000000a001';
 const BEN = '018d0020-0000-0000-0000-00000000b002';
@@ -645,19 +646,59 @@ const scenarios = {
         const local = fakeStorage({ [LEGACY_KEYBOARD_KEY]: 'numeric' });
         const prefs = readPrefs(local);
 
-        assert.deepEqual(prefs, { v: 1, keyboard: 'numeric', autoOpenTable: true, scanAfterSave: false, myTables: [], piecesMode: null });
+        assert.deepEqual(prefs, { v: 1, keyboard: 'numeric', autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null });
         assert.equal(local.getItem(LEGACY_KEYBOARD_KEY), null);
         assert.equal(JSON.parse(local.getItem(PREFS_KEY)).keyboard, 'numeric');
 
         assert.equal(writePrefs(local, { keyboard: 'text', scanAfterSave: true }).keyboard, 'text');
-        assert.deepEqual(readPrefs(local), { v: 1, keyboard: 'text', autoOpenTable: true, scanAfterSave: true, myTables: [], piecesMode: null });
+        assert.deepEqual(readPrefs(local), { v: 1, keyboard: 'text', autoOpenTable: true, scanAfterSave: true, myTables: {}, piecesMode: null });
 
         local.setItem(PREFS_KEY, JSON.stringify({ keyboard: 'qwerty', autoOpenTable: 'yes', myTables: [3, -1, 'x', 4] }));
-        assert.deepEqual(readPrefs(local), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [3, 4], piecesMode: null });
+        assert.deepEqual(readPrefs(local), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null }, 'the never written list of the first version is no tables');
 
-        assert.deepEqual(readPrefs(fakeStorage()), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: [], piecesMode: null });
+        assert.deepEqual(readPrefs(fakeStorage()), { v: 1, keyboard: null, autoOpenTable: true, scanAfterSave: false, myTables: {}, piecesMode: null });
         assert.equal(readPrefs(brokenStorage()).keyboard, null);
         assert.equal(writePrefs(brokenStorage(), { keyboard: 'numeric' }).keyboard, 'numeric', 'this page keeps it');
+    },
+
+    async 'my tables are kept per event, the newest 5, and anything foreign is dropped'() {
+        const local = fakeStorage();
+        const EVENT = (n) => `018d0020-0000-0000-0000-00000000090${n}`;
+
+        assert.equal(myTablesOf(readPrefs(local), EVENT(1)), null, 'nothing set');
+        writePrefs(local, { myTables: withMyTables(readPrefs(local).myTables, EVENT(1), { text: '9, 1 – 5' }, 1000) });
+        assert.deepEqual(myTablesOf(readPrefs(local), EVENT(1)), { text: '1-5, 9', on: true, ranges: [[1, 5], [9, 9]] });
+        assert.equal(myTablesOf(readPrefs(local), EVENT(2)), null, 'another event of this phone has none');
+
+        writePrefs(local, { myTables: withMyTables(readPrefs(local).myTables, EVENT(1), { text: '1-5, 9', on: false }, 1100) });
+        assert.equal(myTablesOf(readPrefs(local), EVENT(1)).on, false, 'switched off, the text kept');
+        assert.equal(readPrefs(local).keyboard, null, 'the other preferences untouched');
+
+        for (let n = 2; n <= 6; n += 1) {
+            writePrefs(local, { myTables: withMyTables(readPrefs(local).myTables, EVENT(n), { text: String(n) }, 1000 + n * 1000) });
+        }
+
+        const kept = readPrefs(local).myTables;
+        assert.deepEqual(Object.keys(kept).sort(), [2, 3, 4, 5, 6].map(EVENT), 'the 6th event drops the oldest');
+
+        writePrefs(local, { myTables: withMyTables(readPrefs(local).myTables, EVENT(4), { text: '' }, 9000) });
+        assert.equal(myTablesOf(readPrefs(local), EVENT(4)), null, 'an empty text forgets the event');
+        assert.equal(Object.keys(readPrefs(local).myTables).length, 4);
+        assert.deepEqual(withMyTables(kept, EVENT(3), { text: '20-1' }, 9000)[EVENT(3)], undefined, 'an invalid text is never stored');
+
+        for (const foreign of [[1, 2, 3], 'x', 7, null, true, { [EVENT(1)]: [1, 2] }, { [EVENT(1)]: { text: 5, savedAt: 1 } }, { [EVENT(1)]: { text: '1-5' } }, { [EVENT(1)]: { text: '0-5', savedAt: 1 } }, { [EVENT(1)]: { text: '', savedAt: 1 } }, { '': { text: '1', savedAt: 1 } }]) {
+            local.setItem(PREFS_KEY, JSON.stringify({ keyboard: 'text', myTables: foreign }));
+            assert.deepEqual(readPrefs(local).myTables, {}, JSON.stringify(foreign));
+            assert.equal(readPrefs(local).keyboard, 'text');
+        }
+
+        local.setItem(PREFS_KEY, JSON.stringify({ myTables: { [EVENT(1)]: { text: ' 3 ,1-2', on: 'yes', savedAt: 5 }, [EVENT(2)]: { text: 'zzz', savedAt: 6 } } }));
+        assert.deepEqual(readPrefs(local).myTables, { [EVENT(1)]: { text: '1-3', on: true, savedAt: 5 } }, 'normalised; a broken event dropped alone');
+
+        assert.equal(myTablesOf(readPrefs(brokenStorage()), EVENT(1)), null, 'a private window: none, no error');
+        const kept2 = writePrefs(brokenStorage(), { myTables: withMyTables({}, EVENT(1), { text: '4' }, 1) });
+        assert.deepEqual(myTablesOf(kept2, EVENT(1)).ranges, [[4, 4]], 'the page keeps what it wrote');
+        assert.equal(myTablesOf(readPrefs(local), null), null, 'no event yet');
     },
 
     async 'the snapshot key is per player and round'() {

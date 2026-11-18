@@ -20,6 +20,7 @@ import {
     outboxByEntry,
     preferredRound,
     recentEntries,
+    rowsOf,
     sameValue,
     savedMeanwhile,
     searchEntries,
@@ -45,6 +46,7 @@ import {
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
 import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick } from '../assets/live_entry_puzzles.js';
 import { normaliseDraft } from '../assets/live_entry_draft.js';
+import { isMine, parseTables, recentMine, splitMine, todo } from '../assets/live_entry_my_tables.js';
 import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalTiming, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../assets/official_results_finished_missing.js';
@@ -1619,6 +1621,174 @@ const scenarios = {
         assert.equal(view.byRef.get(BEN).tableNumber, 120, 'a refused table number is no table');
         assert.equal(view.byRef.size, 3);
         assert.equal(entriesWithWaitingTables(entries, []).list, entries, 'nothing waiting: the same list');
+    },
+
+    async 'my tables: the parser takes ranges, single tables, dashes and separators, and refuses the rest'() {
+        assert.deepEqual(parseTables('1-20, 41-45'), { ranges: [[1, 20], [41, 45]], text: '1-20, 41-45' });
+        assert.deepEqual(parseTables('  41–45;1 - 20  9 '), { ranges: [[1, 20], [41, 45]], text: '1-20, 41-45' }, 'en dash, semicolon, spaces; 9 inside 1-20');
+        assert.deepEqual(parseTables('7'), { ranges: [[7, 7]], text: '7' });
+        assert.deepEqual(parseTables('1-5, 9'), { ranges: [[1, 5], [9, 9]], text: '1-5, 9' });
+        assert.deepEqual(parseTables('1-5,6-9,3'), { ranges: [[1, 9]], text: '1-9' }, 'adjacent and duplicate ranges merged');
+        assert.deepEqual(parseTables('3—4'), { ranges: [[3, 4]], text: '3-4' }, 'em dash');
+        assert.deepEqual(parseTables('9999'), { ranges: [[9999, 9999]], text: '9999' });
+        assert.deepEqual(parseTables('007'), { ranges: [[7, 7]], text: '7' });
+        assert.deepEqual(parseTables(''), { ranges: [], text: '' });
+        assert.deepEqual(parseTables('   '), { ranges: [], text: '' });
+        assert.deepEqual(parseTables(null), { ranges: [], text: '' });
+
+        assert.deepEqual(parseTables('20-1'), { error: 'syntax' }, 'a reversed range');
+        assert.deepEqual(parseTables('0'), { error: 'range' });
+        assert.deepEqual(parseTables('0-5'), { error: 'range' });
+        assert.deepEqual(parseTables('10000'), { error: 'range' });
+        assert.deepEqual(parseTables('5-10000'), { error: 'range' });
+        assert.deepEqual(parseTables('1234567'), { error: 'syntax' });
+        assert.deepEqual(parseTables('a-b'), { error: 'syntax' });
+        assert.deepEqual(parseTables('1-'), { error: 'syntax' });
+        assert.deepEqual(parseTables('-3'), { error: 'syntax' });
+        assert.deepEqual(parseTables('1--3'), { error: 'syntax' });
+        assert.deepEqual(parseTables('1.5'), { error: 'syntax' });
+        assert.deepEqual(parseTables(',;'), { error: 'syntax' });
+        assert.deepEqual(parseTables('1 2'), { ranges: [[1, 2]], text: '1-2' });
+
+        const twenty = Array.from({ length: 20 }, (_, i) => `${i * 10 + 1}-${i * 10 + 5}`).join(', ');
+        assert.equal(parseTables(twenty).ranges.length, 20);
+        assert.deepEqual(parseTables(`${twenty}, 500`), { error: 'too_many' }, '21 ranges');
+        assert.deepEqual(parseTables('1, '.repeat(80)), { error: 'too_many' }, 'over 200 characters');
+        assert.deepEqual(parseTables(Array.from({ length: 30 }, (_, i) => i + 1).join(',')), { ranges: [[1, 30]], text: '1-30' }, '30 single tables in a row = one range');
+    },
+
+    async 'my tables: an entry is mine only by its table number, lists split keeping their order'() {
+        const ranges = parseTables('1-5, 9').ranges;
+
+        assert.equal(isMine(ranges, 1), true);
+        assert.equal(isMine(ranges, 5), true);
+        assert.equal(isMine(ranges, 9), true);
+        assert.equal(isMine(ranges, 6), false);
+        assert.equal(isMine(ranges, null), false, 'no table number is never mine');
+        assert.equal(isMine(ranges, undefined), false);
+        assert.equal(isMine(ranges, '3'), false);
+        assert.equal(isMine([], 3), false);
+
+        const rows = [entry(ANNA, 'Anna', 40), entry(BEN, 'Ben', 3), entry(CARA, 'Cara', null), entry('x', 'Dan', 1)].map((e) => ({ entry: e }));
+        const { mine, others } = splitMine(rows, ranges);
+        assert.deepEqual(mine.map((row) => row.entry.name), ['Ben', 'Dan']);
+        assert.deepEqual(others.map((row) => row.entry.name), ['Anna', 'Cara'], 'every other row stays - table 40 and the one without a table');
+        assert.equal(mine.length + others.length, rows.length, 'nothing dropped');
+    },
+
+    async 'my tables: proposals waiting and puzzle missing never lose a row'() {
+        const ranges = parseTables('1-5').ranges;
+        const proposals = new Map([
+            ['p1', { id: 'p1', status: 'pending', entry: ANNA, receivedAtMs: 1 }],
+            ['p2', { id: 'p2', status: 'pending', entry: BEN, receivedAtMs: 2 }],
+        ]);
+        const entries = new Map([[ANNA, entry(ANNA, 'Anna', 40)], [BEN, entry(BEN, 'Ben', 2)]]);
+        const waiting = waitingProposals(proposals, (ref) => entries.get(ref) ?? null, []);
+        const { mine, others } = splitMine(waiting, ranges);
+
+        assert.equal(waiting.length, 2, 'the button counts every proposal');
+        assert.deepEqual(mine.map((row) => row.proposal.id), ['p2']);
+        assert.deepEqual(others.map((row) => row.proposal.id), ['p1'], 'a proposal at table 40 is listed under Other tables');
+    },
+
+    async 'my tables: to do = my entries with no result shown, the waiting value of this device counted, table order'() {
+        const ranges = parseTables('1-5, 9').ranges;
+        const entries = [
+            entry('e9', 'Nine', 9),
+            entry('e1', 'One', 1, { result: { seconds: 1800 }, enteredAt: '2026-11-18T10:00:00Z' }),
+            entry('e2', 'Two', 2),
+            entry('e3', 'Three', 3),
+            entry('e4', 'Four', 4, { result: { seconds: 2000 }, enteredAt: '2026-11-18T10:01:00Z' }),
+            entry('e5', 'Five', 5, { result: { didNotStart: true } }),
+            entry('e40', 'Forty', 40),
+            entry('eNone', 'Nobody', null),
+        ];
+        const items = [
+            { id: 'a', entryRef: 'e2', field: 'result', to: { seconds: 1900 }, state: 'pending', seq: 1, roundId: ROUND_A, createdAt: 1 },
+            { id: 'b', entryRef: 'e4', field: 'result', to: null, state: 'pending', seq: 2, roundId: ROUND_A, createdAt: 2 },
+            { id: 'c', entryRef: 'e3', field: 'puzzles', to: [], state: 'pending', seq: 3, roundId: ROUND_A, createdAt: 3 },
+        ];
+        const result = todo(entries, ranges, outboxByEntry(items));
+
+        assert.deepEqual(result.entries.map((e) => e.ref), ['e3', 'e4', 'e9'], 'e2 waits on this device (done), e4 cleared on this device (to do), never 40 or no table');
+        assert.equal(result.count, 3);
+
+        const many = Array.from({ length: 50 }, (_, i) => entry(`m${i}`, `M ${i}`, 50 - i));
+        const capped = todo(many, parseTables('1-100').ranges, new Map());
+        assert.equal(capped.entries.length, 30, 'at most 30 rows');
+        assert.equal(capped.count, 50, 'the title counts all');
+        assert.equal(capped.entries[0].tableNumber, 1);
+        assert.equal(capped.entries[29].tableNumber, 30);
+
+        assert.deepEqual(todo(entries, parseTables('1, 4').ranges, outboxByEntry([...items, { id: 'd', entryRef: 'e4', field: 'result', to: { seconds: 2100 }, state: 'pending', seq: 4, roundId: ROUND_A, createdAt: 4 }])), { entries: [], count: 0 }, 'everything has a result: an empty list');
+    },
+
+    async 'my tables: recent shows mine, counts the other tables of the usual recent list'() {
+        const ranges = parseTables('1-3').ranges;
+        const at = (i) => new Date(1_800_000_000_000 + i * 1000).toISOString();
+        const entries = Array.from({ length: 30 }, (_, i) => entry(`r${i}`, `R ${i}`, i < 3 ? i + 1 : (i === 29 ? null : i + 1), { result: { seconds: 100 + i }, enteredAt: at(i) }));
+        // The newest are r29 (no table) … r3 (table 4); mine (1-3) are the oldest
+        const { mine, others } = recentMine(entries, [], ranges);
+
+        assert.deepEqual(mine.map(({ entry: e }) => e.ref), ['r2', 'r1', 'r0'], 'mine, newest first - even beyond the usual 15');
+        assert.equal(others, 15, 'the usual 15 rows are all at other tables');
+
+        const waiting = [{ id: 'w', entryRef: 'r0', field: 'result', to: { seconds: 5 }, state: 'pending', seq: 1, roundId: ROUND_A, createdAt: 1_900_000_000_000 }];
+        const now = recentMine(entries, waiting, ranges);
+        assert.equal(now.mine[0].entry.ref, 'r0', 'a value waiting on this device is the latest');
+        assert.equal(now.others, 14);
+
+        assert.deepEqual(recentMine([], [], ranges), { mine: [], others: 0 });
+    },
+
+    async 'perf budget: 300 entries, 300 unsent changes and 20 table ranges - the find lists under 5 ms'() {
+        const entries = Array.from({ length: 300 }, (_, i) => entry(
+            `participant_round:018d0020-0000-0000-0000-${String(i).padStart(12, '0')}`,
+            `Kateřina Nováková ${i}`,
+            i % 50 === 0 ? null : i + 1,
+            {
+                result: i % 2 === 0 ? { seconds: 2000 + i } : null,
+                enteredAt: i % 2 === 0 ? new Date(1_800_000_000_000 + i * 1000).toISOString() : null,
+            },
+        ));
+        const items = Array.from({ length: 300 }, (_, i) => ({
+            id: `c${i}`,
+            entryRef: entries[(i * 7) % 300].ref,
+            field: i % 10 === 0 ? 'puzzles' : 'result',
+            to: i % 10 === 0 ? [] : (i % 13 === 0 ? null : { seconds: 3000 + i }),
+            state: i % 25 === 0 ? 'conflict' : 'pending',
+            seq: i,
+            roundId: ROUND_A,
+            createdAt: 1_800_000_100_000 + i,
+        }));
+        const ranges = parseTables(Array.from({ length: 20 }, (_, i) => `${i * 15 + 1}-${i * 15 + 7}`).join(', ')).ranges;
+        assert.equal(ranges.length, 20);
+        const proposals = new Map(entries.slice(0, 40).map((e, i) => [`p${i}`, { id: `p${i}`, status: 'pending', entry: e.ref, receivedAtMs: i }]));
+        const byRef = new Map(entries.map((e) => [e.ref, e]));
+        const run = () => {
+            const byEntry = outboxByEntry(items);
+            const open = todo(entries, ranges, byEntry);
+            rowsOf(open.entries.map((e) => ({ entry: e })), byEntry);
+            const recent = recentMine(entries, items, ranges);
+            rowsOf(recent.mine.map(({ entry: e }) => ({ entry: e })), byEntry);
+            splitMine(waitingProposals(proposals, (ref) => byRef.get(ref) ?? null, items), ranges);
+            splitMine(rowsOf(missingChoice(entries, { kind: 'pick', toSolve: 1 }, byEntry).map((e) => ({ entry: e })), byEntry), ranges);
+        };
+
+        for (let i = 0; i < 20; i += 1) {
+            run();
+        }
+
+        const times = [];
+
+        for (let i = 0; i < 31; i += 1) {
+            const start = performance.now();
+            run();
+            times.push(performance.now() - start);
+        }
+
+        const took = times.sort((a, b) => a - b)[15];
+        assert.ok(took < 5, `the find lists with My tables: ${took.toFixed(2)} ms`);
     },
 
     async 'perf budget: 300 entries and 300 unsent changes - search and rows under 5 ms'() {

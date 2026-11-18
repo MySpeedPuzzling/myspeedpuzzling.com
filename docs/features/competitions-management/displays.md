@@ -5,7 +5,8 @@ OBS browser source (`overlay`). The organiser designs them in an editor (backgro
 codes, sponsor rotators), and the page stays live for hours without anyone signed in. Design:
 `toolkit/D-displays-overlays.md`. Binding where they disagree: `toolkit/R-review-and-plan.md` §1-§3 (§3 cut the live
 control, spotlight/message elements, copy from another event, ticker marquee, multi-select/align, sibling snapping, 3 of
-the 7 fonts and the standings overlay to v2; multi-select, align/distribute and sibling snapping are built - v2 E1). Delivery: the D rows of `toolkit/STATUS.md`.
+the 7 fonts and the standings overlay to v2; multi-select, align/distribute and sibling snapping are built - v2 E1; the
+live control with its spotlight/message elements - v2 L1/L2). Delivery: the D rows of `toolkit/STATUS.md`.
 
 ## What a display is
 
@@ -51,7 +52,8 @@ the 7 fonts and the standings overlay to v2; multi-select, align/distribute and 
 | `uses_results`, `uses_live_results` | derived on save from the **shown** elements (not hidden, ≥ 1 phase) - gate the results payload and the results signal |
 | `created_at`, `updated_at`, `created_by_id` (FK `SET NULL`) | audit |
 
-Spotlight and message (D §3.1) have no columns (v2).
+Spotlight and message have tables of their own, per event / per round (v2 L1/L2 - "Live control" below), not per
+display as D §3.1 planned.
 
 **Messages** (all writes go through a handler):
 - `AddCompetitionDisplay` (kind, name, locale, `DisplayPreset`, actor; the cap is counted under the lock);
@@ -433,6 +435,51 @@ A leaderboard or ticker can show **one view of the round** instead of all of it 
   unused division, challenges 1/2/7, hidden puzzle, no block, challenge over division, live gating, statements), render
   harness "views: …", editor harness "panel: division and challenge fields …", `SandboxDemoEventsTest`.
 
+## Live control - message + spotlight (competition toolkit v2 L1/L2)
+
+Design: `displays-standings.md` §5 (v2 design note). **Message per event, spotlight per round** - one tap never asks
+"which display"; a hall screen and the stream overlay of a round agree; parallel halls keep their own spotlight.
+
+- **Data**: `competition_display_control` (`CompetitionDisplayControl`, PK = FK competition `CASCADE`: `message` ≤ 200 one
+  line, `message_set_at`, `recent_messages` jsonb ≤ 5 newest first, `updated_by` `SET NULL`; migration
+  `Version20261118200000`) and `competition_round_spotlight` (`CompetitionRoundSpotlight`, PK = FK round `CASCADE`:
+  `entry_ref` = `RoundEntryRef`, `set_by` `SET NULL`; `Version20261118210000`). Duplicate copies neither (live state);
+  the conversion to a series cascades the control row (`ConvertCompetitionForeignKeyCoverageTest`); a moved round takes
+  its spotlight with it.
+- **Writes**: `SetCompetitionDisplayMessage` (null/"" clears; longer than 200 = `too_long`, never cut) and
+  `SetRoundSpotlight` (only an entry of that round as `GetRoundResultEntries` lists it - person of a solo round,
+  pair/team otherwise, nobody removed/waitlisted - else `unknown_entry`; null clears), both `no_displays` without a
+  display, both on `CompetitionDisplaysLock::key()` - **never the participants lock** (a judge's save never waits for a
+  stream operator; `SetRoundSpotlight` is in `SerializedByLockMessagesTest::NOT_LOCKED`). JSON endpoints
+  `set_display_message` (`POST /{_locale}/display-control/{competitionId}/message`) and `set_round_spotlight`
+  (`POST /{_locale}/display-control/round/{roundId}/spotlight`): COMPETITION_TOOLKIT_MANAGE on the event loaded from the
+  database (organisers + admins, never referees), `X-CSRF-Token`, 422 `{error}`.
+- **Signal**: `CompetitionDisplayLiveUpdates::controlChanged()` after the commit → `{"what": "control"}` (events with
+  displays only); `runtime.js` fetches at once - no 1.5 s debounce, and a fetch in flight is followed at once.
+- **Elements**: `message` (`whenEmpty`/`emptyText`, `maxLines` 1-4, ellipsis; nothing at all - not even its panel -
+  without a message and own text) and `spotlight` (a **results type**: `source`, `whenUnpublished`; `pick` `chosen` |
+  `latest_finisher` (= `results.latest[0]`), `show` ⊆ table/name/members/flag/result/rank, `whenEmpty`/`emptyText`).
+  State key `control: {message, spotlight: DisplayResultRow|null}` only for a design with a shown message/spotlight
+  element (every other answer unchanged). The message rides on statement 1 (LEFT JOIN), the spotlight ref on statement 2;
+  the chosen entry's row comes from the results' entries statement (run only when somebody is in the spotlight or results
+  may show): name/table/members/flags always (the organiser chose to show them), result and rank only as the source
+  allows - 3 statements with nobody in the spotlight, 4 with somebody (`DisplayControlControllerTest`). Did not start /
+  removed / waitlisted = nobody. No puzzle data in either.
+- **Pages**: live control `competition_display_control` (`/{_locale}/display-control/{competitionId}`, phone first,
+  data-free shell; "Live control" on the displays list/hub card) - round select (default `LiveResultsCurrentRound`), the
+  spotlight picker, the message (Set / Clear / 5 recent as chips), a preview iframe of a display on demand; JSON
+  `competition_display_control_state` (`?round=`; message, recent, displays, shown elements per type, the round's
+  entries with organiser names + `finishedAtMs`, the spotlight). The round's **stopwatch page** gets a "Spotlight on
+  displays" card only for an event with displays (`CompetitionDisplaysPresence::forRound()`, the answer the display
+  signals keep warm - 0 statements; cold 1) - otherwise byte-identical. Picker = pure `assets/displays/control_picker.js`
+  (chips by table, filter by table digits or folded name/members, "Just finished" 6, `SpotlightChoice` = optimistic tap,
+  revert on 422, the last tap queued while one is on its way) + `display_control_controller.js` (lazy, 30 s refresh while
+  visible); harness `tests/display-control-harness.mjs` (`DisplayControlScriptTest`).
+- **Tests**: `DisplayControlMessageTest`, `RoundSpotlightTest`, `DisplayControlControllerTest`,
+  `CompetitionDisplayLiveUpdatesTest` (control signal), runtime harness (control = no debounce), render harness (message,
+  spotlight chosen/latest, XSS), schema fixture cases `message: …` / `spotlight: …`, editor harness (catalogue, samples).
+- **Not built (v3)**: per-display overrides, message expiry, referee operators, leaderboard highlight of the spotlit row.
+
 ## Build and service worker
 
 - Encore entry `display` (`assets/display.js` + `assets/styles/display.scss`) gets its own file without shared split
@@ -445,9 +492,10 @@ A leaderboard or ticker can show **one view of the round** instead of all of it 
 - Not walked in a real OBS browser source; no multi-hour soak (D4). The D5 live-signal browser walk is pending (the dev
   hub's origin) → H.
 - English only so far (`competition_display.*`); the 5 other locales come with the TR package.
+- Live control (v2 L1/L2) not walked in a browser yet (no-Docker mode) - phone 375 control page, 1920 overlay.
 - Editor v3 (E1 deferrals): copy/paste across displays, group/ungroup, Shift range-select and multi-reorder in the
   layers list, spacing hints between siblings, segment guides, rotation-aware bounds.
-- v2 (R §3): live control (spotlight/message elements and page), copy from another event, ticker marquee,
+- v2 (R §3): copy from another event, ticker marquee,
   the bracket overlay element, scenes, animations, 4:3 and portrait
   (the standings element is built - v2 S2 above).
 

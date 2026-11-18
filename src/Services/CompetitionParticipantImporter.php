@@ -83,6 +83,11 @@ readonly final class CompetitionParticipantImporter
         $rows = $mapping->toRows($sheet);
         $plan = $this->planner->plan($competitionId, $rows, ParticipantImportMode::Update);
 
+        // A file of team rows whose ticket type names no round: nothing is imported (only the preview can choose one)
+        if ($plan->errors !== []) {
+            return new ParticipantImportResult(errors: $plan->errors);
+        }
+
         $result = $this->applier->apply($competitionId, $plan);
         $this->entityManager->flush();
 

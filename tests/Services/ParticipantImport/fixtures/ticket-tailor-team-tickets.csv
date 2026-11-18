@@ -1,0 +1,4 @@
+"Order ID","Ticket ID","Ticket type","Event date","Buyer first name","Buyer last name","Buyer email","Quantity","Team name","Player 1 name","Player 2 name","Player 3 name","Player 4 name","Division"
+"or_100001","tt_500001","500 Teams CHALLENGE - Team of 4","2027-02-06","Avery","Example","avery@example.com","1","Corner Crew","Avery Example","Blake Sample","Casey Demo","Drew Placeholder",""
+"or_100002","tt_500002","Pairs - 1000 pieces","2027-02-07","Emery","Testperson","emery@example.com","1","Edge Lords","Emery Testperson","Finley Mock","","","Senior 55+"
+"or_100003","tt_500003","Solo - 500 pieces","2027-02-07","Harper","Fictional","harper@example.com","1","","Harper Fictional","","","","junior u16"

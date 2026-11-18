@@ -29,7 +29,7 @@ readonly final class ParticipantImportPreviewBuilder
     }
 
     /**
-     * @param array<mixed> $input `sheet`, `encoding`, `separator`, `headers`, `map`, `mode`
+     * @param array<mixed> $input `sheet`, `encoding`, `separator`, `headers`, `map`, `tickets`, `mode`
      */
     public function build(StashedParticipantImport $stashed, string $competitionId, array $input): ParticipantImportPreview
     {
@@ -57,7 +57,7 @@ readonly final class ParticipantImportPreviewBuilder
         $mappingFromInput = is_array($map) && ($input['headers'] ?? null) === $headersKey;
 
         $mapping = $mappingFromInput
-            ? ColumnMapping::fromQuery($map, $sheet->headers, $rounds, $hasDivisions)
+            ? ColumnMapping::fromQuery($map, $sheet->headers, $rounds, $hasDivisions, is_array($input['tickets'] ?? null) ? $input['tickets'] : [])
             : ColumnMapping::detect($sheet->headers, $rounds, $hasDivisions);
 
         $mappingErrors = $mapping->errors();

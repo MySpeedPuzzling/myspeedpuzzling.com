@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\ParticipantFileSheetInfo;
 use SpeedPuzzling\Web\Value\ParticipantImportField;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
 use SpeedPuzzling\Web\Value\ParticipantImportRound;
+use SpeedPuzzling\Web\Value\ParticipantImportRowAction;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\ParticipantSheet;
 use SpeedPuzzling\Web\Value\StashedParticipantImport;
@@ -98,7 +99,7 @@ readonly final class ParticipantImportPreview
     /**
      * The form's state as query parameters - the preview URL, the hidden fields of the confirm form.
      *
-     * @return array<string, int|string|array<int, string>>
+     * @return array<string, int|string|array<int|string, string>>
      */
     public function query(null|ParticipantImportMode $mode = null): array
     {
@@ -112,6 +113,12 @@ readonly final class ParticipantImportPreview
         if ($this->sheet !== null && $this->mapping !== null) {
             $query['headers'] = $this->headersKey();
             $query['map'] = $this->mapping->toQuery($this->sheet->headers);
+
+            // The round of each ticket type (team rows) - only when a Ticket type column is mapped
+            $tickets = $this->mapping->ticketQuery($this->sheet);
+            if ($tickets !== []) {
+                $query['tickets'] = $tickets;
+            }
         }
 
         return $query;
@@ -145,13 +152,57 @@ readonly final class ParticipantImportPreview
                 $key = $message->getMessage();
                 $groups[$key] ??= ['message' => $message, 'rows' => []];
 
-                if (!in_array($row->rowNumber, $groups[$key]['rows'], true)) {
-                    $groups[$key]['rows'][] = $row->rowNumber;
+                if (!in_array($row->fileRow(), $groups[$key]['rows'], true)) {
+                    $groups[$key]['rows'][] = $row->fileRow();
                 }
             }
         }
 
         return array_values($groups);
+    }
+
+    /**
+     * The plan's rows split for the preview: the ones that change something, and the unchanged and repeated ones
+     * (folded). The people of one team row stay together - the block changes something when any of them does.
+     *
+     * @return array{changing: list<ParticipantImportRow>, quiet: list<ParticipantImportRow>}
+     */
+    public function rowTables(): array
+    {
+        $quietActions = [ParticipantImportRowAction::Unchanged, ParticipantImportRowAction::SamePerson];
+
+        $changingTeamRows = [];
+        foreach ($this->plan->rows ?? [] as $row) {
+            if ($row->teamRow !== null && !in_array($row->action, $quietActions, true)) {
+                $changingTeamRows[$row->teamRow] = true;
+            }
+        }
+
+        $tables = ['changing' => [], 'quiet' => []];
+        foreach ($this->plan->rows ?? [] as $row) {
+            $changing = $row->teamRow !== null
+                ? isset($changingTeamRows[$row->teamRow])
+                : !in_array($row->action, $quietActions, true);
+
+            $tables[$changing ? 'changing' : 'quiet'][] = $row;
+        }
+
+        return $tables;
+    }
+
+    /**
+     * The ticket types of the file and the round each is imported into (a Ticket type column mapped) - the preview's
+     * "Ticket types" choices.
+     *
+     * @return list<array{key: string, value: string, rows: int, choice: null|string, guessed: bool}>
+     */
+    public function ticketTypes(): array
+    {
+        if ($this->sheet === null || $this->mapping === null) {
+            return [];
+        }
+
+        return $this->mapping->ticketTypes($this->sheet);
     }
 
     /**
@@ -167,7 +218,8 @@ readonly final class ParticipantImportPreview
 
         $values = array_filter(
             $this->mapping->toQuery($this->sheet->headers),
-            static fn (string $value): bool => $value !== ParticipantImportField::Ignore->value,
+            // Member columns are many by nature
+            static fn (string $value): bool => $value !== ParticipantImportField::Ignore->value && $value !== ParticipantImportField::MemberName->value,
         );
         $counts = array_count_values($values);
 

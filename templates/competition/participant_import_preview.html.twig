@@ -195,6 +195,46 @@
                             </table>
                         </div>
 
+                        {# Team rows: which round each ticket type means (participant-import-preview.md "As built: team rows") #}
+                        {% set ticket_types = preview.ticketTypes %}
+                        {% if ticket_types is not empty %}
+                            <h3 class="h5 mt-4">{{ 'team_tickets.preview.tickets_title'|trans }}</h3>
+                            <p class="small text-muted mb-2">{{ 'team_tickets.preview.tickets_intro'|trans }}</p>
+                            <div class="table-responsive position-relative mb-3">
+                                <table class="table table-sm align-middle mb-0" id="participant-import-tickets">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">{{ 'team_tickets.preview.ticket_type'|trans }}</th>
+                                            <th scope="col" style="min-width: 14rem;">{{ 'team_tickets.preview.imported_into'|trans }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for ticket in ticket_types %}
+                                            <tr data-ticket="{{ ticket.key }}">
+                                                <td class="text-break">
+                                                    <strong>{{ ticket.value }}</strong>
+                                                    <span class="d-block small text-muted">{{ 'team_tickets.preview.ticket_rows'|trans({'%count%': ticket.rows}) }}</span>
+                                                </td>
+                                                <td>
+                                                    <label class="visually-hidden" for="participant-import-ticket-{{ ticket.key }}">{{ 'team_tickets.preview.imported_into'|trans }}: {{ ticket.value }}</label>
+                                                    <select id="participant-import-ticket-{{ ticket.key }}" name="tickets[{{ ticket.key }}]" class="form-select form-select-sm {{ ticket.choice is null ? 'is-invalid' }}" onchange="this.form.requestSubmit()">
+                                                        <option value="" {{ ticket.choice is null ? 'selected' }}>{{ 'team_tickets.preview.choose_round'|trans }}</option>
+                                                        {% for round in preview.rounds %}
+                                                            <option value="{{ round.id }}" {{ ticket.choice == round.id ? 'selected' }}>{{ round.name }}</option>
+                                                        {% endfor %}
+                                                        <option value="{{ constant('SpeedPuzzling\\Web\\Value\\ColumnMapping::TICKET_SKIP') }}" {{ ticket.choice == constant('SpeedPuzzling\\Web\\Value\\ColumnMapping::TICKET_SKIP') ? 'selected' }}>{{ 'team_tickets.preview.skip'|trans }}</option>
+                                                    </select>
+                                                    {% if ticket.guessed and ticket.choice is not null %}
+                                                        <span class="d-block small text-muted mt-1">{{ 'team_tickets.preview.guessed'|trans }}</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+
                         {# Mode #}
                         <h3 class="h5 mt-4">{{ (prefix ~ 'mode_title')|trans }}</h3>
                         {% set sync_blockers = plan is not null ? plan.syncBlockers : [] %}

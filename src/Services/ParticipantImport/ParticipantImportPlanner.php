@@ -76,7 +76,7 @@ readonly final class ParticipantImportPlanner
             mode: $mode,
             rows: $built->rows,
             warnings: $built->warnings,
-            errors: [],
+            errors: $built->errors,
             removals: $removals,
             operations: $built->operations,
             fingerprint: $fingerprint,

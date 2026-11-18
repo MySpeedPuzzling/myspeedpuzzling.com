@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\ColumnMapping;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -474,6 +475,66 @@ final class ParticipantImportFlowTest extends WebTestCase
         self::assertStringContainsString('no MySpeedPuzzling player #nobody7', $crawler->filter('#participant-import-warnings')->text());
         self::assertStringContainsString('is in the file for different people (rows 5, 6)', $crawler->filter('#participant-import-warnings')->text());
         self::assertCount(0, $crawler->filter('tr[data-row="5"] [data-import-profile], tr[data-row="6"] [data-import-profile]'));
+    }
+
+    /**
+     * Team rows (participant-import-preview.md "As built: team rows"): one block per team ticket, the ticket types'
+     * rounds chosen on the preview and carried by the confirm
+     */
+    public function testTeamRowsAreOneBlockAndTicketTypesAreChosenOnThePreview(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $competition = $entityManager->find(Competition::class, self::COMPETITION);
+        self::assertNotNull($competition);
+        $entityManager->persist(new CompetitionRound(Uuid::uuid7(), $competition, 'Relay Teams', 60, TestClock::now()->modify('+40 days'), category: RoundCategory::Team));
+        $entityManager->flush();
+
+        $csv = "Ticket type,Team name,Player 1 name,Player 2 name\nRelay Teams ticket,Corner Crew,Avery Example,Blake Sample\nVIP,,Casey Demo,\n";
+        $token = $this->stash(self::COMPETITION, $csv);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $this->browser->request('GET', $this->previewUrl($token));
+
+        $this->assertResponseIsSuccessful();
+        self::assertStringNotContainsString('team_tickets.', $crawler->filter('main')->text(), 'Untranslated key');
+        self::assertSame('ticket_type', $this->selected($crawler, 'map[0]'));
+        self::assertSame('member_name', $this->selected($crawler, 'map[2]'));
+        self::assertSame('member_name', $this->selected($crawler, 'map[3]'));
+
+        // "VIP" names no round: the plan says so and cannot be confirmed
+        $vip = 'tickets[' . ColumnMapping::ticketKey('VIP') . ']';
+        self::assertCount(1, $crawler->filter('select[name="' . $vip . '"].is-invalid'));
+        self::assertStringContainsString('Choose a round for the ticket type “VIP”', $crawler->filter('#participant-import-plan .alert-danger')->text());
+        self::assertNotNull($crawler->filter('#participant-import-confirm button[type="submit"]')->attr('disabled'));
+
+        // One block per team row: the team and its round once, its people below
+        $block = $crawler->filter('#participant-import-rows tr[data-team-row="2"]');
+        self::assertSame('2 Corner Crew · Relay Teams · 2 people', self::squash($block->text()));
+        self::assertCount(2, $crawler->filter('#participant-import-rows tr[data-team-member-of="2"]'));
+        self::assertStringContainsString('Member 2', $crawler->filter('#participant-import-rows tr[data-team-member-of="2"]')->eq(1)->text());
+
+        $form = $crawler->filter('#participant-import-form')->form();
+        $form[$vip] = ColumnMapping::TICKET_SKIP;
+        $crawler = $this->browser->submit($form);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('#participant-import-plan .alert-danger'));
+        self::assertStringContainsString('the ticket type “VIP” is not imported', $crawler->filter('#participant-import-warnings')->text());
+
+        $values = $this->confirmForm($crawler)->getPhpValues();
+        self::assertIsArray($values['tickets']);
+        self::assertSame(ColumnMapping::TICKET_SKIP, $values['tickets'][ColumnMapping::ticketKey('VIP')]);
+
+        $this->browser->submit($this->confirmForm($crawler));
+        $this->assertResponseRedirects(self::PARTICIPANTS_URL);
+
+        $members = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT COUNT(*) FROM competition_participant_round cpr INNER JOIN competition_team ct ON ct.id = cpr.team_id WHERE ct.name = :team',
+            ['team' => 'Corner Crew'],
+        );
+        self::assertIsNumeric($members);
+        self::assertSame(2, (int) $members);
+        self::assertSame(0, $this->participantsCalled('Casey Demo'));
     }
 
     private static function squash(string $text): string

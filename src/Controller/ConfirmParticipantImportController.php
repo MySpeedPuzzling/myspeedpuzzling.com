@@ -180,7 +180,7 @@ final class ConfirmParticipantImportController extends AbstractController
      */
     private static function stateOf(array $input): array
     {
-        return array_intersect_key($input, array_flip(['sheet', 'encoding', 'separator', 'headers', 'map', 'mode']));
+        return array_intersect_key($input, array_flip(['sheet', 'encoding', 'separator', 'headers', 'map', 'tickets', 'mode']));
     }
 
     /**

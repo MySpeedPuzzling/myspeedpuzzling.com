@@ -1104,3 +1104,51 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   - a stale dialog cannot merge it away; removing the row alone still works. The import's flash counts with one
   `SELECT` (`peopleWithSuggestions()`).
 - Not here: the phone list / person editor, the setup-checklist row, `EXPLAIN ANALYZE` on production (docs/TODO.md).
+
+### L4b - participant e-mail and claim invitations (2026-11-18)
+
+- Columns `competition_participant.email` (varchar(254), canonical - `ParticipantEmail`: trimmed, lower case,
+  `FILTER_VALIDATE_EMAIL`), `claim_invited_at`, `claim_invitations_refused_at`; `participant_link_log.player_id`
+  nullable (the `invitation_sent` rows name nobody). Migration hand-written under no-Docker mode. Entity:
+  `updateEmail()`, `recordClaimInvitation()`, `refuseClaimInvitations()` (keeps the first moment),
+  `claimInvitationRefusal(now)` → `ClaimInvitationSkip` (`not_on_list` / `linked` / `no_email` / `said_no` /
+  `invited_recently`) and `mayBeInvited(now)`. R8: one per person per 24 h
+  (`CLAIM_INVITATION_EVERY`), no total cap, no daily cap.
+- Import: field `Email` (headers `email`, `e-mail`, `mail`, `email address`), a filled cell sets it, an empty cell keeps
+  it, a wrong one → row message `invalid_email` (row imported without it); the preview's changes list it; the state
+  version covers it. Export + template: column `email` after `external_id`.
+- Sheet: `SheetChangeField::Email` (three-way, `invalid_email` refusal, families may share an address), state per
+  person `email`, `invitedAt`, `invitationsRefused` (+ the sheet version); Columns menu "E-mail" (private, editable,
+  paste/fill/clear like the note) and "Invited" (date, or "Said no to invitations"); row ⋯ "Send invitation" next to
+  the claim link actions (disabled with the reason), bulk bar "Send invitations" → confirmation with the skip counts
+  (`assets/participants_sheet/claim_invitations.js`, the server's rule mirrored) → JSON
+  `participants_sheet_claim_invitations` (`{participants}` → `{sent, skipped}`, 409 `not_public` / `online_timing`).
+  Desktop grid only, like L4a's claim actions (not the phone list / person editor).
+- `SendParticipantClaimInvitations(competitionId, ?ids, byPlayerId)` (lock): refused as a whole for an event that is
+  not publicly visible or uses online timing (`ClaimInvitationsNotAvailable`); per person the entity rule, then the
+  same **per address over every row of the event, removed ones included** (`GetClaimInvitationAddresses`: a person
+  removed and added again keeps their "no" and their 24 hours; a family sharing an address gets one e-mail a day - the
+  hub's count and the sender's "said no" re-check follow it); an address on `email_suppression`
+  (`EmailSuppression::holdsBackClaimInvitations()`) is **dropped silently and counted as sent**, nothing recorded (D10 -
+  the organiser never learns what we know of an address); makes a missing claim token, records
+  the invitation, logs `invitation_sent` (by the organiser) and queues `SendParticipantClaimInvitation(id, email)`
+  (async) in the same transaction. Returns `ClaimInvitationsSent` (sent + skipped by reason).
+- The e-mail `emails/participant_claim_invitation.html.twig` (`email_type = participant_claim_invitation`, transactional
+  stream, no reply-to, the same body for an address with an account and without - pinned): read again before sending
+  (`GetParticipantClaimInvitation`, 1 statement - removed / linked / said no / address changed / not public / online
+  timing / suppressed → nothing); language by the participant's country (`ClaimInvitationLocale`), the claim link has
+  none; footer + RFC 8058 header = `ClaimInvitationsRefusalUrl` → `participant_claim_invitations_refuse` (signed, GET
+  page / POST 200 one-click / 303 button, idempotent) → `RefuseParticipantClaimInvitations` (lock).
+- **Complaint → suppression** (R8): `ProcessSesEventHandler` puts a complained address on `email_suppression` with the new
+  source `invitation_complaint` - claim invitations from any event stop; it holds back nothing else (excluded from
+  `isInEffect()` and `MailboxFullRule::sqlInEffect()`: no banner, notifications go), a bounce or a full inbox later
+  becomes that source (notifications pause). The complaint itself is `email_suppression.invitations_complained_at`,
+  kept whatever the source: on an address already on the list (a full inbox) it is set beside it, and a delivery
+  lifting a full inbox turns such a row back into `invitation_complaint` instead of removing it.
+- Hub card: "Send invitations to everybody not linked with an e-mail (N)" (`<details>` confirmation with the skip counts
+  from `GetParticipantLinkSummary`, +0 statements) → `send_claim_invitations_to_everybody` (POST, CSRF) → flash; not on
+  an event with online timing.
+- Erasure: daily `myspeedpuzzling:erase-participant-emails` → `EraseParticipantEmails` (bulk `UPDATE` with a comment,
+  `NOT_LOCKED` like account deletion): addresses of events whose last day ended (`RegistrationAvailability::eventEndsAt`
+  in the registration zone, else the event's / series' country) more than 60 days ago; events without dates keep them.
+- Not here: the person editor's / phone list's e-mail field and invitation action, a per-event daily cap (cut by R8).

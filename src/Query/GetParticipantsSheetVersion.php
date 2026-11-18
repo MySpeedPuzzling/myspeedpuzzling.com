@@ -39,7 +39,8 @@ SELECT encode(sha256(convert_to(concat_ws(E'\n',
     (
         SELECT string_agg(json_build_array(
             cp.id, cp.name, cp.country, cp.external_id, cp.player_id, cp.deleted_at, cp.source,
-            cp.registration_status, cp.registered_at, cp.paid_at, cp.checked_in_at, cp.organizer_note
+            cp.registration_status, cp.registered_at, cp.paid_at, cp.checked_in_at, cp.organizer_note,
+            cp.email, cp.claim_invited_at, cp.claim_invitations_refused_at
         )::text, E'\n' ORDER BY cp.id)
         FROM competition_participant cp
         WHERE cp.competition_id = :competitionId

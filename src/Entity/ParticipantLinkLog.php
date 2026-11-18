@@ -42,10 +42,11 @@ class ParticipantLinkLog
         #[Immutable]
         #[Column]
         public string $participantName,
+        // Null only for `invitation_sent` - the person invited is linked to nobody
         #[Immutable]
-        #[Column(type: UuidType::NAME)]
-        public UuidInterface $playerId,
-        // The profile's name at the time - '' once the account is deleted
+        #[Column(type: UuidType::NAME, nullable: true)]
+        public null|UuidInterface $playerId,
+        // The profile's name at the time - '' once the account is deleted (and for `invitation_sent`)
         #[Immutable]
         #[Column]
         public string $playerName,

@@ -27,14 +27,15 @@ readonly final class CompetitionParticipantExporter
      * #code (what organisers collect at registration - participant-linking.md §7.3); the import reads ids and profile
      * links in the same column.
      */
-    private const array TEMPLATE_HEADERS = ['name', 'country', 'external_id', 'msp_code', 'status', 'round_names', 'team_name'];
+    private const array TEMPLATE_HEADERS = ['name', 'country', 'external_id', 'email', 'msp_code', 'status', 'round_names', 'team_name'];
 
     /**
      * The export's: `msp_player_id` is the round-trip key, `msp_code` is there to read (and to name a player on a row
      * added by hand - the import reads it where the id is empty). Written for public profiles only: the file leaves the
-     * site, like a printed name tag.
+     * site, like a printed name tag. `email` is the organiser's own address of the person (participant-linking.md §7.3) -
+     * the export is the organiser's file.
      */
-    private const array EXPORT_HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'msp_code', 'status', 'round_names', 'team_name'];
+    private const array EXPORT_HEADERS = ['name', 'country', 'external_id', 'email', 'msp_player_id', 'msp_code', 'status', 'round_names', 'team_name'];
 
     /**
      * Only in the export of an event that manages registration, after every other column
@@ -107,6 +108,7 @@ readonly final class CompetitionParticipantExporter
                 $participant->participantName,
                 $participant->participantCountry?->name,
                 $participant->externalId,
+                $participant->email,
                 $participant->playerId,
                 isset($publicCodes[$participant->participantId]) ? '#' . strtoupper($publicCodes[$participant->participantId]) : null,
                 'active',

@@ -24,12 +24,14 @@ final class MailboxFullRule
      */
     public static function sqlInEffect(string $alias): string
     {
+        // A complaint about a claim invitation holds back claim invitations only (EmailSuppression::isInEffect())
         return sprintf(
-            "(%1\$s.source <> '%2\$s' OR %1\$s.suppressed_at > CAST(:%4\$s AS timestamp) - INTERVAL '%3\$d days')",
+            "(%1\$s.source <> '%5\$s' AND (%1\$s.source <> '%2\$s' OR %1\$s.suppressed_at > CAST(:%4\$s AS timestamp) - INTERVAL '%3\$d days'))",
             $alias,
             EmailSuppressionSource::MailboxFull->value,
             self::EXPIRES_AFTER_DAYS,
             self::NOW_PARAMETER,
+            EmailSuppressionSource::InvitationComplaint->value,
         );
     }
 }

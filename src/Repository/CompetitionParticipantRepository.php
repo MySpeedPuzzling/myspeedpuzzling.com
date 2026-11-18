@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
@@ -189,6 +190,44 @@ readonly final class CompetitionParticipantRepository
 
         /** @var list<CompetitionParticipant> $participants */
         $participants = $builder->getQuery()->getResult();
+
+        return $participants;
+    }
+
+    /**
+     * The event's participants a claim invitation is asked for (participant-linking.md §5.5) - removed ones included,
+     * SendParticipantClaimInvitations says why they get none; null = every participant of the event.
+     *
+     * @param null|list<string> $participantIds
+     * @return list<CompetitionParticipant>
+     */
+    public function ofCompetitionForInvitations(string $competitionId, null|array $participantIds): array
+    {
+        if (!Uuid::isValid($competitionId)) {
+            return [];
+        }
+
+        $builder = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.competition = :competitionId')
+            ->setParameter('competitionId', $competitionId)
+            ->orderBy('participant.name', 'ASC')
+            ->addOrderBy('participant.id', 'ASC');
+
+        if ($participantIds !== null) {
+            $participantIds = array_values(array_filter($participantIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+            if ($participantIds === []) {
+                return [];
+            }
+
+            $builder->andWhere('participant.id IN (:ids)')->setParameter('ids', $participantIds);
+        }
+
+        // As the rows are now, under the caller's lock - not as an earlier read of this request left them in the identity map
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $builder->getQuery()->setHint(Query::HINT_REFRESH, true)->getResult();
 
         return $participants;
     }

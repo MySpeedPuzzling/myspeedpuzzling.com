@@ -183,6 +183,11 @@ readonly final class ParticipantImportApplier
                 $participant->updateOrganizerNote($operation['organizerNote']);
             }
 
+            // The organiser's address of the person (participant-linking.md §7.3) - present = set to it
+            if (array_key_exists('email', $operation) && $operation['email'] !== $participant->email) {
+                $participant->updateEmail($operation['email']);
+            }
+
             if (($operation['disconnect'] ?? false) === true) {
                 // "Not this person" (the sheet's notThem) is a refused pair from now on (participant-linking.md D11)
                 $why = ($operation['notThem'] ?? false) === true ? ParticipantLinkAction::NotThisPerson : ParticipantLinkAction::Unlinked;

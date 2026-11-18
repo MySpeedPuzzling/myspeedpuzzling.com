@@ -27,4 +27,6 @@ enum ParticipantImportField: string
     case ParticipantId = 'participant_id';
     case ExternalId = 'external_id';
     case Status = 'status';
+    // The organiser's address of the person, for the claim invitation (participant-linking.md §7.3) - private
+    case Email = 'email';
 }

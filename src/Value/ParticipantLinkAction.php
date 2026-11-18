@@ -23,5 +23,6 @@ enum ParticipantLinkAction: string
     // The organiser said the linked player is not this person
     case NotThisPerson = 'not_this_person';
     case AccountDeleted = 'account_deleted';
+    // A claim invitation e-mailed to the person (L4b) - player_id null, by_player_id the organiser
     case InvitationSent = 'invitation_sent';
 }

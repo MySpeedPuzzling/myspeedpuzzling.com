@@ -27,6 +27,8 @@ export const TEAM_SIZE_MIN = 2;
 export const TEAM_SIZE_MAX = 20;
 export const NAME_MAX_LENGTH = 255;
 export const NOTE_MAX_LENGTH = 255;
+// ParticipantEmail::MAX_LENGTH
+export const EMAIL_MAX_LENGTH = 254;
 export const EXTERNAL_ID_MAX_LENGTH = 255;
 export const TEAM_NAME_MAX_LENGTH = 255;
 
@@ -284,6 +286,9 @@ export class Working {
                         country: change.country ?? null,
                         externalId: cleanOptionalText(change.externalId),
                         note: null,
+                        email: null,
+                        invitedAt: null,
+                        invitationsRefused: false,
                         source: 'manual',
                         removedAt: null,
                         connectedAt: null,
@@ -312,6 +317,8 @@ export class Working {
                     value = cleanName(value);
                 } else if (change.field === 'externalId' || change.field === 'note') {
                     value = cleanOptionalText(value);
+                } else if (change.field === 'email') {
+                    value = cleanOptionalText(value)?.toLowerCase() ?? null;
                 }
 
                 this.write('people', person.id, { ...person, [change.field]: value });
@@ -695,6 +702,9 @@ export class SheetModel {
         for (const person of state.people ?? []) {
             people.set(person.id, {
                 note: null,
+                email: null,
+                invitedAt: null,
+                invitationsRefused: false,
                 externalId: null,
                 registration: null,
                 player: null,
@@ -1481,6 +1491,9 @@ export class SheetModel {
 
         base.people.set(person.id, {
             note: null,
+            email: null,
+            invitedAt: null,
+            invitationsRefused: false,
             externalId: null,
             registration: null,
             player: null,

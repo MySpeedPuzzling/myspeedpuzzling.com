@@ -32,7 +32,7 @@ final class ParticipantsSheetPeopleScriptsTest extends TestCase
      */
     public static function suites(): iterable
     {
-        foreach (['paste', 'registration', 'filters', 'view', 'claim-links', 'link-suggestions'] as $suite) {
+        foreach (['paste', 'registration', 'filters', 'view', 'claim-links', 'link-suggestions', 'claim-invitations'] as $suite) {
             yield $suite => [$suite];
         }
     }

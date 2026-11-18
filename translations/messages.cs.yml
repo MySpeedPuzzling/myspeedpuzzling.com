@@ -4529,6 +4529,7 @@ qr_code:
       "player_linked_elsewhere": "Řádek %row%: msp_player_id „%id%“ je v této události už propojeno s „%other%“, proto nebylo propojeno s „%name%“."
       "deleted_kept_with_results": "Řádek %row%: „%name%“ má v této události výsledky, proto byl status „deleted“ přeskočen a zůstává."
       "self_joined_left": "Řádek %row%: „%name%“ se na MySpeedPuzzling přihlásil(a) sám/sama a z události se zase odhlásil(a), proto byl řádek přeskočen. Pokud se nakonec zúčastní, přidejte ho/ji na stránce účastníků."
+      invalid_email: "Řádek %row%: „%email%“ není e-mailová adresa – řádek se naimportuje bez ní."
       linking:
         invalid_player_reference: "Řádek %row%: „%reference%“ není #kód, ID hráče ani odkaz na profil MySpeedPuzzling – řádek se importuje bez profilu."
         unknown_player_reference: "Řádek %row%: hráč MySpeedPuzzling %reference% neexistuje – řádek se importuje bez profilu."
@@ -4661,6 +4662,7 @@ qr_code:
         "participant_id": "ID účastníka"
         "external_id": "Externí ID"
         "status": "Status"
+        email: "E-mail (soukromý, pro pozvánku k propojení)"
       "confirm":
         "nothing_saved_yet": "Zatím se nic neuložilo."
         "button": "Potvrdit import"
@@ -15420,6 +15422,51 @@ results_import_counts:
     summary: "Výsledky - nové: %added%, změněné: %updated%, odstraněné: %removed%"
     summary_of_category: "Výsledky (%category%) - nové: %added%, změněné: %updated%, odstraněné: %removed%"
     name_column: "Jméno / název"
+participant_claim_invitation:
+    sheet:
+        column_email: "E-mail"
+        column_email_title: "Soukromé – vidí ho jen organizátoři akce, slouží jen pro pozvánku k propojení"
+        column_invited: "Pozván(a)"
+        paste_change_email: "E-mail %from% → %to%"
+        said_no: "Odmítl(a) pozvánky"
+        send: "Poslat pozvánku"
+        send_help: "Propojovací odkaz e-mailem na %email%"
+        bulk: "Poslat pozvánky"
+        none: "Nikomu z nich teď pozvánku poslat nelze."
+        failed: "Pozvánky se nepodařilo odeslat – zkuste to prosím znovu."
+        same_for_everybody: "Všichni dostanou stejný e-mail se svým vlastním propojovacím odkazem – ten je přihlásí, nebo jim umožní vytvořit si účet. Nikdo se nedozví, zda k adrese existuje účet."
+        sending: "Odesílání…"
+        title: "{0}Poslat pozvánky 0 lidem|{1}Poslat pozvánku 1 osobě|[2,4]Poslat pozvánky %count% lidem|[5,Inf[Poslat pozvánky %count% lidem"
+        emails: "{0}Neodejde žádný e-mail.|{1}Odejde 1 e-mail.|[2,4]Odejdou %count% e-maily.|[5,Inf[Odejde %count% e-mailů."
+        confirm: "{0}Poslat 0 pozvánek|{1}Poslat 1 pozvánku|[2,4]Poslat %count% pozvánky|[5,Inf[Poslat %count% pozvánek"
+        sent: "{0}Neodešla žádná pozvánka.|{1}Odeslána 1 pozvánka.|[2,4]Odeslány %count% pozvánky.|[5,Inf[Odesláno %count% pozvánek."
+        skipped: "Přeskočeno: %list%."
+        skip:
+            not_on_list: "Už není na seznamu"
+            linked: "Už je propojen(a) s profilem"
+            no_email: "Nejdřív doplňte e-mail do sloupce E-mail"
+            said_no: "Pozvánky pro tuto akci odmítl(a)"
+            invited_recently: "Pozván(a) během posledních 24 hodin – nejvýše jedna pozvánka denně"
+        skipped_count:
+            not_on_list: "{0}0 není na seznamu|{1}1 není na seznamu|[2,4]%count% nejsou na seznamu|[5,Inf[%count% není na seznamu"
+            linked: "{0}0 už propojeno|{1}1 už propojen(a)|[2,4]%count% už propojeni|[5,Inf[%count% už propojeno"
+            no_email: "{0}0 bez e-mailu|{1}1 bez e-mailu|[2,4]%count% bez e-mailu|[5,Inf[%count% bez e-mailu"
+            said_no: "{0}0 odmítlo pozvánky|{1}1 odmítl(a) pozvánky|[2,4]%count% odmítli pozvánky|[5,Inf[%count% odmítlo pozvánky"
+            invited_recently: "{0}0 pozváno během posledních 24 hodin|{1}1 pozván(a) během posledních 24 hodin|[2,4]%count% pozváni během posledních 24 hodin|[5,Inf[%count% pozváno během posledních 24 hodin"
+        reason:
+            invalid_email: "„%email%“ není e-mailová adresa."
+    error:
+        not_public: "Pozvánky lze posílat, až bude akce zveřejněna – od té chvíle fungují i její propojovací odkazy."
+        online_timing: "Tato akce používá online měření času: její osobní odkazy propojují lidi s profily – rozdejte raději ty."
+    hub:
+        send: "Poslat pozvánky všem nepropojeným s e-mailem (%count%)"
+        none: "Doplňte e-mailové adresy lidí v tabulce účastníků (sloupec E-mail) nebo ve svém souboru a pošlete jim propojovací odkazy e-mailem."
+        form_expired: "Stránka byla otevřená příliš dlouho – zkuste to prosím znovu."
+    refuse:
+        headline: "Pozvánky pro tuto akci"
+        text: "Nechcete už dostávat e-maily s pozvánkou k propojení profilu s akcí %event%?"
+        confirm: "Už mi neposílejte pozvánky"
+        done: "Hotovo – žádné další pozvánky pro %event% vám už nepošleme."
 participant_claim_link:
     page:
         title: "Propojte svůj profil MySpeedPuzzling"

@@ -5013,6 +5013,7 @@ competition:
             player_linked_elsewhere: "Row %row%: msp_player_id \"%id%\" is already connected to \"%other%\" in this event, so it was not connected to \"%name%\"."
             deleted_kept_with_results: "Row %row%: \"%name%\" has results in this event, so the status \"deleted\" was ignored and they stay."
             self_joined_left: "Row %row%: \"%name%\" signed up on MySpeedPuzzling by themselves and left the event again, so the row was skipped. If they take part after all, add them on the participants page."
+            invalid_email: "Row %row%: \"%email%\" is not an e-mail address - the row is imported without it."
             linking:
                 invalid_player_reference: "Row %row%: \"%reference%\" is not a MySpeedPuzzling #code, player id or profile link - the row is imported without a profile."
                 unknown_player_reference: "Row %row%: no MySpeedPuzzling player %reference% - the row is imported without a profile."
@@ -5145,6 +5146,7 @@ competition:
                 participant_id: "Participant id"
                 external_id: "External id"
                 status: "Status"
+                email: "E-mail (private, for the claim invitation)"
             confirm:
                 nothing_saved_yet: "Nothing has been saved yet."
                 button: "Confirm import"
@@ -15667,6 +15669,52 @@ results_import_counts:
     summary: "Results - new: %added%, changed: %updated%, removed: %removed%"
     summary_of_category: "%category% results - new: %added%, changed: %updated%, removed: %removed%"
     name_column: "Name"
+
+participant_claim_invitation:
+    sheet:
+        column_email: "E-mail"
+        column_email_title: "Private - only the event's organisers see it, used only for the claim invitation"
+        column_invited: "Invited"
+        paste_change_email: "E-mail %from% → %to%"
+        said_no: "Said no to invitations"
+        send: "Send invitation"
+        send_help: "Their claim link by e-mail to %email%"
+        bulk: "Send invitations"
+        none: "Nobody of them can get an invitation now."
+        failed: "The invitations could not be sent - please try again."
+        same_for_everybody: "Everybody gets the same e-mail with their own claim link - it signs them in or lets them create an account. Nobody is told whether an address has an account."
+        sending: "Sending…"
+        title: "{0}Send invitations to 0 people|{1}Send an invitation to 1 person|]1,Inf[Send invitations to %count% people"
+        emails: "{0}0 e-mails go out.|{1}1 e-mail goes out.|]1,Inf[%count% e-mails go out."
+        confirm: "{0}Send 0 invitations|{1}Send 1 invitation|]1,Inf[Send %count% invitations"
+        sent: "{0}No invitation went out.|{1}1 invitation sent.|]1,Inf[%count% invitations sent."
+        skipped: "Skipped: %list%."
+        skip:
+            not_on_list: "Not on the list any more"
+            linked: "Linked to a profile already"
+            no_email: "Add their e-mail in the E-mail column first"
+            said_no: "They said no to invitations for this event"
+            invited_recently: "Invited in the last 24 hours - one invitation a day at most"
+        skipped_count:
+            not_on_list: "{0}0 not on the list|{1}1 not on the list|]1,Inf[%count% not on the list"
+            linked: "{0}0 linked already|{1}1 linked already|]1,Inf[%count% linked already"
+            no_email: "{0}0 without an e-mail|{1}1 without an e-mail|]1,Inf[%count% without an e-mail"
+            said_no: "{0}0 said no to invitations|{1}1 said no to invitations|]1,Inf[%count% said no to invitations"
+            invited_recently: "{0}0 invited in the last 24 hours|{1}1 invited in the last 24 hours|]1,Inf[%count% invited in the last 24 hours"
+        reason:
+            invalid_email: "\"%email%\" is not an e-mail address."
+    error:
+        not_public: "Invitations go out once the event is published - its claim links work from then on."
+        online_timing: "This event uses online timing: its personal links link people to their profiles - hand those out instead."
+    hub:
+        send: "Send invitations to everybody not linked with an e-mail (%count%)"
+        none: "Add people's e-mail addresses in the participants sheet (E-mail column) or in your file to send them their claim links by e-mail."
+        form_expired: "The page was open too long - please try again."
+    refuse:
+        headline: "Invitations for this event"
+        text: "Don't want more e-mails inviting you to link your profile to %event%?"
+        confirm: "Don't send me more invitations"
+        done: "Done - no more invitations for %event% will be sent to you."
 
 participant_claim_link:
     page:

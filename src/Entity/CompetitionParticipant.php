@@ -14,6 +14,8 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\ClaimInvitationSkip;
+use SpeedPuzzling\Web\Value\ParticipantEmail;
 use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -22,6 +24,9 @@ use SpeedPuzzling\Web\Value\RegistrationStatus;
 class CompetitionParticipant
 {
     public const int ORGANIZER_NOTE_MAX_LENGTH = 255;
+
+    /** At most one claim invitation per person in this time (participant-linking.md R8) */
+    public const string CLAIM_INVITATION_EVERY = '24 hours';
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -107,6 +112,25 @@ class CompetitionParticipant
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 32, unique: true, nullable: true)]
     public null|string $claimToken = null;
+
+    /**
+     * The organiser's address for the person (participant-linking.md D15, §3.1) - private like the note: only the
+     * event's organisers see it, used only for the claim invitation. Canonical (ParticipantEmail). Erased 60 days after
+     * the event's last day (EraseParticipantEmails).
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: ParticipantEmail::MAX_LENGTH, nullable: true)]
+    public null|string $email = null;
+
+    /** The last claim invitation sent to the person (SendParticipantClaimInvitations) */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $claimInvitedAt = null;
+
+    /** The person's one-click "no more invitations for this event" (RefuseParticipantClaimInvitations) */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $claimInvitationsRefusedAt = null;
 
     public function __construct(
         #[Id]
@@ -304,6 +328,52 @@ class CompetitionParticipant
     public function assignClaimToken(string $token): void
     {
         $this->claimToken = $token;
+    }
+
+    /**
+     * The organiser's address for the person - canonicalised here too (ParticipantEmail), null or blank = none. The
+     * callers validated it (the import's `invalid_email`, the sheet's refusal).
+     */
+    public function updateEmail(null|string $email): void
+    {
+        $email = $email === null ? '' : ParticipantEmail::canonicalize($email);
+        $this->email = $email === '' ? null : $email;
+    }
+
+    public function recordClaimInvitation(DateTimeImmutable $at): void
+    {
+        $this->claimInvitedAt = $at;
+    }
+
+    /**
+     * The person's "no more invitations for this event" - kept as the first moment they said it (one-click again
+     * changes nothing)
+     */
+    public function refuseClaimInvitations(DateTimeImmutable $at): void
+    {
+        $this->claimInvitationsRefusedAt ??= $at;
+    }
+
+    /**
+     * Why the person gets no claim invitation now (participant-linking.md §5.5, R8) - null = they may get one: an address,
+     * on the list, not linked to a profile, they did not say no, and the last invitation is more than
+     * CLAIM_INVITATION_EVERY ago. Whether the address takes our e-mails (email_suppression) is the sender's check.
+     */
+    public function claimInvitationRefusal(DateTimeImmutable $now): null|ClaimInvitationSkip
+    {
+        return match (true) {
+            $this->isDeleted() => ClaimInvitationSkip::NotOnList,
+            $this->player !== null => ClaimInvitationSkip::Linked,
+            $this->email === null => ClaimInvitationSkip::NoEmail,
+            $this->claimInvitationsRefusedAt !== null => ClaimInvitationSkip::SaidNo,
+            $this->claimInvitedAt !== null && $this->claimInvitedAt > $now->modify('-' . self::CLAIM_INVITATION_EVERY) => ClaimInvitationSkip::InvitedRecently,
+            default => null,
+        };
+    }
+
+    public function mayBeInvited(DateTimeImmutable $now): bool
+    {
+        return $this->claimInvitationRefusal($now) === null;
     }
 
     /**

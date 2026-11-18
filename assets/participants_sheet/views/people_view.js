@@ -98,6 +98,7 @@ import {
     requestSuggestions,
     suggestionAction,
 } from '../link_suggestions.js';
+import { SKIP_REASONS, invitationPlan, invitationSkip, requestInvitations } from '../claim_invitations.js';
 
 export const NEW_ROW = '__new';
 // A paste or fill touching more rows than this is previewed first (§6)
@@ -169,6 +170,9 @@ export const COLUMN_OPTIONS = [
     { key: 'paid', on: false, managed: true },
     { key: 'checkedIn', on: false, managed: true, inPerson: true },
     { key: 'note', on: false },
+    // The organiser's private address of the person and the last claim invitation (participant-linking.md §7.1)
+    { key: 'email', on: false },
+    { key: 'invited', on: false },
 ];
 
 /** The columns a header click sorts by (BR4). */
@@ -813,7 +817,7 @@ export class PeopleView {
         let col = 'name';
 
         if (kind === 'person') {
-            col = { country: 'country', player: 'player', externalId: 'externalId', note: 'note', registration: 'registration' }[rest] ?? 'name';
+            col = { country: 'country', player: 'player', externalId: 'externalId', note: 'note', email: 'email', registration: 'registration' }[rest] ?? 'name';
         } else if (kind === 'place') {
             col = `round:${key.slice(`place:${id}:`.length)}`;
         } else {
@@ -1216,6 +1220,8 @@ export class PeopleView {
             ['paid', { kind: 'readonly', width: 190 }],
             ['checkedIn', { kind: 'readonly', width: 150 }],
             ['note', { kind: 'text', width: 240, title: this.say('col_note_title') }],
+            ['email', { kind: 'text', width: 220, title: this.say('col_email_title') }],
+            ['invited', { kind: 'readonly', width: 170 }],
         ];
 
         for (const [key, column] of optional) {
@@ -1401,6 +1407,10 @@ export class PeopleView {
                 return { text: person.externalId ?? '', marker: this.marker(`person:${person.id}:externalId`) };
             case 'note':
                 return { text: person.note ?? '', marker: this.marker(`person:${person.id}:note`) };
+            case 'email':
+                return { text: person.email ?? '', marker: this.marker(`person:${person.id}:email`) };
+            case 'invited':
+                return { text: this.invitedText(person) };
             case 'source':
                 return { text: this.say(`source_${person.source === 'self_joined' || person.source === 'imported' ? person.source : 'manual'}`) };
             case 'joined':
@@ -1765,7 +1775,7 @@ export class PeopleView {
             return person.country ? (this.context.countries[person.country] ?? person.country) : '';
         }
 
-        if (col === 'externalId' || col === 'note') {
+        if (col === 'externalId' || col === 'note' || col === 'email') {
             return person[col] ?? '';
         }
 
@@ -1784,7 +1794,7 @@ export class PeopleView {
             return undefined;
         }
 
-        if (col === 'name' || col === 'country' || col === 'externalId' || col === 'note') {
+        if (col === 'name' || col === 'country' || col === 'externalId' || col === 'note' || col === 'email') {
             return person[col] ?? null;
         }
 
@@ -1935,7 +1945,7 @@ export class PeopleView {
         const rows = info.fill ? [...new Set(info.cells.filter((cell) => cell.col === col && cell.row !== NEW_ROW).map((cell) => cell.row))] : [row];
         const options = this.commitOptions(info, rows);
 
-        if (col === 'name' || col === 'externalId' || col === 'note') {
+        if (col === 'name' || col === 'externalId' || col === 'note' || col === 'email') {
             if (info.fill && rows.length > 1) {
                 return this.perform(setFields(this.model, col, this.fillValues(rows, row, input.text, info), options));
             }
@@ -2111,7 +2121,7 @@ export class PeopleView {
                 this.notify(this.t('people_name_required'), { anchor: { row: rows[0], col } });
             } else if (col === SELECT) {
                 this.setSelected(rows, false);
-            } else if (col === 'country' || col === 'externalId' || col === 'note') {
+            } else if (col === 'country' || col === 'externalId' || col === 'note' || col === 'email') {
                 actions.push(setFields(this.model, col, rows.map((personId) => ({ personId, value: null })), this.options()));
             } else if (col === 'player') {
                 actions.push(...rows.map((personId) => linkProfile(this.model, personId, null, this.options())));
@@ -2314,6 +2324,12 @@ export class PeopleView {
             }
         }
 
+        // Claim invitations to the selected people not linked to a profile (participant-linking.md §7.1) - not on an event
+        // with online timing, whose personal links do the same (§5.6)
+        if (active.some((person) => person.player === null) && !this.onlineLinksOffered()) {
+            parts.push(`<button type="button" class="btn btn-sm btn-light" data-bulk="invite">${escapeHtml(this.say('bulk_invite'))}</button>`);
+        }
+
         if (active.length > 0) {
             parts.push(`<button type="button" class="btn btn-sm btn-outline-light" data-bulk="remove">${escapeHtml(this.say('bulk_remove'))}</button>`);
         }
@@ -2363,6 +2379,9 @@ export class PeopleView {
             case 'markPaid':
             case 'checkIn':
                 this.bulkRegistration(ids, button.dataset.bulk);
+                break;
+            case 'invite':
+                this.sendInvitations(ids);
                 break;
             case 'restore':
                 this.restore(this.selectedPeople().filter((person) => person.removedAt !== null).map((person) => person.id));
@@ -2659,6 +2678,18 @@ export class PeopleView {
             }
         }
 
+        // The claim invitation e-mail (participant-linking.md §7.1, R8) - offered with the claim link, disabled with the reason
+        if (claimLinkActions(person, { onlineLinks: this.onlineLinksOffered() }).includes(COPY)) {
+            const skip = invitationSkip(person);
+            items.push({
+                label: this.say('invite_row'),
+                description: skip !== null ? this.say(`invite_skip_${skip}`) : this.say('invite_row_help', { email: person.email ?? '' }),
+                icon: 'bi-envelope',
+                disabled: skip !== null,
+                run: () => this.sendInvitations([personId], { confirm: false }),
+            });
+        }
+
         items.push({ label: this.say('row_remove'), icon: 'bi-person-x', danger: true, run: () => this.removeWithCheck([personId]) });
         this.openMenu(cell, items, this.say('row_actions_label', { name: person.name }));
     }
@@ -2763,6 +2794,78 @@ export class PeopleView {
         }
 
         this.announceRefused(action.errors);
+    }
+
+    // ---------------------------------------------------------------- claim invitations (participant-linking.md §7.1, R8)
+
+    /** "3 Nov 2026, 14:02" - the last claim invitation, or "Said no" after the person's one-click refusal */
+    invitedText(person) {
+        if (person.invitationsRefused === true) {
+            return this.say('invited_said_no');
+        }
+
+        return person.invitedAt ? formatDate(person.invitedAt, this.context.locale, true) : '';
+    }
+
+    /**
+     * Send the claim invitation e-mail to these people: who gets one and who is skipped why (the confirmation of the bulk
+     * bar; one person from the row menu goes at once), then one request - the server checks everything again and answers
+     * what went out. The sheet hears of it through its live update.
+     */
+    async sendInvitations(ids, { confirm = true } = {}) {
+        const people = ids.map((id) => this.model.person(id)).filter(Boolean);
+        const plan = invitationPlan(people);
+
+        if (plan.eligible.length === 0) {
+            this.notify(this.invitationSkipText(plan.skipped) || this.say('invite_none'), { kind: 'warning' });
+
+            return null;
+        }
+
+        const send = () => requestInvitations({ url: this.context.urls.claimInvitations, csrfToken: this.context.csrfToken }, plan.eligible);
+        let result;
+
+        if (confirm) {
+            const skipped = this.invitationSkipText(plan.skipped);
+            result = await runInDialog({
+                host: this.context.root,
+                title: this.sayCount('invite_title', plan.eligible.length),
+                lines: [this.sayCount('invite_emails', plan.eligible.length), this.say('invite_same_for_everybody'), ...(skipped !== '' ? [skipped] : [])],
+                confirmLabel: this.sayCount('invite_confirm', plan.eligible.length),
+                cancelLabel: this.t('preview_cancel'),
+                closeLabel: this.t('preview_close'),
+                stopLabel: this.say('bulk_reg_stop'),
+                progress: () => this.say('invite_sending'),
+                run: () => send(),
+            });
+
+            if (result === null) {
+                this.context.announce(this.say('make_team_cancelled'));
+                this.grid?.focusActive({ scroll: false });
+
+                return null;
+            }
+        } else {
+            result = await send();
+        }
+
+        if (!result.ok) {
+            this.notify(result.message ?? this.say('invite_failed'), { kind: 'error' });
+
+            return result;
+        }
+
+        const skipped = this.invitationSkipText(result.skipped);
+        this.notify([this.sayCount('invite_sent', result.sent), skipped].filter((part) => part !== '').join(' '), { kind: result.sent > 0 ? 'info' : 'warning' });
+
+        return result;
+    }
+
+    /** "Skipped: 2 without an e-mail · 1 invited in the last 24 hours" - '' when nobody was skipped */
+    invitationSkipText(skipped) {
+        const parts = SKIP_REASONS.filter((reason) => (skipped[reason] ?? 0) > 0).map((reason) => this.sayCount(`invite_skipped_${reason}`, skipped[reason]));
+
+        return parts.length > 0 ? this.say('invite_skipped', { list: parts.join(' · ') }) : '';
     }
 
     // ---------------------------------------------------------------- personal claim links (participant-linking.md §7.1)
@@ -2963,7 +3066,7 @@ export class PeopleView {
         menu.className = 'sheet-cell-menu';
         menu.setAttribute('role', 'menu');
         menu.setAttribute('aria-label', label);
-        menu.innerHTML = items.map((item, index) => `<button type="button" class="dropdown-item${item.danger ? ' text-danger' : ''}" role="menuitem" data-item="${index}" tabindex="-1">${item.icon ? `<i class="bi ${escapeHtml(item.icon)} me-2" aria-hidden="true"></i>` : ''}${escapeHtml(item.label)}${item.description ? `<small class="sheet-cell-menu-help">${escapeHtml(item.description)}</small>` : ''}</button>`).join('');
+        menu.innerHTML = items.map((item, index) => `<button type="button" class="dropdown-item${item.danger ? ' text-danger' : ''}${item.disabled ? ' disabled' : ''}" role="menuitem" data-item="${index}" tabindex="-1"${item.disabled ? ' aria-disabled="true"' : ''}>${item.icon ? `<i class="bi ${escapeHtml(item.icon)} me-2" aria-hidden="true"></i>` : ''}${escapeHtml(item.label)}${item.description ? `<small class="sheet-cell-menu-help">${escapeHtml(item.description)}</small>` : ''}</button>`).join('');
         this.host.append(menu);
 
         const rect = (anchor ?? this.gridRoot).getBoundingClientRect();
@@ -2980,8 +3083,15 @@ export class PeopleView {
             const button = event.target.closest('[data-item]');
 
             if (button) {
+                const item = items[Number(button.dataset.item)];
+
+                // Disabled with its reason said in the item: stays open, nothing runs
+                if (item.disabled) {
+                    return;
+                }
+
                 close(true);
-                items[Number(button.dataset.item)].run();
+                item.run();
             }
         });
         menu.addEventListener('keydown', (event) => {
@@ -3153,7 +3263,7 @@ export class PeopleView {
         }
 
         const problems = [];
-        const fields = { name: [], country: [], externalId: [], note: [] };
+        const fields = { name: [], country: [], externalId: [], note: [], email: [] };
         const rounds = new Map();
         let beyond = 0;
         let onSelection = 0;
@@ -3204,7 +3314,7 @@ export class PeopleView {
                 } else {
                     fields.country.push({ personId: row, value: code });
                 }
-            } else if (col === 'externalId' || col === 'note') {
+            } else if (col === 'externalId' || col === 'note' || col === 'email') {
                 fields[col].push({ personId: row, value: trimCell(value) });
             } else if (this.isSoloColumn(col)) {
                 const inRound = readBoolean(value);
@@ -3226,7 +3336,7 @@ export class PeopleView {
         const renames = setFields(this.model, 'name', fields.name, this.options());
         const actions = [
             renames,
-            ...['country', 'externalId', 'note'].map((field) => setFields(this.model, field, fields[field], this.options())),
+            ...['country', 'externalId', 'note', 'email'].map((field) => setFields(this.model, field, fields[field], this.options())),
             ...[...rounds].flatMap(([roundId, lists]) => [
                 setInRound(this.model, lists.in, roundId, true, this.options()),
                 setInRound(this.model, lists.out, roundId, false, this.options()),
@@ -3554,7 +3664,7 @@ export class PeopleView {
             return { text: name, note: this.t('people_change_country', { from: this.countryLabel(change.from), to: this.countryLabel(change.to) }) };
         }
 
-        if (change.op === 'field' && (change.field === 'externalId' || change.field === 'note')) {
+        if (change.op === 'field' && (change.field === 'externalId' || change.field === 'note' || change.field === 'email')) {
             return { text: name, note: this.say(`paste_change_${change.field}`, { from: change.from ?? '', to: change.to ?? '' }) };
         }
 

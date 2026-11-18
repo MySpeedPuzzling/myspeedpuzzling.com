@@ -35,7 +35,7 @@ readonly final class CompetitionParticipantImporter
      * Every column the importer reads. `round_names` (a list) is what the template and the export write;
      * `round_name` (one round, never split) is kept for files made before.
      */
-    public const array KNOWN_COLUMNS = ['name', 'country', 'external_id', 'msp_player_id', 'msp_code', 'status', 'round_names', 'round_name', 'team_name', 'participant_id'];
+    public const array KNOWN_COLUMNS = ['name', 'country', 'external_id', 'email', 'msp_player_id', 'msp_code', 'status', 'round_names', 'round_name', 'team_name', 'participant_id'];
 
     /** A column "team_name: <round>" holds the team in that one round (the export writes one per pair/team round). */
     public const string TEAM_COLUMN_PREFIX = 'team_name:';

@@ -58,6 +58,12 @@ readonly final class ColumnMapping
         'participant id' => ParticipantImportField::ParticipantId,
         'external id' => ParticipantImportField::ExternalId,
         'status' => ParticipantImportField::Status,
+        // participant-linking.md §7.3 (normaliseHeader() reads "e-mail" as "e mail")
+        'email' => ParticipantImportField::Email,
+        'e mail' => ParticipantImportField::Email,
+        'mail' => ParticipantImportField::Email,
+        'email address' => ParticipantImportField::Email,
+        'e mail address' => ParticipantImportField::Email,
     ];
 
     /**
@@ -249,6 +255,7 @@ readonly final class ColumnMapping
                 roundName: $cell($row, $this->column(ParticipantImportField::Round)),
                 team: $cell($row, $this->column(ParticipantImportField::Team)),
                 teamsByRound: $teamsByRound,
+                email: $cell($row, $this->column(ParticipantImportField::Email)),
             );
 
             $mappedValues = array_filter(

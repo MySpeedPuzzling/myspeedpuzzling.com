@@ -27,8 +27,10 @@ final class ParticipantsSheetPeopleTextsTest extends KernelTestCase
     // Keys built from a prefix in the JS (`filter_${key}`...) - each listed value must exist
     private const array DYNAMIC = [
         'filter_' => ['all', 'no_round', 'no_solo', 'multi_solo', 'joined', 'not_linked', 'asks', 'linked_themselves', 'suggestions', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed'],
-        'column_' => ['name', 'country', 'player', 'rounds', 'onlineLink', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note'],
-        'col_' => ['onlineLink', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note'],
+        'column_' => ['name', 'country', 'player', 'rounds', 'onlineLink', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note', 'email', 'invited'],
+        'col_' => ['onlineLink', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note', 'email', 'invited'],
+        'invite_skip_' => ['not_on_list', 'linked', 'no_email', 'said_no', 'invited_recently'],
+        'invite_skipped_' => ['not_on_list', 'linked', 'no_email', 'said_no', 'invited_recently'],
         'source_' => ['self_joined', 'imported', 'manual'],
         'status_' => ['reserved', 'paid', 'waitlisted'],
         'reg_' => ['markPaid', 'unmarkPaid', 'promote', 'promoteAndMarkPaid', 'checkIn', 'undoCheckIn', 'markPaid_help', 'unmarkPaid_help', 'promote_help', 'promoteAndMarkPaid_help', 'checkIn_help', 'undoCheckIn_help'],
@@ -36,7 +38,7 @@ final class ParticipantsSheetPeopleTextsTest extends KernelTestCase
         'make_' => ['pair_title', 'team_title', 'pair_confirm', 'team_confirm', 'pair_done', 'team_done'],
         'make_team_line_from_tray_' => ['pair', 'team'],
         'make_team_size_' => ['pair', 'team'],
-        'paste_change_' => ['externalId', 'note'],
+        'paste_change_' => ['externalId', 'note', 'email'],
         'paste_looks_' => ['country', 'number', 'email'],
         'sort_done_' => ['asc', 'desc'],
         'bulk_reg_title_' => ['markPaid', 'checkIn'],

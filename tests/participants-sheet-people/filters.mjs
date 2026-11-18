@@ -140,7 +140,7 @@ export default function (test) {
         const managed = { registrationManaged: true, isOnline: false };
         assert.deepEqual(offeredFor(FILTERS, managed).map((filter) => filter.key), ['all', 'no_round', 'joined', 'not_linked', 'asks', 'linked_themselves', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed']);
         assert.ok(!offeredFor(FILTERS, { registrationManaged: true, isOnline: true }).some((filter) => filter.key.includes('checked')));
-        assert.deepEqual(offeredFor(COLUMN_OPTIONS, { registrationManaged: false }).map((column) => column.key), ['name', 'country', 'player', 'rounds', 'externalId', 'source', 'joined', 'note']);
+        assert.deepEqual(offeredFor(COLUMN_OPTIONS, { registrationManaged: false }).map((column) => column.key), ['name', 'country', 'player', 'rounds', 'externalId', 'source', 'joined', 'note', 'email', 'invited']);
         assert.ok(offeredFor(COLUMN_OPTIONS, managed).some((column) => column.key === 'registered'));
         assert.ok(offeredFor(COLUMN_OPTIONS, managed).some((column) => column.key === 'checkedIn'));
         assert.ok(!offeredFor(COLUMN_OPTIONS, { registrationManaged: true, isOnline: true }).some((column) => column.key === 'checkedIn'));
@@ -298,7 +298,7 @@ export default function (test) {
         assert.ok(!offeredFor(COLUMN_OPTIONS, { isOnline: true }).some((column) => column.key === 'onlineLink'));
         assert.deepEqual(
             offeredFor(COLUMN_OPTIONS, { registrationManaged: false, isOnline: true }, [], { onlineLinks: true }).map((column) => column.key),
-            ['name', 'country', 'player', 'rounds', 'onlineLink', 'externalId', 'source', 'joined', 'note'],
+            ['name', 'country', 'player', 'rounds', 'onlineLink', 'externalId', 'source', 'joined', 'note', 'email', 'invited'],
         );
         assert.equal(onlineLinksOffered([person('a', 'A'), person('b', 'B', { online: null })]), false);
         assert.equal(onlineLinksOffered([person('a', 'A'), person('b', 'B', { online: { link: null } })]), true);

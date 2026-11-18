@@ -25,6 +25,15 @@ use SpeedPuzzling\Web\Value\MailboxFullRule;
 #[Entity]
 class EmailSuppression
 {
+    /**
+     * The person marked a claim invitation to the address as spam (docs/features/competitions-management/
+     * participant-linking.md R8) - kept whatever the source becomes (a full inbox pausing notifications, a bounce), so no
+     * claim invitation goes to the address again even after a full inbox is lifted
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $invitationsComplainedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -88,8 +97,57 @@ class EmailSuppression
      */
     public function isInEffect(DateTimeImmutable $now): bool
     {
+        // A complaint about a claim invitation stops claim invitations only (holdsBackClaimInvitations())
+        if ($this->source === EmailSuppressionSource::InvitationComplaint) {
+            return false;
+        }
+
         return $this->source !== EmailSuppressionSource::MailboxFull
             || $this->suppressedAt > $now->modify(sprintf('-%d days', MailboxFullRule::EXPIRES_AFTER_DAYS));
+    }
+
+    /**
+     * No claim invitation goes to the address (participant-linking.md R8): every suppression in effect, and a complaint
+     * about an earlier invitation
+     */
+    public function holdsBackClaimInvitations(DateTimeImmutable $now): bool
+    {
+        return $this->invitationsComplainedAt !== null
+            || $this->source === EmailSuppressionSource::InvitationComplaint
+            || $this->isInEffect($now);
+    }
+
+    public static function invitationComplaint(UuidInterface $id, string $email, DateTimeImmutable $at): self
+    {
+        $suppression = new self($id, self::canonicalize($email), $at, null, null, 'participant_claim_invitation', EmailSuppressionSource::InvitationComplaint);
+        $suppression->invitationsComplainedAt = $at;
+
+        return $suppression;
+    }
+
+    /**
+     * A complaint about a claim invitation to an address already on the list (a full inbox, a bounce, a block): its
+     * source stays (a full inbox keeps pausing notifications), the complaint is kept beside it
+     */
+    public function complainedAboutInvitation(DateTimeImmutable $at): void
+    {
+        $this->invitationsComplainedAt ??= $at;
+    }
+
+    /**
+     * A delivery lifts a full inbox (isLiftedByDelivery()) - with a complaint about an invitation kept, the row stays as
+     * that complaint instead of going away. True = the row may be removed.
+     */
+    public function liftFullInbox(DateTimeImmutable $at): bool
+    {
+        if ($this->invitationsComplainedAt === null) {
+            return true;
+        }
+
+        $this->source = EmailSuppressionSource::InvitationComplaint;
+        $this->suppressedAt = $at;
+
+        return false;
     }
 
     /**
@@ -115,7 +173,12 @@ class EmailSuppression
             $this->suppressedAt = $at;
         }
 
-        if ($this->source === EmailSuppressionSource::MailboxFull && $source !== null && $source !== EmailSuppressionSource::Manual) {
+        // A weaker suppression (a full inbox, a complaint about an invitation) becomes the bounce
+        if (
+            in_array($this->source, [EmailSuppressionSource::MailboxFull, EmailSuppressionSource::InvitationComplaint], true)
+            && $source !== null
+            && $source !== EmailSuppressionSource::Manual
+        ) {
             $this->source = $source;
         }
 

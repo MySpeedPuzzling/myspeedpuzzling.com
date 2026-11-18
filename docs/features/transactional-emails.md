@@ -132,6 +132,7 @@ Subscription-like e-mails carry `List-Unsubscribe: <signed URL>` + `List-Unsubsc
 |---|---|---|---|
 | "Your results" | `ResultEmailsUnsubscribeUrl` | `result_emails_unsubscribe` | `player.result_emails_enabled` |
 | Unread messages digest | `DigestEmailsUnsubscribeUrl` | `digest_emails_unsubscribe` (`/{_locale}/message-emails/unsubscribe/{playerId}`) | `player.email_notifications_enabled` (gates only the digest) |
+| Claim invitation (participant-linking.md §9.1) | `ClaimInvitationsRefusalUrl` | `participant_claim_invitations_refuse` (`/{_locale}/claim-invitations/no-more/{participantId}`) | `competition_participant.claim_invitations_refused_at` (that event's row only) |
 
 The controller: the mail client's POST with body `List-Unsubscribe=One-Click` → plain `200` (RFC 8058 forbids a
 redirect), idempotent, no CSRF; GET only shows a page (mail scanners open links - they must not unsubscribe anybody)

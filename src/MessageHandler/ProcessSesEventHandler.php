@@ -38,7 +38,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * - a full inbox on MailboxFullRule::BOUNCES e-mails within MailboxFullRule::WITHIN_DAYS → notifications pause until a
  *   delivery to the address (which lifts it) or MailboxFullRule::EXPIRES_AFTER_DAYS;
  * - complaint → only the kind of e-mail complained about is switched off: newsletter, activity digest ("We miss
- *   you" included), unread-messages digest or "Your results". A complaint about a transactional e-mail changes nothing.
+ *   you" included), unread-messages digest or "Your results"; a claim invitation (participant-linking.md R8) puts the
+ *   address on the suppression list as `invitation_complaint` - no claim invitation from any event any more, nothing
+ *   else held back. A complaint about any other transactional e-mail changes nothing.
  *
  * Every hard bounce and every complaint is a warning (→ Sentry, grouped by stream): Jan wants to know when one
  * appears (2026-10-14). Addresses stay out of the log - the audit row id leads to them.
@@ -51,6 +53,7 @@ readonly final class ProcessSesEventHandler
     private const array ACTIVITY_DIGEST_EMAIL_TYPES = ['content_digest_activity', 'content_digest_miss_you'];
     private const string UNREAD_DIGEST_EMAIL_TYPE = 'unread_digest';
     private const string RESULT_REVIEW_EMAIL_TYPE = 'result_review';
+    private const string CLAIM_INVITATION_EMAIL_TYPE = 'participant_claim_invitation';
     private const string DOMAIN_NOT_FOUND_AGAIN_AFTER = '-24 hours';
     private const string TOPIC_VALIDATION_MESSAGE = 'Successfully validated SNS topic for Amazon SES event publishing';
 
@@ -235,8 +238,9 @@ readonly final class ProcessSesEventHandler
             function (string $recipient) use ($since, $auditLog): bool {
                 $existing = $this->emailSuppressionRepository->findByEmail($recipient);
 
-                // Already suppressed for a stronger reason - a full inbox changes nothing there
-                if ($existing !== null && $existing->source !== EmailSuppressionSource::MailboxFull) {
+                // Already suppressed for a stronger reason - a full inbox changes nothing there. A complaint about an
+                // invitation is no stronger: notifications pause too (the complaint is kept, invitationsComplainedAt)
+                if ($existing !== null && !in_array($existing->source, [EmailSuppressionSource::MailboxFull, EmailSuppressionSource::InvitationComplaint], true)) {
                     return false;
                 }
 
@@ -262,7 +266,7 @@ readonly final class ProcessSesEventHandler
         foreach ($event->recipients as $recipient) {
             $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
 
-            if ($suppression !== null && $suppression->isLiftedByDelivery()) {
+            if ($suppression !== null && $suppression->isLiftedByDelivery() && $suppression->liftFullInbox($event->occurredAt)) {
                 $this->emailSuppressionRepository->delete($suppression);
             }
         }
@@ -275,6 +279,21 @@ readonly final class ProcessSesEventHandler
         foreach ($event->recipients as $recipient) {
             if ($event->stream === MailStream::Newsletter) {
                 $this->turnOffNewsletter($recipient, $event->occurredAt);
+
+                continue;
+            }
+
+            // Sent to somebody the organiser typed in, an account or not: the address itself says no
+            if ($emailType === self::CLAIM_INVITATION_EMAIL_TYPE) {
+                $existing = $this->emailSuppressionRepository->findByEmail($recipient);
+
+                if ($existing === null) {
+                    $this->emailSuppressionRepository->save(EmailSuppression::invitationComplaint(Uuid::uuid7(), $recipient, $event->occurredAt));
+                } else {
+                    // On the list for another reason (a full inbox that expires or is lifted later): the complaint is
+                    // kept beside it
+                    $existing->complainedAboutInvitation($event->occurredAt);
+                }
 
                 continue;
             }

@@ -123,6 +123,8 @@ final class ParticipantsSheetController extends AbstractController
             'claimLink' => $this->generateUrl('participants_sheet_claim_link', ['competitionId' => $competitionId]),
             // Who the people without a profile may be - the People tab's "Suggestions" (participant-linking.md §7.2)
             'linkSuggestions' => $this->generateUrl('participants_sheet_link_suggestions', ['competitionId' => $competitionId]),
+            // The claim invitation e-mails (participant-linking.md §7.1, L4b)
+            'claimInvitations' => $this->generateUrl('participants_sheet_claim_invitations', ['competitionId' => $competitionId]),
             'record' => $roundUrl('official_results_record'),
             'tables' => $roundUrl('official_results_assign_table_numbers'),
             // The sheet's own search: players the organiser blocked are found too (player-blocklist.md rule 7)

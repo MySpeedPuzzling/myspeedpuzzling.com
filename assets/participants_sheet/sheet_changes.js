@@ -30,6 +30,7 @@ import {
     isGoing,
     EXTERNAL_ID_MAX_LENGTH,
     NAME_MAX_LENGTH,
+    EMAIL_MAX_LENGTH,
     NOTE_MAX_LENGTH,
     TEAM_NAME_MAX_LENGTH,
     TEAM_SIZE_MAX,
@@ -45,7 +46,7 @@ import {
 } from './sheet_model.js';
 
 export const OPS = ['newParticipant', 'field', 'player', 'place', 'newTeam', 'renameTeam', 'deleteTeam', 'remove', 'restore', 'teamSize'];
-export const FIELDS = ['name', 'country', 'externalId', 'note'];
+export const FIELDS = ['name', 'country', 'externalId', 'note', 'email'];
 // Request limits of the endpoint (contract §3.1)
 export const MAX_GROUPS = 1000;
 export const MAX_CHANGES = 5000;
@@ -100,7 +101,24 @@ export function cleanFieldValue(field, value) {
         return value === null || value === undefined || String(value).trim() === '' ? null : String(value).trim().toLowerCase();
     }
 
+    // The organiser's address of the person: canonical like the server's (ParticipantEmail) - trimmed, lower case
+    if (field === 'email') {
+        const email = cleanOptionalText(value);
+
+        return email === null ? null : email.toLowerCase();
+    }
+
     return cleanOptionalText(value);
+}
+
+/**
+ * One e-mail address as the server takes it (ParticipantEmail - PHP's FILTER_VALIDATE_EMAIL, at most 254 characters):
+ * a local part, one @, a domain with a dot - the server decides the rest.
+ */
+export function looksLikeEmail(value) {
+    const email = String(value ?? '');
+
+    return textLength(email) <= EMAIL_MAX_LENGTH && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 /**
@@ -216,6 +234,9 @@ export function checkChange(change, state, { countries = null } = {}) {
                     return value !== null && externalIdTaken(state, value, change.participant) ? 'external_id_taken' : null;
                 case 'note':
                     return textLength(value ?? '') > NOTE_MAX_LENGTH ? 'note_too_long' : null;
+                case 'email':
+                    // Families may share an address - only its shape is checked (participant-linking.md §7.1)
+                    return value === null || looksLikeEmail(value) ? null : 'invalid_email';
                 default:
                     return 'invalid_change';
             }
@@ -437,6 +458,8 @@ export function refusalDetails(error, state) {
             return { key: reason, params: { max: EXTERNAL_ID_MAX_LENGTH } };
         case 'note_too_long':
             return { key: reason, params: { max: NOTE_MAX_LENGTH } };
+        case 'invalid_email':
+            return { key: reason, params: { email: String(change.to ?? '') } };
         case 'team_name_too_long':
             return { key: reason, params: { max: TEAM_NAME_MAX_LENGTH } };
         case 'invalid_country':

@@ -4444,6 +4444,7 @@ qr_code:
       "player_linked_elsewhere": "%row% 行目: msp_player_id \"%id%\" はこのイベントですでに \"%other%\" と連携しているため、\"%name%\" とは連携しませんでした。"
       "deleted_kept_with_results": "%row% 行目: \"%name%\" はこのイベントに結果があるため、ステータス \"deleted\" は無視し、そのまま残します。"
       "self_joined_left": "%row% 行目: \"%name%\" は MySpeedPuzzling で自分で参加登録し、その後イベントから抜けたため、この行はスキップしました。やはり参加する場合は、参加者ページで追加してください。"
+      invalid_email: "%row% 行目: \"%email%\" はメールアドレスではありません。この行はメールアドレスなしでインポートされます。"
       linking:
         invalid_player_reference: "%row% 行目: \"%reference%\" は MySpeedPuzzling の #コード、プレイヤーID、プロフィールリンクのいずれでもありません。この行はプロフィールなしでインポートされます。"
         unknown_player_reference: "%row% 行目: MySpeedPuzzling のプレイヤー %reference% は存在しません。この行はプロフィールなしでインポートされます。"
@@ -4576,6 +4577,7 @@ qr_code:
         "participant_id": "参加者ID"
         "external_id": "外部ID"
         "status": "ステータス"
+        email: "メールアドレス（非公開、連携の招待用）"
       "confirm":
         "nothing_saved_yet": "まだ何も保存されていません。"
         "button": "インポートを確定"
@@ -15407,6 +15409,51 @@ results_import_counts:
     summary: "結果：新規 %added%、変更 %updated%、削除 %removed%"
     summary_of_category: "結果（%category%）：新規 %added%、変更 %updated%、削除 %removed%"
     name_column: "名前"
+participant_claim_invitation:
+    sheet:
+        column_email: "メール"
+        column_email_title: "非公開です。イベントの主催者だけが見られ、連携の招待にのみ使われます"
+        column_invited: "招待済み"
+        paste_change_email: "メール %from% → %to%"
+        said_no: "招待を断りました"
+        send: "招待を送る"
+        send_help: "連携リンクを %email% にメールで送ります"
+        bulk: "招待を送る"
+        none: "今は誰にも招待を送れません。"
+        failed: "招待を送信できませんでした。もう一度お試しください。"
+        same_for_everybody: "全員に、それぞれの連携リンク入りの同じメールが届きます。リンクからログインまたはアカウント作成ができます。アドレスにアカウントがあるかどうかは誰にも知らされません。"
+        sending: "送信中…"
+        title: "{0}0人に招待を送る|]0,Inf[%count%人に招待を送る"
+        emails: "{0}送信されるメールはありません。|]0,Inf[%count%通のメールが送信されます。"
+        confirm: "{0}0件の招待を送る|]0,Inf[%count%件の招待を送る"
+        sent: "{0}招待は送信されませんでした。|]0,Inf[%count%件の招待を送信しました。"
+        skipped: "スキップ: %list%。"
+        skip:
+            not_on_list: "もうリストにいません"
+            linked: "すでにプロフィールと連携しています"
+            no_email: "先に「メール」列にメールアドレスを入力してください"
+            said_no: "このイベントの招待を断りました"
+            invited_recently: "過去24時間以内に招待済みです。招待は1日1回までです"
+        skipped_count:
+            not_on_list: "{0}リストにいない人 0人|]0,Inf[リストにいない人 %count%人"
+            linked: "{0}連携済み 0人|]0,Inf[連携済み %count%人"
+            no_email: "{0}メールなし 0人|]0,Inf[メールなし %count%人"
+            said_no: "{0}招待を断った人 0人|]0,Inf[招待を断った人 %count%人"
+            invited_recently: "{0}過去24時間以内に招待済み 0人|]0,Inf[過去24時間以内に招待済み %count%人"
+        reason:
+            invalid_email: "\"%email%\" はメールアドレスではありません。"
+    error:
+        not_public: "招待はイベントの公開後に送れます。連携リンクもそのときから使えるようになります。"
+        online_timing: "このイベントはオンライン計測を使用しています。その個人リンクでプロフィールと連携されるので、代わりにそちらを配ってください。"
+    hub:
+        send: "メールアドレスがある未連携の全員に招待を送る（%count%）"
+        none: "参加者シート（「メール」列）またはお使いのファイルに参加者のメールアドレスを追加すると、連携リンクをメールで送れます。"
+        form_expired: "ページが長時間開かれたままでした。もう一度お試しください。"
+    refuse:
+        headline: "このイベントの招待"
+        text: "%event% へのプロフィール連携を案内するメールを、今後受け取らないようにしますか？"
+        confirm: "今後招待を送らないでください"
+        done: "完了しました。%event% の招待が今後送られることはありません。"
 participant_claim_link:
     page:
         title: "MySpeedPuzzling プロフィールを連携"

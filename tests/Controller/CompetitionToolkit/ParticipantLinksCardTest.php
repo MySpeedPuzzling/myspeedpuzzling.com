@@ -82,7 +82,7 @@ final class ParticipantLinksCardTest extends WebTestCase
         $page = $browser->request('GET', $hub);
         $counter = $page->filter('[data-toolkit-card="participant-links"] [data-counter="suggestions"]');
         self::assertCount(1, $counter);
-        self::assertStringContainsString('4 people may already have a profile', $counter->text());
+        self::assertStringContainsString('5 people may already have a profile', $counter->text());
         self::assertStringContainsString('/en/participants-sheet/' . $seeded['event'] . '?tab=people&filter=suggestions', (string) $counter->attr('href'));
 
         $before = $this->hubStatements($browser, $hub);
@@ -98,7 +98,7 @@ final class ParticipantLinksCardTest extends WebTestCase
         $summary = array_values(array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, 'FROM participant_link_request r')));
         self::assertCount(1, $summary, 'the summary is one statement');
         self::assertStringContainsString('suggestion', $summary[0]);
-        self::assertStringContainsString('304 people may already have a profile', (string) $browser->getResponse()->getContent());
+        self::assertStringContainsString('305 people may already have a profile', (string) $browser->getResponse()->getContent());
     }
 
     public function testNoSuggestionsNoCounter(): void

@@ -2739,6 +2739,7 @@ export class PeopleView {
                     paid: this.say('sug_refusal_paid'),
                     waitlisted: this.say('sug_refusal_waitlisted'),
                     registered: this.say('sug_refusal_registered'),
+                    profile_hidden: this.say('sug_refusal_profile_hidden'),
                 },
                 country,
                 date: (value) => formatDate(value, this.context.locale, false),

@@ -1059,8 +1059,8 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
 
 ### L5 - link suggestions and the merge of a self-joined row (2026-11-18)
 
-- `ParticipantNameKey::sql($column)` - the SQL twin of `of()` (dashes, apostrophes, `immutable_unaccent()`, lower,
-  invisible characters, whitespace, trim); `ParticipantNameKeySqlTest` compares both over the names people are called,
+- `ParticipantNameKey::sql($column)` - the SQL twin of `of()` (invisible characters first - `unaccent()` would make a
+  soft hyphen a dash -, dashes, apostrophes, `immutable_unaccent()`, lower, whitespace, trim); `ParticipantNameKeySqlTest` compares both over the names people are called,
   the migration's text with the code's and that a key match is answered from `custom_player_name_key` (expression index
   on `player`, `Version20261118120000`, hand-written under no-Docker mode, plain `CREATE INDEX`; `tests/bootstrap.php`
   builds it from `sql('name')` and hashes it into the database cache key). NFKC-only folds, control characters and the
@@ -1092,4 +1092,15 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   list - all three tiers, not only the "cheap" ones: one rule, one number; +0 statements, pinned).
 - Import: after a confirmed import the sheet page shows "N people may already have a MySpeedPuzzling profile. Review
   suggestions" (flash `ConfirmParticipantImportController::SUGGESTIONS_FLASH`, one more statement on the confirm POST).
+- Review fixes (2026-11-18): R2 - tier 2 says whether the earlier row's name was the organiser's (`nameFromOrganiser`;
+  a self-joined row copies a free-text profile name) and only such a row is pre-ticked (a renamed cheater who
+  self-joined edition 1 is a candidate at edition 2, never ticked); "other dates" are public events only
+  (`IsCompetitionPubliclyVisible::SQL_CONDITION`). Shape: every name key computed once (CTEs `unlinked`, `self_rows` with
+  both keys of a self-joined row, `linked_before`), tiers 1-2 equality joins (hashed), tier 3 a lateral lookup in
+  `custom_player_name_key` per person with the key's players counted by a window. D10: a withheld tier-1 profile sends
+  no `countryMatches` / `follows` and its merge is `profile_hidden` ("Merge by hand"). R7 on the server: `SheetPlanRun`
+  refuses the `player` change of a group that removed the player's own self-joined row while that row is a registration
+  of an event managing registration or has a round place (`merge_by_hand`, text under `participant_link_suggestions`)
+  - a stale dialog cannot merge it away; removing the row alone still works. The import's flash counts with one
+  `SELECT` (`peopleWithSuggestions()`).
 - Not here: the phone list / person editor, the setup-checklist row, `EXPLAIN ANALYZE` on production (docs/TODO.md).

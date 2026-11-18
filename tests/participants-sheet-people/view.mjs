@@ -815,7 +815,7 @@ export default function (test) {
                 ok: true,
                 headers: { get: (name) => (name === 'Content-Type' ? 'application/json' : null) },
                 json: async () => ({ people: [
-                    { participant: 'p-ana', name: 'Ana Example', country: null, candidates: [{ tier: 'linked_before', player: profile('pl-1'), countryMatches: true, follows: false, joinedAt: null, linkedAt: { name: 'Open 2025', date: null }, selfJoined: null }] },
+                    { participant: 'p-ana', name: 'Ana Example', country: null, candidates: [{ tier: 'linked_before', player: profile('pl-1'), countryMatches: true, follows: false, nameFromOrganiser: true, joinedAt: null, linkedAt: { name: 'Open 2025', date: null }, selfJoined: null }] },
                     { participant: 'p-jo', name: 'Jo Do', country: null, candidates: [{ tier: 'joined_themselves', player: { id: 'pl-jo', visible: true, name: 'Jo D.', code: 'jo01', country: null, avatar: null, profileUrl: null }, countryMatches: false, follows: true, joinedAt: '2026-10-01T10:00:00+00:00', linkedAt: null, selfJoined: { participant: 'p-jo-self', mergeRefusal: null } }] },
                 ] }),
             };

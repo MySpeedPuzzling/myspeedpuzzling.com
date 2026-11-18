@@ -13,8 +13,9 @@ use SpeedPuzzling\Web\Value\SearchText;
  *
  * sql() is its twin in Postgres (docs/features/competitions-management/participant-linking.md §3.5) - the expression of
  * the index `custom_player_name_key` on `player (name)` and of the name matches in SQL (link suggestions, the join
- * page's match). The same steps in the same order: dashes to `-`, apostrophes out, diacritics (`immutable_unaccent()` -
- * ß → ss, Ł → L, Ø → O), lower case, invisible format characters out, whitespace runs to one space, trimmed.
+ * page's match). The steps: invisible format characters out (first - `unaccent()` would make a soft hyphen a dash), dashes
+ * to `-`, apostrophes out, diacritics (`immutable_unaccent()` - ß → ss, Ł → L, Ø → O), lower case, whitespace runs to one
+ * space, trimmed.
  * ParticipantNameKeySqlTest pins that both give the same key for the names people are called. What only the PHP side
  * does: NFKC (full-width letters, ligatures), control characters, a combining mark without a letter, the case of
  * scripts the database's collation does not know - none of them in a real name list.
@@ -50,7 +51,8 @@ final class ParticipantNameKey
         $invisible = self::literal(self::SQL_INVISIBLE);
         $whitespace = self::literal(self::SQL_WHITESPACE);
 
-        return "btrim(regexp_replace(regexp_replace(lower(immutable_unaccent(regexp_replace(regexp_replace({$column}, {$dashes}, '-', 'g'), {$apostrophes}, '', 'g'))), {$invisible}, '', 'g'), {$whitespace}, ' ', 'g'), ' ')";
+        // Invisible characters go first: unaccent() turns a soft hyphen into "-", which would then stay
+        return "btrim(regexp_replace(lower(immutable_unaccent(regexp_replace(regexp_replace(regexp_replace({$column}, {$invisible}, '', 'g'), {$dashes}, '-', 'g'), {$apostrophes}, '', 'g'))), {$whitespace}, ' ', 'g'), ' ')";
     }
 
     private static function literal(string $text): string

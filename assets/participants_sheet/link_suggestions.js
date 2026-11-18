@@ -9,7 +9,8 @@
  *   still be there, linked to that player);
  * - rememberSuggested(model, people) / isSuggested(model, personId): the people the filter shows (kept per model);
  * - pretickedPlayer(entry): the one pre-tick rule (R2) - nothing name-based is ticked: only "Linked at another date"
- *   with a single candidate whose profile country is the person's;
+ *   with a single candidate whose profile country is the person's, the earlier row named by its organiser (never a
+ *   self-joined row's name - that is a free-text profile name);
  * - canMerge(candidate) / mergeRefusal(candidate): "Joined by themselves" merges the self-joined row into the
  *   organiser's row, unless that row holds what a merge would lose (R7 - "Merge by hand");
  * - suggestionAction(model, entries, selection): one group per ticked person (a refusal of one never stops the
@@ -127,7 +128,9 @@ export function pretickedPlayer(entry) {
 
     const [candidate] = candidates;
 
-    return candidate.tier === LINKED_BEFORE && candidate.countryMatches === true ? candidate.player.id : null;
+    // The earlier row's name must be the organiser's: a self-joined row copied it from a free-text profile name, and a
+    // renamed profile must never come pre-ticked
+    return candidate.tier === LINKED_BEFORE && candidate.countryMatches === true && candidate.nameFromOrganiser === true ? candidate.player.id : null;
 }
 
 /** participant id → player id: the pre-ticked choices of a dialog. */

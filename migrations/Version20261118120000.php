@@ -21,7 +21,7 @@ use Doctrine\Migrations\AbstractMigration;
 final class Version20261118120000 extends AbstractMigration
 {
     public const string NAME_KEY = <<<'SQL'
-btrim(regexp_replace(regexp_replace(lower(immutable_unaccent(regexp_replace(regexp_replace(name, '[\u2010-\u2015\u2212]', '-', 'g'), '[''`\u00b4\u02b9\u02bc\u2018\u2019\u201b\u2032\uff07]+', '', 'g'))), '[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]', '', 'g'), '[[:space:]\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', 'g'), ' ')
+btrim(regexp_replace(lower(immutable_unaccent(regexp_replace(regexp_replace(regexp_replace(name, '[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]', '', 'g'), '[\u2010-\u2015\u2212]', '-', 'g'), '[''`\u00b4\u02b9\u02bc\u2018\u2019\u201b\u2032\uff07]+', '', 'g'))), '[[:space:]\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', 'g'), ' ')
 SQL;
 
     public function getDescription(): string

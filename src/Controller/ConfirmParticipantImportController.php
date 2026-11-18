@@ -163,7 +163,7 @@ final class ConfirmParticipantImportController extends AbstractController
 
         // "N people may already have a profile - Review suggestions" (participant-linking.md §7.2): the sheet's page
         // renders it with the link to the People tab's filter
-        $suggested = count($this->getParticipantLinkSuggestions->of($competitionId));
+        $suggested = $this->getParticipantLinkSuggestions->peopleWithSuggestions($competitionId);
 
         if ($suggested > 0) {
             $this->addFlash(self::SUGGESTIONS_FLASH, (string) $suggested);

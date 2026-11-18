@@ -69,7 +69,6 @@ final class ParticipantNameKeySqlTest extends KernelTestCase
     {
         // The migration's constant, read as text - migrations are not autoloaded
         self::assertSame(1, preg_match("/NAME_KEY = <<<'SQL'\n(.+)\nSQL;/", (string) file_get_contents(self::MIGRATION), $match));
-        self::assertArrayHasKey(1, $match);
         self::assertSame(ParticipantNameKey::sql('name'), $match[1]);
     }
 
@@ -80,7 +79,8 @@ final class ParticipantNameKeySqlTest extends KernelTestCase
         $this->database->executeStatement('SET enable_seqscan = off');
 
         try {
-            $plan = implode("\n", $this->database->fetchFirstColumn("EXPLAIN SELECT id FROM player WHERE {$key} = 'zoe obrien-novak'"));
+            $lines = $this->database->fetchFirstColumn("EXPLAIN SELECT id FROM player WHERE {$key} = 'zoe obrien-novak'");
+            $plan = implode("\n", array_map(static fn (mixed $line): string => is_string($line) ? $line : '', $lines));
         } finally {
             $this->database->executeStatement('RESET enable_seqscan');
         }

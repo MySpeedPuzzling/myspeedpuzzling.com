@@ -25,7 +25,7 @@ import {
 const profile = (id, extra = {}) => ({ id, visible: true, name: `Name ${id}`, code: id.replace('pl-', ''), country: 'cz', avatar: null, profileUrl: `/en/player/${id}`, ...extra });
 
 function candidate(tier, playerId, extra = {}) {
-    return { tier, player: profile(playerId), countryMatches: false, follows: false, joinedAt: null, linkedAt: null, selfJoined: null, ...extra };
+    return { tier, player: profile(playerId), countryMatches: false, follows: false, nameFromOrganiser: tier === LINKED_BEFORE ? true : null, joinedAt: null, linkedAt: null, selfJoined: null, ...extra };
 }
 
 // Ana (not linked, cz) and "Jo Do" the organiser imported; "jo do" tapped "I'm going" himself (self-joined, pl-jo)
@@ -55,10 +55,12 @@ const LABELS = {
 };
 
 export default function (test) {
-    test('R2: only "linked at another date", the only candidate, with the same country is pre-ticked', () => {
+    test('R2: only "linked at another date" under the organiser’s name, the only candidate, with the same country is pre-ticked', () => {
         const linked = candidate(LINKED_BEFORE, 'pl-1', { countryMatches: true });
         assert.equal(pretickedPlayer({ participant: 'p-ana', candidates: [linked] }), 'pl-1');
         assert.equal(pretickedPlayer({ participant: 'p-ana', candidates: [{ ...linked, countryMatches: false }] }), null);
+        // The earlier row was a self-join: its name is the player's free-text profile name - a renamed cheater (R2)
+        assert.equal(pretickedPlayer({ participant: 'p-ana', candidates: [{ ...linked, nameFromOrganiser: false }] }), null);
         // Name-based tiers never - a self-joined row's name is free text too
         assert.equal(pretickedPlayer({ participant: 'p-ana', candidates: [candidate(NAME_COUNTRY, 'pl-1', { countryMatches: true })] }), null);
         assert.equal(pretickedPlayer({ participant: 'p-ana', candidates: [merge({ countryMatches: true })] }), null);

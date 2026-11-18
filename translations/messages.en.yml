@@ -15842,6 +15842,9 @@ participant_link_suggestions:
         refusal_paid: "their own registration is paid"
         refusal_waitlisted: "their own registration is on the waitlist"
         refusal_registered: "their own registration holds a spot"
+        refusal_profile_hidden: "you cannot see their profile - check who it is first"
+        reason:
+            merge_by_hand: "%name% joined by themselves and holds a registration or a place in a round - the two rows were not merged. Merge them by hand."
         done: "{0}Nobody linked|{1}1 person linked|]1,Inf[%count% people linked"
 event_wizard_more:
     puzzle_search:

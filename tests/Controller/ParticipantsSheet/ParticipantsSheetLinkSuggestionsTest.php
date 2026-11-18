@@ -37,7 +37,7 @@ final class ParticipantsSheetLinkSuggestionsTest extends WebTestCase
 
         // Ansel (a common name), Cosima (private), Dorian (linked to another person of the list) and Elodie (refused)
         // have none; Bertram is not blocked yet
-        self::assertSame(['Bertram Hidely', 'Ottilie Brandvold', 'QUIRIN  vexley', "zoe o'brien–novak"], array_column($people, 'name'));
+        self::assertSame(['Bertram Hidely', 'Ottilie Brandvold', 'QUIRIN  vexley', 'Wendelin Sorrow', "zoe o'brien–novak"], array_column($people, 'name'));
 
         $zoe = $this->person($people, $seeded['participants']['zoe']);
         self::assertCount(1, $zoe['candidates'], 'the best tier per player - her name and country would be tier 3 too');
@@ -54,14 +54,49 @@ final class ParticipantsSheetLinkSuggestionsTest extends WebTestCase
         self::assertSame('linked_before', $quirin[0]['tier']);
         self::assertNotNull($quirin[0]['linkedAt']);
         self::assertSame('Lantern Linking 2025', $quirin[0]['linkedAt']['name']);
-        // What R2's one pre-tick needs: the only candidate, linked before, the same country
+        // What R2's one pre-tick needs: the only candidate, linked before under the organiser's name, the same country
         self::assertTrue($quirin[0]['countryMatches']);
+        self::assertTrue($quirin[0]['nameFromOrganiser']);
         self::assertNull($quirin[0]['selfJoined']);
 
         $ottilie = $this->person($people, $seeded['participants']['ottilie'])['candidates'];
         self::assertSame('name_country', $ottilie[0]['tier']);
         self::assertSame('Ottilie Brandvold', $ottilie[0]['player']['name']);
         self::assertFalse($ottilie[0]['follows']);
+    }
+
+    /**
+     * R2: a cheater renamed their profile to a real person's name and joined the first edition by themselves - the
+     * earlier row's name is theirs, not the organiser's: still a candidate, never one the dialog pre-ticks.
+     */
+    public function testARenamedSelfJoinAtAnotherDateIsNeverNamedByTheOrganiser(): void
+    {
+        $browser = self::createClient();
+        $seeded = $this->seedLinkSuggestions(self::getContainer()->get(Connection::class));
+        TestingLogin::asPlayer($browser, self::ORGANISER);
+
+        $wendelin = $this->person($this->suggestions($browser, $seeded['event']), $seeded['participants']['wendelin'])['candidates'];
+
+        self::assertCount(1, $wendelin);
+        self::assertSame('linked_before', $wendelin[0]['tier']);
+        self::assertSame($seeded['players']['wendelin'], $wendelin[0]['player']['id']);
+        self::assertTrue($wendelin[0]['countryMatches']);
+        self::assertFalse($wendelin[0]['nameFromOrganiser']);
+    }
+
+    public function testADraftEditionIsNoOtherDate(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $seeded = $this->seedLinkSuggestions($database);
+        $database->executeStatement('UPDATE competition SET is_draft = true WHERE id = :id', ['id' => $seeded['firstEdition']]);
+        TestingLogin::asPlayer($browser, self::ORGANISER);
+
+        $quirin = $this->person($this->suggestions($browser, $seeded['event']), $seeded['participants']['quirin'])['candidates'];
+
+        // Only his name and country are left
+        self::assertSame('name_country', $quirin[0]['tier']);
+        self::assertNull($quirin[0]['linkedAt']);
     }
 
     public function testAFollowerIsSaidAndAFourthPlayerOfANameEndsItsSuggestions(): void
@@ -102,6 +137,11 @@ final class ParticipantsSheetLinkSuggestionsTest extends WebTestCase
         self::assertFalse($merge['player']['visible']);
         self::assertNull($merge['player']['name']);
         self::assertNull($merge['player']['code']);
+        // Nothing about the withheld profile is said, and it is never merged blind (D10)
+        self::assertNull($merge['countryMatches']);
+        self::assertNull($merge['follows']);
+        self::assertNotNull($merge['selfJoined']);
+        self::assertSame('profile_hidden', $merge['selfJoined']['mergeRefusal']);
     }
 
     public function testAMergeIsRefusedWhileTheSelfJoinedRowHoldsSomething(): void
@@ -231,13 +271,13 @@ final class ParticipantsSheetLinkSuggestionsTest extends WebTestCase
 
     /**
      * @param list<array<string, mixed>> $people
-     * @return array{participant: string, name: string, country: null|string, candidates: list<array{tier: string, player: array{id: string, visible: bool, name: null|string, code: null|string}, countryMatches: bool, follows: bool, joinedAt: null|string, linkedAt: null|array{name: string, date: null|string}, selfJoined: null|array{participant: string, mergeRefusal: null|string}}>}
+     * @return array{participant: string, name: string, country: null|string, candidates: list<array{tier: string, player: array{id: string, visible: bool, name: null|string, code: null|string}, countryMatches: null|bool, follows: null|bool, nameFromOrganiser: null|bool, joinedAt: null|string, linkedAt: null|array{name: string, date: null|string}, selfJoined: null|array{participant: string, mergeRefusal: null|string}}>}
      */
     private function person(array $people, string $participantId): array
     {
         foreach ($people as $person) {
             if ($person['participant'] === $participantId) {
-                /** @var array{participant: string, name: string, country: null|string, candidates: list<array{tier: string, player: array{id: string, visible: bool, name: null|string, code: null|string}, countryMatches: bool, follows: bool, joinedAt: null|string, linkedAt: null|array{name: string, date: null|string}, selfJoined: null|array{participant: string, mergeRefusal: null|string}}>} $person */
+                /** @var array{participant: string, name: string, country: null|string, candidates: list<array{tier: string, player: array{id: string, visible: bool, name: null|string, code: null|string}, countryMatches: null|bool, follows: null|bool, nameFromOrganiser: null|bool, joinedAt: null|string, linkedAt: null|array{name: string, date: null|string}, selfJoined: null|array{participant: string, mergeRefusal: null|string}}>} $person */
                 return $person;
             }
         }

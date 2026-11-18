@@ -1,0 +1,74 @@
+{#
+    "Is this you?" (docs/features/competitions-management/participant-linking.md §6.1) - the one name on the organiser's
+    participant list that fits the viewer's profile, or the one a scanned name tag asked for (§6.4). Shown by
+    _event_attendance.html.twig to a signed-in viewer who is not going and asks nothing yet (GetEventAttendance).
+
+    [Yes, that's me] is the join page's pick (POST join_competition, participant_id) - linked at once, or a request the
+    organiser confirms (the event's claim policy decides, the page then says "Waiting for the organiser"). [No - I'm going
+    as myself] joins under the viewer's own name. On an event that manages registration both are the join page's own
+    forms with the event's token, and the viewer's own registration is let go of only as the join page says.
+
+    - competition_id
+    - candidate: SpeedPuzzling\Web\Results\ParticipantClaimCandidate
+    - registration: null|SpeedPuzzling\Web\Results\EventRegistration (managed events)
+#}
+{% set managed = registration is not null %}
+{% set register_csrf_id = constant('SpeedPuzzling\\Web\\Controller\\JoinCompetitionController::REGISTER_CSRF_PREFIX') ~ competition_id %}
+<div class="card border-primary shadow-sm mb-2 participant-claim-card" data-participant-claim-card="{{ candidate.participantId }}">
+    <div class="card-body p-3">
+        <h3 class="h6 mb-2">{{ 'participant_linking.find.card_title'|trans }}</h3>
+        <p class="mb-0 fw-semibold" data-participant-claim-name>
+            {% if candidate.country %}<span class="shadow-custom fi fi-{{ candidate.country.name }} me-1" aria-hidden="true"></span>{% endif %}{{ candidate.name }}
+        </p>
+        <p class="small text-muted mb-3">{{ 'participant_linking.find.card_on_list'|trans }}</p>
+
+        <form method="post" action="{{ path('join_competition', {'competitionId': competition_id}) }}" class="mb-2">
+            <input type="hidden" name="participant_id" value="{{ candidate.participantId }}">
+            {% if managed %}
+                <input type="hidden" name="_token" value="{{ csrf_token(register_csrf_id) }}">
+                {% if registration.isRegistered and registration.playerSelfJoined %}
+                    {# The viewer's own registration (the waitlist) is let go of - said first, a paid one only on a yes #}
+                    {% if registration.isPaid %}
+                        <div class="alert alert-warning small py-2" role="alert" data-registration-release="paid">
+                            <p class="mb-2">{{ 'competition_registration.join.releases_paid'|trans }}</p>
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" name="release_paid" value="1" id="claim-release-paid" required>
+                                <label class="form-check-label" for="claim-release-paid">{{ 'competition_registration.join.releases_paid_confirm'|trans }}</label>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info small py-2" role="status" data-registration-release="{{ registration.isWaitlisted ? 'waitlisted' : 'reserved' }}">
+                            {{ (registration.isWaitlisted ? 'competition_registration.join.releases_waitlist' : 'competition_registration.join.releases_own')|trans }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+            <button type="submit" class="btn btn-primary w-100" style="min-height: 44px;" data-participant-claim-yes>
+                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'participant_linking.find.card_yes'|trans }}
+            </button>
+        </form>
+
+        {% if not managed %}
+            <form method="post" action="{{ path('join_competition', {'competitionId': competition_id}) }}" class="mb-2">
+                <input type="hidden" name="self_join" value="1">
+                <button type="submit" class="btn btn-outline-secondary w-100" style="min-height: 44px;" data-participant-claim-no>
+                    {{ 'participant_linking.find.card_no'|trans }}
+                </button>
+            </form>
+        {% elseif not registration.isRegistered and registration.isOpen and not registration.isFull %}
+            {# Registering under the viewer's own name - the registration card below says what it costs #}
+            <form method="post" action="{{ path('join_competition', {'competitionId': competition_id}) }}" class="mb-2">
+                <input type="hidden" name="self_join" value="1">
+                <input type="hidden" name="_token" value="{{ csrf_token(register_csrf_id) }}">
+                <button type="submit" class="btn btn-outline-secondary w-100" style="min-height: 44px;" data-participant-claim-no>
+                    {{ 'participant_linking.find.card_no'|trans }}
+                </button>
+            </form>
+        {% endif %}
+
+        {#- The picker with this name pre-selected - a GET that never links (participant-linking.md §6.3) -#}
+        <a href="{{ path('join_competition', {'competitionId': competition_id, 'participant': candidate.participantId}) }}" class="small" data-participant-claim-find>
+            {{ 'participant_linking.find.card_find'|trans }}
+        </a>
+    </div>
+</div>

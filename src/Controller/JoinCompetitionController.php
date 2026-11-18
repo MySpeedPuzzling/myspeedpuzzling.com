@@ -132,12 +132,18 @@ final class JoinCompetitionController extends AbstractController
         $hasNotConnected = $this->getCompetitionParticipants->hasNotConnectedParticipants($competitionId);
         $claimPolicy = $this->getParticipantClaimPolicy->of($competitionId)['policy'];
         $matchingParticipantId = null;
+        $sameNameCount = 0;
+        // "This is me" on the participants list / "Find my name" on the card (participant-linking.md §6.3): that name
+        // pre-selected - a GET that never links, whatever the policy
+        $preselected = $hasNotConnected ? $this->pickableFromQuery($competitionId, $request) : null;
 
-        if ($isGoing === false) {
+        if ($preselected !== null) {
+            $matchingParticipantId = $preselected;
+        } elseif ($isGoing === false) {
             // Opted in and their name is on the organizer's list: no need to make them pick it
-            $matchingParticipantId = $profile->playerName !== null
-                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country, $profile->playerId)
-                : null;
+            $match = $this->nameMatch($competitionId, $profile);
+            $matchingParticipantId = $match['participantId'];
+            $sameNameCount = $match['count'];
 
             // R11 (participant-linking.md §0a): a GET never links a name where the organiser confirms who is who - the
             // match is only pre-selected, like on a managed event. Open events keep the one-tap GET
@@ -172,8 +178,39 @@ final class JoinCompetitionController extends AbstractController
             'not_connected_participants' => $this->getCompetitionParticipants->getNotConnectedParticipants($competitionId),
             'is_self_joined' => $this->getCompetitionParticipants->isPlayerSelfJoined($competitionId, $profile->playerId),
             'matching_participant_id' => $matchingParticipantId,
+            'same_name_count' => $sameNameCount,
             'claims_need_approval' => $claimPolicy === ParticipantClaimPolicy::Approval,
         ]);
+    }
+
+    /**
+     * `?participant=` of the join page (participant-linking.md §6.3, R12): only an active, going, unlinked participant of
+     * this event is pre-selected - anything else is ignored (one statement, only when the parameter is there).
+     */
+    private function pickableFromQuery(string $competitionId, Request $request): null|string
+    {
+        $participantId = $request->query->getString('participant');
+
+        if ($participantId === '' || $this->getCompetitionParticipants->isPickable($competitionId, $participantId) === false) {
+            return null;
+        }
+
+        return strtolower($participantId);
+    }
+
+    /**
+     * The viewer's name on the organiser's list: the one match, and how many names matched - "2 people on the list are
+     * called Jan Mikeš - pick yours" (participant-linking.md §6.1).
+     *
+     * @return array{participantId: null|string, count: int}
+     */
+    private function nameMatch(string $competitionId, PlayerProfile $profile): array
+    {
+        if ($profile->playerName === null) {
+            return ['participantId' => null, 'count' => 0];
+        }
+
+        return $this->getCompetitionParticipants->matchNotConnectedParticipantsByName($competitionId, $profile->playerName, $profile->country, $profile->playerId);
     }
 
     /**
@@ -278,6 +315,11 @@ final class JoinCompetitionController extends AbstractController
             return $this->redirect($competitionUrl);
         }
 
+        $preselected = $notConnected !== [] ? $this->pickableFromQuery($competitionId, $request) : null;
+        $match = $preselected === null && $isConnected === false
+            ? $this->nameMatch($competitionId, $profile)
+            : ['participantId' => null, 'count' => 0];
+
         return $this->render('join_competition.html.twig', [
             'competition' => $competition,
             'competition_url' => $competitionUrl,
@@ -287,10 +329,9 @@ final class JoinCompetitionController extends AbstractController
             'is_self_joined' => $this->getCompetitionParticipants->isPlayerSelfJoined($competitionId, $profile->playerId),
             // Publicly visible - checked on the way in
             'registration' => $this->getEventAttendance->forEvent($competition, $profile->playerId, true)->registration,
-            // No auto-connect on a GET - the name found on the list is only pre-selected
-            'matching_participant_id' => $profile->playerName !== null && $isConnected === false
-                ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country, $profile->playerId)
-                : null,
+            // No auto-connect on a GET - the name found on the list (or asked for by `?participant=`) is only pre-selected
+            'matching_participant_id' => $preselected ?? $match['participantId'],
+            'same_name_count' => $match['count'],
             'register_csrf_id' => self::REGISTER_CSRF_PREFIX . $competitionId,
             'claims_need_approval' => $this->getParticipantClaimPolicy->of($competitionId)['policy'] === ParticipantClaimPolicy::Approval,
         ]);

@@ -15787,6 +15787,18 @@ participant_linking:
         reason:
             request_not_found: "This request was decided or taken back meanwhile."
             claimant_registration_paid: "%name% is the player's own paid registration - they did not agree to give it up. Ask them to pick the name again with that box ticked, or sort it out with them first."
+    find:
+        card_title: "Is this you?"
+        card_on_list: "On the organiser's participant list"
+        card_yes: "Yes, that's me"
+        card_no: "No - I'm going as myself"
+        card_find: "Find my name on the list"
+        same_name: "%count% people on the list are called %name% - pick yours."
+        this_is_me: "This is me"
+        this_is_me_named: "This is me: %name%"
+        confirm: "Link %name% on the participant list to your profile?"
+        flash_linked: "Done - this name on the participant list is linked to your profile."
+        flash_already_yours: "This name is already linked to your profile."
 
 event_wizard_more:
     puzzle_search:

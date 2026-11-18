@@ -15535,6 +15535,18 @@ participant_linking:
         reason:
             request_not_found: "Diese Anfrage wurde inzwischen entschieden oder zurückgenommen."
             claimant_registration_paid: "%name% ist die eigene bezahlte Anmeldung des Spielers – er/sie hat nicht zugestimmt, sie aufzugeben. Bitten Sie ihn/sie, den Namen mit angehaktem Kästchen erneut zu wählen, oder klären Sie es zuerst mit ihm/ihr."
+    find:
+        card_title: "Sind Sie das?"
+        card_on_list: "Auf der Teilnehmerliste des Veranstalters"
+        card_yes: "Ja, das bin ich"
+        card_no: "Nein – ich gehe als ich selbst"
+        card_find: "Meinen Namen auf der Liste finden"
+        same_name: "Auf der Liste heißen %count% Personen %name% – wählen Sie Ihren Eintrag."
+        this_is_me: "Das bin ich"
+        this_is_me_named: "Das bin ich: %name%"
+        confirm: "%name% auf der Teilnehmerliste mit Ihrem Profil verknüpfen?"
+        flash_linked: "Erledigt – dieser Name auf der Teilnehmerliste ist mit Ihrem Profil verknüpft."
+        flash_already_yours: "Dieser Name ist bereits mit Ihrem Profil verknüpft."
 event_wizard_more:
     puzzle_search:
         label: "Puzzle finden"

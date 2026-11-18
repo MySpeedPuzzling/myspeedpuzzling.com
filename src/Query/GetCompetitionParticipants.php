@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
@@ -334,11 +335,24 @@ SQL;
      */
     public function findNotConnectedParticipantMatchingName(string $competitionId, string $name, null|string $country, null|string $playerId = null): null|string
     {
+        return $this->matchNotConnectedParticipantsByName($competitionId, $name, $country, $playerId)['participantId'];
+    }
+
+    /**
+     * findNotConnectedParticipantMatchingName() with the number of names that match (one statement): the join page's hint
+     * "2 people on the list are called Jan Mikeš - pick yours" (participant-linking.md §6.1). `participantId` only when
+     * exactly one matches.
+     *
+     * @return array{participantId: null|string, count: int}
+     */
+    public function matchNotConnectedParticipantsByName(string $competitionId, string $name, null|string $country, null|string $playerId = null): array
+    {
         if (trim($name) === '') {
-            return null;
+            return ['participantId' => null, 'count' => 0];
         }
 
         $going = CompetitionParticipantGoing::sql('competition_participant');
+        $nameKey = self::sqlNameKey('name') . ' = ' . self::sqlNameKey(':name');
         $refusing = GetRefusedParticipantLinks::sqlRefusingActions();
         $notRefused = $playerId !== null ? <<<SQL
 AND NOT EXISTS (
@@ -351,16 +365,16 @@ AND NOT EXISTS (
 SQL : '';
 
         $query = <<<SQL
-SELECT id
+SELECT id, COUNT(*) OVER () AS matches
 FROM competition_participant
 WHERE competition_id = :competitionId
 AND player_id IS NULL
 AND {$going}
-AND lower(regexp_replace(trim(immutable_unaccent(name)), '\s+', ' ', 'g'))
-    = lower(regexp_replace(trim(immutable_unaccent(:name)), '\s+', ' ', 'g'))
+AND {$nameKey}
 AND (country IS NULL OR CAST(:country AS TEXT) IS NULL OR country = :country)
 {$notRefused}
-LIMIT 2
+ORDER BY id
+LIMIT 1
 SQL;
 
         $parameters = [
@@ -373,11 +387,54 @@ SQL;
             $parameters['playerId'] = $playerId;
         }
 
-        /** @var array<string> $ids */
-        $ids = $this->database
+        /** @var false|array{id: string, matches: int|string} $row */
+        $row = $this->database
             ->executeQuery($query, $parameters)
-            ->fetchFirstColumn();
+            ->fetchAssociative();
 
-        return count($ids) === 1 ? $ids[0] : null;
+        if ($row === false) {
+            return ['participantId' => null, 'count' => 0];
+        }
+
+        $count = (int) $row['matches'];
+
+        return ['participantId' => $count === 1 ? $row['id'] : null, 'count' => $count];
+    }
+
+    /**
+     * Whether a participant may be picked from the organiser's list (`?participant=`, participant-linking.md §6.3, §6.4,
+     * R12): of this event, going (not removed, not waitlisted) and linked to nobody. One statement.
+     */
+    public function isPickable(string $competitionId, string $participantId): bool
+    {
+        if (Uuid::isValid($participantId) === false) {
+            return false;
+        }
+
+        $going = CompetitionParticipantGoing::sql('competition_participant');
+
+        return (bool) $this->database->fetchOne(
+            <<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM competition_participant
+    WHERE id = :participantId
+        AND competition_id = :competitionId
+        AND player_id IS NULL
+        AND {$going}
+)
+SQL,
+            ['participantId' => $participantId, 'competitionId' => $competitionId],
+        );
+    }
+
+    /**
+     * The name key of the join flow's name match, in SQL (case, accents and whitespace runs do not matter) - the join
+     * page and the event page's "Is this you?" card (GetEventAttendance) compare names the same way, so the card's
+     * "Yes" always picks what the page would have matched. Constants and column names only.
+     */
+    public static function sqlNameKey(string $expression): string
+    {
+        return "lower(regexp_replace(trim(immutable_unaccent({$expression})), '\\s+', ' ', 'g'))";
     }
 }

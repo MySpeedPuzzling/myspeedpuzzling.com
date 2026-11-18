@@ -35,6 +35,13 @@ final class CompetitionParticipants
     #[LiveProp(writable: true)]
     public bool $firstTryOnly = false;
 
+    /**
+     * "This is me" next to each name nobody is linked to (participant-linking.md §6.3): the page says so - a signed-in
+     * viewer who is not going and asks nothing yet, on a publicly visible event (EventAttendance, no statement here)
+     */
+    #[LiveProp]
+    public bool $viewerMayClaim = false;
+
     /** @var array<ConnectedCompetitionParticipant> */
     public array $connectedParticipants = [];
 

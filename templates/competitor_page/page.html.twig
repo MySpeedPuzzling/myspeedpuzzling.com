@@ -114,6 +114,30 @@
                 {% if view.viewerIsEntrant %}
                     <p class="small mb-0 mt-1"><span class="badge rounded-pill competitor-page-you" data-competitor-own>{{ 'competitor_page.page.your_page'|trans }}</span></p>
                 {% endif %}
+                {% if view.claimable is not empty %}
+                    {#- "This is me" (participant-linking.md §6.4, R9): a signed-in viewer not on this person or line-up, for each
+                        person nobody is linked to - a confirm step, then the claim (the event's policy decides) -#}
+                    <div class="mt-2 d-flex flex-wrap gap-2" data-competitor-claim>
+                        {% for candidate in view.claimable %}
+                            <details class="competitor-page-claim" data-competitor-claim-person="{{ candidate.participantId }}">
+                                <summary class="btn btn-sm btn-outline-primary">
+                                    {{- (view.claimable|length > 1 ? 'participant_linking.find.this_is_me_named' : 'participant_linking.find.this_is_me')|trans({'%name%': candidate.name}) -}}
+                                </summary>
+                                <div class="border rounded p-2 mt-2 small">
+                                    <p class="mb-2">{{ 'participant_linking.find.confirm'|trans({'%name%': '<strong>' ~ candidate.name|e ~ '</strong>'})|raw }}</p>
+                                    <form method="post" action="{{ path('claim_participant', {competitionId: view.competitionId, participantId: candidate.participantId}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ParticipantLinking\\ClaimParticipantController::CSRF_PREFIX') ~ view.competitionId) }}">
+                                        <input type="hidden" name="kind" value="{{ view.kind.value }}">
+                                        <input type="hidden" name="tag" value="{{ view.tagId }}">
+                                        <button type="submit" class="btn btn-sm btn-primary" style="min-height: 44px;" data-competitor-claim-submit>
+                                            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'participant_linking.find.card_yes'|trans }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </details>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             {% endif %}
         </header>
 

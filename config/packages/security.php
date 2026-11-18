@@ -84,7 +84,8 @@ return App::config([
                 // on who opened the link (no blocklist, no allow list), and it never starts a session or sets a cookie.
                 // /analytics-studio/{roundId}/state|analytics|predictions|round-predictions|entrant/{entryId}: the analytics studio's JSON
                 // (docs/features/competitions-management/analytics-studio.md §1.3) - no viewer by construction, so every
-                // answer is the same for everybody and can be cached per round (no blocklist, no allow list).
+                // answer is the same for everybody and can be cached per round (no blocklist, no allow list). NOT
+                // /analytics-studio/{roundId}/staff-state (FU-ST): it stays on the main firewall - the session tells the event's staff.
                 // /api/competition-standings/{standingId}: a published standing's public JSON (public_standing_state,
                 // competition toolkit v2 S1) - the guest snapshot, the same for everybody (no blocklist, no allow list).
                 // /embed/standing/{standingId}(/{locale}): a published standing as an <iframe> page for organisers' websites

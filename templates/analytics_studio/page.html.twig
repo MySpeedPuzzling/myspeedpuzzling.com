@@ -38,7 +38,8 @@
              data-analytics-studio
              data-locale="{{ app.request.locale }}"
              data-server-now-ms="{{ page.serverNowMs }}"
-             data-state-url="{{ path('analytics_studio_state', {roundId: page.round.id}) }}"
+             data-state-url="{{ path(staff|default(false) ? 'analytics_studio_staff_state' : 'analytics_studio_state', {roundId: page.round.id}) }}"
+             {% if staff|default(false) %}data-state-session="1"{% endif %}
              data-analytics-url="{{ path('analytics_studio_analytics', {roundId: page.round.id}) }}"
              data-entrant-url="{{ path('analytics_studio_entrant', {roundId: page.round.id, entryId: entry_placeholder}) }}"
              data-predictions-url="{{ path('analytics_studio_predictions', {roundId: page.round.id}) }}"

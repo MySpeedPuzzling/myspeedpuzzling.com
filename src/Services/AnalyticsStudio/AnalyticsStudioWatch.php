@@ -33,10 +33,38 @@ readonly final class AnalyticsStudioWatch
         return 'watch.' . strtolower($roundId);
     }
 
+    /**
+     * The staff marker (FU-ST): a staff state of the round was computed - its staff see the live ranking whatever the
+     * live results setting, so its results writes signal while it is set.
+     */
+    public static function staffKey(string $roundId): string
+    {
+        return 'watch-staff.' . strtolower($roundId);
+    }
+
     public function markWatched(string $roundId): void
     {
+        $this->mark(self::key($roundId));
+    }
+
+    public function markStaffWatched(string $roundId): void
+    {
+        $this->mark(self::staffKey($roundId));
+    }
+
+    public function staffWatched(string $roundId): bool
+    {
         try {
-            $item = $this->analyticsStudioWatchCache->getItem(self::key($roundId));
+            return $this->analyticsStudioWatchCache->hasItem(self::staffKey($roundId));
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function mark(string $key): void
+    {
+        try {
+            $item = $this->analyticsStudioWatchCache->getItem($key);
             $item->set(1);
             $item->expiresAfter(self::WATCH_TTL_SECONDS);
             $this->analyticsStudioWatchCache->save($item);

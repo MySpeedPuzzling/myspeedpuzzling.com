@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\AnalyticsStudio;
 
+use Closure;
 use SpeedPuzzling\Web\Exceptions\AnalyticsStudioNotFound;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioEntrants;
 use SpeedPuzzling\Web\Query\OfficialEntrantsView;
@@ -58,13 +59,38 @@ readonly final class AnalyticsStudioStateBuilder
      */
     public function build(string $roundId): array
     {
+        return $this->answer($this->contextLoader->load($roundId), false);
+    }
+
+    /**
+     * The staff state (FU-ST, `analytics_studio_staff_state`): `$isStaff` (the round's competition id => may the viewer
+     * enter its results - CompetitionResultsEntryVoter) decides once the round is known; staff get the live ranking of an
+     * unpublished round whatever the live results setting, anybody else exactly build()'s public answer. The staff
+     * answer is the same for all of an event's staff (no viewer-dependent read - see GetAnalyticsStudioEntrants), kept
+     * under its own `staff-state.` keys: it never fills or reads the public entry.
+     *
+     * @param Closure(string): bool $isStaff
+     * @return array<string, mixed>
+     * @throws AnalyticsStudioNotFound
+     */
+    public function buildForViewer(string $roundId, Closure $isStaff): array
+    {
         $context = $this->contextLoader->load($roundId);
+
+        return $this->answer($context, $isStaff($context->round->competitionId));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function answer(AnalyticsStudioContext $context, bool $staff): array
+    {
         $round = $context->round;
         $nowMs = RoundClock::milliseconds($context->now);
         $stopwatch = $round->stopwatch($context->now);
 
         $key = implode('.', [
-            'state',
+            $staff ? 'staff-state' : 'state',
             $round->id,
             $stopwatch->clock->stateHash(),
             $context->visibleHash,
@@ -76,12 +102,12 @@ readonly final class AnalyticsStudioStateBuilder
         $ttl = $next === null ? self::TTL_SECONDS : intdiv($next - $nowMs, 1000);
 
         $payload = $ttl >= self::TTL_SECONDS
-            ? $this->analyticsStudioCache->get($key, function (ItemInterface $item) use ($context): array {
+            ? $this->analyticsStudioCache->get($key, function (ItemInterface $item) use ($context, $staff): array {
                 $item->expiresAfter(self::TTL_SECONDS);
 
-                return $this->compute($context);
+                return $this->compute($context, $staff);
             })
-            : $this->compute($context);
+            : $this->compute($context, $staff);
 
         /** @var array<string, mixed> $payload */
         return ['serverNowMs' => $nowMs, ...$payload];
@@ -90,12 +116,21 @@ readonly final class AnalyticsStudioStateBuilder
     /**
      * @return array<string, mixed>
      */
-    private function compute(AnalyticsStudioContext $context): array
+    private function compute(AnalyticsStudioContext $context, bool $staff): array
     {
         $round = $context->round;
         $this->watch->markWatched($round->id);
+
+        if ($staff) {
+            $this->watch->markStaffWatched($round->id);
+        }
+
         $entrants = $this->getAnalyticsStudioEntrants->forRound($round);
-        $official = $round->published() ? $this->officialEntrantsView->forRound($round->id, $round->category, null) : null;
+        // As a guest: no viewer's blocklist or allow list may reach an answer that is shared (FU-ST - the staff state runs
+        // on the stateful firewall; the public one is stateless and the same either way)
+        $official = $round->published()
+            ? $this->officialEntrantsView->forRounds([$round->id => $round->category], null, asGuest: true)[$round->id]
+            : null;
 
         $roundJson = [
             'id' => $round->id,
@@ -125,7 +160,7 @@ readonly final class AnalyticsStudioStateBuilder
             'nextRevealAtMs' => $context->puzzles->nextRevealAtMs,
             'cutOffMs' => $context->cutOffMs(),
             'entrants' => array_map(static fn (AnalyticsStudioEntrant $entrant): array => self::entrant($entrant), $entrants),
-            'results' => AnalyticsStudioLiveResults::of($round, $entrants, $context->puzzles, $official),
+            'results' => AnalyticsStudioLiveResults::of($round, $entrants, $context->puzzles, $official, $staff),
             'mercure' => [
                 'hubUrl' => $this->mercurePublicUrl,
                 'topics' => [RoundStopwatchLiveUpdates::topic($round->id), AnalyticsStudioSignals::topic($round->id)],

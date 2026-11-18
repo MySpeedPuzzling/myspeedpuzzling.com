@@ -388,3 +388,11 @@ publish, no result signal; switch in the state cache key). UI fixes from the wal
 grid re-measures the sticky first column on resize (Name no longer covers Country); the place reads "City, Country"
 without a stray " ," and wraps in the series About box / Next card. Walked both ways at 375 + 1280 px
 (`cm-delivery/shots/fu/r2/`).
+
+**FU-ST (Jan, 2026-11-19, #476, reviewed):** signed-in event staff (`COMPETITION_RESULTS_ENTRY`: organisers, team,
+referees, admins) always see the live judge-entered ranking of unpublished rounds in the studio, whatever the
+live-results setting - `analytics_studio_staff_state` on the main firewall, own cache key, `private, no-store`,
+viewer-free; non-staff get the public answer. The public rule = `LiveResultsBeforePublishing`, shared with the competitor
+page (the only public page that shows judge-entered times before publishing), parity test. Walked at 375 + 1280
+(`cm-delivery/shots/fu/st/`). Open question: stream displays/overlays with live elements stay outside this rule (the
+organiser's broadcast).

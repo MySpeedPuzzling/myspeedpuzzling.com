@@ -28,9 +28,10 @@ function readJson(text) {
 }
 
 /**
- * GET a JSON answer: {status: ok|gone|error, body, sentAtMs, receivedAtMs}. No cookie - the answers are stateless.
+ * GET a JSON answer: {status: ok|gone|error, body, sentAtMs, receivedAtMs}. No cookie - the answers are stateless; only
+ * the staff state (`withSession`, FU-ST) sends the session, it decides who is the event's staff.
  */
-export async function getJson(url, { noStore = false } = {}) {
+export async function getJson(url, { noStore = false, withSession = false } = {}) {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     const timer = controller !== null ? setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null;
     const sentAtMs = Date.now();
@@ -38,7 +39,8 @@ export async function getJson(url, { noStore = false } = {}) {
     try {
         const response = await fetch(url, {
             cache: noStore ? 'no-store' : 'default',
-            credentials: 'omit',
+            // Only the staff state sends the session (FU-ST) - every other answer is on the stateless firewall
+            credentials: withSession ? 'same-origin' : 'omit',
             headers: { Accept: 'application/json' },
             signal: controller?.signal,
         });
@@ -88,7 +90,7 @@ export function startAnalyticsStudio(root, { window: win = window } = {}) {
     const refresh = new AnalyticsStudioRefresh({
         serverNowMs: Number(data.serverNowMs) || null,
         fetchState: async () => {
-            const answer = await getJson(data.stateUrl, { noStore: true });
+            const answer = await getJson(data.stateUrl, { noStore: true, withSession: data.stateSession === '1' });
 
             return answer.status === 'ok' ? { ...answer, state: answer.body } : answer;
         },

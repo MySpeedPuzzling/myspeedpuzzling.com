@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Value\CompetitionTagKind;
 use SpeedPuzzling\Web\Value\CompetitorResultState;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventTime;
+use SpeedPuzzling\Web\Value\LiveResultsBeforePublishing;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
@@ -189,7 +190,7 @@ readonly final class GetCompetitorPage
                 $round['id'] === $current,
                 $puzzles[$round['id']] ?? new RoundPuzzlesNow([], null),
                 $official[$round['id']] ?? null,
-                $competition['competitor_pages_live_results'],
+                LiveResultsBeforePublishing::shown($competition['competitor_pages'], $competition['competitor_pages_live_results']),
                 $viewerPlayerId,
                 $now,
                 $timeProposals,
@@ -225,7 +226,7 @@ readonly final class GetCompetitorPage
             teamName: $headerRow !== null && $headerRow['kind'] === 'team' ? $this->latestTeamName($entryRows) : null,
             entrants: $headerEntrants,
             viewerIsEntrant: $viewerIsEntrant,
-            liveResults: $competition['competitor_pages_live_results'],
+            liveResults: LiveResultsBeforePublishing::shown($competition['competitor_pages'], $competition['competitor_pages_live_results']),
             isHidden: $competition['is_hidden'],
             rounds: $pageRounds,
             serverNow: $now,

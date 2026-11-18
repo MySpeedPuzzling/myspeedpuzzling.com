@@ -983,3 +983,80 @@ Jan (2026-11-18): the studio's live ranking of an unpublished round follows the 
   `AnalyticsStudioStateControllerTest` (off = `results: []`, on without clearing the cache = the ranking, re-ranked
   after an edit), `AnalyticsStudioSignalsTest` (off: record/edit/clear signal nothing, pages on without live results
   nothing; on: each signals), `AnalyticsStudioSecretPuzzleTest` (swap test with live results on).
+
+## FU-ST design (event staff always see the live ranking, 2026-11-19)
+
+Jan (2026-11-19): signed-in **event staff** - whoever may manage the event (`COMPETITION_EDIT`: creator, maintainers,
+series / organization owners and maintainers, admins) and its referees (`competition_referee`) - always see the live
+judge-entered ranking of an unpublished round in the studio, whatever the competitor pages' live results setting.
+Everybody else keeps FU-R2. Commentators get it by being added as referees - no secret link. And (Jan, same day) the
+public studio shows exactly what the public results pages show: never more, never less.
+
+- **Who is staff**: `CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY` on the round's competition - exactly
+  "edit OR referee" (admins included), one cached query per request (`GetCompetitionPermissions`).
+- **Where it is decided**: the shell (normal stateful firewall) knows the viewer. For staff it points the page's
+  `data-state-url` at a second state route, `analytics_studio_staff_state` `GET /analytics-studio/{roundId}/staff-state`
+  - deliberately **outside** the stateless firewall pattern (it does not end in `/state`), so the session identifies
+  the viewer. The controller asks the voter again on every request (a referee removed mid-event drops back at the next
+  poll); a non-staff caller (signed out, stranger, expired session) simply gets the public answer - nothing to leak,
+  nothing to break. No token, no secret link; `analytics`, `entrant`, `predictions` stay stateless (they carry no
+  result of the running round).
+- **Same data, one difference**: the staff answer is the public state computed with "live results on" for an
+  unpublished round. Everything else is computed viewer-free like the public one - the state's two viewer-sensitive
+  reads are pinned to "no viewer": `OfficialEntrantsView::forRounds(asGuest: true)` and the raw `player.is_private` in
+  `GetAnalyticsStudioEntrants` (identical on the stateless firewall; on the stateful one a staff member's blocklist or
+  allow list must never reach the answer all staff share). So one shared staff variant per round is correct.
+- **Cache**: the public key is unchanged (`state.…`); the staff answer lives under its own prefix (`staff-state.…`, same
+  segments, 2 s) - a staff request can never fill the public entry and vice versa. HTTP: `private, no-store` like the
+  public state (no shared cache or CDN ever stores either); the session additionally makes it `private`.
+- **Signal**: still one public, data-free topic. A staff state marks the round "staff-watched"
+  (`AnalyticsStudioWatch`, own key, same 180 s); `resultsChanged()` then signals for an unpublished round even with
+  live results off. Why not a staff topic: Mercure topics here are public, a second topic hides nothing and doubles the
+  client's subscriptions; the signal carries no data, and with no staff studio open the FU-R2 behaviour (no signal) is
+  unchanged. A public studio that receives it re-reads its state and still gets `results: []`.
+- **Public parity**: the public rule moves into one shared value, `LiveResultsBeforePublishing` (competitor pages AND
+  their live results), read by both `GetCompetitorPage` (the only public page that shows judge-entered results before
+  publishing) and `GetAnalyticsStudioRound`. The round results page shows no judge-entered result before publishing
+  (only players' own linked times, `GetRoundResults`), standings use published rounds only - see "As built: FU-ST".
+
+## As built: FU-ST (event staff always see the live ranking, 2026-11-19)
+
+- **Staff state**: `analytics_studio_staff_state` `GET /analytics-studio/{roundId}/staff-state`
+  (`AnalyticsStudioStaffStateController`, main firewall - outside the stateless pattern, commented in `security.php`).
+  `AnalyticsStudioStateBuilder::buildForViewer($roundId, $isStaff)` asks `COMPETITION_RESULTS_ENTRY` on the round's
+  competition once the round is loaded (organisers, maintainers, series/organization team, referees, admins); staff
+  get `AnalyticsStudioLiveResults::of(..., staff: true)` = FU-S's live ranking of an unpublished round whatever the
+  setting, anybody else exactly `build()`'s public answer (never an error). Headers `private, no-store` +
+  `X-Robots-Tag` like the public state. No new statement for a guest; a signed-in viewer pays the voter's one cached
+  `GetCompetitionPermissions` query.
+- **Shell**: `Event`/`EditionAnalyticsStudioController` pass `staff` (the same voter); the template points
+  `data-state-url` at the staff route and adds `data-state-session="1"`; `page.js` `getJson(..., {withSession})` sends
+  `credentials: 'same-origin'` only for that fetch (every other studio fetch stays `omit`).
+- **Cache**: staff entries under `staff-state.<same segments>` (2 s), public key unchanged - pinned by
+  `AnalyticsStudioStaffStateTest::testTheStaffAnswerNeverReachesThePublicCache` (staff first, then public and
+  signed-out staff URL in the same 2 s → nothing; and the other way round).
+- **Viewer-free on the stateful firewall**: `GetAnalyticsStudioEntrants` reads the raw `player.is_private` (listed in
+  `PrivateProfileQueryCoverageTest`), the published rows come from `OfficialEntrantsView::forRounds(asGuest: true)` -
+  a referee on a private player's allow list still sees her masked (test). The blocklist exemption (D3) is unchanged.
+- **Signal**: a staff state also marks `watch-staff.<roundId>` (`AnalyticsStudioWatch::markStaffWatched()`, 180 s);
+  `AnalyticsStudioSignals::resultsChanged()` signals while results are visible OR a staff studio is open. One public
+  data-free topic as before; with no staff studio open FU-R2's "no signal" holds.
+- **Public parity**: `Value\LiveResultsBeforePublishing` (`shown()` / `sql()`) = competitor pages AND their live
+  results, read by `GetCompetitorPage` and `GetAnalyticsStudioRound`. What the public pages show of an unpublished
+  round: the competitor page (`competitor_page` / `competitor_state`) shows each entry's judge-entered result to
+  everybody under that rule (never a "Did not start", no place); the round results page shows no judge-entered result
+  before publishing (`officialResults` only for a published round; its other list is players' own linked times,
+  `GetRoundResults`); public standings count published rounds only. So the public studio's rule = the competitor
+  page's - unchanged in effect from FU-R2, now one shared value. The studio adds places to those public times
+  (`OfficialResultsRanking`), derivable from them. Displays/overlays (token links the organiser puts on air, per-element
+  `live` opt-in) are the organiser's broadcast, not a public page, and stay outside this rule.
+- **Tests**: `AnalyticsStudioStaffStateTest` (organiser / referee / signed out / stranger × setting off/on, the page's
+  state URL per viewer, cache poisoning both ways, headers + markers, allow list, draft 404),
+  `AnalyticsStudioLiveResultsTest` (`testThePublicStudioShowsWhatTheCompetitorPageShowsBeforePublishing` - four
+  settings, entry by entry against `GetCompetitorPage` as a guest, with a did-not-start; staff ranking with the
+  setting off), `AnalyticsStudioSignalsTest::testAStaffStudioHearsEveryResultWriteOfAnUnpublishedRoundWithLiveResultsOff`.
+- **Walk** (production-mode stack, 2026-11-19, `cm-delivery/shots/fu/st/`): setting off - organiser (1280) and referee
+  (375) studios showed the judge's save within ~3-4 s, signed-out windows (375, 1280) "No results yet"; setting on -
+  both signed-out windows showed the ranking within ~4 s. Walk gotcha: the chaos tool's `login()` flushes the whole
+  cache Redis DB (rate limits) - the studio watch markers with it, so a judge signing in right before a save suppresses
+  that save's signal until the next poll re-marks the round; the walk opened the studios after the judge's sign-in.

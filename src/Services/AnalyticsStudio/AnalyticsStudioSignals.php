@@ -24,7 +24,10 @@ use Symfony\Component\Mercure\Update;
  *    or slug-less round never signals), at publish time, so a stale marker never leaks;
  * 3. resultsChanged() only while the round's results are visible (AnalyticsStudioRound::resultsVisible() - published,
  *    or the event's live results on, FU-R2): the studio then ranks them live, so a result recorded, edited or cleared
- *    is its news; otherwise an unpublished result must not be told by its timing either.
+ *    is its news - and while a staff studio of the round is open (AnalyticsStudioWatch::staffWatched(), FU-ST): its staff
+ *    see the live ranking whatever the setting. Still the one public topic: Mercure topics are public here, a staff topic
+ *    would hide nothing; the payload is data-free and a public studio re-reads `results: []`. Otherwise an unpublished
+ *    result must not be told by its timing either.
  * A failure never fails the write: logged (warning), the studio catches up on its fallback poll.
  */
 readonly final class AnalyticsStudioSignals
@@ -89,7 +92,7 @@ readonly final class AnalyticsStudioSignals
                 return;
             }
 
-            if ($resultsOnly && $round->resultsVisible() === false) {
+            if ($resultsOnly && $round->resultsVisible() === false && $this->watch->staffWatched($roundId) === false) {
                 return;
             }
 

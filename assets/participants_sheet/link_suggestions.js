@@ -7,7 +7,12 @@
  * - currentSuggestions(people, model): what is still true of an answer on the model now - people linked or removed
  *   meanwhile drop out, so do candidates linked to somebody else of the list meanwhile (a merge's self-joined row must
  *   still be there, linked to that player);
- * - rememberSuggested(model, people) / isSuggested(model, personId): the people the filter shows (kept per model);
+ * - rememberSuggested(model, people) / isSuggested(model, personId): the people the filter shows (kept per model, with
+ *   their entries); suggestionFor(model, personId): one person's entry, still true now (the person editor - desktop
+ *   panel and phone alike); onSuggested(model, listener): told when a new answer is remembered;
+ * - loadSuggestions(model, endpoint): read + what is still true + remembered - the People views' one read per render;
+ *   ensureSuggestions(model, endpoint): the same, only when this model has none yet and none is on its way (the person
+ *   editor opened from a round tab - one read per page, never one per person);
  * - pretickedPlayer(entry): the one pre-tick rule (R2) - nothing name-based is ticked: only "Linked at another date"
  *   with a single candidate whose profile country is the person's, the earlier row named by its organiser (never a
  *   self-joined row's name - that is a free-text profile name);
@@ -31,7 +36,10 @@ export const LINKED_BEFORE = 'linked_before';
 export const NAME_COUNTRY = 'name_country';
 export const TIERS = [JOINED_THEMSELVES, LINKED_BEFORE, NAME_COUNTRY];
 
+// model → Map(participant id → the endpoint's entry), the listeners told of a new answer, the read on its way
 const suggested = new WeakMap();
+const listeners = new WeakMap();
+const loading = new WeakMap();
 
 /**
  * @param {{url: string, request?: function}} endpoint
@@ -95,13 +103,79 @@ export function currentSuggestions(people, model) {
     return result;
 }
 
-/** The people the "Suggestions" filter shows - kept for this model. */
+/** The people the "Suggestions" filter shows - kept for this model, with their entries; the listeners are told. */
 export function rememberSuggested(model, people) {
-    suggested.set(model, new Set((people ?? []).map((entry) => entry.participant)));
+    suggested.set(model, new Map((people ?? []).map((entry) => [entry.participant, entry])));
+
+    for (const listener of [...(listeners.get(model) ?? [])]) {
+        listener();
+    }
 }
 
 export function isSuggested(model, personId) {
     return suggested.get(model)?.has(personId) ?? false;
+}
+
+/** This model has an answer remembered (an empty one too). */
+export function suggestionsKnown(model) {
+    return suggested.has(model);
+}
+
+/**
+ * One person's suggestion as it is true now (people linked meanwhile, candidates linked to somebody else of the list
+ * meanwhile drop out - currentSuggestions()), else null.
+ */
+export function suggestionFor(model, personId) {
+    const entry = suggested.get(model)?.get(personId) ?? null;
+
+    return entry === null ? null : (currentSuggestions([entry], model)[0] ?? null);
+}
+
+/** `listener()` is called whenever an answer is remembered for this model; returns the unsubscribe. */
+export function onSuggested(model, listener) {
+    if (!listeners.has(model)) {
+        listeners.set(model, new Set());
+    }
+
+    listeners.get(model).add(listener);
+
+    return () => listeners.get(model)?.delete(listener);
+}
+
+/**
+ * Read, keep what is still true, remember it. The read on its way is known to ensureSuggestions() (no second one).
+ *
+ * @returns {Promise<{ok: true, entries: Array<object>}|{ok: false, reason: string}>}
+ */
+export function loadSuggestions(model, endpoint) {
+    const promise = requestSuggestions(endpoint).then((result) => {
+        if (!result.ok) {
+            return result;
+        }
+
+        const entries = currentSuggestions(result.people, model);
+        rememberSuggested(model, entries);
+
+        return { ok: true, entries };
+    }).finally(() => {
+        if (loading.get(model) === promise) {
+            loading.delete(model);
+        }
+    });
+    loading.set(model, promise);
+
+    return promise;
+}
+
+/**
+ * The remembered answer, else the read on its way, else loadSuggestions() - the person editor's one read per page.
+ */
+export function ensureSuggestions(model, endpoint) {
+    if (suggestionsKnown(model)) {
+        return Promise.resolve({ ok: true, entries: [...suggested.get(model).values()] });
+    }
+
+    return loading.get(model) ?? loadSuggestions(model, endpoint);
 }
 
 export function mergeRefusal(candidate) {

@@ -846,4 +846,106 @@ export default function (test) {
         // Linked now: the filter has nobody left
         assert.match(view.filtersElement.querySelector('[data-filter="suggestions"]').textContent, /filter_suggestions 0/);
     });
+
+    test('follow-ups FU-L: the phone list reads the suggestions once - the filter counts them, a card says who, choosing the filter opens the dialog', async () => {
+        const state = smallState();
+        state.people.push(person('p-jo-self', 'jo do', { source: 'self_joined', connectedAt: '2026-10-01T10:00:00+00:00', player: { id: 'pl-jo', visible: true, name: 'Jo D.', code: 'jo01', country: null, avatar: null, profileUrl: null } }));
+        const { view, context, acted, changes, announced } = await setup({ state, phone: true });
+        context.urls.linkSuggestions = '/en/participants-sheet-api/c1/link-suggestions';
+        const calls = suggestionsServer();
+
+        await view.readSuggestions();
+        assert.equal(calls.length, 1);
+        assert.ok([...view.filterSelect.options].some((option) => option.value === 'suggestions' && /filter_suggestions/.test(option.textContent) && /"count":2/.test(option.textContent)));
+        const card = (id) => view.list.querySelector(`[data-card="${id}"]`);
+        // One candidate: who; several: how many
+        assert.match(card('p-ana').querySelector('[data-pcard-suggestion]').textContent, /sug_card .*Name pl-1 #PL-1/);
+        assert.match(card('p-jo').querySelector('[data-pcard-suggestion]').textContent, /sug_card_several 2/);
+        assert.equal(card('p-lee').querySelector('[data-pcard-suggestion]'), null);
+        assert.equal(document.querySelector('[data-link-suggestions-dialog]'), null, 'nothing opens by itself');
+
+        // The filter: the two people, and the dialog (read again)
+        view.filterSelect.value = 'suggestions';
+        fire(view.filterSelect, 'change');
+        assert.deepEqual(view.ids, ['p-ana', 'p-jo']);
+        await tick();
+        assert.equal(calls.length, 2);
+        const dialog = document.querySelector('[data-link-suggestions-dialog]');
+        assert.ok(dialog);
+        assert.equal(dialog.querySelector('[data-suggestion="p-ana"] [data-suggestion-choice]').checked, true, 'R2: the edition link is ticked');
+        dialog.querySelector('[data-suggestions-submit]').click();
+
+        assert.equal(acted.length, 1);
+        assert.deepEqual(changes(), [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-1' }]);
+        assert.ok(announced.some((text) => text.startsWith('sug_done 1')));
+        assert.deepEqual(view.ids, ['p-jo']);
+    });
+
+    test('follow-ups FU-L: the person editor offers [Link] per candidate - a merge is one group, a refused merge is disabled, nothing pre-chosen', async () => {
+        const state = smallState();
+        state.people.push(person('p-jo-self', 'jo do', { source: 'self_joined', connectedAt: '2026-10-01T10:00:00+00:00', player: { id: 'pl-jo', visible: true, name: 'Jo D.', code: 'jo01', country: null, avatar: null, profileUrl: null } }));
+        const { model, context, editor, changes, acted } = await setup({ state });
+        const personEditor = editor();
+        // Without the endpoint's answer: nothing
+        assert.doesNotMatch(personEditor.playerHtml(model.person('p-jo')), /data-person-suggestions/);
+
+        // Opened from a round tab (no People view read them): the editor reads them once
+        context.urls.linkSuggestions = '/en/participants-sheet-api/c1/link-suggestions';
+        const calls = suggestionsServer();
+        personEditor.open('p-jo');
+        await tick();
+        await tick();
+        assert.equal(calls.length, 1);
+        const section = () => document.querySelector('.sheet-person [data-section="player"]');
+        const buttons = [...section().querySelectorAll('[data-accept-suggestion]')];
+        assert.deepEqual(buttons.map((button) => [button.dataset.acceptSuggestion, button.disabled]), [['pl-jo', false], ['pl-2', false]]);
+
+        // Next person: no second read
+        personEditor.open('p-ana');
+        await tick();
+        assert.equal(calls.length, 1);
+        assert.equal(section().querySelector('[data-accept-suggestion="pl-1"]').disabled, false);
+
+        personEditor.open('p-jo');
+        section().querySelector('[data-accept-suggestion="pl-jo"]').click();
+        assert.equal(acted.length, 1, 'one undo step');
+        assert.deepEqual(changes(), [
+            { op: 'remove', participant: 'p-jo-self' },
+            { op: 'player', participant: 'p-jo', from: null, to: 'pl-jo' },
+        ]);
+        assert.equal(section().querySelector('[data-person-suggestions]'), null, 'linked: no suggestions any more');
+
+        // R7: a merge the self-joined row refuses is "Merge by hand", its button disabled
+        const { suggestionFor, rememberSuggested } = await import('../../assets/participants_sheet/link_suggestions.js');
+        assert.equal(suggestionFor(model, 'p-jo'), null);
+        rememberSuggested(model, [{ participant: 'p-lee', candidates: [{ tier: 'joined_themselves', player: { id: 'pl-kim', visible: true, name: 'K', code: 'k', country: null }, selfJoined: { participant: 'p-kim', mergeRefusal: 'paid' } }] }]);
+        personEditor.open('p-lee');
+        assert.equal(section().querySelector('[data-accept-suggestion="pl-kim"]').disabled, true);
+        assert.match(section().textContent, /sug_merge_by_hand: sug_refusal_paid/);
+    });
+}
+
+/** The suggestions endpoint: Ana = linked at another date (pl-1), Jo = joined by themselves (pl-jo) or Name and country (pl-2). */
+function suggestionsServer() {
+    const calls = [];
+    const profile = (id) => ({ id, visible: true, name: `Name ${id}`, code: id, country: 'cz', avatar: null, profileUrl: null });
+    globalThis.fetch = async (url, init) => {
+        calls.push({ url, method: init.method });
+
+        return {
+            type: 'basic',
+            status: 200,
+            ok: true,
+            headers: { get: (name) => (name === 'Content-Type' ? 'application/json' : null) },
+            json: async () => ({ people: [
+                { participant: 'p-ana', name: 'Ana Example', country: null, candidates: [{ tier: 'linked_before', player: profile('pl-1'), countryMatches: true, follows: false, nameFromOrganiser: true, joinedAt: null, linkedAt: { name: 'Open 2025', date: null }, selfJoined: null }] },
+                { participant: 'p-jo', name: 'Jo Do', country: null, candidates: [
+                    { tier: 'joined_themselves', player: { id: 'pl-jo', visible: true, name: 'Jo D.', code: 'jo01', country: null, avatar: null, profileUrl: null }, countryMatches: false, follows: true, joinedAt: '2026-10-01T10:00:00+00:00', linkedAt: null, selfJoined: { participant: 'p-jo-self', mergeRefusal: null } },
+                    { tier: 'name_country', player: profile('pl-2'), countryMatches: true, follows: false, nameFromOrganiser: null, joinedAt: null, linkedAt: null, selfJoined: null },
+                ] },
+            ] }),
+        };
+    };
+
+    return calls;
 }

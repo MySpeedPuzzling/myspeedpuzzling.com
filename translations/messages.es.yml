@@ -15351,6 +15351,8 @@ event_wizard:
         overlay: "Añade el overlay de retransmisión a OBS"
         timer_screen: "Prueba la pantalla de cronómetro en el televisor de la sala"
         stopwatch_test: "Prueba: inicia el cronómetro sin marcar «Revelar los puzzles»"
+        participant_links: "Ayuda a la gente a vincular sus perfiles"
+        participant_links_note: "{1}1 persona de tu lista aún no tiene un perfil de MySpeedPuzzling vinculado: reparte enlaces para vincular o revisa las sugerencias.|[0,Inf[%count% personas de tu lista aún no tienen un perfil de MySpeedPuzzling vinculado: reparte enlaces para vincular o revisa las sugerencias."
         continue: "Seguir configurando"
         continue_text: "Este borrador aún no está terminado: el asistente te lleva al siguiente paso."
         link:
@@ -15910,6 +15912,10 @@ participant_link_suggestions:
         reason:
             merge_by_hand: "%name% se apuntó por su cuenta y tiene una inscripción o un puesto en una ronda; las dos filas no se han fusionado. Fusiónalas a mano."
         done: "{0}Nadie vinculado|{1}1 persona vinculada|]1,Inf[%count% personas vinculadas"
+        editor_title: "Puede que ya tenga un perfil; comprueba primero el #código, el país y las fechas:"
+        editor_link: "Vincular"
+        card: "Puede ser %player%"
+        card_several: "{1}Puede encajar 1 perfil|[0,Inf[Pueden encajar %count% perfiles"
 event_wizard_more:
     puzzle_search:
         label: "Buscar el puzzle"

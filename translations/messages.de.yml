@@ -15350,6 +15350,8 @@ event_wizard:
         overlay: "Stream-Overlay in OBS einfügen"
         timer_screen: "Timer-Bildschirm auf dem Fernseher in der Halle testen"
         stopwatch_test: "Testlauf: Stoppuhr ohne angehaktes „Puzzles enthüllen“ starten"
+        participant_links: "Helfen Sie den Leuten, ihre Profile zu verknüpfen"
+        participant_links_note: "{1}1 Person auf Ihrer Liste hat noch kein MySpeedPuzzling-Profil verknüpft – verteilen Sie Verknüpfungslinks oder prüfen Sie die Vorschläge.|[0,Inf[%count% Personen auf Ihrer Liste haben noch kein MySpeedPuzzling-Profil verknüpft – verteilen Sie Verknüpfungslinks oder prüfen Sie die Vorschläge."
         continue: "Weiter einrichten"
         continue_text: "Dieser Entwurf ist noch nicht fertig – der Assistent führt Sie zum nächsten Schritt."
         link:
@@ -15909,6 +15911,10 @@ participant_link_suggestions:
         reason:
             merge_by_hand: "%name% hat sich selbst angemeldet und hat eine Anmeldung oder einen Platz in einer Runde – die beiden Zeilen wurden nicht zusammengeführt. Führen Sie sie von Hand zusammen."
         done: "{0}Niemand verknüpft|{1}1 Person verknüpft|]1,Inf[%count% Personen verknüpft"
+        editor_title: "Hat vielleicht schon ein Profil – prüfen Sie zuerst #Code, Land und Daten:"
+        editor_link: "Verknüpfen"
+        card: "Vielleicht %player%"
+        card_several: "{1}1 Profil könnte passen|[0,Inf[%count% Profile könnten passen"
 event_wizard_more:
     puzzle_search:
         label: "Puzzle finden"

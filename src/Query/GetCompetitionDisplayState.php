@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Services\ChallengeRanking;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayBracket;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayDesignSanitizer;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayImages;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayStandings;
@@ -58,6 +59,10 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * - **Standings** (v2 S2): for a shown `standings` element the published standing as a guest sees it (DisplayStandings,
  *   cached per generation of the event's standings - 0 statements warm).
  *
+ * - **Bracket** (v2 S6): for a shown `bracket` element the bracket of one category as a guest sees it (DisplayBracket,
+ *   from the rounds read here - each box's status computed now; the steps and the entrants of published rounds cached
+ *   per generation of the event's standings - 0 statements warm). No puzzle data.
+ *
  * - **Live control** (v2 L1/L2): for a shown `message` element the event's live message (read with the display); for a
  *   shown `spotlight` element the shown round's spotlight (its ref read with the rounds) as a results row from the same
  *   entries statement - the name, table, members and flags always (the organiser chose to show them), its result and
@@ -81,6 +86,7 @@ readonly final class GetCompetitionDisplayState
         private ClockInterface $clock,
         private string $nginxProxyBaseUrl,
         private DisplayStandings $displayStandings,
+        private DisplayBracket $displayBracket,
     ) {
     }
 
@@ -138,6 +144,16 @@ readonly final class GetCompetitionDisplayState
             $display['competition_id'],
             $round === null ? null : ['id' => $round['id'], 'category' => $round['category']],
             $display['token'],
+        );
+
+        // The bracket (v2 S6) - the rounds read above, the steps and published entrants cached per generation; a failure
+        // is an empty element, never a failed state (DisplayBracket catches everything)
+        $bracket = $this->displayBracket->forDisplay(
+            $design,
+            $display['competition_id'],
+            $rounds,
+            $round === null ? null : ['id' => $round['id'], 'category' => $round['category']],
+            $now,
         );
 
         // The live control (v2 L1, displays-standings.md §5.2) - only for a design with a shown message element, read
@@ -206,6 +222,7 @@ readonly final class GetCompetitionDisplayState
             roundSlug: $round['slug'] ?? null,
             standings: $standings,
             control: $control,
+            bracket: $bracket,
         );
     }
 

@@ -4519,7 +4519,7 @@
           },
           {
             "id": "type0004",
-            "type": "bracket",
+            "type": "chart",
             "frame": {
               "x": 10,
               "y": 10,
@@ -6895,6 +6895,353 @@
       "uses": {
         "results": true,
         "live": true
+      }
+    },
+    {
+      "name": "bracket: defaults, values clamped, bad enums and colours are defaults, unknown props dropped",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "brack001",
+            "type": "bracket",
+            "frame": {}
+          },
+          {
+            "id": "brack002",
+            "type": "bracket",
+            "frame": {
+              "x": 2,
+              "y": 5,
+              "w": 96,
+              "h": 60
+            },
+            "props": {
+              "category": "duo",
+              "names": 12,
+              "status": false,
+              "boxColor": "#1A2B3C",
+              "lineColor": "#ffffff80",
+              "highlightColor": "#FE696A",
+              "whenEmpty": "text",
+              "emptyText": "  Bracket\nafter the groups \u0007 ",
+              "source": "live",
+              "html": "<b>x</b>",
+              "stageNames": [
+                "Groups"
+              ]
+            }
+          },
+          {
+            "id": "brack003",
+            "type": "bracket",
+            "frame": {},
+            "props": {
+              "category": "Solo",
+              "names": -3,
+              "status": "yes",
+              "boxColor": "red",
+              "lineColor": "url(javascript:x)",
+              "highlightColor": "#12345",
+              "whenEmpty": "html",
+              "emptyText": 42
+            }
+          },
+          {
+            "id": "brack004",
+            "type": "bracket",
+            "frame": {},
+            "props": {
+              "category": "team",
+              "names": 2.5,
+              "emptyText": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "brack001",
+            "type": "bracket",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "category": "auto",
+              "names": 3,
+              "status": true,
+              "boxColor": null,
+              "lineColor": null,
+              "highlightColor": null,
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "brack002",
+            "type": "bracket",
+            "name": "",
+            "frame": {
+              "x": 2,
+              "y": 5,
+              "w": 96,
+              "h": 60,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "category": "duo",
+              "names": 8,
+              "status": false,
+              "boxColor": "#1a2b3c",
+              "lineColor": "#ffffff80",
+              "highlightColor": "#fe696a",
+              "whenEmpty": "text",
+              "emptyText": "Bracket after the groups"
+            }
+          },
+          {
+            "id": "brack003",
+            "type": "bracket",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "category": "auto",
+              "names": 0,
+              "status": true,
+              "boxColor": null,
+              "lineColor": null,
+              "highlightColor": null,
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "brack004",
+            "type": "bracket",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "category": "team",
+              "names": 3,
+              "status": true,
+              "boxColor": null,
+              "lineColor": null,
+              "highlightColor": null,
+              "whenEmpty": "nothing",
+              "emptyText": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": true,
+        "live": false
+      }
+    },
+    {
+      "name": "bracket: a hidden or never shown bracket element asks for nothing",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "brack011",
+            "type": "bracket",
+            "frame": {},
+            "hidden": true
+          },
+          {
+            "id": "brack012",
+            "type": "bracket",
+            "frame": {},
+            "when": {
+              "phases": []
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "brack011",
+            "type": "bracket",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": true,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "category": "auto",
+              "names": 3,
+              "status": true,
+              "boxColor": null,
+              "lineColor": null,
+              "highlightColor": null,
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          },
+          {
+            "id": "brack012",
+            "type": "bracket",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "category": "auto",
+              "names": 3,
+              "status": true,
+              "boxColor": null,
+              "lineColor": null,
+              "highlightColor": null,
+              "whenEmpty": "nothing",
+              "emptyText": ""
+            }
+          }
+        ]
+      },
+      "uses": {
+        "results": false,
+        "live": false
       }
     }
   ]

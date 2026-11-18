@@ -789,6 +789,10 @@ export class EditorPanel {
                     if (spec.key === 'source' && RESULTS_TYPES.includes(element.type)) {
                         this.el('div', 'form-text mt-0 mb-2', this.t(value === 'live' ? 'source_live_help' : 'source_published_help'), parent);
                     }
+
+                    if (spec.key === 'category' && element.type === 'bracket') {
+                        this.el('div', 'form-text mt-0 mb-2', this.t('prop.category_help'), parent);
+                    }
                     break;
                 case 'int':
                     this.numberField(parent, { label, fieldKey, value, min: spec.min, max: spec.max, onValue: (v) => set(v, fieldKey) });

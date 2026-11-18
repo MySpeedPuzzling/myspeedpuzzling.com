@@ -216,6 +216,23 @@ final class DisplaySecretPuzzleTest extends WebTestCase
         self::assertHiddenSecretIsNowhere($raw);
     }
 
+    /**
+     * The bracket element (competition toolkit v2 S6) names rounds and entrants, never a puzzle - a bracket into the round
+     * with the secret, shown before its reveal, carries nothing of it
+     */
+    public function testABracketCarriesNoPuzzle(): void
+    {
+        $browser = $this->browser();
+        DeclaredAdvancementStep::insert(self::getContainer()->get(Connection::class), CompetitionApiFixture::COMPETITION_API, [CompetitionApiFixture::ROUND_PAST], [CompetitionApiFixture::ROUND_FUTURE]);
+        $token = self::createDisplay(CompetitionApiFixture::COMPETITION_API, [['type' => 'bracket', 'props' => ['names' => 8]]], CompetitionApiFixture::ROUND_FUTURE);
+
+        [$raw, $state] = self::displayState($browser, $token);
+
+        self::assertSame('Future Round', self::at($state, 'bracket.el000000.stages.1.rounds.0.name'));
+        self::assertHiddenSecretIsNowhere($raw);
+        self::assertStringNotContainsString('puzzle', strtolower((string) json_encode($state['bracket'])));
+    }
+
     private static function assertHiddenSecretIsNowhere(string $raw, string $when = ''): void
     {
         foreach ([self::HIDDEN_NAME, CompetitionApiFixture::IMAGE_HIDDEN_ENTIRELY, CompetitionApiFixture::PUZZLE_HIDDEN_ENTIRELY, 'API Platform Hidden"', CompetitionApiFixture::IMAGE_PLATFORM_HIDDEN, CompetitionApiFixture::PUZZLE_PLATFORM_HIDDEN] as $secret) {

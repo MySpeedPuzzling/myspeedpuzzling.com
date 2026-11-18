@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionDisplayNotFound;
 use SpeedPuzzling\Web\Query\GetCompetitionDisplayState;
 use SpeedPuzzling\Web\Results\CompetitionDisplayState;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
+use SpeedPuzzling\Web\Value\BracketRoundStatus;
 use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -84,6 +85,10 @@ final readonly class CompetitionDisplayPayload
             $texts = [...$texts, ...$this->standingTexts($state->standings, $locale)];
         }
 
+        if ($state->bracket !== null) {
+            $texts = [...$texts, ...$this->bracketTexts($locale)];
+        }
+
         $serverNow = $this->clock->now();
 
         return [
@@ -93,6 +98,27 @@ final readonly class CompetitionDisplayPayload
             'rendererBuild' => $this->displayRendererBuild->current(),
             'mercure' => $this->officialResultsSubscription->forDisplay($state->competitionId, $state->followedRoundIds),
             'serverNowMs' => RoundClock::milliseconds($serverNow),
+        ];
+    }
+
+    /**
+     * The bracket element's texts (v2 S6) - the public bracket page's own texts in the display's language, no new
+     * translation: a box's status, "Top places" over a round that qualified nobody, "+ N more" (no plural form).
+     *
+     * @return array{bracketStatus: array<string, string>, bracketTop: string, bracketMore: string}
+     */
+    public function bracketTexts(string $locale): array
+    {
+        $status = [];
+
+        foreach (BracketRoundStatus::cases() as $case) {
+            $status[$case->value] = $this->translator->trans('bracket.status.' . $case->value, locale: $locale);
+        }
+
+        return [
+            'bracketStatus' => $status,
+            'bracketTop' => $this->translator->trans('bracket.top', locale: $locale),
+            'bracketMore' => $this->translator->trans('bracket.more', ['%count%' => '%count%'], locale: $locale),
         ];
     }
 

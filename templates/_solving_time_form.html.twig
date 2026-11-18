@@ -63,6 +63,12 @@
                 time_total: 'unfinished_result.form.time_total'|trans,
             }|json_encode,
         })}) %}
+        {# The round the form names (Add to my profile, the edited result's own) - only then, every other form stays as it was #}
+        {% if unfinished.namedRoundId is not null %}
+            {% set form_start_options = form_start_options|merge({attr: form_start_options.attr|merge({
+                'data-unfinished-result-named-round-value': unfinished.namedRoundId,
+            })}) %}
+        {% endif %}
     {% endif %}
     {# Each photo uploads in the background the moment it is picked; Save sends its token (docs/features/photo-uploads/README.md) #}
     {% if direct_photo_uploads|default(false) %}

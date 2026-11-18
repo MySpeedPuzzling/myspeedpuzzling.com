@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\UnfinishedResults\UnfinishedResultHint;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,6 +48,8 @@ final class SolvingTimeRoundHintController extends AbstractController
             $request->query->getString('puzzle'),
             ctype_digit($puzzlers) && strlen($puzzlers) < 4 ? max(1, (int) $puzzlers) : 1,
             $this->solveDay($request->query->getString('date')),
+            // The round the form names (Add to my profile, the edited result's own) - a uuid or nothing
+            Uuid::isValid($request->query->getString('round')) ? strtolower($request->query->getString('round')) : null,
         );
 
         $response = new JsonResponse(['round' => $round?->toArray()]);

@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Package S3 of docs/features/competitions-management/shared-puzzles-and-divisions.md on the pages (§2.4 rows 4, 15,
@@ -149,6 +153,104 @@ final class SharedPuzzleRoundPagesTest extends WebTestCase
         self::assertSame(['competition_round_id' => null, 'round_chosen' => false], $this->stored($timeId));
     }
 
+    public function testAnUnlinkedTimeWithAnotherResultLeavesAddToMyProfile(): void
+    {
+        $browser = self::createClient();
+        $this->shareGroupAsPuzzleWithGroupB();
+        // Not Group A's 1:00:00 - maybe Group B's solve: never linked to Group A from here
+        $this->unlinkedTimeOfAnna(seconds: 3500);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->request('GET', '/en/events/results-cup/results/group-a');
+
+        self::assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('[data-official-link-to-round]');
+        $this->assertSelectorExists('[data-official-add-to-profile]');
+    }
+
+    public function testAnUnfinishedResultAddedToItsRoundCanBeEditedWhenTheSharingRoundsHaveOtherLimits(): void
+    {
+        $browser = self::createClient();
+        $this->shareGroupAsPuzzleWithGroupB();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('UPDATE competition_round SET minutes_limit = 60 WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]);
+
+        // What Add to my profile of an unfinished Group A entry saves
+        $timeId = Uuid::uuid7();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddUnfinishedPuzzleSolvingTime(
+            timeId: $timeId,
+            userId: 'auth0|admin003',
+            puzzleId: PuzzleFixture::PUZZLE_1000_05,
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            piecesPlaced: 500,
+            totalTime: null,
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: new DateTimeImmutable('2026-10-04'),
+            firstAttempt: false,
+            unboxed: false,
+            roundId: OfficialResultsFixture::ROUND_GROUP_A,
+            createdVia: SolvingTimeSource::Form,
+        ));
+        self::assertSame(['competition_round_id' => OfficialResultsFixture::ROUND_GROUP_A, 'round_chosen' => true], $this->stored($timeId->toString()));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', '/en/edit-time/' . $timeId->toString());
+        self::assertResponseIsSuccessful();
+        // The question names the result's own round, also to the hint endpoint
+        self::assertSame(OfficialResultsFixture::ROUND_GROUP_A, $crawler->filter('form[name="edit_puzzle_solving_time_form"]')->attr('data-unfinished-result-named-round-value'));
+
+        $values = $crawler->filter('form[name="edit_puzzle_solving_time_form"]')->form()->getPhpValues();
+        /** @var array<string, mixed> $fields */
+        $fields = $values['edit_puzzle_solving_time_form'];
+        $values['edit_puzzle_solving_time_form'] = [...$fields, 'comment' => 'Ran out of time'];
+        $browser->request('POST', '/en/edit-time/' . $timeId->toString(), $values);
+
+        self::assertResponseRedirects();
+        self::assertSame('Ran out of time', $database->fetchOne('SELECT comment FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId->toString()]));
+        self::assertSame(['competition_round_id' => OfficialResultsFixture::ROUND_GROUP_A, 'round_chosen' => true], $this->stored($timeId->toString()));
+    }
+
+    public function testTheHintEndpointKeepsTheNamedRound(): void
+    {
+        $browser = self::createClient();
+        $this->shareGroupAsPuzzleWithGroupB();
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition_round SET minutes_limit = 60 WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $query = ['competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'puzzle' => PuzzleFixture::PUZZLE_1000_05, 'puzzlers' => '1', 'date' => '05.10.2026'];
+
+        // Two limits, nothing named: no question
+        $browser->request('GET', '/en/solving-time-round-hint?' . http_build_query($query));
+        self::assertSame(['round' => null], json_decode((string) $browser->getResponse()->getContent(), true));
+
+        $browser->request('GET', '/en/solving-time-round-hint?' . http_build_query([...$query, 'round' => OfficialResultsFixture::ROUND_GROUP_A]));
+        $answer = json_decode((string) $browser->getResponse()->getContent(), true);
+        self::assertIsArray($answer);
+        self::assertSame(['name' => 'Group A', 'minutesLimit' => 90, 'category' => 'solo'], $answer['round']);
+    }
+
+    public function testARefusedChoiceInsideTheModalIsSaidNextToThePicker(): void
+    {
+        $browser = self::createClient();
+        $this->shareGroupAsPuzzleWithGroupB();
+        $timeId = $this->unlinkedTimeOfAnna();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', '/en/result/' . $timeId, server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        $values = $crawler->filter('[data-round-choice]')->form()->getPhpValues();
+        // The pairs round: no candidate for a solo time
+        $values['round_id'] = OfficialResultsFixture::ROUND_PAIRS;
+        $browser->request('POST', '/en/result/' . $timeId . '/round', $values, server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertSame('/en/result/' . $timeId . '?round_choice=not_a_candidate', $browser->getResponse()->headers->get('Location'));
+        self::assertSame(['competition_round_id' => null, 'round_chosen' => false], $this->stored($timeId));
+
+        $crawler = $browser->request('GET', '/en/result/' . $timeId . '?round_choice=not_a_candidate', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertStringContainsString("can't be placed in that round", $crawler->filter('[data-round-choice-refused]')->text());
+    }
+
     private function shareGroupAsPuzzleWithGroupB(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
@@ -179,14 +281,15 @@ final class SharedPuzzleRoundPagesTest extends WebTestCase
     /**
      * Anna's own solo time on the shared puzzle, linked to the event in no round (the rule could not tell)
      */
-    private function unlinkedTimeOfAnna(): string
+    private function unlinkedTimeOfAnna(int $seconds = 3600): string
     {
         $timeId = Uuid::uuid7()->toString();
         self::getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO puzzle_solving_time (id, seconds_to_solve, player_id, puzzle_id, tracked_at, verified, finished_at, competition_id, competition_round_id, puzzling_type, puzzlers_count, created_via)
-             VALUES (:id, 3600, :player, :puzzle, TIMESTAMP '2026-10-10 12:00:00', true, TIMESTAMP '2026-10-04 00:00:00', :competition, NULL, 'solo', 1, 'form')",
+             VALUES (:id, :seconds, :player, :puzzle, TIMESTAMP '2026-10-10 12:00:00', true, TIMESTAMP '2026-10-04 00:00:00', :competition, NULL, 'solo', 1, 'form')",
             [
                 'id' => $timeId,
+                'seconds' => $seconds,
                 'player' => PlayerFixture::PLAYER_ADMIN,
                 'puzzle' => PuzzleFixture::PUZZLE_1000_05,
                 'competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,

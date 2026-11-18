@@ -111,7 +111,7 @@ SQL;
         ];
         $entries = $view->entries;
         $challengeRows = [];
-        $linkableTimeId = null;
+        $linkableTimeIds = [];
 
         if ($challenge !== null) {
             $entries = array_map(
@@ -141,7 +141,7 @@ SQL;
             $profilePuzzleId = $onlyPuzzle !== null && $onlyPuzzle->imageHidden === false ? $onlyPuzzle->puzzleId : null;
 
             if ($viewerPlayerId !== null && $profilePuzzleId !== null) {
-                [$entries, $linkableTimeId] = $this->withProfileStates($entries, $round->id, $viewerPlayerId, $viewer, $round->minutesLimit !== null);
+                [$entries, $linkableTimeIds] = $this->withProfileStates($entries, $round->id, $viewerPlayerId, $viewer, $round->minutesLimit !== null);
             }
         }
 
@@ -159,7 +159,7 @@ SQL;
                 )),
             challenge: $challenge,
             challengeRows: $challengeRows,
-            linkableTimeId: $linkableTimeId,
+            linkableTimeIds: $linkableTimeIds,
         );
     }
 
@@ -247,11 +247,13 @@ SQL,
      * no time in this round, but one on its puzzle in this event and category that no round holds yet (the rule could
      * not tell which round it belongs to) - the rows that would offer "Add to my profile" offer "This is my time - link
      * it to <round>" instead (OfficialEntryProfileState::LinkToRound): a second "Add to my profile" would save the
-     * same solve twice. The time to link is the one whose time equals the row's, else the latest.
+     * same solve twice - only on a row whose result the time has (its seconds, or the pieces placed of an unfinished
+     * one); any other row keeps "Add to my profile" (never link another round's solve).
      *
      * @param list<PublishedRoundEntry> $entries
      * @param array{has_entry: bool, name: null|string, country: null|string} $viewer
-     * @return array{list<PublishedRoundEntry>, null|string} the entries, and the viewer's time LinkToRound links
+     * @return array{list<PublishedRoundEntry>, array<string, string>} the entries, and per row (entry ref) the viewer's
+     *     time its LinkToRound links
      */
     private function withProfileStates(array $entries, string $roundId, string $viewerPlayerId, array $viewer, bool $roundHasTimeLimit): array
     {
@@ -268,28 +270,37 @@ SQL,
         );
 
         if ($candidates === []) {
-            return [$entries, null];
+            return [$entries, []];
         }
 
         $times = $this->viewerTimesInRound($roundId, $viewerPlayerId);
         $linkedTimes = array_values(array_filter($times, static fn (array $time): bool => $time['linked']));
 
         if ($linkedTimes === [] && $times !== []) {
-            $linkable = $times[0]['time_id'];
+            // Only a time whose result is this row's (its seconds, or the pieces placed of an unfinished one) - never
+            // another round's solve; any other row keeps "Add to my profile"
+            $linkable = [];
 
-            foreach ($times as $time) {
-                if (array_any($candidates, static fn (PublishedRoundEntry $entry): bool => $time['seconds'] !== null && $entry->result->seconds === $time['seconds'])) {
-                    $linkable = $time['time_id'];
-                    break;
+            $entries = array_map(static function (PublishedRoundEntry $entry) use ($candidates, $times, &$linkable): PublishedRoundEntry {
+                if (in_array($entry, $candidates, true) === false) {
+                    return $entry;
                 }
-            }
 
-            return [array_map(
-                static fn (PublishedRoundEntry $entry): PublishedRoundEntry => in_array($entry, $candidates, true)
-                    ? $entry->withProfileState(OfficialEntryProfileState::LinkToRound)
-                    : $entry,
-                $entries,
-            ), $linkable];
+                foreach ($times as $time) {
+                    if (
+                        ($time['seconds'] !== null && $entry->result->seconds === $time['seconds'])
+                        || ($time['seconds'] === null && $time['pieces_placed'] !== null && $entry->result->seconds === null && $entry->result->piecesPlaced === $time['pieces_placed'])
+                    ) {
+                        $linkable[$entry->ref->toString()] = $time['time_id'];
+
+                        return $entry->withProfileState(OfficialEntryProfileState::LinkToRound);
+                    }
+                }
+
+                return $entry->withProfileState(OfficialEntryProfileState::Offer);
+            }, $entries);
+
+            return [$entries, $linkable];
         }
 
         $viewerTimes = array_column($linkedTimes, 'seconds');
@@ -310,7 +321,7 @@ SQL,
             }
 
             return $entry;
-        }, $entries), null];
+        }, $entries), []];
     }
 
     /**
@@ -395,14 +406,14 @@ SQL,
      * several rounds share whose round the rule could not tell - shared-puzzles-and-divisions.md §2.4 row 15), latest
      * first. A time without seconds (unfinished) counts as one too, so seconds may be null.
      *
-     * @return list<array{time_id: string, puzzle_id: string, seconds: null|int, linked: bool}>
+     * @return list<array{time_id: string, puzzle_id: string, seconds: null|int, pieces_placed: null|int, linked: bool}>
      */
     private function viewerTimesInRound(string $roundId, string $viewerPlayerId): array
     {
-        /** @var list<array{id: string, puzzle_id: string, seconds_to_solve: null|int|string, linked: bool}> $rows */
+        /** @var list<array{id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, linked: bool}> $rows */
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT pst.id, pst.puzzle_id, pst.seconds_to_solve, pst.competition_round_id IS NOT NULL AS linked
+SELECT pst.id, pst.puzzle_id, pst.seconds_to_solve, pst.pieces_placed, pst.competition_round_id IS NOT NULL AS linked
 FROM puzzle_solving_time pst
 WHERE (
         pst.competition_round_id = :roundId
@@ -426,6 +437,7 @@ SQL,
             'time_id' => strtolower($row['id']),
             'puzzle_id' => strtolower($row['puzzle_id']),
             'seconds' => $row['seconds_to_solve'] !== null ? (int) $row['seconds_to_solve'] : null,
+            'pieces_placed' => $row['pieces_placed'] !== null ? (int) $row['pieces_placed'] : null,
             'linked' => $row['linked'],
         ], $rows);
     }

@@ -123,6 +123,9 @@
                 {% if attempt.roundChoices is not empty %}
                     {% set current_round = attempt.currentRoundChoice %}
                     <form method="post" action="{{ path('choose_solving_time_round', {timeId: attempt.timeId}) }}" class="mt-1" data-round-choice>
+                        {% if round_choice_refusal|default(null) is not null and attempt.timeId == result.focusTimeId %}
+                            <p class="fs-xs text-danger mb-1" role="alert" data-round-choice-refused>{{ round_choice_refusal|trans }}</p>
+                        {% endif %}
                         <label class="fs-xs text-muted d-block mb-1" for="round-choice-{{ attempt.timeId }}"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>{{ current_round is not null ? 'shared_round.change'|trans({'%round%': current_round}) : 'shared_round.not_identified'|trans }}</label>
                         <div class="d-flex gap-1" style="min-width: 0;">
                             <select class="form-select form-select-sm" name="round_id" id="round-choice-{{ attempt.timeId }}" required style="min-width: 0;">

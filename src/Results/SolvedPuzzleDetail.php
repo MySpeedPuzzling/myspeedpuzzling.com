@@ -56,6 +56,9 @@ readonly final class SolvedPuzzleDetail
         public null|string $roundSlug = null,
         public null|string $roundCompetitionSlug = null,
         public null|string $roundSeriesSlug = null,
+        // The round the result is in (whatever its event) - the edit form's unfinished question names it, so a puzzle
+        // several rounds share keeps its round (shared-puzzles-and-divisions.md S3)
+        public null|string $roundId = null,
     ) {
     }
 
@@ -93,6 +96,7 @@ readonly final class SolvedPuzzleDetail
      *     round_slug?: null|string,
      *     round_competition_slug?: null|string,
      *     round_series_slug?: null|string,
+     *     round_id?: null|string,
      *  } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -135,6 +139,7 @@ readonly final class SolvedPuzzleDetail
             roundSlug: $row['round_slug'] ?? null,
             roundCompetitionSlug: $row['round_competition_slug'] ?? null,
             roundSeriesSlug: $row['round_series_slug'] ?? null,
+            roundId: $row['round_id'] ?? null,
         );
     }
 

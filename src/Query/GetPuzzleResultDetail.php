@@ -215,6 +215,13 @@ SELECT
                 SELECT 1 FROM competition_round_puzzle candidate_puzzle
                 WHERE candidate_puzzle.round_id = candidate_round.id AND candidate_puzzle.puzzle_id = pst.puzzle_id
             )
+            -- An unfinished result: only a round whose limit keeps its time spent / total as stored
+            -- (ChooseSolvingTimeRoundHandler - UnfinishedResult)
+            AND (
+                pst.pieces_placed IS NULL
+                OR (pst.finished_later_seconds IS NULL AND candidate_round.minutes_limit * 60 = pst.seconds_spent)
+                OR (pst.finished_later_seconds IS NOT NULL AND candidate_round.minutes_limit IS NOT NULL AND pst.finished_later_seconds > candidate_round.minutes_limit * 60)
+            )
     ) END AS round_choices
 FROM focus
     INNER JOIN subject_times ON true

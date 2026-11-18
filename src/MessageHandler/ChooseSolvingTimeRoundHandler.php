@@ -4,16 +4,22 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\RoundIsNoCandidateOfSolvingTime;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
+use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
 use SpeedPuzzling\Web\Message\ChooseSolvingTimeRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use SpeedPuzzling\Web\Value\UnfinishedResult;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -61,6 +67,31 @@ readonly final class ChooseSolvingTimeRoundHandler
             throw new RoundIsNoCandidateOfSolvingTime();
         }
 
+        // An unfinished result is kept only in a round under whose limit its pieces, total and time spent stay as stored
+        // (UnfinishedResult) - a round with another limit would leave them wrong
+        if ($time->piecesPlaced !== null && self::unfinishedFits($time, $round) === false) {
+            throw new RoundIsNoCandidateOfSolvingTime();
+        }
+
         $time->chooseCompetitionRound($round);
+    }
+
+    private static function unfinishedFits(PuzzleSolvingTime $time, CompetitionRound $round): bool
+    {
+        assert($time->piecesPlaced !== null);
+
+        try {
+            $underRound = UnfinishedResult::fromInput(
+                piecesPlaced: $time->piecesPlaced,
+                totalSeconds: $time->finishedLaterSeconds,
+                puzzlePiecesCount: $time->puzzle->piecesCount,
+                roundMinutesLimit: $round->minutesLimit,
+            );
+        } catch (UnfinishedResultNeedsTimeLimit | InvalidPiecesPlaced | UnfinishedTotalTimeWithinLimit) {
+            return false;
+        }
+
+        return $underRound->secondsSpent === $time->secondsSpent
+            && $underRound->finishedLaterSeconds === $time->finishedLaterSeconds;
     }
 }

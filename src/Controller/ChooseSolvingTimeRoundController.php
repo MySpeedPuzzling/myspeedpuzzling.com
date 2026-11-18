@@ -22,12 +22,17 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * Places the player's time in a round of its event (docs/features/competitions-management/shared-puzzles-and-divisions.md
  * §2.4 row 16): "Choose the round" in the result detail (a form inside the modal frame) and "This is my time - link it
- * to <round>" on the round page (a full-page form). Always answers with a redirect: to `back` (a same-site path, checked
- * by ReturnUrl) or to the result detail - inside the modal frame Turbo follows it there and shows the result again.
+ * to <round>" on the round page (a full-page form). Always answers with a redirect: a full page to `back` (a same-site
+ * path, checked by ReturnUrl) or the result detail, with a flash; inside the modal frame to the result detail, which
+ * Turbo shows in the modal again - a refusal travels as `?round_choice=` and is said next to the picker.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ChooseSolvingTimeRoundController extends AbstractController
 {
+    // `?round_choice=` of the result detail after a refused choice inside the modal (PuzzleResultDetailController)
+    public const string REFUSED_NOT_A_CANDIDATE = 'not_a_candidate';
+    public const string REFUSED_TRY_AGAIN = 'try_again';
+
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -58,9 +63,10 @@ final class ChooseSolvingTimeRoundController extends AbstractController
         }
 
         $roundId = $request->request->getString('round_id');
+        $refusal = null;
 
         if ($this->isCsrfTokenValid('choose_solving_time_round_' . $timeId, $request->request->getString('_token')) === false) {
-            $this->flash($inModal, 'danger', 'shared_round.flash.try_again');
+            $refusal = self::REFUSED_TRY_AGAIN;
         } else {
             try {
                 $this->messageBus->dispatch(new ChooseSolvingTimeRound(
@@ -68,22 +74,38 @@ final class ChooseSolvingTimeRoundController extends AbstractController
                     roundId: $roundId,
                     playerId: $profile->playerId,
                 ));
-                $this->flash($inModal, 'success', 'shared_round.flash.linked');
             } catch (HandlerFailedException $exception) {
-                $refusal = $exception->getPrevious();
+                $previous = $exception->getPrevious();
 
                 // Somebody else's time (403), an unknown time or round (404): answered as such
-                if ($refusal instanceof HttpExceptionInterface) {
-                    throw $refusal;
+                if ($previous instanceof HttpExceptionInterface) {
+                    throw $previous;
                 }
 
-                if (!$refusal instanceof RoundIsNoCandidateOfSolvingTime) {
+                if (!$previous instanceof RoundIsNoCandidateOfSolvingTime) {
                     throw $exception;
                 }
 
-                $this->flash($inModal, 'danger', 'shared_round.flash.not_a_candidate');
+                $refusal = self::REFUSED_NOT_A_CANDIDATE;
             }
         }
+
+        // Inside the modal frame a flash would wait for the next page: the result detail says it next to its picker
+        if ($inModal) {
+            return $this->redirectToRoute('puzzle_result_detail', array_filter([
+                'timeId' => $timeId,
+                'round_choice' => $refusal,
+            ]), Response::HTTP_SEE_OTHER);
+        }
+
+        $this->addFlash(
+            $refusal === null ? 'success' : 'danger',
+            $this->translator->trans(match ($refusal) {
+                null => 'shared_round.flash.linked',
+                self::REFUSED_TRY_AGAIN => 'shared_round.flash.try_again',
+                default => 'shared_round.flash.not_a_candidate',
+            }),
+        );
 
         $back = ReturnUrl::tryFrom($request->request->getString('back'));
 
@@ -92,15 +114,5 @@ final class ChooseSolvingTimeRoundController extends AbstractController
         }
 
         return $this->redirectToRoute('puzzle_result_detail', ['timeId' => $timeId], Response::HTTP_SEE_OTHER);
-    }
-
-    /**
-     * A flash only on a full page - inside the modal frame it would wait for the next page the player opens
-     */
-    private function flash(bool $inModal, string $type, string $key): void
-    {
-        if ($inModal === false) {
-            $this->addFlash($type, $this->translator->trans($key));
-        }
     }
 }

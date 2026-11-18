@@ -1967,4 +1967,3 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
 See `docs/features/competitions-management/shared-puzzles-and-divisions.md` "As built: S3".
 - [ ] Browser walk before merge (no-Docker mode): Add to my profile from two rounds sharing a puzzle, the round page's "This is my time - link it", the result detail's "Choose the round" in the modal and on the full page, an unfinished entry from Add to my profile
 - [ ] Pick rounds: no "link it" for a time no round holds (only one-puzzle rounds have it)
-- [ ] 5 locales for `shared_round.*`

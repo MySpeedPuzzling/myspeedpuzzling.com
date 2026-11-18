@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\RoundIsNoCandidateOfSolvingTime;
@@ -216,6 +217,29 @@ final class SharedPuzzleExplicitRoundTest extends KernelTestCase
         }
 
         self::assertSame(['round' => null, 'chosen' => false], $this->stored($timeId));
+    }
+
+    public function testAnUnfinishedResultMovesOnlyToARoundWithTheSameLimit(): void
+    {
+        $timeId = $this->addUnfinished(roundId: self::MORNING);
+        $this->database->executeStatement('UPDATE competition_round SET minutes_limit = 90 WHERE id = :id', ['id' => self::EVENING]);
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        try {
+            // Its time spent (120 min) would be wrong under Evening's 90 min
+            $this->messageBus->dispatch(new ChooseSolvingTimeRound($timeId, self::EVENING, self::OWNER));
+            self::fail('Expected a refusal');
+        } catch (HandlerFailedException $exception) {
+            self::assertInstanceOf(RoundIsNoCandidateOfSolvingTime::class, $exception->getPrevious());
+        }
+
+        self::assertSame(['round' => self::MORNING, 'chosen' => true], $this->stored($timeId));
+
+        $this->database->executeStatement('UPDATE competition_round SET minutes_limit = 120 WHERE id = :id', ['id' => self::EVENING]);
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $this->messageBus->dispatch(new ChooseSolvingTimeRound($timeId, self::EVENING, self::OWNER));
+
+        self::assertSame(['round' => self::EVENING, 'chosen' => true], $this->stored($timeId));
     }
 
     private function add(null|string $roundId = null): string

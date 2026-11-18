@@ -62,12 +62,13 @@
                                         <a class="btn btn-sm btn-outline-primary" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: official.profilePuzzleId, competition: event.id, official_entry: entry.ref.toString()}) }}" data-official-add-to-profile>
                                             <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'round_results.official.add_to_profile'|trans }}
                                         </a>
-                                    {% elseif entry.profileState.value == 'link_to_round' and official.linkableTimeId is not null %}
+                                    {% elseif entry.profileState.value == 'link_to_round' and official.linkableTimeId(entry) is not null %}
+                                        {% set linkable_time_id = official.linkableTimeId(entry) %}
                                         {# A time of theirs on this puzzle no round holds yet (a puzzle several rounds share) - linked, never added twice #}
-                                        <form method="post" action="{{ path('choose_solving_time_round', {timeId: official.linkableTimeId}) }}" class="d-inline" data-official-link-to-round>
+                                        <form method="post" action="{{ path('choose_solving_time_round', {timeId: linkable_time_id}) }}" class="d-inline" data-official-link-to-round>
                                             <input type="hidden" name="round_id" value="{{ round.id }}">
                                             <input type="hidden" name="back" value="{{ app.request.requestUri }}">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('choose_solving_time_round_' ~ official.linkableTimeId) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('choose_solving_time_round_' ~ linkable_time_id) }}">
                                             <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'shared_round.link_to_round'|trans({'%round%': round.name}) }}</button>
                                         </form>
                                     {% else %}

@@ -72,6 +72,7 @@ readonly final class UnfinishedResultForm
             typedSeconds: $typedSeconds !== null && $typedSeconds > 0 ? $typedSeconds : null,
             piecesTotal: $round !== null || $on ? $this->piecesCount($puzzleId) : null,
             enabled: $this->hint->isEnabled(),
+            namedRoundId: $namedRoundId,
         );
     }
 

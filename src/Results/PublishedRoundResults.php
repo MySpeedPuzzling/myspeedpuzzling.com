@@ -28,10 +28,19 @@ readonly final class PublishedRoundResults
         // The challenge `?challenge=` asked for (a shown puzzle of a pick round of K ≥ 2) - null = the round's ranking
         public null|RoundPuzzleSlot $challenge = null,
         public array $challengeRows = [],
-        // The viewer's time on the round's puzzle that no round holds yet - what "This is my time - link it" links
-        // (OfficialEntryProfileState::LinkToRound)
-        public null|string $linkableTimeId = null,
+        /**
+         * Per row (entry ref) offering "This is my time - link it" (OfficialEntryProfileState::LinkToRound): the
+         * viewer's time on the round's puzzle that no round holds yet, with that row's result
+         *
+         * @var array<string, string>
+         */
+        public array $linkableTimeIds = [],
     ) {
+    }
+
+    public function linkableTimeId(PublishedRoundEntry $entry): null|string
+    {
+        return $this->linkableTimeIds[$entry->ref->toString()] ?? null;
     }
 
     public function hasQualified(): bool

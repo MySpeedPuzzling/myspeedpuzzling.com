@@ -112,15 +112,20 @@ readonly final class UnfinishedResultHint
 
             // The official entry's round - only a round of the form's own event (one-time event or edition)
             if ($namedRoundId !== null && $competitionId !== null && Uuid::isValid($namedRoundId)) {
-                $named = $this->unfinishedResultRound->forNewResult(
-                    roundId: $namedRoundId,
-                    competitionId: null,
-                    seriesId: null,
-                    puzzleId: $puzzleId,
-                    puzzlingType: $puzzlingType,
-                    solveDay: $solveDay ?? $this->clock->now(),
-                );
-                $event = $named->roundChosen && $named->competition->id->toString() === strtolower($competitionId) ? $named : null;
+                // Fail-soft: a named round that does not answer leaves the form's pick to decide
+                try {
+                    $named = $this->unfinishedResultRound->forNewResult(
+                        roundId: $namedRoundId,
+                        competitionId: null,
+                        seriesId: null,
+                        puzzleId: $puzzleId,
+                        puzzlingType: $puzzlingType,
+                        solveDay: $solveDay ?? $this->clock->now(),
+                    );
+                    $event = $named->roundChosen && $named->competition->id->toString() === strtolower($competitionId) ? $named : null;
+                } catch (UnfinishedResultNeedsTimeLimit | CompetitionRoundNotFound) {
+                    $event = null;
+                }
             }
 
             $event ??= $this->unfinishedResultRound->forNewResult(

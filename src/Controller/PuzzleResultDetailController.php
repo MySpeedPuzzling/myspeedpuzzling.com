@@ -72,6 +72,12 @@ final class PuzzleResultDetailController extends AbstractController
             'own_field_values' => $this->ownCustomValuesOnResults->ofSignedInViewer($request, $result->attempts),
             // Members see the puzzle's difficulty on its image (null for everyone else)
             'difficulty_tiers' => $this->resolveDifficultyTiers->forViewer($viewer, [$result->puzzleId]),
+            // A refused "Choose the round" inside the modal (ChooseSolvingTimeRoundController) - said next to the picker
+            'round_choice_refusal' => match ($request->query->getString('round_choice')) {
+                ChooseSolvingTimeRoundController::REFUSED_NOT_A_CANDIDATE => 'shared_round.flash.not_a_candidate',
+                ChooseSolvingTimeRoundController::REFUSED_TRY_AGAIN => 'shared_round.flash.try_again',
+                default => null,
+            },
         ]);
 
         // Same URL, two bodies: a cache must never hand the modal to a full-page visit or the other way round

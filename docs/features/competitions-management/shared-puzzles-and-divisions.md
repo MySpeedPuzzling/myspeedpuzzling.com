@@ -694,7 +694,16 @@ in, otherwise divisions are set in the sheet or through the internal API.
   `round_chosen = false` (unlinked, or a link the rule made - the orchestrator's A3b sticky links can be corrected),
   candidate rounds ordered by start; shown when ≥ 2 ("Round: not identified - choose" / "Round: X - not the round you
   solved it in? Choose yours", the current one preselected); the form sets its `action` (modal frame).
-- Keys `shared_round.*` (English only). Tests: `tests/MessageHandler/SharedPuzzleExplicitRoundTest.php` (named round on
+- **Review follow-ups**: the edit form names the result's own round to the unfinished question
+  (`SolvedPuzzleDetail::$roundId` → `UnfinishedResultForm::state()`), so an unfinished result filed in one of rounds
+  with different limits stays editable; the round the form names rides on the hint endpoint too
+  (`UnfinishedFormState::$namedRoundId` → `data-unfinished-result-named-round-value` → `?round=`, only on such forms);
+  a named round that does not answer leaves the pick to decide. `ChooseSolvingTimeRound` keeps an unfinished result
+  only in a round under whose limit its time spent / total stay as stored (`UnfinishedResult`; the picker offers only
+  those). LinkToRound only on a row whose result the unlinked time has (seconds, or pieces placed of an unfinished
+  one) - other rows keep "Add to my profile" (`PublishedRoundResults::$linkableTimeIds` per entry). A refused choice
+  inside the modal comes back as `?round_choice=not_a_candidate|try_again` and is said next to the picker.
+- Keys `shared_round.*` (all 6 locales). Tests: `tests/MessageHandler/SharedPuzzleExplicitRoundTest.php` (named round on
   add / unfinished add / edit, evidence, NotIdentified, the hint, ChooseSolvingTimeRound owner/member/stranger/
   non-candidate), `tests/Controller/SharedPuzzleRoundPagesTest.php` (Add to my profile into the second sharing round,
   LinkToRound + its POST, guests, the result detail picker in the modal, forged token).

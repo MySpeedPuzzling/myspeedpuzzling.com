@@ -166,6 +166,8 @@ final class SharedPuzzleCarnivalSetUpTest extends WebTestCase
             ['rounds' => ArrayParameterType::STRING],
         );
 
+        self::assertIsNumeric($count);
+
         return (int) $count;
     }
 }

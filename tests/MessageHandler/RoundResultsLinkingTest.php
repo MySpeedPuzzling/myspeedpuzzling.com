@@ -250,6 +250,8 @@ final class RoundResultsLinkingTest extends KernelTestCase
             ['round' => $roundId, 'puzzle' => $puzzleId],
         );
 
+        self::assertIsNumeric($count);
+
         return (int) $count;
     }
 

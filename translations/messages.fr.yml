@@ -15867,3 +15867,15 @@ shared_round:
         linked: "Votre temps est maintenant dans la manche."
         not_a_candidate: "Ce temps ne peut pas aller dans cette manche - elle n'a pas ce puzzle en solo, en paire ou en équipe comme votre temps."
         try_again: "Cela n'a pas fonctionné - veuillez réessayer."
+standing_division:
+    form:
+        label: "Division"
+        help: "Seuls les concurrents de cette division comptent - dans chaque manche, avec leur inscription dans cette division. Chaque manche du classement doit l'utiliser (page Divisions)."
+        everybody: "Tout le monde (sans division)"
+    per_division: "Créer un classement par catégorie et division"
+    per_division_help: "Un classement par division sur les manches d'une catégorie qui l'utilisent, avec les règles par défaut : %standings%."
+    per_division_name: "Général - %category% - %division%"
+    refused:
+        unknown_division: "Cette division ne fait plus partie de cet événement - rechargez la page."
+        division_not_in_round: "Chaque manche du classement d'une division doit utiliser cette division - cochez-la pour ces manches sur la page Divisions, ou retirez ces manches."
+        used_by_standing: "Le classement « %subject% » ne compte que cette division - modifiez-le ou supprimez-le d'abord."

@@ -15872,3 +15872,15 @@ shared_round:
         linked: "Tu tiempo ya está en la ronda."
         not_a_candidate: "Este tiempo no puede ir en esa ronda: la ronda no tiene este puzzle en individual, parejas o equipos como tu tiempo."
         try_again: "No ha funcionado; inténtalo de nuevo."
+standing_division:
+    form:
+        label: "División"
+        help: "Solo cuentan los participantes de esta división: en cada ronda, con su inscripción en esa división. Todas las rondas de la clasificación deben usarla (página Divisiones)."
+        everybody: "Todos (sin división)"
+    per_division: "Crear una clasificación por categoría y división"
+    per_division_help: "Una clasificación por cada división sobre las rondas de una categoría que la usan, con las reglas por defecto: %standings%."
+    per_division_name: "General - %category% - %division%"
+    refused:
+        unknown_division: "Esa división ya no pertenece a este evento; recarga la página."
+        division_not_in_round: "Todas las rondas de la clasificación de una división deben usar esa división: márcala en esas rondas en la página Divisiones o deja fuera esas rondas."
+        used_by_standing: "La clasificación «%subject%» solo cuenta esta división: cámbiala o elimínala primero."

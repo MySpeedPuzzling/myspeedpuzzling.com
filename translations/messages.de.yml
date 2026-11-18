@@ -15871,3 +15871,15 @@ shared_round:
         linked: "Ihre Zeit ist jetzt in der Runde."
         not_a_candidate: "Diese Zeit passt nicht in diese Runde - die Runde hat dieses Puzzle nicht für Einzel, Paare oder Teams wie Ihre Zeit."
         try_again: "Das hat nicht geklappt - bitte versuchen Sie es erneut."
+standing_division:
+    form:
+        label: "Wertungsklasse"
+        help: "Nur Teilnehmer dieser Wertungsklasse zählen - in jeder Runde mit ihrem Eintrag in dieser Wertungsklasse. Jede Runde der Gesamtwertung muss sie verwenden (Seite Wertungsklassen)."
+        everybody: "Alle (keine Wertungsklasse)"
+    per_division: "Eine Gesamtwertung pro Kategorie und Wertungsklasse erstellen"
+    per_division_help: "Eine Gesamtwertung je Wertungsklasse über die Runden einer Kategorie, die sie verwenden, mit den Standardregeln: %standings%."
+    per_division_name: "Gesamt - %category% - %division%"
+    refused:
+        unknown_division: "Diese Wertungsklasse gehört nicht mehr zu dieser Veranstaltung - laden Sie die Seite neu."
+        division_not_in_round: "Jede Runde der Gesamtwertung einer Wertungsklasse muss diese Wertungsklasse verwenden - haken Sie sie auf der Seite Wertungsklassen für die Runden an oder lassen Sie diese Runden weg."
+        used_by_standing: "Die Gesamtwertung „%subject%“ zählt nur diese Wertungsklasse - ändern oder löschen Sie sie zuerst."

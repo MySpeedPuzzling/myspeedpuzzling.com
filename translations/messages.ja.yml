@@ -15555,6 +15555,11 @@ participant_linking:
         confirm: "参加者リストの %name% をあなたのプロフィールと連携しますか？"
         flash_linked: "完了しました。参加者リストのこの名前はあなたのプロフィールと連携しました。"
         flash_already_yours: "この名前はすでにあなたのプロフィールと連携しています。"
+participant_link_suggestions:
+    sheet:
+        refusal_profile_hidden: "このプロフィールは表示できません。まず誰なのか確認してください"
+        reason:
+            merge_by_hand: "%name% は本人が参加登録しており、登録またはラウンドの枠があります。2つの行は統合されませんでした。手動で統合してください。"
 event_wizard_more:
     puzzle_search:
         label: "パズルを探す"

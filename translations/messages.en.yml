@@ -15818,6 +15818,39 @@ participant_linking:
         flash_linked: "Done - this name on the participant list is linked to your profile."
         flash_already_yours: "This name is already linked to your profile."
 
+participant_link_suggestions:
+    hub:
+        count: "{0}Nobody may already have a profile|{1}1 person may already have a profile|]1,Inf[%count% people may already have a profile"
+    import_flash:
+        text: "{0}Nobody may already have a MySpeedPuzzling profile.|{1}1 person may already have a MySpeedPuzzling profile.|]1,Inf[%count% people may already have a MySpeedPuzzling profile."
+        review: "Review suggestions"
+    sheet:
+        filter: "Suggestions"
+        action: "Link suggested profiles"
+        failed: "The suggestions could not be loaded. Check the connection and try again."
+        title: "Who may already have a profile"
+        help: "Profiles that may belong to people on your list. Nothing is linked until you tick it and confirm - check the #code, the country and the dates first."
+        empty: "No suggestions right now - nobody without a profile matches a player we know."
+        submit: "Link the ticked people (%count%)"
+        cancel: "Cancel"
+        several: "- several profiles may fit, pick one"
+        not_now: "Not now"
+        follows: "follows this event"
+        joined_at: "joined by themselves on %date%"
+        linked_at: "linked at %event% %date%"
+        merge_by_hand: "Merge by hand"
+        tier_joined_themselves: "Joined by themselves"
+        tier_linked_before: "Linked at another date"
+        tier_name_country: "Same name and country"
+        refusal_official_data: "their own row has results"
+        refusal_round_entries: "their own row is in a round"
+        refusal_paid: "their own registration is paid"
+        refusal_waitlisted: "their own registration is on the waitlist"
+        refusal_registered: "their own registration holds a spot"
+        refusal_profile_hidden: "you cannot see their profile - check who it is first"
+        reason:
+            merge_by_hand: "%name% joined by themselves and holds a registration or a place in a round - the two rows were not merged. Merge them by hand."
+        done: "{0}Nobody linked|{1}1 person linked|]1,Inf[%count% people linked"
 event_wizard_more:
     puzzle_search:
         label: "Find the puzzle"

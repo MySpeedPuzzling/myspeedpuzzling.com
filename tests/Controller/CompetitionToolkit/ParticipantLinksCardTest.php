@@ -9,6 +9,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetParticipantClaimPolicy;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\ParticipantLinkSuggestionsSeeding;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\ParticipantClaimPolicy;
@@ -23,6 +25,9 @@ use Symfony\Component\DomCrawler\Field\ChoiceFormField;
  */
 final class ParticipantLinksCardTest extends WebTestCase
 {
+    use ParticipantLinkSuggestionsSeeding;
+    use QueryCountAssertions;
+
     private const string EVENT = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
     private const string HUB = '/en/manage-event-toolkit/' . self::EVENT;
     private const string FORM = 'participant_claim_policy_form';
@@ -61,6 +66,48 @@ final class ParticipantLinksCardTest extends WebTestCase
         self::assertStringContainsString('1 waiting for you to confirm', $card->filter('[data-counter="requests"]')->text());
         self::assertStringContainsString('filter=asks', (string) $card->filter('[data-counter="requests"]')->attr('href'));
         self::assertStringContainsString('Now: Ask me first', $card->text());
+    }
+
+    /**
+     * Link suggestions (§7.5, package L5): "N people may already have a profile" to the sheet's filter - the same number
+     * as the sheet's list, counted inside the card's one statement (no statement of its own, whatever the list's size).
+     */
+    public function testTheSuggestionsAreCountedInTheCardsStatement(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $database = self::getContainer()->get(Connection::class);
+        $seeded = $this->seedLinkSuggestions($database);
+        $hub = '/en/manage-event-toolkit/' . $seeded['event'];
+
+        $page = $browser->request('GET', $hub);
+        $counter = $page->filter('[data-toolkit-card="participant-links"] [data-counter="suggestions"]');
+        self::assertCount(1, $counter);
+        self::assertStringContainsString('5 people may already have a profile', $counter->text());
+        self::assertStringContainsString('/en/participants-sheet/' . $seeded['event'] . '?tab=people&filter=suggestions', (string) $counter->attr('href'));
+
+        $before = $this->hubStatements($browser, $hub);
+        // 300 more people, every one of them with a suggestion (a player of their name and country)
+        $database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source)
+             SELECT gen_uuid_v7(), 'Ottilie Brandvold', 'no', :event, 'imported' FROM generate_series(1, 300)",
+            ['event' => $seeded['event']],
+        );
+        $after = $this->hubStatements($browser, $hub);
+
+        self::assertSame($before, $after);
+        $summary = array_values(array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, 'FROM participant_link_request r')));
+        self::assertCount(1, $summary, 'the summary is one statement');
+        self::assertStringContainsString('suggestion', $summary[0]);
+        self::assertStringContainsString('305 people may already have a profile', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testNoSuggestionsNoCounter(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $page = $browser->request('GET', self::HUB);
+
+        self::assertCount(0, $page->filter('[data-counter="suggestions"]'));
     }
 
     public function testTheOrganiserSwitchesThePolicyAndBackToAutomatic(): void
@@ -117,6 +164,15 @@ final class ParticipantLinksCardTest extends WebTestCase
         self::assertInstanceOf(ChoiceFormField::class, $field);
 
         return $field;
+    }
+
+    private function hubStatements(KernelBrowser $browser, string $hub): int
+    {
+        $this->startCountingQueries($browser);
+        $browser->request('GET', $hub);
+        self::assertResponseIsSuccessful();
+
+        return $this->queryCount($browser);
     }
 
     private function browser(string $player): KernelBrowser

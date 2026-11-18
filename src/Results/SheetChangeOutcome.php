@@ -23,6 +23,9 @@ readonly final class SheetChangeOutcome
     /** The reasons of link requests (SheetPlanRun, participant-linking.md §5.3) - their texts are under participant_linking */
     public const array LINKING_REASONS = ['request_not_found', 'claimant_registration_paid'];
 
+    /** The refusals of accepted link suggestions (participant-linking.md §5.3, R7) - texts under participant_link_suggestions */
+    public const array SUGGESTION_REASONS = ['merge_by_hand'];
+
     /**
      * @param array<string, null|string|int> $parameters
      */
@@ -66,6 +69,10 @@ readonly final class SheetChangeOutcome
         // Participant linking's refusals keep their texts with the feature (participant-linking.md §5.3)
         if (in_array($this->reason, self::LINKING_REASONS, true)) {
             return 'participant_linking.sheet.reason.' . $this->reason;
+        }
+
+        if (in_array($this->reason, self::SUGGESTION_REASONS, true)) {
+            return 'participant_link_suggestions.sheet.reason.' . $this->reason;
         }
 
         return 'participants_sheet_server.reason.' . $this->reason . ($this->cause !== null ? '_' . $this->cause : '');

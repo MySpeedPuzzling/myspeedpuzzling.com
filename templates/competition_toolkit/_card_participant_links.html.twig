@@ -24,6 +24,14 @@
                         </a>
                     </li>
                 {% endif %}
+                {# Link suggestions (§7.5, package L5): the people GetParticipantLinkSuggestions has a candidate for #}
+                {% if link_summary.suggestions > 0 %}
+                    <li class="mb-1">
+                        <a href="{{ sheet_url }}?tab=people&amp;filter=suggestions" data-counter="suggestions">
+                            <i class="bi bi-lightbulb me-1" aria-hidden="true"></i>{{ 'participant_link_suggestions.hub.count'|trans({'%count%': link_summary.suggestions}) }}
+                        </a>
+                    </li>
+                {% endif %}
                 {% if link_summary.linkedByThemselves > 0 %}
                     <li class="mb-1">
                         <a href="{{ sheet_url }}?tab=people&amp;filter=linked_themselves" data-counter="by-themselves">

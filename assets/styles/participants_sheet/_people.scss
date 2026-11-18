@@ -1017,3 +1017,31 @@ button.sheet-request-chip {
         }
     }
 }
+
+// Link suggestions (participant-linking.md §7.2 - assets/participants_sheet/link_suggestions.js): who the people without
+// a profile may be, ticked and linked in one step
+.link-suggestions-dialog {
+    width: min(40rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    padding: 0;
+    border: 0;
+    border-radius: $border-radius-lg;
+    box-shadow: $box-shadow-lg;
+
+    &::backdrop {
+        background-color: rgba($black, .45);
+    }
+
+    .link-suggestions-dialog__body {
+        padding: 1.25rem;
+    }
+
+    [data-suggestions-list] {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .link-suggestion .badge {
+        font-weight: 500;
+    }
+}

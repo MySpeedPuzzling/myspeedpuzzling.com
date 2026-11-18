@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\ParticipantImportNotApplicable;
 use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
+use SpeedPuzzling\Web\Query\GetParticipantLinkSuggestions;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportPreviewBuilder;
@@ -30,11 +31,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ConfirmParticipantImportController extends AbstractController
 {
+    /** The flash with the number of people with a link suggestion after an import - the sheet's page renders it */
+    public const string SUGGESTIONS_FLASH = 'participant_link_suggestions';
+
     public function __construct(
         private readonly ParticipantImportStash $stash,
         private readonly ParticipantImportPreviewBuilder $previewBuilder,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly GetParticipantLinkSuggestions $getParticipantLinkSuggestions,
     ) {
     }
 
@@ -155,6 +160,14 @@ final class ConfirmParticipantImportController extends AbstractController
         }
 
         $this->addFlash('success', $summary);
+
+        // "N people may already have a profile - Review suggestions" (participant-linking.md §7.2): the sheet's page
+        // renders it with the link to the People tab's filter
+        $suggested = $this->getParticipantLinkSuggestions->peopleWithSuggestions($competitionId);
+
+        if ($suggested > 0) {
+            $this->addFlash(self::SUGGESTIONS_FLASH, (string) $suggested);
+        }
 
         return $toParticipants;
     }

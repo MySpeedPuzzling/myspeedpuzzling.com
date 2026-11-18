@@ -15568,6 +15568,39 @@ participant_linking:
         confirm: "Propojit %name% na seznamu účastníků s vaším profilem?"
         flash_linked: "Hotovo – toto jméno na seznamu účastníků je propojené s vaším profilem."
         flash_already_yours: "Toto jméno už je propojené s vaším profilem."
+participant_link_suggestions:
+    hub:
+        count: "{0}Nikdo zřejmě ještě nemá profil|{1}1 osoba už možná má profil|[2,4]%count% osoby už možná mají profil|[5,Inf[%count% osob už možná má profil"
+    import_flash:
+        text: "{0}Nikdo zřejmě ještě nemá profil na MySpeedPuzzling.|{1}1 osoba už možná má profil na MySpeedPuzzling.|[2,4]%count% osoby už možná mají profil na MySpeedPuzzling.|[5,Inf[%count% osob už možná má profil na MySpeedPuzzling."
+        review: "Zkontrolovat návrhy"
+    sheet:
+        filter: "Návrhy"
+        action: "Propojit navržené profily"
+        failed: "Návrhy se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu."
+        title: "Kdo už možná má profil"
+        help: "Profily, které mohou patřit lidem z vašeho seznamu. Nic se nepropojí, dokud to nezaškrtnete a nepotvrdíte – nejdřív zkontrolujte #kód, zemi a data."
+        empty: "Teď žádné návrhy – nikdo bez profilu neodpovídá žádnému hráči, kterého známe."
+        submit: "Propojit zaškrtnuté (%count%)"
+        cancel: "Zrušit"
+        several: "– může sedět více profilů, vyberte jeden"
+        not_now: "Teď ne"
+        follows: "sleduje tuto akci"
+        joined_at: "přihlásil(a) se sám/sama %date%"
+        linked_at: "propojen(a) na akci %event% %date%"
+        merge_by_hand: "Sloučit ručně"
+        tier_joined_themselves: "Přihlásili se sami"
+        tier_linked_before: "Propojeni na jiném termínu"
+        tier_name_country: "Stejné jméno a země"
+        refusal_official_data: "jeho/její vlastní řádek má výsledky"
+        refusal_round_entries: "jeho/její vlastní řádek je v kole"
+        refusal_paid: "jeho/její vlastní registrace je zaplacená"
+        refusal_waitlisted: "jeho/její vlastní registrace je na čekací listině"
+        refusal_registered: "jeho/její vlastní registrace drží místo"
+        refusal_profile_hidden: "jeho profil nevidíte – nejdřív ověřte, o koho jde"
+        reason:
+            merge_by_hand: "%name% se přihlásil(a) sám/sama a má registraci nebo místo v kole – řádky nebyly sloučeny. Slučte je ručně."
+        done: "{0}Nikdo nepropojen|{1}1 osoba propojena|[2,4]%count% osoby propojeny|[5,Inf[%count% osob propojeno"
 event_wizard_more:
     puzzle_search:
         label: "Najít puzzle"

@@ -38,6 +38,7 @@ final class BlocklistCanaryTest extends WebTestCase
     use InteractsWithLiveComponents;
     use UnfinishedResultSeeding;
     use TrackerlessTimeSeeding;
+    use ParticipantLinkSuggestionsSeeding;
 
     private const string BLOCKER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string BLOCKER_NAME = PlayerFixture::PLAYER_WITH_FAVORITES_NAME;
@@ -894,6 +895,38 @@ final class BlocklistCanaryTest extends WebTestCase
     /**
      * @return iterable<string, array{string}>
      */
+    /**
+     * The participants sheet's link suggestions (participant-linking.md §7.2, D10): a player the organiser blocked is
+     * never offered for a person of their list - another organiser of the event is.
+     */
+    public function testABlockedPlayerIsNotSuggestedForAPersonOfTheList(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $seeded = $this->seedLinkSuggestions($database);
+        $database->insert('competition_maintainer', ['competition_id' => $seeded['event'], 'player_id' => self::BLOCKER]);
+        $database->insert('competition_maintainer', ['competition_id' => $seeded['event'], 'player_id' => self::BYSTANDER]);
+        $database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, :name, 'gb', :event, 'imported')",
+            ['id' => Uuid::uuid7()->toString(), 'name' => self::BLOCKED_NAME, 'event' => $seeded['event']],
+        );
+        $this->blockPlayer($database, self::BLOCKER, self::BLOCKED);
+        $url = '/en/participants-sheet-api/' . $seeded['event'] . '/link-suggestions';
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED, (string) $browser->getResponse()->getContent(), 'No canary: the other organiser is not offered the player.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is offered a player they blocked.');
+        // The person of the list stays - the organiser's own record
+        self::assertStringContainsString('Ottilie Brandvold', $content);
+    }
+
     public static function providePlayerListingPages(): iterable
     {
         yield 'hub' => ['/en/hub'];

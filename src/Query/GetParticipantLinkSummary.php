@@ -13,26 +13,30 @@ use SpeedPuzzling\Web\Value\ParticipantLinkMethod;
  * participant-linking.md §7.5) - counts only, no identity: the event's people on the list (not removed), how many are
  * linked, how many linked themselves, and the link requests waiting for the organiser. The same numbers as the
  * participants sheet's People filters (ParticipantsSheetState::linkCounts()). And whether a round of the event uses
- * online timing - the card then hands out the personal links instead of claim links (§5.6). One statement.
+ * online timing - the card then hands out the personal links instead of claim links (§5.6). And how many people may
+ * already have a profile (`suggestions`: the people GetParticipantLinkSuggestions has a candidate for - the same rules
+ * and the same number as the sheet's "Suggestions" filter, as a subquery of this statement). One statement.
  */
 readonly final class GetParticipantLinkSummary
 {
     public function __construct(
         private Connection $database,
+        private GetParticipantLinkSuggestions $getParticipantLinkSuggestions,
     ) {
     }
 
     /**
-     * @return array{people: int, linked: int, notLinked: int, linkedByThemselves: int, requests: int, usesOnlineTiming: bool}
+     * @return array{people: int, linked: int, notLinked: int, linkedByThemselves: int, requests: int, suggestions: int, usesOnlineTiming: bool}
      */
     public function of(string $competitionId): array
     {
+        $suggestions = $this->getParticipantLinkSuggestions->sqlPeopleWithSuggestions();
         $own = implode(', ', array_map(
             static fn (ParticipantLinkMethod $method): string => "'" . $method->value . "'",
             array_values(array_filter(ParticipantLinkMethod::cases(), static fn (ParticipantLinkMethod $method): bool => $method->isThePlayersOwn())),
         ));
 
-        /** @var array{people: int|string, linked: int|string, by_themselves: int|string, requests: int|string, uses_online_timing: bool} $row */
+        /** @var array{people: int|string, linked: int|string, by_themselves: int|string, requests: int|string, suggestions: int|string, uses_online_timing: bool} $row */
         $row = $this->database->fetchAssociative(
             <<<SQL
 SELECT
@@ -43,6 +47,7 @@ SELECT
         SELECT COUNT(*) FROM participant_link_request r
         WHERE r.competition_id = :competitionId AND r.status = :pending
     ) AS requests,
+    {$suggestions} AS suggestions,
     EXISTS (
         SELECT 1 FROM online_round
         INNER JOIN competition_round online_timing_round ON online_timing_round.id = online_round.round_id
@@ -64,6 +69,7 @@ SQL,
             'notLinked' => $people - $linked,
             'linkedByThemselves' => (int) $row['by_themselves'],
             'requests' => (int) $row['requests'],
+            'suggestions' => (int) $row['suggestions'],
             'usesOnlineTiming' => $row['uses_online_timing'],
         ];
     }

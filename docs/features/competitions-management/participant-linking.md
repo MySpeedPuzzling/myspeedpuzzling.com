@@ -1056,3 +1056,51 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   `?participant=<id>#taking-part` → the card for that person (name not required, same going filter). The golden
   `live-results-scan-matrix.txt` is unchanged: its puzzler is going at the Results Cup (Hugo) - `ScanClaimLandingTest`
   pins the new branch.
+
+### L5 - link suggestions and the merge of a self-joined row (2026-11-18)
+
+- `ParticipantNameKey::sql($column)` - the SQL twin of `of()` (invisible characters first - `unaccent()` would make a
+  soft hyphen a dash -, dashes, apostrophes, `immutable_unaccent()`, lower, whitespace, trim); `ParticipantNameKeySqlTest` compares both over the names people are called,
+  the migration's text with the code's and that a key match is answered from `custom_player_name_key` (expression index
+  on `player`, `Version20261118120000`, hand-written under no-Docker mode, plain `CREATE INDEX`; `tests/bootstrap.php`
+  builds it from `sql('name')` and hashes it into the database cache key). NFKC-only folds, control characters and the
+  case of scripts the collation does not know stay PHP-only (documented on the class).
+  `findNotConnectedParticipantMatchingName()` uses it on both sides (curly apostrophes and dash kinds now match).
+- `GetParticipantLinkSuggestions` (one statement, `src/Query/`): tiers 1-3 of §8.4 (R10: no "Name only"), the best tier
+  per player; exclusions = linked to another active participant of the event (tier 1: another row than the self-joined
+  one), refused pairs of this event's log, for tiers 2-3 the viewer's hidden players and profiles private to them; tier 3
+  only while the name key has ≤ 3 players and the participant has a country. Tier 1 keeps its candidate shown the
+  sheet's way (`ParticipantsSheetPlayer`, withheld when blocked / private - D10). Signals: `follows` (the event, its
+  series or organization), `joinedAt` (tier 1), `linkedAt` {name, date} (tier 2, the latest edition), `countryMatches`.
+  R7 `selfJoined.mergeRefusal`: `official_data` / `round_entries` / `paid` / `waitlisted` / `registered` (the last three
+  only while the event manages registration). A time the self-joined player added in a round of the event is left to
+  the sheet's own guard (`has_result_in_event` refuses the removal, the merge group fails as a whole) - reading
+  `puzzle_solving_time` here would put the query under three more coverage tests for one rare case.
+- Endpoint `participants_sheet_link_suggestions` (GET JSON, OfficialResultsApi rules, `private, no-store`), sheet URL key
+  `linkSuggestions`. Its cost = the version endpoint's (pinned).
+- Sheet (desktop People grid, `assets/participants_sheet/link_suggestions.js`): filter "Suggestions (N)" (offered when
+  the URL is there, hidden while empty), read when the tab renders and again when the filter is clicked (which opens
+  the dialog; `?filter=suggestions` too). Dialog per person: name, country, tier badge, candidate (MSP name, #CODE,
+  country, signals), one candidate = checkbox, several = radios with "Not now" chosen; R2 pre-ticks only "Linked at
+  another date" with a single candidate whose profile country is the person's; a refused merge is a disabled line
+  "Merge by hand: <reason>". [Link the ticked people (N)] = one action (one undo step), one group per person: `player`
+  or the merge `[remove(self-joined), player(row, null → player)]`; client refusals said (bulk pattern), server
+  refusals through the save queue as always. The answer is re-checked against the model before sending
+  (`currentSuggestions()`).
+- Hub card: "N people may already have a profile" → `?tab=people&filter=suggestions` - a scalar subquery of
+  `GetParticipantLinkSummary`'s one statement (`sqlPeopleWithSuggestions()`, the same rules and number as the sheet's
+  list - all three tiers, not only the "cheap" ones: one rule, one number; +0 statements, pinned).
+- Import: after a confirmed import the sheet page shows "N people may already have a MySpeedPuzzling profile. Review
+  suggestions" (flash `ConfirmParticipantImportController::SUGGESTIONS_FLASH`, one more statement on the confirm POST).
+- Review fixes (2026-11-18): R2 - tier 2 says whether the earlier row's name was the organiser's (`nameFromOrganiser`;
+  a self-joined row copies a free-text profile name) and only such a row is pre-ticked (a renamed cheater who
+  self-joined edition 1 is a candidate at edition 2, never ticked); "other dates" are public events only
+  (`IsCompetitionPubliclyVisible::SQL_CONDITION`). Shape: every name key computed once (CTEs `unlinked`, `self_rows` with
+  both keys of a self-joined row, `linked_before`), tiers 1-2 equality joins (hashed), tier 3 a lateral lookup in
+  `custom_player_name_key` per person with the key's players counted by a window. D10: a withheld tier-1 profile sends
+  no `countryMatches` / `follows` and its merge is `profile_hidden` ("Merge by hand"). R7 on the server: `SheetPlanRun`
+  refuses the `player` change of a group that removed the player's own self-joined row while that row is a registration
+  of an event managing registration or has a round place (`merge_by_hand`, text under `participant_link_suggestions`)
+  - a stale dialog cannot merge it away; removing the row alone still works. The import's flash counts with one
+  `SELECT` (`peopleWithSuggestions()`).
+- Not here: the phone list / person editor, the setup-checklist row, `EXPLAIN ANALYZE` on production (docs/TODO.md).

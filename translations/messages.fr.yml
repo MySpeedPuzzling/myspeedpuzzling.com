@@ -15561,6 +15561,39 @@ participant_linking:
         confirm: "Relier %name% de la liste des participants à votre profil ?"
         flash_linked: "C'est fait – ce nom de la liste des participants est relié à votre profil."
         flash_already_yours: "Ce nom est déjà relié à votre profil."
+participant_link_suggestions:
+    hub:
+        count: "{0}Personne n'a peut-être déjà de profil|{1}1 personne a peut-être déjà un profil|]1,Inf[%count% personnes ont peut-être déjà un profil"
+    import_flash:
+        text: "{0}Personne n'a peut-être déjà de profil MySpeedPuzzling.|{1}1 personne a peut-être déjà un profil MySpeedPuzzling.|]1,Inf[%count% personnes ont peut-être déjà un profil MySpeedPuzzling."
+        review: "Voir les suggestions"
+    sheet:
+        filter: "Suggestions"
+        action: "Relier les profils suggérés"
+        failed: "Les suggestions n'ont pas pu être chargées. Vérifiez la connexion et réessayez."
+        title: "Qui a peut-être déjà un profil"
+        help: "Des profils qui pourraient appartenir à des personnes de votre liste. Rien n'est relié tant que vous ne l'avez pas coché et confirmé – vérifiez d'abord le #code, le pays et les dates."
+        empty: "Aucune suggestion pour le moment – personne sans profil ne correspond à un joueur que nous connaissons."
+        submit: "Relier les cochés (%count%)"
+        cancel: "Annuler"
+        several: "– plusieurs profils pourraient convenir, choisissez-en un"
+        not_now: "Pas maintenant"
+        follows: "suit cet événement"
+        joined_at: "inscrit par lui-même le %date%"
+        linked_at: "relié à %event% %date%"
+        merge_by_hand: "Fusionner à la main"
+        tier_joined_themselves: "Inscrits par eux-mêmes"
+        tier_linked_before: "Reliés à une autre date"
+        tier_name_country: "Même nom et même pays"
+        refusal_official_data: "sa propre ligne a des résultats"
+        refusal_round_entries: "sa propre ligne est dans une manche"
+        refusal_paid: "sa propre inscription est payée"
+        refusal_waitlisted: "sa propre inscription est sur liste d'attente"
+        refusal_registered: "sa propre inscription occupe une place"
+        refusal_profile_hidden: "vous ne pouvez pas voir son profil – vérifiez d'abord de qui il s'agit"
+        reason:
+            merge_by_hand: "%name% s'est inscrit lui-même et a une inscription ou une place dans une manche – les deux lignes n'ont pas été fusionnées. Fusionnez-les à la main."
+        done: "{0}Personne n'a été relié|{1}1 personne reliée|]1,Inf[%count% personnes reliées"
 event_wizard_more:
     puzzle_search:
         label: "Trouver le puzzle"

@@ -23,6 +23,16 @@
 {% block footer %}{% endblock %}
 
 {% block full_content %}
+    {# After an import: "N people may already have a profile - Review suggestions" (participant-linking.md §7.2) #}
+    {% for suggested in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\ConfirmParticipantImportController::SUGGESTIONS_FLASH')) : [] %}
+        <div class="container mt-3">
+            <div class="alert alert-info alert-dismissible mb-0 fade show" role="alert" data-link-suggestions-flash>
+                {{ 'participant_link_suggestions.import_flash.text'|trans({'%count%': suggested|number_format(0, '', '')}) }}
+                <a href="{{ path('participants_sheet', {competitionId: competition.id, tab: 'people', filter: 'suggestions'}) }}" class="alert-link" data-turbo="false">{{ 'participant_link_suggestions.import_flash.review'|trans }}</a>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+        </div>
+    {% endfor %}
     <div class="participants-sheet"
          data-controller="participants-sheet"
          data-participants-sheet-urls-value="{{ urls|json_encode|e('html_attr') }}"

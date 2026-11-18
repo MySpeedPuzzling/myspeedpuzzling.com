@@ -235,6 +235,7 @@ final class RefereeRightsTest extends WebTestCase
         yield 'participants sheet state' => ['GET', '/en/participants-sheet-api/' . $competition . '/state'];
         yield 'participants sheet version' => ['GET', '/en/participants-sheet-api/' . $competition . '/version'];
         yield 'participants sheet player search' => ['GET', '/en/participants-sheet-api/' . $competition . '/player-search?query=ann'];
+        yield 'participants sheet link suggestions' => ['GET', '/en/participants-sheet-api/' . $competition . '/link-suggestions'];
         yield 'registration' => ['GET', '/en/manage-event-registration/' . $competition];
         yield 'check-in' => ['GET', '/en/event-check-in/' . $competition];
         yield 'name tags' => ['GET', '/en/name-tags/' . $competition];

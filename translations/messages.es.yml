@@ -15566,6 +15566,39 @@ participant_linking:
         confirm: "¿Vincular a %name% de la lista de participantes con tu perfil?"
         flash_linked: "Hecho: este nombre de la lista de participantes está vinculado a tu perfil."
         flash_already_yours: "Este nombre ya está vinculado a tu perfil."
+participant_link_suggestions:
+    hub:
+        count: "{0}Puede que nadie tenga ya un perfil|{1}1 persona puede que ya tenga un perfil|]1,Inf[%count% personas puede que ya tengan un perfil"
+    import_flash:
+        text: "{0}Puede que nadie tenga ya un perfil en MySpeedPuzzling.|{1}1 persona puede que ya tenga un perfil en MySpeedPuzzling.|]1,Inf[%count% personas puede que ya tengan un perfil en MySpeedPuzzling."
+        review: "Revisar sugerencias"
+    sheet:
+        filter: "Sugerencias"
+        action: "Vincular perfiles sugeridos"
+        failed: "No se pudieron cargar las sugerencias. Comprueba la conexión e inténtalo de nuevo."
+        title: "Quién puede que ya tenga un perfil"
+        help: "Perfiles que pueden pertenecer a personas de tu lista. No se vincula nada hasta que lo marques y confirmes: revisa primero el #código, el país y las fechas."
+        empty: "Ahora no hay sugerencias: nadie sin perfil coincide con un jugador que conozcamos."
+        submit: "Vincular marcados (%count%)"
+        cancel: "Cancelar"
+        several: "– pueden encajar varios perfiles, elige uno"
+        not_now: "Ahora no"
+        follows: "sigue este evento"
+        joined_at: "se apuntó por su cuenta el %date%"
+        linked_at: "vinculado en %event% %date%"
+        merge_by_hand: "Fusionar a mano"
+        tier_joined_themselves: "Se apuntaron por su cuenta"
+        tier_linked_before: "Vinculados en otra fecha"
+        tier_name_country: "Mismo nombre y país"
+        refusal_official_data: "su propia fila tiene resultados"
+        refusal_round_entries: "su propia fila está en una ronda"
+        refusal_paid: "su propia inscripción está pagada"
+        refusal_waitlisted: "su propia inscripción está en la lista de espera"
+        refusal_registered: "su propia inscripción ocupa una plaza"
+        refusal_profile_hidden: "no puedes ver su perfil: comprueba primero quién es"
+        reason:
+            merge_by_hand: "%name% se apuntó por su cuenta y tiene una inscripción o un puesto en una ronda; las dos filas no se han fusionado. Fusiónalas a mano."
+        done: "{0}Nadie vinculado|{1}1 persona vinculada|]1,Inf[%count% personas vinculadas"
 event_wizard_more:
     puzzle_search:
         label: "Buscar el puzzle"

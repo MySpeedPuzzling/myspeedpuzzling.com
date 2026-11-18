@@ -798,4 +798,52 @@ export default function (test) {
         assert.equal(document.querySelector('[data-claim-link-dialog]'), null);
         assert.deepEqual(shown.at(-1), { text: 'Use the personal link', kind: 'error' });
     });
+
+    test('participant linking L5: Suggestions - read when asked, the filter counts them, the dialog links the ticked ones in one step', async () => {
+        const state = smallState();
+        state.people.push(person('p-jo-self', 'jo do', { source: 'self_joined', connectedAt: '2026-10-01T10:00:00+00:00', player: { id: 'pl-jo', visible: true, name: 'Jo D.', code: 'jo01', country: null, avatar: null, profileUrl: null } }));
+        const { view, context, acted, changes, announced } = await setup({ state });
+        context.urls.linkSuggestions = '/en/participants-sheet-api/c1/link-suggestions';
+        const calls = [];
+        const profile = (id) => ({ id, visible: true, name: `Name ${id}`, code: id, country: 'cz', avatar: null, profileUrl: null });
+        globalThis.fetch = async (url, init) => {
+            calls.push({ url, method: init.method });
+
+            return {
+                type: 'basic',
+                status: 200,
+                ok: true,
+                headers: { get: (name) => (name === 'Content-Type' ? 'application/json' : null) },
+                json: async () => ({ people: [
+                    { participant: 'p-ana', name: 'Ana Example', country: null, candidates: [{ tier: 'linked_before', player: profile('pl-1'), countryMatches: true, follows: false, nameFromOrganiser: true, joinedAt: null, linkedAt: { name: 'Open 2025', date: null }, selfJoined: null }] },
+                    { participant: 'p-jo', name: 'Jo Do', country: null, candidates: [{ tier: 'joined_themselves', player: { id: 'pl-jo', visible: true, name: 'Jo D.', code: 'jo01', country: null, avatar: null, profileUrl: null }, countryMatches: false, follows: true, joinedAt: '2026-10-01T10:00:00+00:00', linkedAt: null, selfJoined: { participant: 'p-jo-self', mergeRefusal: null } }] },
+                ] }),
+            };
+        };
+
+        await view.reviewSuggestions();
+        assert.deepEqual(calls, [{ url: '/en/participants-sheet-api/c1/link-suggestions', method: 'GET' }]);
+        assert.match(view.filtersElement.querySelector('[data-filter="suggestions"]').textContent, /filter_suggestions 2/);
+
+        const dialog = document.querySelector('[data-link-suggestions-dialog]');
+        assert.ok(dialog);
+        // R2: the edition link with the same country is ticked, the self-joined merge is not
+        assert.equal(dialog.querySelector('[data-suggestion="p-ana"] [data-suggestion-choice]').checked, true);
+        const jo = dialog.querySelector('[data-suggestion="p-jo"] [data-suggestion-choice]');
+        assert.equal(jo.checked, false);
+        jo.checked = true;
+        fire(jo, 'change');
+        dialog.querySelector('[data-suggestions-submit]').click();
+
+        assert.equal(acted.length, 1, 'one undo step');
+        assert.equal(acted[0].groups.length, 2, 'one group per person');
+        assert.deepEqual(changes(), [
+            { op: 'player', participant: 'p-ana', from: null, to: 'pl-1' },
+            { op: 'remove', participant: 'p-jo-self' },
+            { op: 'player', participant: 'p-jo', from: null, to: 'pl-jo' },
+        ]);
+        assert.ok(announced.some((text) => text.startsWith('sug_done 2')));
+        // Linked now: the filter has nobody left
+        assert.match(view.filtersElement.querySelector('[data-filter="suggestions"]').textContent, /filter_suggestions 0/);
+    });
 }

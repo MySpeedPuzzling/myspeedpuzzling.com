@@ -87,6 +87,17 @@ import {
     waitlistPositions,
 } from '../registration_actions.js';
 import { COPY, COPY_ONLINE, QR, RENEW, claimLinkActions, copyText, openClaimLinkDialog, requestClaimLink } from '../claim_links.js';
+import {
+    JOINED_THEMSELVES,
+    LINKED_BEFORE,
+    NAME_COUNTRY,
+    currentSuggestions,
+    isSuggested,
+    openSuggestionsDialog,
+    rememberSuggested,
+    requestSuggestions,
+    suggestionAction,
+} from '../link_suggestions.js';
 
 export const NEW_ROW = '__new';
 // A paste or fill touching more rows than this is previewed first (§6)
@@ -122,6 +133,8 @@ export const FILTERS = [
     { key: 'not_linked' },
     { key: 'asks' },
     { key: 'linked_themselves' },
+    // Who the people without a profile may be (§7.2) - read from its own endpoint when the tab opens
+    { key: 'suggestions', suggestions: true },
     { key: 'waitlist', managed: true },
     { key: 'not_paid', managed: true },
     { key: 'paid', managed: true },
@@ -132,7 +145,7 @@ export const FILTERS = [
 ];
 
 // Optional filters that would show nobody stay out of the way (All and the active one are always there)
-export const HIDDEN_WHEN_EMPTY = ['joined', 'multi_solo', 'duplicates', 'removed', 'checked_in', 'asks', 'linked_themselves'];
+export const HIDDEN_WHEN_EMPTY = ['joined', 'multi_solo', 'duplicates', 'removed', 'checked_in', 'asks', 'linked_themselves', 'suggestions'];
 
 /** The link methods that are the player's own act (ParticipantLinkMethod::isThePlayersOwn()) - "Linked by themselves". */
 export const LINKED_BY_THEMSELVES = ['self_join', 'claim', 'claim_approved', 'claim_link', 'online_link'];
@@ -163,15 +176,17 @@ export const SORTABLE = ['name', 'country', 'externalId', 'registered', 'joined'
 
 /**
  * The filters and columns an event offers (`rounds` = the event's rounds, for the solo-round filters; `onlineLinks` =
- * the people come with their personal links - onlineLinksOffered()).
+ * the people come with their personal links - onlineLinksOffered(); `suggestions` = the sheet has the link suggestions'
+ * endpoint).
  */
-export function offeredFor(list, competition, rounds = [], { onlineLinks = false } = {}) {
+export function offeredFor(list, competition, rounds = [], { onlineLinks = false, suggestions = false } = {}) {
     const solo = rounds.filter((round) => round.category === 'solo').length;
     const other = rounds.length - solo;
 
     return list.filter((item) => (!item.managed || competition?.registrationManaged === true)
         && (!item.inPerson || competition?.isOnline !== true)
         && (!item.onlineLinks || onlineLinks)
+        && (!item.suggestions || suggestions)
         && (!item.soloRounds || (solo >= item.soloRounds && (!item.mixed || other > 0))));
 }
 
@@ -258,6 +273,8 @@ export function matchesFilter(model, person, filter, duplicateKeys = null) {
             return typeof model.pendingRequests === 'function' && model.pendingRequests(person.id).length > 0;
         case 'linked_themselves':
             return (person.player ?? null) !== null && LINKED_BY_THEMSELVES.includes(person.linkedVia ?? '');
+        case 'suggestions':
+            return (person.player ?? null) === null && isSuggested(model, person.id);
         case 'duplicates':
             return (duplicateKeys ?? new Set(model.duplicateNames().keys())).has(nameKey(person.name));
         case 'waitlist':
@@ -599,6 +616,8 @@ export class PeopleView {
         this.wireChrome();
         this.buildGrid();
         this.renderChrome();
+        // The count of the "Suggestions" filter - `?filter=suggestions` (the hub, the import's flash) opens them too
+        this.loadSuggestions({ open: this.filter === 'suggestions' });
 
         // A fetched state can change the event itself (managed registration, online, the capacity) and nothing else
         if (typeof this.context.queue?.subscribe === 'function') {
@@ -651,7 +670,7 @@ export class PeopleView {
     }
 
     offeredFilters() {
-        return offeredFor(FILTERS, this.competition, this.model.rounds());
+        return offeredFor(FILTERS, this.competition, this.model.rounds(), { suggestions: Boolean(this.context.urls?.linkSuggestions) });
     }
 
     /** `previousRows` = the rows of the grid this one replaces while the organiser works in it (they keep their places). */
@@ -885,6 +904,11 @@ export class PeopleView {
 
             if (button) {
                 this.setFilter(button.dataset.filter);
+
+                // The suggestions are read again and shown to decide on (participant-linking.md §7.2)
+                if (button.dataset.filter === 'suggestions') {
+                    this.reviewSuggestions();
+                }
             }
         });
         this.listen(this.columnsMenu, 'click', (event) => {
@@ -2637,6 +2661,108 @@ export class PeopleView {
 
         items.push({ label: this.say('row_remove'), icon: 'bi-person-x', danger: true, run: () => this.removeWithCheck([personId]) });
         this.openMenu(cell, items, this.say('row_actions_label', { name: person.name }));
+    }
+
+    // ---------------------------------------------------------------- link suggestions (participant-linking.md §7.2)
+
+    /**
+     * The suggestions from their endpoint: the filter's people remembered, its count shown; `open` = the dialog too.
+     * Nothing is said when the read fails quietly in the background - only when the organiser asked (`open`).
+     */
+    async loadSuggestions({ open = false } = {}) {
+        const url = this.context.urls?.linkSuggestions;
+
+        if (!url) {
+            return null;
+        }
+
+        const result = await requestSuggestions({ url });
+
+        if (this.grid === null) {
+            return null;
+        }
+
+        if (!result.ok) {
+            if (open) {
+                this.notify(this.say('sug_failed'), { kind: 'error' });
+            }
+
+            return null;
+        }
+
+        const entries = currentSuggestions(result.people, this.model);
+        rememberSuggested(this.model, entries);
+
+        if (this.filter === 'suggestions') {
+            this.grid.setRows(this.rowKeys({ fresh: true }));
+        }
+
+        this.renderChrome();
+
+        if (open) {
+            this.openSuggestions(entries);
+        }
+
+        return entries;
+    }
+
+    reviewSuggestions() {
+        return this.loadSuggestions({ open: true });
+    }
+
+    openSuggestions(entries) {
+        const country = (code) => this.context.countries?.[code] ?? String(code).toUpperCase();
+
+        openSuggestionsDialog(this.host, {
+            entries,
+            labels: {
+                title: this.say('sug_title'),
+                help: this.say('sug_help'),
+                empty: this.say('sug_empty'),
+                submit: this.say('sug_submit'),
+                cancel: this.say('sug_cancel'),
+                several: this.say('sug_several'),
+                notNow: this.say('sug_not_now'),
+                follows: this.say('sug_follows'),
+                joinedAt: this.say('sug_joined_at'),
+                linkedAt: this.say('sug_linked_at'),
+                hiddenProfile: this.t('people_profile_hidden'),
+                mergeByHand: this.say('sug_merge_by_hand'),
+                tier: {
+                    [JOINED_THEMSELVES]: this.say('sug_tier_joined_themselves'),
+                    [LINKED_BEFORE]: this.say('sug_tier_linked_before'),
+                    [NAME_COUNTRY]: this.say('sug_tier_name_country'),
+                },
+                refusal: {
+                    official_data: this.say('sug_refusal_official_data'),
+                    round_entries: this.say('sug_refusal_round_entries'),
+                    paid: this.say('sug_refusal_paid'),
+                    waitlisted: this.say('sug_refusal_waitlisted'),
+                    registered: this.say('sug_refusal_registered'),
+                    profile_hidden: this.say('sug_refusal_profile_hidden'),
+                },
+                country,
+                date: (value) => formatDate(value, this.context.locale, false),
+            },
+            onSubmit: (selection) => this.acceptSuggestions(entries, selection),
+        });
+    }
+
+    /** [Link N people]: one group per person - a refused one never stops the others; the refused ones are said. */
+    acceptSuggestions(entries, selection) {
+        // The model may have moved while the dialog was open: only what is still true is sent
+        const action = suggestionAction(this.model, currentSuggestions(entries, this.model), selection, this.options());
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.performed) {
+            this.context.announce(this.sayCount('sug_done', action.groups.length));
+            rememberSuggested(this.model, currentSuggestions(entries, this.model));
+            this.renderChrome();
+        } else if (action.errors.length === 0) {
+            this.notify(this.say('bulk_nothing'), { kind: 'warning' });
+        }
+
+        this.announceRefused(action.errors);
     }
 
     // ---------------------------------------------------------------- personal claim links (participant-linking.md §7.1)

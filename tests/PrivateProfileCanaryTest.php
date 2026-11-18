@@ -38,6 +38,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
     use AnalyticsStudioTesting;
     use UnfinishedResultSeeding;
     use TrackerlessTimeSeeding;
+    use ParticipantLinkSuggestionsSeeding;
 
     private const string OWNER = PlayerFixture::PLAYER_PRIVATE;
     private const string OWNER_NAME = 'Jane Smith';
@@ -912,6 +913,37 @@ final class PrivateProfileCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->request('GET', '/en/participants-sheet-api/' . $competitionId . '/state');
         self::assertResponseStatusCodeSame(403);
+    }
+
+    /**
+     * The participants sheet's link suggestions (participant-linking.md §7.2, D10): a person of the list called like her,
+     * from her country - offered as a profile only to the organiser she lets see her (the event's creator, a member, and
+     * the admin on its team are strangers to her).
+     */
+    public function testTheLinkSuggestionsOfferHerProfileToTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $seeded = $this->seedLinkSuggestions($connection);
+        $connection->insert('competition_maintainer', ['competition_id' => $seeded['event'], 'player_id' => self::FRIEND]);
+        $connection->insert('competition_maintainer', ['competition_id' => $seeded['event'], 'player_id' => PlayerFixture::PLAYER_ADMIN]);
+        $connection->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, :name, 'us', :event, 'imported')",
+            ['id' => Uuid::uuid7()->toString(), 'name' => self::OWNER_NAME, 'event' => $seeded['event']],
+        );
+        $url = '/en/participants-sheet-api/' . $seeded['event'] . '/link-suggestions';
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $json = $this->get($browser, $url);
+            self::assertStringNotContainsString(self::OWNER, $json, "An organiser who is a stranger ({$who}) is offered a private player.");
+            // The list itself is the organiser's - her name as they typed it stays
+            self::assertStringContainsString('Ottilie Brandvold', $json);
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $json = $this->get($browser, $url);
+        self::assertStringContainsString(self::OWNER, $json, 'The allowed friend is not offered the private player - the endpoint is no canary.');
     }
 
     private function get(KernelBrowser $browser, string $url): string

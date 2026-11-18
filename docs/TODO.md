@@ -1951,3 +1951,8 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
 - [ ] lily.srv Alloy `stage.replace` (Loki): redact claim tokens like the compete ones - `/claim/<token>`,
       `/<locale>/claim/<token>` and the encoded `%2Fclaim%2F<token>` in the sign-in page's `?return=` (the app's own logs
       and Sentry are redacted by `OnlineTokenRedactor`, R4). Before organisers hand out claim links at scale.
+- [ ] Link suggestions (L5): `EXPLAIN ANALYZE` of `GetParticipantLinkSuggestions` on lily (read-only) for the biggest
+      event list - target < 150 ms for 800 people (§8.4); it also runs inside the toolkit hub's summary statement. Check
+      the plan uses `custom_player_name_key` for the "Name and country" tier.
+- [ ] Link suggestions on the phone list and in the person editor (L5 built them on the desktop People grid only).
+- [ ] The sheet's setup checklist row "Help people link their profiles" (§7.5) - not built in L5.

@@ -14625,6 +14625,14 @@ competition_display:
             title: "総合順位の名前を表示"
             whenEmpty: "公開済みの総合順位がないとき"
             emptyText: "公開済みの総合順位がないときのテキスト"
+            division: "部門"
+            division_all: "すべての部門"
+            division_help: "その部門のエントリーだけを部門内の順位とともに表示します。その部門がないラウンドではすべてのエントリーを表示します。"
+            division_with_challenge: "チャレンジ順位はすべての部門を表示します。部門はブロックではないラウンドで使われます。"
+            challenge: "並び順"
+            challenge_round: "ラウンド全体"
+            challenge_puzzle: "パズル %position%"
+            challenge_help: "「すべて完成」ブロックでは、そのパズルの個別タイム順に並べます（パズル公開後）。他のラウンドはラウンド全体を表示します。"
             image:
                 source: "画像"
             clock:

@@ -14631,6 +14631,14 @@ competition_display:
             title: "Afficher le nom du classement"
             whenEmpty: "Sans classement publié"
             emptyText: "Texte sans classement publié"
+            division: "Division"
+            division_all: "Toutes les divisions"
+            division_help: "N'affiche que les concurrents de cette division avec leur place dans celle-ci. Une manche sans cette division affiche tout le monde."
+            division_with_challenge: "Un classement de défi affiche toutes les divisions - la division s'applique aux manches qui ne sont pas un bloc."
+            challenge: "Classer par"
+            challenge_round: "Toute la manche"
+            challenge_puzzle: "Puzzle %position%"
+            challenge_help: "Dans un bloc « tout résoudre », classe selon le temps propre de ce puzzle - une fois révélé. Les autres manches affichent toute la manche."
             image:
                 source: "Image"
             clock:

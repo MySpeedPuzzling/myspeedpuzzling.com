@@ -14636,6 +14636,14 @@ competition_display:
             title: "Mostrar el nombre de la clasificación general"
             whenEmpty: "Sin clasificación general publicada"
             emptyText: "Texto sin clasificación general publicada"
+            division: "División"
+            division_all: "Todas las divisiones"
+            division_help: "Muestra solo las inscripciones de esa división con su posición en ella. Una ronda sin esa división muestra todas."
+            division_with_challenge: "Una clasificación de desafío muestra todas las divisiones: la división se aplica en rondas que no son un bloque."
+            challenge: "Ordenar por"
+            challenge_round: "Toda la ronda"
+            challenge_puzzle: "Puzzle %position%"
+            challenge_help: "En un bloque de «resolver todos», ordena por el tiempo propio de ese puzzle, una vez revelado. Las demás rondas muestran toda la ronda."
             image:
                 source: "Imagen"
             clock:

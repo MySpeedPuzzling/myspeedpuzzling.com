@@ -15949,3 +15949,12 @@ standing_division:
         unknown_division: "Tato divize už nepatří k této akci - načtěte stránku znovu."
         division_not_in_round: "Každé kolo celkového pořadí divize musí tuto divizi používat - zaškrtněte ji u kol na stránce Divize, nebo tato kola vynechte."
         used_by_standing: "Celkové pořadí „%subject%“ počítá jen tuto divizi - nejdřív ho změňte nebo smažte."
+standing_embed:
+    results_by: "Výsledky z MySpeedPuzzling"
+    not_found: "Toto celkové pořadí není k dispozici."
+    organiser:
+        title: "Vložit na váš web"
+        help: "Vložte tento kód na svůj web (do bloku HTML nebo vložení). Uvidí ho tam kdokoli; aktualizuje se sám, jak zveřejňujete výsledky. Výšku upravte podle své stránky."
+        copy: "Kopírovat kód"
+        preview: "Náhled"
+        options: "Pro tmavou stránku přidejte na konec adresy ?theme=dark. Jazyk je poslední část adresy: /en, /cs, /de, /es, /fr nebo /ja (nic = angličtina)."

@@ -15947,3 +15947,12 @@ standing_division:
         unknown_division: "Esa división ya no pertenece a este evento; recarga la página."
         division_not_in_round: "Todas las rondas de la clasificación de una división deben usar esa división: márcala en esas rondas en la página Divisiones o deja fuera esas rondas."
         used_by_standing: "La clasificación «%subject%» solo cuenta esta división: cámbiala o elimínala primero."
+standing_embed:
+    results_by: "Resultados de MySpeedPuzzling"
+    not_found: "Esta clasificación no está disponible."
+    organiser:
+        title: "Insertar en tu web"
+        help: "Pega este código en tu web (un bloque HTML o de inserción). Cualquiera podrá verlo allí; se actualiza solo a medida que publicas resultados. Ajusta la altura a tu página."
+        copy: "Copiar código"
+        preview: "Vista previa"
+        options: "Para una página oscura, añade ?theme=dark al final de la dirección. El idioma es la última parte de la dirección: /en, /cs, /de, /es, /fr o /ja (nada = inglés)."

@@ -482,22 +482,29 @@ final class DraftCanaryTest extends WebTestCase
     }
 
     /**
-     * The competitor list (competition toolkit v2) is a public listing of people - of a publicly visible event only.
-     * An event waiting for approval (or rejected) has none for a guest or a player off its team, and a scan of a tag
-     * of nobody in it lands on the event page as before; its team sees the list; once approved everybody does.
+     * The competitor list and pages (competition toolkit v2 C1, C1b) of an event that is not publicly visible: an event
+     * waiting for approval (or rejected) has none for a guest or a player off its team - list, person page, table page,
+     * state JSON - and a scan of its tags (known or not) lands on the event page as before; its team sees them; once
+     * approved everybody does.
      */
-    public function testTheCompetitorListOfAnEventWaitingForApprovalIsItsTeamsOnly(): void
+    public function testTheCompetitorPagesOfAnEventWaitingForApprovalAreItsTeamsOnly(): void
     {
         $browser = self::createClient();
         $connection = self::getContainer()->get(Connection::class);
         $competitionId = CompetitionFixture::COMPETITION_UNAPPROVED;
+        $participantId = Uuid::uuid7()->toString();
         $connection->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => $competitionId]);
         $connection->executeStatement(
             "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, 'Una Waiting', 'cz', :competition, 'imported')",
-            ['id' => Uuid::uuid7()->toString(), 'competition' => $competitionId],
+            ['id' => $participantId, 'competition' => $competitionId],
         );
-        $list = '/en/competitor/' . $competitionId;
-        $scan = '/en/live/' . $competitionId . '/p/' . Uuid::uuid7()->toString();
+        $urls = [
+            '/en/competitor/' . $competitionId,
+            '/en/competitor/' . $competitionId . '/p/' . $participantId,
+            '/en/competitor/' . $competitionId . '/t/1',
+            '/competitor-state/' . $competitionId . '/p/' . $participantId,
+        ];
+        $scans = ['/en/live/' . $competitionId . '/p/' . Uuid::uuid7()->toString(), '/en/live/' . $competitionId . '/p/' . $participantId, '/live/' . $competitionId . '/t/1'];
 
         foreach (['waiting for approval' => 'approved_at = NULL, rejected_at = NULL', 'rejected' => 'approved_at = ' . TestClock::SQL_NOW . ', rejected_at = ' . TestClock::SQL_NOW] as $state => $set) {
             $connection->executeStatement('UPDATE competition SET ' . $set . ' WHERE id = :id', ['id' => $competitionId]);
@@ -508,26 +515,38 @@ final class DraftCanaryTest extends WebTestCase
                     TestingLogin::asPlayer($browser, $viewer);
                 }
 
-                $browser->request('GET', $list);
-                self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, "The competitor list of an event {$state} is public.");
-                $browser->request('GET', $scan);
-                self::assertStringNotContainsString('/competitor/', (string) $browser->getResponse()->headers->get('Location'), "A scan leads to the competitor list of an event {$state}.");
+                foreach ($urls as $url) {
+                    $browser->request('GET', $url);
+                    self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, "A competitor page of an event {$state} is public: {$url}");
+                }
+
+                foreach ($scans as $scan) {
+                    $browser->request('GET', $scan);
+                    self::assertStringNotContainsString('/competitor/', (string) $browser->getResponse()->headers->get('Location'), "A scan leads to a competitor page of an event {$state}: {$scan}");
+                }
             }
 
             // Its team (the creator)
             $browser->restart();
             TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-            $browser->request('GET', $list);
-            self::assertResponseIsSuccessful("No canary: the team does not see the list of an event {$state}.");
+            foreach ($urls as $url) {
+                $browser->request('GET', $url);
+                self::assertResponseIsSuccessful("No canary: the team does not see {$url} of an event {$state}.");
+            }
+            $browser->request('GET', $urls[0]);
             self::assertStringContainsString('Una Waiting', (string) $browser->getResponse()->getContent());
         }
 
         $connection->executeStatement('UPDATE competition SET approved_at = ' . TestClock::SQL_NOW . ', rejected_at = NULL WHERE id = :id', ['id' => $competitionId]);
         $browser->restart();
-        $browser->request('GET', $list);
-        self::assertResponseIsSuccessful('No canary: the list of an approved event is not there.');
-        $browser->request('GET', $scan);
+        foreach ($urls as $url) {
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful("No canary: {$url} of an approved event is not there.");
+        }
+        $browser->request('GET', $scans[0]);
         self::assertStringContainsString('/competitor/' . $competitionId . '?notice=tag_unknown', (string) $browser->getResponse()->headers->get('Location'));
+        $browser->request('GET', $scans[1]);
+        self::assertStringContainsString('/competitor/' . $competitionId . '/p/' . $participantId, (string) $browser->getResponse()->headers->get('Location'));
     }
 
     /**

@@ -136,6 +136,35 @@ final class TimeProposalEndpointsTest extends WebTestCase
     }
 
     /**
+     * Competition toolkit v2 C1b: the competitor pages of an event that is not publicly visible are its team's only, so
+     * is the Stop button - a competitor proposes nothing into an event waiting for approval (404 `proposals_off`, final
+     * on the phone, nothing stored), its team may rehearse; once approved the competitor proposes again
+     */
+    public function testNobodyOffTheTeamProposesIntoAnEventThatIsNotPublic(): void
+    {
+        self::db()->executeStatement('UPDATE competition SET approved_at = NULL WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $this->post(self::PROPOSE_PAIRS, $this->body(self::UNNAMED_PAIR));
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame('proposals_off', $this->json()['error']);
+        self::assertSame(0, self::proposalCount());
+        self::assertSame([], self::hub()->getPublishedUpdates());
+
+        // The team (an admin, Anna) rehearses
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $this->post(self::PROPOSE, $this->body(self::ANNA_FINAL));
+        self::assertResponseIsSuccessful();
+        self::assertSame('proposed', $this->json()['status']);
+
+        self::db()->executeStatement('UPDATE competition SET approved_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $this->post(self::PROPOSE_PAIRS, $this->body(self::UNNAMED_PAIR));
+        self::assertResponseIsSuccessful('No canary: the competitor cannot propose into the approved event either.');
+        self::assertSame('proposed', $this->json()['status']);
+    }
+
+    /**
      * Reliability hardening F1 (D1): a tap stored on the phone for one player, sent after another player signed in on
      * the same browser, is neither stored nor refused - 409 `another_account` keeps it on the phone; so is an Undo
      */

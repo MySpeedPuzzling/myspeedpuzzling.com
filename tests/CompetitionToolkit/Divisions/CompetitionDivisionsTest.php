@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SpeedPuzzling\Web\Value\DivisionInput;
 use SpeedPuzzling\Web\Value\EntryDivisionInput;
@@ -161,7 +162,7 @@ final class CompetitionDivisionsTest extends KernelTestCase
     public function testARemovedParticipantsEntryIsNoEntry(): void
     {
         $this->setUpStPaulDivisions($this->messageBus, withEntries: false);
-        $this->database->executeStatement('UPDATE competition_participant SET deleted_at = NOW() WHERE id = ?', [OfficialResultsFixture::PARTICIPANT_FILIP]);
+        $this->database->executeStatement('UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = ?', [OfficialResultsFixture::PARTICIPANT_FILIP]);
 
         $refused = self::refusalOf(fn () => $this->messageBus->dispatch(new SetRoundEntryDivisions(self::CUP, OfficialResultsFixture::ROUND_GROUP_A, [
             new EntryDivisionInput(OfficialResultsFixture::PARTICIPANT_FILIP, null, 'Regular'),

@@ -177,6 +177,13 @@
     no_split: "完成、タイム未記録"
     not_recorded: "未記録"
     round_result: "ラウンド: %rank%位 · %result%"
+  division:
+    filter_label: "部門"
+    all: "すべて"
+    place: "%division% · %place%"
+    ranked: "{0}%division% で %count% 件の順位|{1}%division% で %count% 件の順位|]1,Inf[%division% で %count% 件の順位"
+    overall: "総合 %rank%"
+    overall_title: "ラウンドの全エントリー中の公式順位"
 "badge":
   "relax": "リラックス"
   "suspicious": "確認が必要"

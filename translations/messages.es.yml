@@ -177,6 +177,13 @@
     no_split: "Terminado, tiempo no registrado"
     not_recorded: "No registrado"
     round_result: "Ronda: %rank%. · %result%"
+  division:
+    filter_label: "Divisiones"
+    all: "Todas"
+    place: "%division% · %place%"
+    ranked: "{0}%count% clasificados en %division%|{1}%count% clasificado en %division%|]1,Inf[%count% clasificados en %division%"
+    overall: "%rank% en la general"
+    overall_title: "Posición oficial entre todas las inscripciones de la ronda"
 "badge":
   "relax": "Relax"
   "suspicious": "Verificación necesaria"

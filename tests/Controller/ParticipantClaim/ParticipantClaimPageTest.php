@@ -103,8 +103,8 @@ final class ParticipantClaimPageTest extends WebTestCase
         self::assertSelectorTextContains('[data-claim-name]', 'Jane Unconnected');
         self::assertSelectorTextContains('[data-claim-event]', 'WJPC 2024');
         self::assertSelectorTextContains('[data-claim-message]', 'Jane Unconnected - is this you?');
-        self::assertSame('/login?return=' . rawurlencode(self::PAGE), $page->filter('[data-claim-sign-in]')->attr('href'));
-        self::assertSame('/register?return=' . rawurlencode(self::PAGE), $page->filter('[data-claim-register]')->attr('href'));
+        self::assertSame('/login?return=' . self::PAGE, $page->filter('[data-claim-sign-in]')->attr('href'));
+        self::assertSame('/register?return=' . self::PAGE, $page->filter('[data-claim-register]')->attr('href'));
         self::assertCount(0, $page->filter('[data-claim-state] form'));
         $this->assertPrivate();
 

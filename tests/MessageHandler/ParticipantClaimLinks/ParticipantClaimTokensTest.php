@@ -95,6 +95,7 @@ final class ParticipantClaimTokensTest extends KernelTestCase
             $this->messageBus->dispatch(new RegenerateParticipantClaimToken(self::EVENT, Wjpc::PARTICIPANT_CONNECTED));
             self::fail('A linked participant got a claim link');
         } catch (ParticipantAlreadyLinked) {
+            $this->addToAssertionCount(1);
         }
 
         try {
@@ -148,7 +149,7 @@ final class ParticipantClaimTokensTest extends KernelTestCase
 
         self::assertSame(ClaimLinkOutcome::Linked, $this->claim($token, PlayerFixture::PLAYER_ADMIN));
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $this->linkedPlayer(Wjpc::PARTICIPANT_UNCONNECTED));
-        self::assertSame(0, (int) $this->database->fetchOne('SELECT count(*) FROM participant_link_request WHERE competition_id = :id', ['id' => self::EVENT]));
+        self::assertEquals(0, $this->database->fetchOne('SELECT count(*) FROM participant_link_request WHERE competition_id = :id', ['id' => self::EVENT]));
     }
 
     public function testAUsedLinkNeverLinksASecondPerson(): void

@@ -10,8 +10,8 @@ use Symfony\Component\Process\Process;
 
 /**
  * The Analytics Studio's browser modules (docs/features/competitions-management/analytics-studio.md §7, assets/
- * analytics-studio/) run under node by tests/analytics-studio-harness.mjs: the model (search, filters, sorts, R8 - live
- * results never ordered, compare cap 4), the URL round trip, the keymap, the refresh planner, formatting and render.js
+ * analytics-studio/) run under node by tests/analytics-studio-harness.mjs: the model (search, filters, sorts, the live
+ * ranking of the recorded results - FU-S, compare cap 4), the URL round trip, the keymap, the refresh planner, formatting and render.js
  * (every panel, the empty states, a hidden slot without puzzle data, the XSS corpus). Every scenario must report "ok".
  */
 final class AnalyticsStudioScriptTest extends TestCase

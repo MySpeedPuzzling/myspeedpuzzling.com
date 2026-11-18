@@ -6,7 +6,8 @@
 // - the prediction column + sort (v2 R31/R32): solo rounds only, from the round's `round-predictions` answer (the third,
 //   lowest-priority source after the entrant and compare answers); the sort only once that answer is `ready` for the
 //   visible puzzles shown - a list never re-orders under the commentator while the values trickle in;
-// - R8: unpublished confirmed results are never a sort key and never ordered; a published round sorts by official rank;
+// - results (FU-S, superseding R8): one ranking of the recorded results - live while the round runs, the official rows
+//   once published; no "official"/"unofficial" distinction, a rank sort as soon as any result has a place;
 // - the compare set (at most 4 - phones show 2, the layout decides) and its best value per row;
 // - the view reducer for the keymap (keys.js turns key presses into the actions applied here).
 // Pinned by tests/analytics-studio-harness.mjs.
@@ -96,8 +97,8 @@ export function stepSlot(state, label, step) {
 // ---- rows
 
 /**
- * The state's result for an entry - official (published round: rank, qualified) or live (confirmed by the judge, never a
- * rank, R8) - else null.
+ * The state's result for an entry (its place in the ranking of the recorded results, the qualified mark once published)
+ * - else null.
  */
 export function resultOf(state, key) {
     if (!Array.isArray(state?.results)) {
@@ -106,12 +107,8 @@ export function resultOf(state, key) {
 
     const result = state.results.find((candidate) => isObject(candidate) && candidate.key === key);
 
-    if (result === undefined || (result.state !== 'official' && result.state !== 'live')) {
+    if (result === undefined || result.state !== 'official') {
         return null;
-    }
-
-    if (result.state === 'live') {
-        return { ...result, rank: null, qualified: false };
     }
 
     return result;
@@ -273,7 +270,7 @@ export function matchesQuery(row, query) {
 }
 
 /**
- * The sorts that make sense now: the puzzle ones only for a visible slot (§5), by official rank only once published (R8),
+ * The sorts that make sense now: the puzzle ones only for a visible slot (§5), by rank once any result has a place,
  * by prediction only on a solo round whose predictions are `ready` for the visible puzzles shown (R32).
  */
 export function availableSorts(state, slot, roundPredictions = null) {
@@ -287,7 +284,7 @@ export function availableSorts(state, slot, roundPredictions = null) {
         }
 
         if (sort === 'rank') {
-            return state?.round?.published === true;
+            return hasRanking(state);
         }
 
         return true;
@@ -326,8 +323,8 @@ const COMPARATORS = {
     // Fastest first; opted out, none, private last (by name)
     prediction: (a, b) => compareNullsLast(a.predictionSeconds ?? null, b.predictionSeconds ?? null, 1),
     rating: (a, b) => compareNullsLast(a.rating, b.rating, -1),
-    // Official ranks only: a live result has none (resultOf), so an unpublished round can never be ordered by them
-    rank: (a, b) => compareNullsLast(a.result?.state === 'official' ? (a.result.rank ?? null) : null, b.result?.state === 'official' ? (b.result.rank ?? null) : null, 1),
+    // Best place first; entries without a result last (by name)
+    rank: (a, b) => compareNullsLast(isNumber(a.result?.rank) ? a.result.rank : null, isNumber(b.result?.rank) ? b.result.rank : null, 1),
 };
 
 function passesFilter(row, filter) {
@@ -359,23 +356,30 @@ export function visibleRows(rows, { query = '', sort = DEFAULT_SORT, filter = 'a
 }
 
 /**
- * How many entries have a result right now (the top bar's "Live: 23 confirmed" / "23 official").
+ * How many entries have a result right now (the top bar's "23 results").
  */
 export function resultsCount(state) {
-    return Array.isArray(state?.results) ? state.results.filter((result) => result?.state === 'live' || result?.state === 'official').length : 0;
+    return Array.isArray(state?.results) ? state.results.filter((result) => result?.state === 'official').length : 0;
 }
 
 /**
- * The official ranking of a published round (R8: only then is there an ordered list) - rows with an official result,
- * by rank. Empty while not published.
+ * Whether any result has a place - the rank sort is offered from then on.
  */
-export function officialRanking(state, rows) {
-    if (state?.round?.published !== true) {
+export function hasRanking(state) {
+    return Array.isArray(state?.results) && state.results.some((result) => result?.state === 'official' && isNumber(result.rank));
+}
+
+/**
+ * The ranking of the round's recorded results (live while it runs, official once published - the same list): rows with
+ * a result, by place.
+ */
+export function ranking(state, rows) {
+    if (!hasRanking(state)) {
         return [];
     }
 
     return rows
-        .filter((row) => row.result?.state === 'official')
+        .filter((row) => row.result?.state === 'official' && isNumber(row.result.rank))
         .sort((a, b) => compareNullsLast(a.result.rank ?? null, b.result.rank ?? null, 1) || compareNullsLast(a.result.seconds ?? null, b.result.seconds ?? null, 1) || byName(a, b));
 }
 
@@ -463,7 +467,7 @@ export const COMPARE_METRICS = [
     { id: 'size_median', kind: 'duration', better: 'lower' },
     { id: 'rating', kind: 'count', better: 'higher' },
     { id: 'skill', kind: 'skill', better: 'higher' },
-    // A live result is never compared (R8) - only an official rank has a best
+    // The best place wins
     { id: 'result', kind: 'result', better: 'rank' },
 ];
 

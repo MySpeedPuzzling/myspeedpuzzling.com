@@ -13,7 +13,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 /**
  * The analytics studio's state JSON (docs/features/competitions-management/analytics-studio.md §3.1, §6) on the
  * "Results Cup": Group A published (Anna 1st, Ben and Cara tied 2nd, Dan unfinished, Eva did not start, Filip no
- * result), Group B not published (Gina - a private player -, Hugo - PLAYER_REGULAR -, Ivan), Pairs not published.
+ * result), Group B not published (Gina - a private player -, Hugo - PLAYER_REGULAR -, Ivan), Pairs not published. A round
+ * not published yet is a live ranking of the recorded results (FU-S), whatever the competitor page settings.
  */
 final class AnalyticsStudioStateControllerTest extends WebTestCase
 {
@@ -71,32 +72,26 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
         self::assertStringNotContainsString('didNotStart', (string) $browser->getResponse()->getContent());
     }
 
-    public function testAnUnpublishedRoundShowsResultsOnlyWhileTheEventShowsConfirmedResults(): void
+    public function testAnUnpublishedRoundIsALiveRankingOfTheRecordedResults(): void
     {
         $browser = self::createClient();
-        $database = $this->studioDatabase();
         $url = '/analytics-studio/' . F::ROUND_GROUP_B . '/state';
 
+        // Competitor pages and their live results off (the fixture): what the judges recorded is the result (FU-S)
         $this->clearAnalyticsStudioCache();
         $state = $this->studioJson($browser, $url);
         self::assertFalse(self::dig($state, 'round', 'published'));
-        self::assertFalse(self::dig($state, 'round', 'liveResults'));
-        self::assertSame([], self::dig($state, 'results'), 'nothing before publishing by default');
+        self::assertArrayNotHasKey('liveResults', self::digArray($state, 'round'));
+        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO, F::ENTRY_B_IVAN], self::column(self::dig($state, 'results'), 'key'), 'rank order');
+        self::assertSame(['official', 'official', 'official'], self::column(self::dig($state, 'results'), 'state'), 'one state - no "confirmed, not official"');
+        self::assertSame([1, 2, 3], self::column(self::dig($state, 'results'), 'rank'));
+        self::assertSame([3900, 4500, 5000], self::column(self::dig($state, 'results'), 'seconds'));
+        self::assertSame([false, false, false], self::column(self::dig($state, 'results'), 'qualified'), 'qualified marks come with publishing');
 
-        // The live results setting does nothing while the competitor pages are off (the competitor page rule)
-        $database->executeStatement('UPDATE competition SET competitor_pages_live_results = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
+        // A judge's edit re-ranks it once the 2 s entry has expired (the studio signal makes the page ask after 2.3 s)
+        $this->studioDatabase()->executeStatement('UPDATE competition_participant_round SET result_seconds = 3000 WHERE id = :id', ['id' => F::ENTRY_B_IVAN]);
         $this->clearAnalyticsStudioCache();
-        self::assertSame([], self::dig($this->studioJson($browser, $url), 'results'));
-
-        $database->executeStatement('UPDATE competition SET competitor_pages = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
-        $this->clearAnalyticsStudioCache();
-        $state = $this->studioJson($browser, $url);
-        self::assertTrue(self::dig($state, 'round', 'liveResults'));
-        self::assertSame(['live', 'live', 'live'], self::column(self::dig($state, 'results'), 'state'));
-        self::assertSame([null, null, null], self::column(self::dig($state, 'results'), 'rank'), 'never a place before publishing');
-        self::assertSame([false, false, false], self::column(self::dig($state, 'results'), 'qualified'));
-        // The entrants' order (Gina, Hugo, Ivan) - not a leaderboard (R8)
-        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO, F::ENTRY_B_IVAN], self::column(self::dig($state, 'results'), 'key'));
+        self::assertSame([F::ENTRY_B_IVAN, F::ENTRY_B_GINA, F::ENTRY_B_HUGO], self::column(self::dig($this->studioJson($browser, $url), 'results'), 'key'));
     }
 
     public function testAPrivatePlayerIsTheOrganisersNameOnly(): void
@@ -120,8 +115,6 @@ final class AnalyticsStudioStateControllerTest extends WebTestCase
     public function testAPairRoundListsItsPairsWithTheirMembers(): void
     {
         $browser = self::createClient();
-        $database = $this->studioDatabase();
-        $database->executeStatement('UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id', ['id' => F::COMPETITION_RESULTS_CUP]);
         $this->clearAnalyticsStudioCache();
 
         $state = $this->studioJson($browser, '/analytics-studio/' . F::ROUND_PAIRS . '/state');

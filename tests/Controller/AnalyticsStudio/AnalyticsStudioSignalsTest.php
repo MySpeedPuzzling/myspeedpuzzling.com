@@ -23,8 +23,9 @@ use Symfony\Component\Mercure\Update;
 /**
  * The analytics studio's public data-free signal (analytics-studio.md R21-R24, AnalyticsStudioSignals): a round whose
  * studio was opened (a state computed - AnalyticsStudioWatch) hears of its writes on `/analytics-studio-signal/{roundId}`
- * - public, `{type, roundId}` only; results only while they are public; never for a draft; nothing for a round nobody
- * watches, a refused write or a hub that is down (the write answers as always).
+ * - public, `{type, roundId}` only; results whether the round is published or not (the studio ranks them live, FU-S);
+ * never for a draft; nothing for a round nobody watches, a refused write or a hub that is down (the write answers as
+ * always).
  *
  * The markers are static in tests and emptied before every test (AnalyticsStudioWatchPool): they survive the browser's
  * kernel reboot between the state and the write, never into another test.
@@ -58,25 +59,23 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
         self::assertSame(['{"type":"analytics_studio.signal","roundId":"' . F::ROUND_GROUP_A . '"}'], self::signals());
     }
 
-    public function testUnpublishedResultsSignalOnlyWhileTheEventShowsLiveResults(): void
+    public function testAResultRecordedEditedOrClearedInAnUnpublishedRoundSignals(): void
     {
         $browser = $this->organiser();
         $this->watch($browser, F::ROUND_GROUP_B);
+        $signal = '{"type":"analytics_studio.signal","roundId":"' . F::ROUND_GROUP_B . '"}';
 
-        // Group B: not published, live results off - a signal would tell that a result was just recorded
-        $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::table(F::ENTRY_B_IVAN, 3, 9)]]);
-        self::assertResponseIsSuccessful();
-        self::assertSame([], self::signals());
+        // Group B: not published, competitor pages off - the studio ranks the recorded results live (FU-S), so every
+        // judge's write is its news: an edit, a clear, a new result
+        foreach ([[['seconds' => 5000], ['seconds' => 4100]], [['seconds' => 4100], null], [null, ['seconds' => 4800]]] as [$from, $to]) {
+            self::hub()->reset();
+            $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::resultChange(F::ENTRY_B_IVAN, $from, $to)]]);
 
-        // Live results on (competitor pages + their live results): the state shows them, the signal may say so
-        $this->studioDatabase()->executeStatement(
-            'UPDATE competition SET competitor_pages = true, competitor_pages_live_results = true WHERE id = :id',
-            ['id' => F::COMPETITION_RESULTS_CUP],
-        );
-        self::hub()->reset();
-        $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::table(F::ENTRY_B_IVAN, 9, 8)]]);
-        self::assertResponseIsSuccessful();
-        self::assertSame(['{"type":"analytics_studio.signal","roundId":"' . F::ROUND_GROUP_B . '"}'], self::signals());
+            self::assertResponseIsSuccessful();
+            self::assertSame([$signal], self::signals(), json_encode($to, JSON_THROW_ON_ERROR));
+        }
+
+        self::assertSame(4800, $this->studioDatabase()->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => F::ENTRY_B_IVAN]));
     }
 
     public function testPublishingAWatchedRoundSignals(): void
@@ -224,6 +223,16 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
     private static function table(string $entryId, null|int $from, int $to): array
     {
         return ['clientChangeId' => Uuid::uuid7()->toString(), 'entry' => 'participant_round:' . $entryId, 'field' => 'table_number', 'from' => $from, 'to' => $to];
+    }
+
+    /**
+     * @param null|array<string, int> $from
+     * @param null|array<string, int> $to
+     * @return array<string, mixed>
+     */
+    private static function resultChange(string $entryId, null|array $from, null|array $to): array
+    {
+        return ['clientChangeId' => Uuid::uuid7()->toString(), 'entry' => 'participant_round:' . $entryId, 'field' => 'result', 'from' => $from, 'to' => $to];
     }
 
     /**

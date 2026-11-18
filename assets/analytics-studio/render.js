@@ -20,7 +20,7 @@ import {
     compareTable,
     entrantRows,
     hasPredictionColumn,
-    officialRanking,
+    ranking,
     predictionOf,
     resultsCount,
     roundSource,
@@ -47,13 +47,13 @@ export const LABEL_NAMES = [
     'sort.prediction', 'filter.all', 'filter.solved', 'filter.never', 'filter.nohistory',
     'tab.entrants', 'tab.puzzle', 'tab.live',
     'clock.idle', 'clock.scheduled', 'clock.running', 'clock.times_up', 'clock.stopped', 'clock.left',
-    'live.count', 'official.count', 'slot.hidden', 'slot.reveals_in', 'slot.image_later',
+    'results.count', 'slot.hidden', 'slot.reveals_in', 'slot.image_later',
     'compare', 'compare.clear', 'compare.full', 'compare.add', 'compare.remove', 'compare.pick_more',
     'column.table', 'column.solves', 'column.best', 'column.rating', 'column.result',
     'empty.no_entrants', 'empty.no_match', 'empty.no_puzzle', 'empty.no_history', 'empty.first_time',
     'empty.nobody_logged', 'empty.not_rated', 'empty.select', 'empty.no_results', 'loading', 'opted_out',
     'private_puzzler', 'profile', 'table', 'close',
-    'result.official', 'result.live', 'result.live_note', 'result.qualified', 'result.unfinished',
+    'result.qualified', 'result.unfinished',
     'now', 'before_round', 'rating', 'rating_place', 'skill', 'solved_total', 'best500',
     'skill.enthusiast', 'skill.apprentice', 'skill.proficient', 'skill.advanced', 'skill.expert', 'skill.master', 'skill.legend',
     'history.solves', 'history.first', 'history.best', 'history.last', 'history.first_try', 'history.place',
@@ -310,7 +310,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         }
 
         const results = resultsCount(state);
-        liveCount.textContent = results === 0 ? '' : t(state?.round?.published === true ? 'official.count' : 'live.count', { count: count(results) });
+        liveCount.textContent = results === 0 ? '' : t('results.count', { count: count(results) });
         helpToggle.setAttribute('aria-expanded', view.help ? 'true' : 'false');
     }
 
@@ -353,7 +353,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
 
         cell.classList.add(`as-result--${result.state}`);
 
-        if (result.state === 'official' && isNumber(result.rank)) {
+        if (isNumber(result.rank)) {
             el('span', 'as-result__rank', cell, `#${result.rank}`);
         }
 
@@ -365,11 +365,9 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
                 : count(result.piecesPlaced));
         }
 
-        if (result.state === 'official' && result.qualified === true) {
+        if (result.qualified === true) {
             el('span', 'as-result__qualified', cell, t('result.qualified'));
         }
-
-        cell.setAttribute('title', t(result.state === 'official' ? 'result.official' : 'result.live_note'));
 
         return cell;
     }
@@ -769,10 +767,6 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         if (row.result !== null) {
             const line = el('div', 'as-entrant__result', detail);
             resultCell(row.result, line);
-
-            if (row.result.state === 'live') {
-                el('span', 'as-muted', line, t('result.live_note'));
-            }
         }
 
         if (row.isTeam && slot?.visible && isObject(row.lineup)) {
@@ -1067,38 +1061,23 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         livePanel.replaceChildren();
         el('h2', 'as-live__title', livePanel, t('tab.live'));
 
-        // R8: an ordered list only for a published round (official ranks)
-        if (state?.round?.published === true) {
-            const ranking = officialRanking(state, rows);
+        // One ranking of the recorded results - live while the round runs, official once published (FU-S)
+        const ranked = ranking(state, rows);
 
-            if (ranking.length === 0) {
-                el('p', 'as-empty', livePanel, t('empty.no_results'));
-
-                return;
-            }
-
-            const items = el('ol', 'as-live__list', livePanel);
-
-            for (const row of ranking) {
-                const item = el('li', 'as-live__item', items);
-                item.setAttribute('data-as-entry', row.key);
-                el('span', 'as-live__name', item, row.name);
-                resultCell(row.result, item);
-            }
+        if (ranked.length === 0) {
+            el('p', 'as-empty', livePanel, t('empty.no_results'));
 
             return;
         }
 
-        const confirmed = resultsCount(state);
+        const items = el('ol', 'as-live__list', livePanel);
 
-        if (state?.round?.liveResults === true && confirmed > 0) {
-            el('p', 'as-live__count', livePanel, t('live.count', { count: count(confirmed) }));
-            el('p', 'as-muted as-live__note', livePanel, t('result.live_note'));
-
-            return;
+        for (const row of ranked) {
+            const item = el('li', 'as-live__item', items);
+            item.setAttribute('data-as-entry', row.key);
+            el('span', 'as-live__name', item, row.name);
+            resultCell(row.result, item);
         }
-
-        el('p', 'as-empty', livePanel, t('empty.no_results'));
     }
 
     // ---- public

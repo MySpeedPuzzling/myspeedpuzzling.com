@@ -18,7 +18,6 @@
             "stateHash": "4f1c0e9a2b7d3c11"
         },
         "published": false,
-        "liveResults": true,
         "puzzleFormat": {"kind": "pick", "toSolve": 2}
     },
     "slots": [
@@ -109,8 +108,8 @@
         }
     ],
     "results": [
-        {"key": "018d0040-0000-7000-8000-0000000000e1", "state": "live", "seconds": 2475, "piecesPlaced": null, "piecesCount": null, "rank": null, "qualified": false},
-        {"key": "018d0040-0000-7000-8000-0000000000e5", "state": "live", "seconds": null, "piecesPlaced": 412, "piecesCount": 500, "rank": null, "qualified": false}
+        {"key": "018d0040-0000-7000-8000-0000000000e1", "state": "official", "seconds": 2475, "piecesPlaced": null, "piecesCount": null, "rank": 1, "qualified": false},
+        {"key": "018d0040-0000-7000-8000-0000000000e5", "state": "official", "seconds": null, "piecesPlaced": 412, "piecesCount": 500, "rank": 2, "qualified": false}
     ],
     "mercure": {
         "hubUrl": "https://myspeedpuzzling.com/.well-known/mercure",

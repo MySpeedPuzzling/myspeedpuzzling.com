@@ -21,9 +21,9 @@ use Symfony\Component\Mercure\Update;
  * nothing). Every method:
  * 1. a round nobody has open in the studio (AnalyticsStudioWatch, 180 s) - nothing, and no statement (one cache read);
  * 2. a watched round is read once with the studio's own visibility rule (GetAnalyticsStudioRound - a draft, unapproved
- *    or slug-less round never signals), at publish time, so a stale marker never leaks;
- * 3. resultsChanged() only while the round's results are public (published, or live results on) - an unpublished
- *    result must not be told by its timing either.
+ *    or slug-less round never signals), at publish time, so a stale marker never leaks.
+ * Results signal whether the round is published or not: the studio ranks the recorded results live (FU-S), so a
+ * result recorded, edited or cleared is the studio's news either way.
  * A failure never fails the write: logged (warning), the studio catches up on its fallback poll.
  */
 readonly final class AnalyticsStudioSignals
@@ -56,7 +56,7 @@ readonly final class AnalyticsStudioSignals
      */
     public function resultsChanged(string $roundId): void
     {
-        $this->signal($roundId, resultsOnly: true);
+        $this->signal($roundId);
     }
 
     /**
@@ -64,7 +64,7 @@ readonly final class AnalyticsStudioSignals
      */
     public function roundChanged(string $roundId): void
     {
-        $this->signal($roundId, resultsOnly: false);
+        $this->signal($roundId);
     }
 
     /**
@@ -72,10 +72,10 @@ readonly final class AnalyticsStudioSignals
      */
     public function puzzlesChanged(string $roundId): void
     {
-        $this->signal($roundId, resultsOnly: false);
+        $this->signal($roundId);
     }
 
-    private function signal(string $roundId, bool $resultsOnly): void
+    private function signal(string $roundId): void
     {
         try {
             if ($this->watch->watched($roundId) === false) {
@@ -83,12 +83,8 @@ readonly final class AnalyticsStudioSignals
             }
 
             try {
-                $round = $this->getAnalyticsStudioRound->byId($roundId);
+                $this->getAnalyticsStudioRound->byId($roundId);
             } catch (AnalyticsStudioNotFound) {
-                return;
-            }
-
-            if ($resultsOnly && $round->published() === false && $round->liveResults === false) {
                 return;
             }
 

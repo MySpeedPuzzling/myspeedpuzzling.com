@@ -18,7 +18,7 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  * embeds IsCompetitionPubliclyVisible::SQL_CONDITION (an edition of a draft or unapproved series included), so a round
  * of an event that is not public - for its team too - or a round without a slug is AnalyticsStudioNotFound.
  *
- * @phpstan-type Row array{id: string, competition_id: string, name: string, slug: string, category: string, starts_at: string, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_first_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, event_name: string, event_slug: null|string, series_name: null|string, series_slug: null|string, live_results: bool, event_rounds: null|string}
+ * @phpstan-type Row array{id: string, competition_id: string, name: string, slug: string, category: string, starts_at: string, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_first_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, event_name: string, event_slug: null|string, series_name: null|string, series_slug: null|string, event_rounds: null|string}
  */
 readonly final class GetAnalyticsStudioRound
 {
@@ -85,7 +85,6 @@ SELECT
     c.slug AS event_slug,
     cs.name AS series_name,
     cs.slug AS series_slug,
-    (c.competitor_pages AND c.competitor_pages_live_results) AS live_results,
     (
         SELECT json_agg(json_build_object(
             'id', other.id,
@@ -138,7 +137,6 @@ SQL,
             eventSlug: $row['event_slug'],
             seriesName: $row['series_name'],
             seriesSlug: $row['series_slug'],
-            liveResults: $row['live_results'],
             eventRounds: array_map(
                 static fn (array $round): AnalyticsStudioEventRound => new AnalyticsStudioEventRound(
                     id: strtolower($round['id']),

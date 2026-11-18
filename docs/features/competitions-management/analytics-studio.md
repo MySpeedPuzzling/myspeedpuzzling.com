@@ -71,7 +71,8 @@ Independent design review 2026-11-17, decisions by the orchestrator:
 - **R7 Opt-out wording.** The studio shows other players' predictions publicly (Jan: "predictions for the players"):
   the opt-out help text (`messages.*.yml` key used at `en:1638` area) gains "…and on event analytics studios" in all
   6 locales in S1 (S1 makes the data public).
-- **R8 Live results are not a leaderboard.** Unpublished confirmed results (organiser opted in) appear per entrant as
+- **R8 Live results are not a leaderboard.** *Superseded by FU-S (Jan, 2026-11-18 - "As built: FU-S" at the end): the
+  running round is a live ranking of the recorded results, no "official"/"unofficial" labels.* Unpublished confirmed results (organiser opted in) appear per entrant as
   a cell/detail value labelled "confirmed by the judge, not official"; the list is never sorted by them and no
   ordered live list is drawn. Published rounds show the official ranking (sortable by rank). Open question to Jan.
 - **R9 Guard tests** in S1's list in addition: `PrivateProfileQueryCoverageTest`, `DatePrecisionCoverageTest`,
@@ -107,7 +108,7 @@ next poll" is superseded by R21-R26:
   proposals), so every existing write path is covered after its commit without touching a controller.
 - **R23** Only for a round whose studio computed a state in the last 180 s (`AnalyticsStudioWatch`, pool
   `analytics_studio_watch_cache`): an unwatched round costs one cache read and no statement.
-- **R24** Gate read at publish time (1 statement, watched rounds only): `GetAnalyticsStudioRound::byId()` (publicly
+- **R24** *(the results half superseded by FU-S: results always signal)* Gate read at publish time (1 statement, watched rounds only): `GetAnalyticsStudioRound::byId()` (publicly
   visible, slugged - a draft never signals); a results signal only when the round is published or live results are on
   (an unpublished result is not told by its timing).
 - **R25** The client asks for the state `SIGNAL_SETTLE_MS` 2.3 s + 0-1 s after a signal (the 2 s state cache must have
@@ -919,3 +920,41 @@ Client only (design note `design-v2/studio.md` §2.2.4, R31/R32), on top of V2's
 - Tests: nine harness scenarios (sort + availability, source priority, merge, planner warming/stalled, ready 10 min +
   failure retry, new hash / old answer dropped, pair round / nothing visible / no URL, server ahead + gone + close, the
   rendered column), `AnalyticsStudioPageTest` (data attribute).
+
+## As built: FU-S (live ranking of the running round, 2026-11-18)
+
+Jan (2026-11-18, binding): "they see realtime judges entered times, there is no unofficial/official - what judges
+entered is at the moment considered to be official, they do not see competitor proposed times". Supersedes D8, R8 and
+the results half of R24.
+
+- **Before (verified)**: an unpublished round showed results only while the event had competitor pages AND their live
+  results on - each entry's confirmed result as `state: "live"`, no place, never ordered, labelled "Confirmed by the
+  judge, not official"; with the setting off (the default) nothing until publishing. The results signal was suppressed
+  for such rounds. A published round showed the official rows.
+- **Now** (`AnalyticsStudioLiveResults::of()`): a published round unchanged (`OfficialEntrantsView`, official ranks +
+  qualified marks). A round not published yet = the **live ranking of the recorded results** (the entries' result
+  columns - what a judge or the desk entered; `competition_time_proposal` is never read, a proposal is a result only
+  once a judge confirms it) ranked by `OfficialResultsRanking::rank()` (the round page's rule: finished by time, then
+  unfinished by pieces, ties share a place), in rank order, ties by name; did not start / no result left out; no
+  qualified mark (decided at publishing). Whatever the competitor page settings. Every row is `state: "official"` - the
+  one state the page knows. No statement more (the entrants statement already carries the results).
+- **Who sees it**: unchanged - the studio is public (no sign-in, D4), so a running round's recorded times are public
+  in the studio from now on (not on the public round page, the standings or the competitor page - their publish
+  semantics are untouched). Pick chips by label only and `UnfinishedPiecesCount` keep a hidden puzzle hidden (the
+  swap test now runs with a live unfinished result).
+- **State JSON**: `round.liveResults` removed (and `AnalyticsStudioRound::$liveResults`, its SQL column); the state
+  cache key = round + stopwatch hash + visible hash + published moment. A record / edit / clear reaches open studios
+  through the signal: `AnalyticsStudioSignals` signals results of a watched public round **whether published or not**;
+  the page asks after `SIGNAL_SETTLE_MS` (2.3 s) when the 2 s entry has expired - no key needs the results, one
+  computation per 2 s per round under any write rate, no polling change.
+- **Page**: one ranking - the Live tab is the ordered list (places, pieces of unfinished results) published or not,
+  the rank sort (`sort.rank` "Rank") is offered as soon as any result has a place (`hasRanking()`), compare marks the
+  best place, the top bar says "Results: N". Removed: `live.count`, `official.count`, `result.official`, `result.live`,
+  `result.live_note` (all 6 locales), the "not official" note and tooltip, `.as-result--live` / `.as-live__count` /
+  `.as-live__note` styles; added `results.count`. `model.js` `officialRanking()` → `ranking()` + `hasRanking()`.
+- Tests: `AnalyticsStudioLiveResultsTest` (published = the competitor page; unpublished ranked with pages off and on,
+  pairs with an unfinished result, ties + did not start, a proposal is nothing until confirmed then edit + clear),
+  `AnalyticsStudioStateControllerTest` (live ranking, no `liveResults`, re-ranked after an edit),
+  `AnalyticsStudioSignalsTest` (edit, clear, record in an unpublished round each signal),
+  `AnalyticsStudioSecretPuzzleTest` (swap test with a live unfinished result, `piecesCount` null), the harness
+  (live ranking, rank sort, compare, render without labels).

@@ -37,9 +37,6 @@ readonly final class AnalyticsStudioRound
         public null|string $eventSlug,
         public null|string $seriesName,
         public null|string $seriesSlug,
-        // The event shows confirmed results before publishing: competitor pages AND their live results (the setting
-        // does nothing while the pages are off - the competitor page rule, analytics-studio.md D8)
-        public bool $liveResults,
         public array $eventRounds,
     ) {
     }

@@ -23,7 +23,8 @@ import {
     initialView,
     MAX_COMPARE,
     mergeRoundPredictions,
-    officialRanking,
+    ranking,
+    hasRanking,
     predictionOf,
     resultOf,
     roundSource,
@@ -84,7 +85,7 @@ export const ENGLISH = {
     'sort.solves': 'Solved before',
     'sort.best': 'Best on this puzzle',
     'sort.rating': 'MSP Rating',
-    'sort.rank': 'Official rank',
+    'sort.rank': 'Rank',
     'sort.prediction': 'Prediction',
     'filter.all': 'All',
     'filter.solved': 'Solved this puzzle',
@@ -99,8 +100,7 @@ export const ENGLISH = {
     'clock.times_up': "Time's up",
     'clock.stopped': 'Stopped',
     'clock.left': '%time% left',
-    'live.count': 'Live: %count% confirmed',
-    'official.count': '%count% official results',
+    'results.count': 'Results: %count%',
     'slot.hidden': 'Revealed at the start',
     'slot.reveals_in': 'Revealed in %time%',
     'slot.image_later': 'Picture shown later',
@@ -130,9 +130,6 @@ export const ENGLISH = {
     profile: 'Profile',
     table: 'Table %number%',
     close: 'Close',
-    'result.official': 'Official result',
-    'result.live': 'Confirmed',
-    'result.live_note': 'Confirmed by the judge, not official',
     'result.qualified': 'Q',
     'result.unfinished': '%placed%/%total% pieces',
     now: 'now',
@@ -263,7 +260,6 @@ function pairState() {
 function publishedState() {
     const state = clone(STATE);
     state.round.published = true;
-    state.round.liveResults = false;
     state.round.stopwatch = { ...state.round.stopwatch, status: 'stopped', stoppedAtMs: NOW - 1000 };
     state.results = [
         { key: E(6), state: 'official', seconds: 2900, piecesPlaced: null, piecesCount: null, rank: 2, qualified: true },
@@ -416,31 +412,38 @@ scenario('sorts: name, table, solves, best, rating; nulls last; puzzle sorts onl
     assert.deepEqual(shownKeys({ sort: 'best' }).slice(0, 2), [E(1), E(6)]);
     assert.deepEqual(shownKeys({ sort: 'solves' }).slice(0, 1), [E(1)]);
     assert.deepEqual(shownKeys({ sort: 'rating' }).slice(0, 3), [E(1), E(6), E(5)]);
-    assert.deepEqual(availableSorts(STATE, activeSlot(STATE, 'C')), ['name', 'table', 'rating']);
+    assert.deepEqual(availableSorts(STATE, activeSlot(STATE, 'C')), ['name', 'table', 'rating', 'rank']);
     assert.deepEqual(shownKeys({ sort: 'best' }, STATE, ANALYTICS, 'C'), shownKeys({ sort: 'name' }), 'hidden slot: by name');
     assert.equal(DEFAULT_SORT, 'name');
 });
 
-scenario('R8: unpublished confirmed results are never a sort and never ordered; published sort by official rank', () => {
-    assert.ok(!availableSorts(STATE, activeSlot(STATE, 'A')).includes('rank'));
-    assert.deepEqual(shownKeys({ sort: 'rank' }), shownKeys({ sort: 'name' }));
-    // A live result never carries a rank or a qualified mark, even if one came along
-    const leaky = clone(STATE);
-    leaky.results[0].rank = 1;
-    leaky.results[0].qualified = true;
-    assert.equal(resultOf(leaky, E(1)).rank, null);
-    assert.equal(resultOf(leaky, E(1)).qualified, false);
-    assert.deepEqual(shownKeys({ sort: 'rank' }, leaky), shownKeys({ sort: 'name' }, leaky));
-    assert.deepEqual(officialRanking(leaky, rowsFor(leaky).rows), []);
-    // Published: official ranking
+scenario('FU-S: one live ranking of the recorded results - published or not, a rank sort once anybody has a place', () => {
+    // Not published yet (the fixture): the recorded results are ranked live, no "confirmed"/"official" difference
+    assert.equal(STATE.round.published, false);
+    assert.ok(hasRanking(STATE));
+    assert.ok(availableSorts(STATE, activeSlot(STATE, 'A')).includes('rank'));
+    assert.ok(availableSorts(STATE, activeSlot(STATE, 'C')).includes('rank'), 'the rank needs no visible puzzle');
+    assert.equal(resultOf(STATE, E(1)).rank, 1);
+    assert.deepEqual(shownKeys({ sort: 'rank' }).slice(0, 2), [E(1), E(5)]);
+    assert.deepEqual(ranking(STATE, rowsFor(STATE).rows).map((row) => row.key), [E(1), E(5)]);
+    // Nobody has a result yet: no ranking, no rank sort
+    const empty = clone(STATE);
+    empty.results = [];
+    assert.ok(!hasRanking(empty));
+    assert.ok(!availableSorts(empty, activeSlot(empty, 'A')).includes('rank'));
+    assert.deepEqual(shownKeys({ sort: 'rank' }, empty), shownKeys({ sort: 'name' }, empty));
+    assert.deepEqual(ranking(empty, rowsFor(empty).rows), []);
+    // Published: the official ranking, the same list
     const published = publishedState();
     assert.ok(availableSorts(published, activeSlot(published, 'A')).includes('rank'));
     assert.deepEqual(shownKeys({ sort: 'rank' }, published).slice(0, 3), [E(1), E(6), E(5)]);
-    assert.deepEqual(officialRanking(published, rowsFor(published).rows).map((row) => row.key), [E(1), E(6), E(5)]);
-    // Unknown result states are ignored
+    assert.deepEqual(ranking(published, rowsFor(published).rows).map((row) => row.key), [E(1), E(6), E(5)]);
+    // Unknown result states (an old "live" answer, anything else) are ignored
     const odd = clone(STATE);
-    odd.results = [{ key: E(1), state: 'did_not_start', seconds: null }];
+    odd.results = [{ key: E(1), state: 'did_not_start', seconds: null }, { key: E(5), state: 'live', seconds: 100, rank: 1 }];
     assert.equal(resultOf(odd, E(1)), null);
+    assert.equal(resultOf(odd, E(5)), null);
+    assert.ok(!hasRanking(odd));
 });
 
 scenario('compare: at most 4, a fifth is refused, toggling removes', () => {
@@ -474,8 +477,8 @@ scenario('compare table: aligned rows, best value marked, nothing marked with fe
     assert.deepEqual(table.skill.values, ['expert', 'advanced', 'advanced', null]);
     assert.deepEqual(table.skill.best, [0]);
     assert.deepEqual(table.first_try.best, [0]);
-    // Live results are never compared (R8)
-    assert.deepEqual(table.result.best, []);
+    // The running round's places are compared like official ones (FU-S): E1 1st, E5 2nd
+    assert.deepEqual(table.result.best, [0]);
     // Hidden slot: no puzzle values
     const hidden = Object.fromEntries(compareTable(pick, null, {}).map((line) => [line.id, line]));
     assert.ok(hidden.best.values.every((value) => value === null));
@@ -538,7 +541,7 @@ scenario('prediction sort: fastest first, opted out / none / private last by nam
     assert.equal(byKey[E(6)].predictionStatus, 'none', 'no model: nothing');
     assert.equal(byKey[E(6)].predictionSeconds, null);
 
-    assert.deepEqual(availableSorts(STATE, slot, ready), ['name', 'table', 'solves', 'best', 'prediction', 'rating']);
+    assert.deepEqual(availableSorts(STATE, slot, ready), ['name', 'table', 'solves', 'best', 'prediction', 'rating', 'rank']);
     const sorted = visibleRows(rows, { sort: 'prediction', state: STATE, slot, roundPredictions: ready }).map((row) => row.key);
     // 40:00, 43:00, then the rest by name (Ben, Kim, José, Zoë - folded)
     assert.deepEqual(sorted, [E(5), E(1), E(2), E(4), E(3), E(6)]);
@@ -1490,17 +1493,18 @@ scenario('render: the laptop layout - top bar, list, detail, puzzle, live; phone
     assert.equal(text(root.querySelector('.as-clock__status')), 'Running');
     assert.equal(text(root.querySelector('.as-clock__time')), '0:10:00');
     assert.equal(text(root.querySelector('.as-clock__left')), '1:20:00 left');
-    assert.equal(text(root.querySelector('.as-top__live')), 'Live: 2 confirmed');
+    assert.equal(text(root.querySelector('.as-top__live')), 'Results: 2');
     assert.equal(root.querySelectorAll('.as-row').length, 6);
     assert.ok(root.querySelector(`.as-row[data-as-entry="${E(1)}"]`).classList.contains('as-row--selected'));
     assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(1)}"] .as-row__solves`)), '3×');
     assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(1)}"] .as-row__best`)), '41:07');
     assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(1)}"] .as-row__table`)), 'Table 12');
-    assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(5)}"] .as-result`)), '412/500 pieces');
+    assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(5)}"] .as-result`)), '#2412/500 pieces');
+    assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(5)}"] .as-result__pieces`)), '412/500 pieces');
     assert.equal(root.getAttribute('data-as-tab'), 'entrants');
     assert.ok(root.classList.contains('as--sheet-open'));
     assert.deepEqual([...root.querySelectorAll('.as-tabs__tab')].map((node) => node.getAttribute('data-as-tab')), ['entrants', 'puzzle', 'live']);
-    assert.deepEqual([...root.querySelectorAll('.as-sort option')].map((node) => node.value), ['name', 'table', 'solves', 'best', 'rating']);
+    assert.deepEqual([...root.querySelectorAll('.as-sort option')].map((node) => node.value), ['name', 'table', 'solves', 'best', 'rating', 'rank']);
     assert.deepEqual([...root.querySelectorAll('.as-chip')].map((node) => node.getAttribute('data-as-filter')), ['all', 'solved', 'never', 'nohistory']);
     // Puzzle panel
     const puzzle = root.querySelector('.as-puzzle');
@@ -1529,7 +1533,8 @@ scenario('render: entrant detail - history before the round, now values, predict
     assert.ok(text(detail).includes('Sep'), 'last solve date');
     assert.ok(detail.querySelector('.as-fact--prediction .as-spinner'), 'prediction pending');
     assert.ok(text(detail).includes('Same brand, 500 pieces'));
-    assert.ok(text(detail).includes('Confirmed by the judge, not official'));
+    assert.equal(text(detail.querySelector('.as-entrant__result .as-result__rank')), '#1');
+    assert.ok(!text(detail).includes('Confirmed') && !text(detail).includes('official'), 'no official/unofficial label');
 
     const loaded = renderModel({ view: { selected: E(1) }, entrant: ENTRANT });
     const full = loaded.root.querySelector('.as-entrant');
@@ -1650,15 +1655,17 @@ scenario('render: compare 4 - columns aligned, best values bold, columns past th
     assert.equal(text(full.querySelector('.as-notice')), 'At most 4 entrants can be compared');
 });
 
-scenario('render: R8 - unpublished confirmed results are a count + note, never an ordered list; published ranks in order', () => {
+scenario('render: FU-S - the running round is a live ranking with places, no labels; published ranks in order', () => {
     const live = renderModel().root.querySelector('.as-live');
-    assert.equal(live.querySelector('.as-live__list'), null);
-    assert.equal(text(live.querySelector('.as-live__count')), 'Live: 2 confirmed');
-    assert.equal(text(live.querySelector('.as-live__note')), 'Confirmed by the judge, not official');
-    assert.equal(live.querySelectorAll('.as-result__rank').length, 0);
+    const liveItems = [...live.querySelectorAll('.as-live__item')];
+    assert.deepEqual(liveItems.map((item) => item.getAttribute('data-as-entry')), [E(1), E(5)]);
+    assert.deepEqual(liveItems.map((item) => text(item.querySelector('.as-result__rank'))), ['#1', '#2']);
+    assert.equal(text(liveItems[1].querySelector('.as-result__pieces')), '412/500 pieces');
+    assert.equal(live.querySelector('.as-live__count'), null);
+    assert.equal(live.querySelector('.as-live__note'), null);
+    assert.equal(live.querySelector('[title]'), null, 'no "official"/"confirmed" tooltip');
 
     const off = clone(STATE);
-    off.round.liveResults = false;
     off.results = [];
     assert.equal(text(renderModel({ state: off }).root.querySelector('.as-live')), 'LiveNo results yet');
 
@@ -1667,7 +1674,7 @@ scenario('render: R8 - unpublished confirmed results are a count + note, never a
     assert.deepEqual(items.map((item) => item.getAttribute('data-as-entry')), [E(1), E(6), E(5)]);
     assert.equal(text(items[0].querySelector('.as-result__rank')), '#1');
     assert.equal(text(items[0].querySelector('.as-result__qualified')), 'Q');
-    assert.equal(text(published.querySelector('.as-top__live')), '3 official results');
+    assert.equal(text(published.querySelector('.as-top__live')), 'Results: 3');
     assert.deepEqual([...published.querySelectorAll('.as-sort option')].map((node) => node.value).at(-1), 'rank');
 });
 

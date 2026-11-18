@@ -20,14 +20,17 @@ use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * The analytics studio's `state` answer (analytics-studio.md §3.1, R2): the round with its stopwatch, the puzzle slots
- * by the public reveal rule (a hidden slot is its label only), the entrants and the results the public may see
- * (AnalyticsStudioLiveResults). The same for everybody - no viewer.
+ * by the public reveal rule (a hidden slot is its label only), the entrants and the ranking of their recorded results
+ * (AnalyticsStudioLiveResults - live while the round runs, the official rows once published). The same for everybody -
+ * no viewer.
  *
  * Statements: the round and its visible puzzles (2, always - the cache key is made of them), then the entrants and,
  * for a published round, its official rows (OfficialEntrantsView) - kept 2 s in `analytics_studio_cache` under the
- * round, its stopwatch state hash (RoundClock::stateHash()), the visible hash and the published/live switches, never past
- * the next reveal moment (not kept at all when that is under 2 s away). `serverNowMs` is stamped on every answer
- * outside the cache.
+ * round, its stopwatch state hash (RoundClock::stateHash()), the visible hash and the published moment, never past the
+ * next reveal moment (not kept at all when that is under 2 s away). `serverNowMs` is stamped on every answer outside
+ * the cache. A result recorded, edited or cleared reaches the page within those 2 s: the write's studio signal
+ * (AnalyticsStudioSignals) makes the page ask after SIGNAL_SETTLE_MS (2.3 s), when the entry has expired - one
+ * computation per 2 s per round under any write rate, no key needs the results.
  *
  * Every computed state marks the round as watched (AnalyticsStudioWatch, 180 s - no statement), so its writes publish the
  * public data-free studio signal (AnalyticsStudioSignals) the page follows next to the stopwatch topic (`mercure.topics`).
@@ -66,7 +69,6 @@ readonly final class AnalyticsStudioStateBuilder
             $stopwatch->clock->stateHash(),
             $context->visibleHash,
             $round->resultsPublishedAt !== null ? (string) RoundClock::milliseconds($round->resultsPublishedAt) : 'u',
-            $round->liveResults ? 'l' : 'n',
         ]);
 
         $next = $context->puzzles->nextRevealAtMs;
@@ -103,7 +105,6 @@ readonly final class AnalyticsStudioStateBuilder
             'minutesLimit' => $round->minutesLimit,
             'stopwatch' => $round->stopwatch($context->now)->jsonSerialize(),
             'published' => $round->published(),
-            'liveResults' => $round->liveResults,
         ];
 
         if ($round->isPick()) {

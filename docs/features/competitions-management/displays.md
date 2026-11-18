@@ -5,7 +5,7 @@ OBS browser source (`overlay`). The organiser designs them in an editor (backgro
 codes, sponsor rotators), and the page stays live for hours without anyone signed in. Design:
 `toolkit/D-displays-overlays.md`. Binding where they disagree: `toolkit/R-review-and-plan.md` §1-§3 (§3 cut the live
 control, spotlight/message elements, copy from another event, ticker marquee, multi-select/align, sibling snapping, 3 of
-the 7 fonts and the standings overlay to v2). Delivery: the D rows of `toolkit/STATUS.md`.
+the 7 fonts and the standings overlay to v2; multi-select, align/distribute and sibling snapping are built - v2 E1). Delivery: the D rows of `toolkit/STATUS.md`.
 
 ## What a display is
 
@@ -280,18 +280,36 @@ editor badges those elements. `DisplayPreset::fits()` checks the kind, both in t
 
 - `assets/controllers/display_editor_controller.js` (lazy Stimulus, this page only, `display_editor.scss`) + pure
   modules, all node-tested by `tests/display-editor-harness.mjs`:
-  - `editor_state.js`: the document, selection, undo/redo of 100 steps, unsaved flag, catalogue groups
-    clock/text/pictures/results/other, add/duplicate/delete/reorder/hide/lock;
-  - `geometry.js`: move, 8 resize handles, ratio kept for image/QR, nudges 0.1 %/1 %, clamping, snap to the 1 % grid
-    + canvas centre/edges only, hit test, `placeFrame()` avoids overlaps;
+  - `editor_state.js`: the document, selection (`selectedIds`; `selectedId`/`selected` = the one element when exactly
+    one is selected, else null - so single-element paths never act on "one of many"), undo/redo of 100 steps, unsaved
+    flag, catalogue groups clock/text/pictures/results/other, add/duplicate/delete/reorder/hide/lock, and the group
+    writes of a multi-selection (`setFrames`, `alignSelected`, `distributeSelected`, `removeSelected`,
+    `duplicateSelected`, `toggleHidden/LockedSelected`, `editSelected`) - each one commit = **one undo step**;
+  - `geometry.js`: move, 8 resize handles, ratio kept for image/QR, nudges 0.1 %/1 %, clamping, snap to the 1 % grid,
+    the canvas centre/edges and the **other elements' edges and centres** (`snapLines()`: visible elements, locked
+    ones count, the moving ones excluded; nearest line wins, the canvas on a tie; sibling guides magenta, canvas
+    guides blue, every other sibling line the frame sits on shown too), hit test, `placeFrame()` avoids overlaps;
+  - `arrange.js` (v2 E1): group bounds, group move (snapped and clamped as one box, spacing kept), group resize
+    (members mapped proportionally; a QR/picture inside keeps the ratio, font sizes never scaled), group nudge, align
+    ×6 (to the selection's bounds; one element to the canvas), distribute ×2 (equal gaps, 3+ unlocked, first and
+    furthest-reaching stay), marquee (intersect, visible + unlocked only);
   - `editor_panel.js`: schema-driven property panel + layers list (eye, lock, actions), built with `createElement` only;
   - `sample_data.js`: the preview.
 - **Toolbar** below the header: Undo/Redo, Data (**Sample** = the display's own state with a made-up clock, 20 sample
   results and 2 made-up puzzles; **This display** = the state the display shows now, inline from
   `CompetitionDisplayPayload` with secret puzzles under the public rule), preview phase (idle, scheduled, last seconds,
   running, warning, times up, stopped), Published and Revealed toggles, Snap, Save, plus Settings and Open display.
-  Shortcuts: Ctrl+S, Ctrl+Z/Y, Ctrl+D, Del, Esc. An overlay shows a checkerboard behind the stage. Below md a hint says
+  Shortcuts: Ctrl+S, Ctrl+Z/Y, Ctrl+D, Del, Esc, Ctrl/Cmd+A (every visible unlocked element). An overlay shows a checkerboard behind the stage. Below md a hint says
   to edit on a computer.
+- **Multi-select (v2 E1)**: Shift/Ctrl/Cmd+click on the stage or a layer adds/removes; a press on a selected element
+  drags the whole selection (a release without moving selects only that one); a drag from an empty spot or a locked
+  element selects an area (a locked backdrop no longer blocks it; Shift adds). A 3 px dead zone: a click's jitter never
+  commits. Arrows, Delete, Ctrl+D act on the selection; locked members are selectable, never moved by group
+  transforms, but deleted/styled/hidden with the rest. The panel's multi view: "N elements selected", Arrange (align,
+  distribute), position and style with the shared value or "Mixed" (typing sets it on all), Hide/Lock all, Duplicate,
+  Delete; no visibility rules, content props or reordering there. The single view gains only the canvas align row.
+  The design JSON, sanitizer, renderer, runtime and save contract are unchanged - every operation ends as ordinary
+  frame/style values.
 - **Save is explicit** (no autosave: a half-edited design must never reach a hall screen), with a `beforeunload` guard.
   `live_not_confirmed` → ask once, resend with `liveConfirmed: true`. 409 → load the saved version (GET `/design`) or
   overwrite. Live elements carry a badge.
@@ -382,8 +400,10 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §3.2. As built 202
 - Not walked in a real OBS browser source; no multi-hour soak (D4). The D5 live-signal browser walk is pending (the dev
   hub's origin) → H.
 - English only so far (`competition_display.*`); the 5 other locales come with the TR package.
+- Editor v3 (E1 deferrals): copy/paste across displays, group/ungroup, Shift range-select and multi-reorder in the
+  layers list, spacing hints between siblings, segment guides, rotation-aware bounds.
 - v2 (R §3): live control (spotlight/message elements and page), copy from another event, ticker marquee,
-  multi-select/align/distribute, sibling snapping, the bracket overlay element, scenes, animations, 4:3 and portrait
+  the bracket overlay element, scenes, animations, 4:3 and portrait
   (the standings element is built - v2 S2 above).
 - v2 (real events W4): the results element's "rank by challenge" (a solve-all block's puzzle ranked by its own time,
   [world-series-rules.md](world-series-rules.md) "As built: W4") - needs a results option in the sanitizer + `schema.js`

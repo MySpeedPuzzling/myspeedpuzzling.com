@@ -32,7 +32,8 @@ readonly final class CompetitorPageView implements \JsonSerializable
         public bool $viewerIsEntrant,
         // The organiser shows confirmed results before publishing (competitor_pages_live_results)
         public bool $liveResults,
-        public bool $isDraft,
+        // Not publicly visible (a draft, waiting for approval, rejected) - only its team sees the page
+        public bool $isHidden,
         public array $rounds,
         public DateTimeImmutable $serverNow,
         // The event takes time proposals from competitors (competitor pages on, in person) - B8

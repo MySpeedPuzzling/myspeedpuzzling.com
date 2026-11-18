@@ -7,7 +7,7 @@ signed out | unknown round entry | 302 /en/competitor/018d0020-0000-0000-0000-00
 signed out | line-up | 302 /en/competitor/018d0020-0000-0000-0000-000000000001/g/f4d51bdb-407d-5f89-a7a4-ddece5c79823 | no flash | noindex, nofollow
 signed out | unknown line-up | 302 /en/competitor/018d0020-0000-0000-0000-000000000001?notice=tag_unknown | no flash | noindex, nofollow
 signed out | person (name tag) | 302 /en/competitor/018d0020-0000-0000-0000-000000000001/p/018d0020-0000-0000-0000-000000000209 | no flash | noindex, nofollow
-signed out | event without rounds | 302 /en/competitor/018d0004-0000-0000-0000-000000000003/t/1 | no flash | noindex, nofollow
+signed out | event without rounds | 302 /en/events/unapproved-puzzle-event | no flash | noindex, nofollow
 signed out | draft event | 302 /en/events | no flash | noindex, nofollow
 signed out | unknown event | 302 /en/events | no flash | noindex, nofollow
 puzzler | table used by several rounds | 302 /en/competitor/018d0020-0000-0000-0000-000000000001/t/1 | no flash | noindex, nofollow
@@ -31,7 +31,7 @@ organiser | unknown round entry | 302 /en/live-results/018d0020-0000-0000-0000-0
 organiser | line-up | 302 /en/live-results/018d0020-0000-0000-0000-000000000104?entry=team:018d0020-0000-0000-0000-000000000401 | no flash | noindex, nofollow
 organiser | unknown line-up | 302 /en/live-results/018d0020-0000-0000-0000-000000000105?notice=tag_unknown | no flash | noindex, nofollow
 organiser | person (name tag) | 302 /en/live-results/018d0020-0000-0000-0000-000000000102?entrant=018d0020-0000-0000-0000-000000000209 | no flash | noindex, nofollow
-organiser | event without rounds | 302 /en/competitor/018d0004-0000-0000-0000-000000000003/t/1 | no flash | noindex, nofollow
+organiser | event without rounds | 302 /en/events/unapproved-puzzle-event | no flash | noindex, nofollow
 organiser | draft event | 302 /en/manage-event-rounds/018d0042-0000-0000-0000-000000000005 | flash warning | noindex, nofollow
 organiser | unknown event | 302 /en/events | no flash | noindex, nofollow
 referee | table used by several rounds | 302 /en/live-results/018d0020-0000-0000-0000-000000000104?table=1 | no flash | noindex, nofollow
@@ -43,7 +43,7 @@ referee | unknown round entry | 302 /en/live-results/018d0020-0000-0000-0000-000
 referee | line-up | 302 /en/live-results/018d0020-0000-0000-0000-000000000104?entry=team:018d0020-0000-0000-0000-000000000401 | no flash | noindex, nofollow
 referee | unknown line-up | 302 /en/live-results/018d0020-0000-0000-0000-000000000105?notice=tag_unknown | no flash | noindex, nofollow
 referee | person (name tag) | 302 /en/live-results/018d0020-0000-0000-0000-000000000102?entrant=018d0020-0000-0000-0000-000000000209 | no flash | noindex, nofollow
-referee | event without rounds | 302 /en/competitor/018d0004-0000-0000-0000-000000000003/t/1 | no flash | noindex, nofollow
+referee | event without rounds | 302 /en/events/unapproved-puzzle-event | no flash | noindex, nofollow
 referee | draft event | 302 /en/manage-event-rounds/018d0042-0000-0000-0000-000000000005 | flash warning | noindex, nofollow
 referee | unknown event | 302 /en/events | no flash | noindex, nofollow
 admin | table used by several rounds | 302 /en/live-results/018d0020-0000-0000-0000-000000000104?table=1 | no flash | noindex, nofollow

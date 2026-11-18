@@ -28,8 +28,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *    a tag of nobody in the event says so (`?notice=tag_unknown`). With no round at all an organiser gets the rounds
  *    page and a referee the event page, both saying that.
  * 2. Anybody else, on an event with competitor pages on: the tag's competitor page (CompetitorPageUrl) - a tag of
- *    nobody in the event the competitor list with `?notice=tag_unknown` (CompetitorListController) - only where the
- *    list answers them (a publicly visible event, or its team), else the event page.
+ *    nobody in the event the competitor list with `?notice=tag_unknown` (CompetitorListController) - only where they
+ *    answer them (a publicly visible event, or its team), else the event page.
  * 3. Anybody else otherwise - signed out, a puzzler: the event page; a draft's tag (or an unknown event's) the events
  *    list.
  *
@@ -101,21 +101,23 @@ final readonly class CompetitionTagLanding
         }
 
         // Competitor pages on (toolkit B): the tag's own page - for a tag of nobody in the event (any more), the event's
-        // competitor list saying so (toolkit v2 D2), where they find themselves
-        if ($canEnterResults === false && $competition->competitorPages) {
+        // competitor list saying so (toolkit v2 D2), where they find themselves. Only where they answer this viewer
+        // (CompetitorPageLoader): a publicly visible event, or its team - anybody else lands on the event page as before
+        // (the voter is asked only with pages on and an event that is not public - an untouched event pays nothing)
+        $competitorPages = $canEnterResults === false
+            && $competition->competitorPages
+            && ($competition->isPubliclyVisible() || $this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId));
+
+        if ($competitorPages) {
             if ($this->competitionTagResolver->knows($competitionId, $tag)) {
                 return $this->competitorPageUrl->of($competitionId, $tag, $locale);
             }
 
-            // The list is a public listing of people: only where it answers this viewer (CompetitorPageLoader::list()) -
-            // a public event, or its team; anybody else lands on the event page as before
-            if ($competition->isPubliclyVisible() || $this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId)) {
-                return $this->urlGenerator->generate(CompetitorListController::ROUTE, [
-                    'competitionId' => strtolower($competitionId),
-                    'notice' => CompetitorListController::NOTICE_TAG_UNKNOWN,
-                    '_locale' => $locale,
-                ]);
-            }
+            return $this->urlGenerator->generate(CompetitorListController::ROUTE, [
+                'competitionId' => strtolower($competitionId),
+                'notice' => CompetitorListController::NOTICE_TAG_UNKNOWN,
+                '_locale' => $locale,
+            ]);
         }
 
         try {

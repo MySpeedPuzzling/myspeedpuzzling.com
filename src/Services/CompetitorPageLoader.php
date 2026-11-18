@@ -18,10 +18,9 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 /**
  * A competitor page for the current viewer (docs/features/competitions-management/competitor-pages.md) - shared by the
  * page and its `competitor_state` JSON, so both answer the same 404s: the route's kind letter and id (the frozen tag
- * kinds p|g|t|e, CompetitorPageUrl), a draft for anybody but its team, and everything GetCompetitorPage refuses.
- * The event's competitor list (list()) answers the same 404s - competitor pages off, an unknown event - and, a public
- * listing of people, a 404 for any event that is not publicly visible (a draft, waiting for approval, rejected) to
- * anybody but its team.
+ * kinds p|g|t|e, CompetitorPageUrl), an event that is not publicly visible (a draft, waiting for approval, rejected)
+ * for anybody but its team, and everything GetCompetitorPage refuses. The event's competitor list (list()) answers the
+ * same 404s.
  */
 final readonly class CompetitorPageLoader
 {
@@ -60,7 +59,7 @@ final readonly class CompetitorPageLoader
             $this->clock->now(),
         );
 
-        $this->assertVisible($view->isDraft, $view->competitionId);
+        $this->assertVisible($view->isHidden, $view->competitionId);
 
         return $view;
     }
@@ -77,7 +76,8 @@ final readonly class CompetitorPageLoader
     }
 
     /**
-     * A draft (for the list: any event not publicly visible) exists only for its team and admins
+     * An event that is not publicly visible (a draft, waiting for approval, rejected) has its pages only for its team and
+     * admins
      * (docs/features/organizations/README.md "Drafts") - the voter is asked only then, so a public page pays no
      * statement for it
      *

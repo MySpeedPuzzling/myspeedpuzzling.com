@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\ProposeRoundTime;
 use SpeedPuzzling\Web\Query\GetTimeProposals;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\AfterResponse;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitorHeartbeats;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalApi;
@@ -78,6 +79,15 @@ final class ProposeRoundTimeController extends AbstractController
             $round = $this->roundRepository->get($roundId);
         } catch (CompetitionRoundNotFound) {
             return $this->api->refusal('round_not_found', JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // The competitor pages of an event that is not publicly visible (a draft, waiting for approval, rejected) are its
+        // team's only (CompetitorPageLoader) - and so is their Stop button: an organiser may rehearse before approval,
+        // nobody else proposes into an event that is not public. The voter is asked only for such an event.
+        $competition = $round->competition;
+
+        if ($competition->isPubliclyVisible() === false && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString()) === false) {
+            return $this->api->refusal('proposals_off', JsonResponse::HTTP_NOT_FOUND);
         }
 
         $body = OfficialResultsApi::body($request);

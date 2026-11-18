@@ -41,7 +41,8 @@ use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
  * round's entry, with their rounds:
  *
  * - **Only while the event has competitor pages on** - else CompetitorPageNotFound, for organisers too, so nothing
- *   public exists by accident. A draft comes back marked (isDraft): the page answers 404 to anybody but its team.
+ *   public exists by accident. An event that is not publicly visible (IsCompetitionPubliclyVisible: a draft, waiting for
+ *   approval, rejected) comes back marked (isHidden): the page answers 404 to anybody but its team.
  * - Which entries a tag stands for follows CompetitionTagResolver / GetCompetitionTagEntries (B2): a person's entry in
  *   every round they are in (solo: theirs; pair/team: their pair/team; no pair/team yet: themselves), a line-up's
  *   pairs/teams by their exact member set (CompetitionLineupId), whoever sits at the table in each round, one entry. The
@@ -211,7 +212,7 @@ readonly final class GetCompetitorPage
             entrants: $headerEntrants,
             viewerIsEntrant: $viewerIsEntrant,
             liveResults: $competition['competitor_pages_live_results'],
-            isDraft: $competition['is_draft'],
+            isHidden: $competition['is_hidden'],
             rounds: $pageRounds,
             serverNow: $now,
             timeProposals: $timeProposals,
@@ -372,10 +373,12 @@ readonly final class GetCompetitorPage
     /**
      * The competition with its competitor page settings and its rounds in schedule order - one statement.
      *
-     * @return null|array{name: string, slug: null|string, series_name: null|string, series_slug: null|string, is_draft: bool, competitor_pages: bool, competitor_pages_live_results: bool, time_proposals: bool, rounds: array<string, RoundRow>}
+     * @return null|array{name: string, slug: null|string, series_name: null|string, series_slug: null|string, is_hidden: bool, competitor_pages: bool, competitor_pages_live_results: bool, time_proposals: bool, rounds: array<string, RoundRow>}
      */
     private function competition(string $competitionId): null|array
     {
+        $publiclyVisible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -384,7 +387,7 @@ SELECT
     c.competitor_pages,
     c.competitor_pages_live_results,
     (c.competitor_pages AND c.time_proposals AND NOT c.is_online) AS time_proposals,
-    (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft,
+    (NOT COALESCE({$publiclyVisible}, false)) AS is_hidden,
     cs.name AS series_name,
     cs.slug AS series_slug,
     c.location_country_code,
@@ -415,7 +418,7 @@ SQL,
             return null;
         }
 
-        /** @var array{name: string, slug: null|string, competitor_pages: bool, competitor_pages_live_results: bool, time_proposals: bool, is_draft: bool, series_name: null|string, series_slug: null|string, location_country_code: null|string, series_country_code: null|string} $first */
+        /** @var array{name: string, slug: null|string, competitor_pages: bool, competitor_pages_live_results: bool, time_proposals: bool, is_hidden: bool, series_name: null|string, series_slug: null|string, location_country_code: null|string, series_country_code: null|string} $first */
         $first = $rows[0];
         $rounds = [];
 
@@ -449,7 +452,7 @@ SQL,
             'slug' => $first['slug'],
             'series_name' => $first['series_name'],
             'series_slug' => $first['series_slug'],
-            'is_draft' => $first['is_draft'],
+            'is_hidden' => $first['is_hidden'],
             'competitor_pages' => $first['competitor_pages'],
             'competitor_pages_live_results' => $first['competitor_pages_live_results'],
             'time_proposals' => $first['time_proposals'],

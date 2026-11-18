@@ -74,9 +74,10 @@ whatever the mode**:
      `?entrant=` (person), `?table=` (table), `?entry=participant_round:…|team:…` (line-up, entry); a tag of nobody →
      current round `?notice=tag_unknown`. No round at all: organiser → rounds page, referee → event page, both with a
      "no rounds" flash.
-  2. **Anybody else, competitor pages on** and the tag known → `competitor_page` (`CompetitorPageUrl::of()`); a tag of
-     nobody in the event (any more) → `competitor_list` `?notice=tag_unknown` (toolkit v2 D2, "Competitor list" below)
-     when the event is publicly visible or the viewer is its team - else the event page.
+  2. **Anybody else, competitor pages on**, on a publicly visible event (or its team - toolkit v2 C1b): the tag known →
+     `competitor_page` (`CompetitorPageUrl::of()`); a tag of nobody in the event (any more) → `competitor_list`
+     `?notice=tag_unknown` (toolkit v2 D2, "Competitor list" below). An event waiting for approval or rejected: the
+     event page, as with pages off.
   3. Otherwise the event page; a draft (for anybody off its team) or unknown event → events list.
   Pages off = exactly as before the toolkit.
 - On the judge side the one parser is `parseCompetitionTagUrl()` (`assets/official_results_scan.js`, C8,
@@ -123,7 +124,9 @@ Where a scanned tag leads anybody but the event's organisers and referees while 
 | `competitor_state` | `GET /competitor-state/{competitionId}/{kind}/{id}` | The same view as JSON for the live part. |
 
 - **404** (`CompetitorPageNotFound`, the page and the JSON alike, `CompetitorPageLoader`): competitor pages off - for
-  organisers too, nothing public by accident; a draft (or an edition of a draft series) for anybody off its team; a
+  organisers too, nothing public by accident; **an event that is not publicly visible** (`IsCompetitionPubliclyVisible::
+  SQL_CONDITION`, the competition statement's `is_hidden`: a draft, an edition of a draft series, waiting for approval,
+  rejected - toolkit v2 C1b; before it drafts only) for anybody off its team (`COMPETITION_EDIT`, asked only then); a
   kind/id that do not fit (`/t/<uuid>`, `/p/12`); a person not in the event or removed from it; a line-up no round has;
   an unknown entry; **a person, line-up or entry hidden from the viewer** (blocklist, the group rule - a member viewing
   their own pair is never hidden). A table always has a page: "No round uses this table yet".
@@ -263,7 +266,11 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
   moment; `GetTimeProposals::latestOfEntries()`, one statement, only then). Somebody else, a guest or an organiser
   looking at the page gets neither key, nor the page's endpoints/CSRF token. Without time proposals the JSON and the
   HTML are unchanged. The browser shows the button while the round's phase is `running`, the entry has no result and
-  nothing waits for the judge (`assets/competitor_proposals_view.js`); the server checks everything again
+  nothing waits for the judge (`assets/competitor_proposals_view.js`); the server checks everything again. On an
+  event that is not publicly visible the endpoint answers 404 `proposals_off` (final on the phone, nothing stored) to
+  anybody off its team, so an organiser may rehearse before approval and nobody else proposes into it (v2 C1b;
+  `ProposeRoundTimeController`, the voter asked only for such an event). Withdrawing stays open - it only takes back
+  the sender's own tap; the heartbeat needs a token only such a page mints, and never touches Postgres
   (`linked_after_start`, `times_up`, … shown plainly as the server's translated message).
 - **A guest** on a page whose entrant has a linked profile: "Sign in to propose your time" (`signInToPropose: true`
   in the round JSON, the hint in the card before the round starts only - the controller hides it once the round runs;

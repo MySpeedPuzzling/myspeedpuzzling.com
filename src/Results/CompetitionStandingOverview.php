@@ -30,6 +30,8 @@ readonly final class CompetitionStandingOverview
         public null|DateTimeImmutable $publishedAt,
         // `stages` only (competition toolkit v2 S5): one number over everybody across the stages
         public bool $numberedAcrossStages = false,
+        // Real events L2a (shared-puzzles-and-divisions.md D7): limited to one division - null = everybody
+        public null|RoundDivision $division = null,
     ) {
     }
 
@@ -39,7 +41,8 @@ readonly final class CompetitionStandingOverview
     }
 
     /**
-     * `numberedAcrossStages` only for a `stages` standing - a `sum` standing's JSON stays as it was.
+     * `numberedAcrossStages` only for a `stages` standing, `division` only for a standing limited to one (real events
+     * L2a) - every other standing's JSON stays as it was.
      *
      * @return array<string, mixed>
      */
@@ -57,6 +60,10 @@ readonly final class CompetitionStandingOverview
 
         if ($this->isStages()) {
             $array['numberedAcrossStages'] = $this->numberedAcrossStages;
+        }
+
+        if ($this->division !== null) {
+            $array['division'] = $this->division->jsonSerialize();
         }
 
         return $array;

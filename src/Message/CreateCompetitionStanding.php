@@ -31,6 +31,8 @@ readonly final class CreateCompetitionStanding implements SerializedByLock
         // Competition toolkit v2 S5: the final classification across the bracket instead of a sum
         public StandingMode $mode = StandingMode::Sum,
         public bool $numberedAcrossStages = false,
+        // Real events L2a: limited to one division of the event (sum only) - null = everybody
+        public null|string $divisionId = null,
     ) {
     }
 

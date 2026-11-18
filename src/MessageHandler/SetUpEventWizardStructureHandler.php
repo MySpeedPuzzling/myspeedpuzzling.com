@@ -83,7 +83,8 @@ readonly final class SetUpEventWizardStructureHandler
             $this->roundCategories($competitionId),
         );
 
-        return array_values(array_filter($standings, static fn (CompetitionStanding $standing): bool => in_array($standing->id->toString(), $joiningIds, true)));
+        // A standing of one division (real events L2a) never joins new rounds - they do not use its division yet
+        return array_values(array_filter($standings, static fn (CompetitionStanding $standing): bool => $standing->division === null && in_array($standing->id->toString(), $joiningIds, true)));
     }
 
     /**

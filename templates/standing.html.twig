@@ -30,11 +30,12 @@
 
     <h1 class="h4 mb-2" data-standing-title>
         <i class="bi bi-bar-chart-steps me-1" aria-hidden="true"></i>{{ standing.name }}
-        {# the category badge only when the standing's own name does not say it already ("Overall - Solo" needs no [Solo]) #}
+        {# the category badge only when the standing's own name does not say it already ("Overall - Solo" needs no [Solo]);
+           the same for a standing's division (real events L2a) #}
         {% set category_label = ('competition.round.category.' ~ standing.category.value)|trans %}
         {% if category_label|lower not in standing.name|lower %}
             <span class="badge text-bg-light border align-middle fw-normal small" data-standing-category>{{ category_label }}</span>
-        {% endif %}
+        {% endif %}{% if table.table.standing.division is not null and table.table.standing.division.name|lower not in standing.name|lower %}<span class="badge text-bg-light border align-middle fw-normal small ms-1" data-standing-division>{{ table.table.standing.division.name }}</span>{% endif %}
     </h1>
 
     {% if page.standings|length > 1 %}

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionStandingNotFound;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditCompetitionStanding;
 use SpeedPuzzling\Web\Repository\CompetitionStandingRepository;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingDivision;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionStandingRounds;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -19,6 +20,7 @@ readonly final class EditCompetitionStandingHandler
     public function __construct(
         private CompetitionStandingRepository $standingRepository,
         private CompetitionStandingRounds $standingRounds,
+        private CompetitionStandingDivision $standingDivision,
     ) {
     }
 
@@ -41,14 +43,18 @@ readonly final class EditCompetitionStandingHandler
         }
 
         $mode = $message->mode ?? $standing->mode;
+        $roundIds = $this->standingRounds->validated($standing->competition, $message->category, $message->roundIds, $mode);
+        // false = the division kept (still checked against the rounds - a kept division every round must use too)
+        $divisionId = $message->divisionId === false ? $standing->division?->id->toString() : $message->divisionId;
 
         $standing->change(
             $name,
             $message->category,
-            $this->standingRounds->validated($standing->competition, $message->category, $message->roundIds, $mode),
+            $roundIds,
             $message->rules,
             $mode,
             $message->numberedAcrossStages,
+            $this->standingDivision->validated($standing->competition, $divisionId, $roundIds, $mode),
         );
     }
 }

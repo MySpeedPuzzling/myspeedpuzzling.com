@@ -45,6 +45,11 @@ use SpeedPuzzling\Web\Value\StandingRoundInput;
  * Statements: the event's rounds (with their piece totals), then GetRoundResultEntries per round of the standing
  * (organiser) or at most two for all its published rounds (public).
  *
+ * A standing limited to one division (real events L2a, shared-puzzles-and-divisions.md D7) reads every round through
+ * StandingRoundInput::forDivision(): only the entries carrying its division count (an entrant whose division differs
+ * between rounds counts only where it is in it), a round counts once something of the division is recorded / ranked
+ * there, and each cell shows the place within the division. No statement more - the entries carry their division.
+ *
  * A `stages` standing (competition toolkit v2 S5, StandingCalculator::stages()) reads its rounds from the bracket of its
  * category - BracketLayout over the declared advancement steps and GetBracketRounds, the bracket page's own layout (+2
  * statements: the steps, the rounds in schedule order). No bracket (no valid step of the category, steps clashing) =
@@ -90,14 +95,19 @@ readonly final class GetStandingResults
 
             $isPick = $round['puzzle_format'] === RoundPuzzleFormat::Pick->value;
             $entries = array_map(
-                fn (RoundResultEntry $entry): StandingEntryInput => $this->input($standing->competitionId, $entry, $isPick ? $entry->piecesCount : $round['pieces_total'], $organiser, $isPick ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle']) : []),
+                fn (RoundResultEntry $entry): StandingEntryInput => $this->input($standing->competitionId, $entry, $isPick ? $entry->piecesCount : $round['pieces_total'], $organiser, $isPick ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle']) : [], $standing->division !== null),
                 $this->getRoundResultEntries->forRound($roundId),
             );
-            $counted = StandingCalculator::anyRecorded($entries);
-
-            $columns[] = self::column($round, $counted, array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
             // as_zero_pieces: an entrant without a result is a no-show once the round's results are published
-            $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries, final: $round['published'], noShowPiecesCount: self::noShowPiecesCount($round));
+            $input = new StandingRoundInput($roundId, $round['minutes_limit'], StandingCalculator::anyRecorded($entries), $entries, final: $round['published'], noShowPiecesCount: self::noShowPiecesCount($round));
+
+            // A standing of one division (real events L2a): only the division's entries
+            if ($standing->division !== null) {
+                $input = $input->forDivision($standing->division->id);
+            }
+
+            $columns[] = self::column($round, $input->counted, array_any($input->entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
+            $inputs[] = $input;
         }
 
         return new StandingTable(
@@ -167,13 +177,24 @@ readonly final class GetStandingResults
 
             foreach ($official->entries ?? [] as $entry) {
                 $key = self::publicKey($standing->competitionId, $entry);
-                $entries[] = self::publicInput($round, $key, $entry);
-                $latest[$key] = $entry;
-                $hidden[$key] = ($hidden[$key] ?? false) || $entry->hiddenFromViewer;
+                $entryInput = self::publicInput($round, $key, $entry, $standing->division !== null);
+                $entries[] = $entryInput;
+
+                // A standing of one division (real events L2a): name, people and the hidden flag come from its entries only
+                if ($standing->division === null || $entryInput->divisionId === strtolower($standing->division->id)) {
+                    $latest[$key] = $entry;
+                    $hidden[$key] = ($hidden[$key] ?? false) || $entry->hiddenFromViewer;
+                }
             }
 
-            $columns[] = self::column($round, $counted, array_any($entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
-            $inputs[] = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries, noShowPiecesCount: self::noShowPiecesCount($round));
+            $input = new StandingRoundInput($roundId, $round['minutes_limit'], $counted, $entries, noShowPiecesCount: self::noShowPiecesCount($round));
+
+            if ($standing->division !== null) {
+                $input = $input->forDivision($standing->division->id);
+            }
+
+            $columns[] = self::column($round, $input->counted, array_any($input->entries, static fn (StandingEntryInput $entry): bool => $entry->result->isUnfinished()));
+            $inputs[] = $input;
         }
 
         $rows = StandingCalculator::sum($standing->rules, $inputs);
@@ -362,12 +383,13 @@ readonly final class GetStandingResults
     /**
      * @param RoundRow $round
      */
-    private static function publicInput(array $round, string $key, PublishedRoundEntry $entry): StandingEntryInput
+    private static function publicInput(array $round, string $key, PublishedRoundEntry $entry, bool $ofDivision = false): StandingEntryInput
     {
         return new StandingEntryInput(
             key: $key,
             result: $entry->result,
-            rank: $entry->rank,
+            // A standing of one division (real events L2a) shows the place within the division
+            rank: $ofDivision ? $entry->divisionRank : $entry->rank,
             piecesCount: self::publicPiecesCount($round, $entry),
             name: $entry->teamName ?? implode(', ', array_map(static fn (PublishedRoundEntrant $entrant): string => $entrant->playerName, $entry->entrants)),
             countries: self::countries($entry->entrants),
@@ -382,6 +404,7 @@ readonly final class GetStandingResults
                 ? RoundChallengeTime::listOf($entry->puzzles, $round['puzzles_to_solve'], $round['labels_by_round_puzzle'])
                 : [],
             qualified: $entry->qualified,
+            divisionId: $entry->division !== null ? strtolower($entry->division->id) : null,
         );
     }
 
@@ -538,13 +561,17 @@ SQL, ['competitionId' => $competitionId]);
     /**
      * @param list<RoundChallengeTime> $challengeTimes
      */
-    private function input(string $competitionId, RoundResultEntry $entry, null|int $piecesCount, bool $organiser, array $challengeTimes = []): StandingEntryInput
+    private function input(string $competitionId, RoundResultEntry $entry, null|int $piecesCount, bool $organiser, array $challengeTimes = [], bool $ofDivision = false): StandingEntryInput
     {
+        // A standing of one division (real events L2a) shows the place within the division
+        $rank = $ofDivision ? $entry->divisionRank : $entry->rank;
+        $divisionId = $entry->division !== null ? strtolower($entry->division->id) : null;
+
         if ($entry->participantId !== null) {
             return new StandingEntryInput(
                 key: 'p:' . strtolower($entry->participantId),
                 result: $entry->result,
-                rank: $entry->rank,
+                rank: $rank,
                 piecesCount: $piecesCount,
                 name: $entry->displayName(),
                 countries: $entry->countries,
@@ -557,6 +584,7 @@ SQL, ['competitionId' => $competitionId]);
                 missingPieces: $entry->missingPieces,
                 challengeTimes: $challengeTimes,
                 qualified: $entry->isQualified(),
+                divisionId: $divisionId,
             );
         }
 
@@ -566,7 +594,7 @@ SQL, ['competitionId' => $competitionId]);
             // The exact set of people - a substitute makes another line-up; a pair/team without people is its own
             key: $participantIds !== [] ? 'l:' . CompetitionLineupId::of($competitionId, $participantIds) : 't:' . $entry->ref->id,
             result: $entry->result,
-            rank: $entry->rank,
+            rank: $rank,
             piecesCount: $piecesCount,
             name: $entry->displayName(),
             countries: $entry->countries,
@@ -579,6 +607,7 @@ SQL, ['competitionId' => $competitionId]);
             missingPieces: $entry->missingPieces,
             challengeTimes: $challengeTimes,
             qualified: $entry->isQualified(),
+            divisionId: $divisionId,
         );
     }
 }

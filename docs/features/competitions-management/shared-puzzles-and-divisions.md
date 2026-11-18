@@ -834,3 +834,46 @@ that does not use the division shows every entry. The editor offers the event's 
 "Demo events") uses the divisions (event divisions, round subsets, entry divisions through `SetCompetitionDivisions` +
 `SetRoundEntryDivisions`) and one puzzle shared by three team rounds of a category - attached through
 `SetCompetitionRoundPuzzles` (S2).
+
+
+## As built: D7 (standings per division - real events L2a, 2026-11-18)
+
+- **Model** (migration `Version20261118170000`, hand-written under no-Docker mode, FK/index names as Doctrine generates
+  them): `competition_standing.division_id` uuid NULL → `competition_division` `ON DELETE SET NULL`
+  (`CompetitionStanding::$division`, lazy `ManyToOne`). null = everybody - every existing standing.
+- **Delete decision:** a division a standing is limited to is **never removed** - `SetCompetitionDivisions` refuses
+  `used_by_standing` (subject = the standing's name; page 422, internal API 422 `used_by_standing`) when the division
+  leaves the list **or** leaves a round the standing counts; edit or delete the standing first. The `SET NULL` is the
+  database's last resort only (a standing silently turning into everybody's would mislead its public page).
+- **Writes:** `CreateCompetitionStanding::$divisionId` (null), `EditCompetitionStanding::$divisionId` (`false` = kept,
+  the wizard's "rounds added later"; null = cleared). `CompetitionStandingDivision::validated()`: a division of the event
+  (`unknown_division`) that **every** round of the standing uses (`division_not_in_round`). `sum` only - a `stages`
+  standing's division is dropped (the bracket's places are overall ones). A division standing never joins new rounds in
+  the creation wizard (they do not use its division yet).
+- **The rule (definition):** `StandingRoundInput::forDivision()` - in each round only the entries **carrying the
+  division** count. An entrant whose division differs between rounds is counted **only in the rounds where it is in
+  it**; in the others it is "not in the round" (`not_in_round`, missing → incomplete) and **never a no-show** under
+  `as_zero_pieces` (`outsideKeys`) - it played there, in another division. An entry without a division is outside every
+  division standing. A round counts once something of the division is recorded (organiser) / ranked (public) in it - a
+  round where nobody of the division is yet makes nobody missing. Each cell shows the place **within the division**
+  (`divisionRank`). Name and people of a row come from its division entries only; the hidden-from-viewer flag too.
+  No statement more (entries carry their division; the standing's division is one JSON column of the statement that
+  reads it - `GetCompetitionStandings::divisionSql()`, also `GetPublicStandingHead`).
+- **Surfaces:** standing form "Division" select (only when the event has divisions, in the sum-only part; placeholder
+  "Everybody"), standings page badge + "Create one standing per category and division" (only for an event with
+  divisions: per category × division its rounds use, the category's rounds using it, default rules, "Overall - Solo -
+  Senior 55+"; skips pairs that have one; the overall "one per category" now counts only standings without a division
+  as covering a category), public page badge in the title (only when the name does not say it, like the category), organiser JSON
+  `standing.division {id, name, shortName}`, public JSON `standing.division {name, shortName}`, snapshot `division` -
+  all only for a standing with a division; every other standing byte-identical (pinned).
+- **Duplicate** copies the division mapped to the copy's division (divisions are copied first).
+- **Not built / edges:** the displays' standings element shows the standing's name only (a per-division name says it);
+  the desk's "N entries without a result will count as no-shows in <standing>" counts every entry of the round, also
+  for a division standing; no dedicated canary for a division standing's page (same page, `OfficialEntrantsView`
+  entries, hidden after ranking like the overall one); the sandbox demo has no division standing (one solo round with
+  divisions only).
+- **Tests:** `tests/Services/CompetitionToolkit/StandingCalculatorDivisionTest.php` (filter, counted, changing division,
+  never a no-show), `tests/CompetitionToolkit/Divisions/DivisionStandingsTest.php` (organiser view + cell ranks, as_zero,
+  refusals, edit kept/cleared, `used_by_standing`, untouched standing byte-identical - organiser JSON, guest view,
+  fragment -, public page + JSON, form, one per category and division, duplicate).
+

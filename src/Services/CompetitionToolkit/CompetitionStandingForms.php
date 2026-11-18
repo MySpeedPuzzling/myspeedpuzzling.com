@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\FormData\CompetitionStandingFormData;
 use SpeedPuzzling\Web\FormType\CompetitionStandingFormType;
 use SpeedPuzzling\Web\Query\GetBracketRounds;
 use SpeedPuzzling\Web\Query\GetCompetitionAdvancementSteps;
+use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Results\Bracket\Bracket;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -19,7 +20,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The standing form of the add and edit pages (competition toolkit A6): the event's rounds labelled "Name · Category".
  * The "final classification across the bracket" choice (v2 S5) is offered once the event has a bracket of a category
- * (bracketCategories(): the bracket page's own layout over the declared advancement steps).
+ * (bracketCategories(): the bracket page's own layout over the declared advancement steps). The "Division" select (real
+ * events L2a) only when the event has divisions.
  */
 readonly final class CompetitionStandingForms
 {
@@ -28,6 +30,7 @@ readonly final class CompetitionStandingForms
         private GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private GetCompetitionAdvancementSteps $getCompetitionAdvancementSteps,
         private GetBracketRounds $getBracketRounds,
+        private GetCompetitionDivisions $getCompetitionDivisions,
         private TranslatorInterface $translator,
     ) {
     }
@@ -44,9 +47,16 @@ readonly final class CompetitionStandingForms
             $labels[$round->id] = $round->name . ' · ' . $this->translator->trans('competition.round.category.' . $round->category->value);
         }
 
+        // Real events L2a: the event's divisions, when it has any - the Division select
+        $divisions = [];
+        foreach ($this->getCompetitionDivisions->ofCompetition($competitionId) as $division) {
+            $divisions[strtolower($division->id)] = $division->name;
+        }
+
         return $this->formFactory->create(CompetitionStandingFormType::class, $data, [
             'action' => $action,
             'rounds' => $labels,
+            'divisions' => $divisions,
             // A standing classified across a bracket stays editable after its steps went away (the handler refuses it)
             'stages_available' => $bracketCategories !== [] || $data->mode === StandingMode::Stages,
         ]);

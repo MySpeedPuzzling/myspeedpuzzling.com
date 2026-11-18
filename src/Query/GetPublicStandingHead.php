@@ -26,9 +26,10 @@ readonly final class GetPublicStandingHead
             return null;
         }
 
+        $division = GetCompetitionStandings::divisionSql('s');
         $row = $this->database->fetchAssociative(<<<SQL
 SELECT s.id, s.competition_id, s.name, s.slug, s.category, s.mode, s.round_ids, s.unfinished_penalty_seconds_per_piece, s.order_rule,
-    s.missing_rule, s.penalise_finished_missing, s.position, s.published_at, s.numbered_across_stages, c.slug AS event_slug, cs.slug AS series_slug
+    s.missing_rule, s.penalise_finished_missing, s.position, s.published_at, s.numbered_across_stages, {$division} AS division, c.slug AS event_slug, cs.slug AS series_slug
 FROM competition_standing s
 INNER JOIN competition c ON c.id = s.competition_id
 LEFT JOIN competition_series cs ON cs.id = c.series_id

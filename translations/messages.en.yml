@@ -16138,3 +16138,15 @@ shared_round:
         linked: "Your time is in the round now."
         not_a_candidate: "This time can't be placed in that round - the round doesn't have this puzzle for solo, pairs or teams like your time."
         try_again: "That did not work - please try again."
+standing_division:
+    form:
+        label: "Division"
+        help: "Only entrants of this division count - in each round, with their entry in that division. Every round of the standing must use it (Divisions page)."
+        everybody: "Everybody (no division)"
+    per_division: "Create one standing per category and division"
+    per_division_help: "One standing for each division over the rounds of a category that use it, with the default rules: %standings%."
+    per_division_name: "Overall - %category% - %division%"
+    refused:
+        unknown_division: "That division is not one of this event's any more - reload the page."
+        division_not_in_round: "Every round of a division's standing must use that division - tick it for the rounds on the Divisions page, or leave those rounds out."
+        used_by_standing: "The standing \"%subject%\" counts only this division - change or delete that standing first."

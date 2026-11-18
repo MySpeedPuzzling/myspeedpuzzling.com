@@ -15882,3 +15882,15 @@ shared_round:
         linked: "Váš čas je teď v kole."
         not_a_candidate: "Tento čas nelze zařadit do tohoto kola - kolo nemá toto puzzle pro jednotlivce, páry nebo týmy jako váš čas."
         try_again: "To se nepovedlo - zkuste to prosím znovu."
+standing_division:
+    form:
+        label: "Divize"
+        help: "Počítají se jen soutěžící této divize - v každém kole se svým záznamem v této divizi. Každé kolo celkového pořadí ji musí používat (stránka Divize)."
+        everybody: "Všichni (bez divize)"
+    per_division: "Vytvořit jedno celkové pořadí pro každou kategorii a divizi"
+    per_division_help: "Jedno celkové pořadí pro každou divizi přes kola kategorie, která ji používají, s výchozími pravidly: %standings%."
+    per_division_name: "Celkově - %category% - %division%"
+    refused:
+        unknown_division: "Tato divize už nepatří k této akci - načtěte stránku znovu."
+        division_not_in_round: "Každé kolo celkového pořadí divize musí tuto divizi používat - zaškrtněte ji u kol na stránce Divize, nebo tato kola vynechte."
+        used_by_standing: "Celkové pořadí „%subject%“ počítá jen tuto divizi - nejdřív ho změňte nebo smažte."

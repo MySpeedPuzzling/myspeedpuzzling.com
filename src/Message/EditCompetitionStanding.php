@@ -30,6 +30,8 @@ readonly final class EditCompetitionStanding implements SerializedByLock
         // Competition toolkit v2 S5 - null = kept as it is (the wizard's "rounds added later" edits only the rounds)
         public null|StandingMode $mode = null,
         public null|bool $numberedAcrossStages = null,
+        // Real events L2a: limited to one division of the event (sum only) - null = everybody, false = kept as it is
+        public null|false|string $divisionId = false,
     ) {
     }
 

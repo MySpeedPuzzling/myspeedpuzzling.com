@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Results\PublicStandingSnapshot;
  * A `stages` standing (competition toolkit v2 S5) adds `standing.numberedAcrossStages` and per row `stage` (1 = the
  * first), `stageName` (its rounds' names), `stageRoundId` + `stageRank` (its round there and its place in it - null
  * for a row "qualified for" a stage not classified yet) and `qualifiedForStage`; `rank` is the number across the stages
- * when numbered, else null. A `sum` standing's JSON has none of them.
+ * when numbered, else null. A `sum` standing's JSON has none of them. A standing limited to one division (real events
+ * L2a) adds `standing.division` {name, shortName}; every other standing's JSON is unchanged.
  */
 final class PublicStandingJson
 {
@@ -45,6 +46,8 @@ final class PublicStandingJson
                 ],
                 'url' => $standingUrl,
                 ...(isset($data['numberedAcrossStages']) ? ['numberedAcrossStages' => $data['numberedAcrossStages']] : []),
+                // Real events L2a: only a standing limited to one division - its name and short label, never its id
+                ...(isset($data['division']) ? ['division' => ['name' => $data['division']['name'], 'shortName' => $data['division']['shortName']]] : []),
             ],
             'rounds' => array_map(static fn (array $round): array => [
                 'id' => $round['id'],

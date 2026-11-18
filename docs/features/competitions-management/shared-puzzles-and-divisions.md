@@ -819,3 +819,11 @@ in, otherwise divisions are set in the sheet or through the internal API.
   id / name, counts, empty division, unknown value, hidden player keeps ranks, pair round, round without divisions,
   competitor page + JSON, tags/tents/line-ups/legacy tags).
 - Keys `round_results.division.*` (English; the other locales in package H).
+
+
+## As built: sandbox demo (real events DM, 2026-11-18)
+
+"Winter Carnival Jigsaw - demo" on the sandbox (`myspeedpuzzling:sandbox:demo-events`, `docs/features/sandbox/README.md`
+"Demo events") uses the divisions (event divisions, round subsets, entry divisions through `SetCompetitionDivisions` +
+`SetRoundEntryDivisions`) and one puzzle shared by three team rounds of a category - attached through
+`SetCompetitionRoundPuzzles` (S2).

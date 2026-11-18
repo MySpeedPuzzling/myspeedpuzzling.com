@@ -14393,6 +14393,7 @@ competition_display:
         delete: "Smazat"
         delete_confirm: "Smazat zobrazení „%name%“? Jeho odkaz přestane fungovat."
         limit: "Událost může mít nejvýše %max% zobrazení."
+        live_control: "Živé ovládání"
     flash:
         added: "Zobrazení přidáno."
         saved: "Nastavení zobrazení uloženo."
@@ -14544,6 +14545,7 @@ competition_display:
             category: "Jednotlivci"
             puzzle: "Ukázkové puzzle"
             standing: "Šampionát jednotlivců"
+            message: "Přestávka - další kolo 14:30"
         group:
             clock: "Stopky"
             text: "Text"
@@ -14567,6 +14569,8 @@ competition_display:
             finished_count: "Počet dokončených"
             ticker: "Poslední dokončení"
             standings: "Celkové pořadí"
+            message: "Živá zpráva"
+            spotlight: "Spotlight"
         section:
             general: "Prvek"
             position: "Pozice a velikost (% obrazovky)"
@@ -14651,6 +14655,15 @@ competition_display:
             clock:
                 seconds: "Zobrazit sekundy"
                 format: "Hodiny"
+            maxLines: "Nejvýše řádků"
+            message:
+                whenEmpty: "Bez zprávy"
+                emptyText: "Text bez zprávy"
+            pick: "Ukazuje"
+            spotlight:
+                show: "Zobrazit"
+                whenEmpty: "Nikdo ve spotlightu"
+                emptyText: "Text, když nikdo není ve spotlightu"
         style:
             font: "Písmo"
             fontSize: "Velikost písma (px při 1080p)"
@@ -14764,6 +14777,42 @@ competition_display:
             500: "Střední"
             700: "Tučné"
             900: "Velmi tučné"
+            chosen: "Koho vyberete v živém ovládání"
+            latest_finisher: "Poslední, kdo dokončil"
+competition_display_control:
+    title: "Živé ovládání"
+    round: "Kolo"
+    no_displays: "Tato událost zatím nemá žádné zobrazení - nejdřív nějaké přidejte."
+    offline: "Bez připojení - nic se nezměnilo. Zkuste to znovu."
+    open: "Živé ovládání"
+    stopwatch_card: "Spotlight na zobrazeních"
+    no_elements:
+        message: "Zatím žádné zobrazení neukazuje zprávu - přidejte do návrhu zobrazení prvek Živá zpráva."
+        spotlight: "Zatím žádné zobrazení neukazuje spotlight - přidejte do návrhu zobrazení prvek Spotlight."
+    spotlight:
+        title: "Spotlight"
+        current: "Teď ve spotlightu"
+        none: "Nikdo"
+        gone: "Už není v tomto kole"
+        clear: "Zrušit spotlight"
+        filter: "Stůl nebo jméno"
+        just_finished: "Právě dokončili"
+        empty: "V tomto kole zatím nikdo není."
+        unknown_entry: "Tento soutěžící už v kole není. Vyberte jiného."
+        failed: "Spotlight se nepodařilo změnit. Zkuste to znovu."
+    message:
+        title: "Zpráva na zobrazeních"
+        label: "Nová zpráva"
+        placeholder: "Přestávka - další kolo 14:30"
+        set: "Zobrazit"
+        clear: "Zrušit"
+        none: "Na zobrazeních není žádná zpráva."
+        recent: "Nedávné - klepnutím znovu zobrazíte"
+        too_long: "Zpráva může mít nejvýše %max% znaků."
+        failed: "Zprávu se nepodařilo změnit. Zkuste to znovu."
+    preview:
+        title: "Náhled"
+        show: "Zobrazit náhled"
 time_proposal:
     reason:
         sign_in_required: "Pro navržení svého času se přihlaste."

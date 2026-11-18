@@ -172,5 +172,7 @@
                 {% endif %}
             </div>
         </div>
+{# Spotlight on displays (competition toolkit v2 L2) - only for an event with displays (CompetitionDisplaysPresence, cached);
+   written so the page is byte-identical without them #}{% if display_spotlight %}{{ include('competition_toolkit/_stopwatch_spotlight_card.html.twig') }}{% endif %}
     </div>
 {% endblock %}

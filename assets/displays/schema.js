@@ -14,11 +14,13 @@ export const MAX_BYTES = 65536;
 
 export const ELEMENT_TYPES = [
     'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings',
+    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message', 'spotlight',
 ];
 // The standings element's columns (competition toolkit v2 S2) - `stage` shows only once a standing has stages
 export const STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
-export const RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker'];
+export const RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker', 'spotlight'];
+// What the spotlight element shows of its entry (competition toolkit v2 L2)
+export const SPOTLIGHT_SHOW = ['table', 'name', 'members', 'flag', 'result', 'rank'];
 export const FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
 export const PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
 
@@ -173,6 +175,22 @@ export const PROP_SPECS = {
                 { key: 'gap', kind: 'int', min: 0, max: 40, default: 4 },
             ],
         },
+        { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+        { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
+    ],
+    // The live control's message (competition toolkit v2 L1, displays-standings.md §5.2) - the text is set on the live
+    // control page, never in the design
+    message: [
+        { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+        { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
+        { key: 'maxLines', kind: 'int', min: 1, max: 4, default: 2 },
+    ],
+    // The live control's spotlight (competition toolkit v2 L2): the entry chosen on the live control or the latest
+    // finisher; its result and rank only as the source allows (a results type)
+    spotlight: [
+        { key: 'pick', kind: 'enum', options: ['chosen', 'latest_finisher'], default: 'chosen' },
+        { key: 'show', kind: 'subset', options: SPOTLIGHT_SHOW, default: ['table', 'name', 'flag', 'result'] },
+        ...RESULTS_SOURCE_SPEC,
         { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
         { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
     ],

@@ -30,6 +30,9 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
      * @param null|array<string, null|array<string, mixed>> $standings element id => the published standing it shows
      *                                                                 (DisplayStandings); null = no shown standings
      *                                                                 element - the key is left out of the answer then
+     * @param null|array{message: null|string, spotlight: null|DisplayResultRow} $control the live control (v2 L1/L2) -
+     *                                                                                 null = no shown message / spotlight
+     *                                                                                 element, the key is left out then
      */
     public function __construct(
         public string $displayId,
@@ -50,6 +53,7 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
         public null|CompetitionReference $event = null,
         public null|string $roundSlug = null,
         public null|array $standings = null,
+        public null|array $control = null,
     ) {
     }
 
@@ -77,6 +81,11 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
         // Only a design with a standings element has the key - every other design's answer stays as it was
         if ($this->standings !== null) {
             $answer['standings'] = $this->standings === [] ? new \stdClass() : $this->standings;
+        }
+
+        // Only a design with a message / spotlight element has the key (v2 L1/L2)
+        if ($this->control !== null) {
+            $answer['control'] = $this->control;
         }
 
         return $answer;

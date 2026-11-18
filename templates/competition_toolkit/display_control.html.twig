@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The live control of an event's displays (competition toolkit v2 L1/L2, displays-standings.md §5.3) - phone first.
+    A data-free shell: display_control_controller.js fills it from competition_display_control_state.
+    Variables: competition, rounds (list<RoundResultsOverview>), round_id, displays, csrf_token.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition_display_control.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_toolkit.title'|trans, url: path('competition_toolkit', {competitionId: competition.id})},
+        {label: 'competition_display.list.title'|trans, url: path('competition_displays', {competitionId: competition.id})},
+        {label: 'competition_display_control.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_displays', {competitionId: competition.id}), fallbackTitle: 'competition_display.list.title'|trans}) }}
+
+    <div class="pb-4" style="max-width: 40rem;" data-display-control
+         data-controller="display-control"
+         data-display-control-config-value="{{ {
+             stateUrl: path('competition_display_control_state', {competitionId: competition.id}),
+             messageUrl: path('set_display_message', {competitionId: competition.id}),
+             spotlightUrl: path('set_round_spotlight', {roundId: '00000000-0000-0000-0000-000000000000'})|replace({'00000000-0000-0000-0000-000000000000': '__ROUND__'}),
+             csrfToken: csrf_token,
+             roundId: round_id,
+             texts: {
+                 messageNone: 'competition_display_control.message.none'|trans,
+                 messageFailed: 'competition_display_control.message.failed'|trans,
+                 message_too_long: 'competition_display_control.message.too_long'|trans({'%max%': 200}),
+                 message_no_displays: 'competition_display_control.no_displays'|trans,
+                 message_offline: 'competition_display_control.offline'|trans,
+             },
+         }|json_encode|e('html_attr') }}">
+        <h1 class="h3 mb-0">{{ 'competition_display_control.title'|trans }}</h1>
+        <p class="text-muted">{{ competition.name }}</p>
+
+        {% if displays is empty %}
+            <div class="alert alert-info" data-display-control-no-displays>
+                {{ 'competition_display_control.no_displays'|trans }}
+                <a href="{{ path('competition_displays', {competitionId: competition.id}) }}" class="alert-link">{{ 'competition_display.list.title'|trans }}</a>
+            </div>
+        {% endif %}
+
+        {% if rounds is not empty %}
+            <div class="mb-3">
+                <label for="display-control-round" class="form-label fw-semibold">{{ 'competition_display_control.round'|trans }}</label>
+                <select id="display-control-round" class="form-select" data-display-control-target="round" data-action="change->display-control#roundChanged">
+                    {% for round in rounds %}
+                        <option value="{{ round.roundId }}"{{ round.roundId == round_id ? ' selected' }}>{{ round.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+        {# The round's spotlight - one tap on a chip (L2) #}
+        {% if rounds is not empty %}
+            <section class="card shadow-sm mb-3" data-display-control-spotlight>
+                <div class="card-body">
+                    <h2 class="h5">{{ 'competition_display_control.spotlight.title'|trans }}</h2>
+                    {{ include('competition_toolkit/_display_spotlight_picker.html.twig') }}
+                </div>
+            </section>
+        {% endif %}
+
+        {# The message every display with a Message element shows (L1) #}
+        <section class="card shadow-sm mb-3" data-display-control-message>
+            <div class="card-body">
+                <h2 class="h5">{{ 'competition_display_control.message.title'|trans }}</h2>
+                <p class="mb-2 fs-5 fw-semibold text-break" data-display-control-target="currentMessage" aria-live="polite"></p>
+
+                <form class="mb-2" data-display-control-target="messageForm" data-action="submit->display-control#setMessage" novalidate>
+                    <label for="display-control-message" class="form-label">{{ 'competition_display_control.message.label'|trans }}</label>
+                    <input type="text" id="display-control-message" class="form-control mb-2" maxlength="200" autocomplete="off"
+                           placeholder="{{ 'competition_display_control.message.placeholder'|trans }}" data-display-control-target="messageInput">
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'competition_display_control.message.set'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-display-control-target="clearMessage" data-action="display-control#clearMessage" disabled>
+                            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ 'competition_display_control.message.clear'|trans }}
+                        </button>
+                    </div>
+                </form>
+                <div class="alert alert-danger py-1 px-2 small mb-2" role="alert" data-display-control-target="messageError" hidden></div>
+
+                <div data-display-control-target="recent" hidden>
+                    <div class="small text-muted mb-1">{{ 'competition_display_control.message.recent'|trans }}</div>
+                    <div class="d-flex flex-wrap gap-2" data-display-control-target="recentList"></div>
+                </div>
+
+                <p class="small text-muted mt-2 mb-0" data-display-control-target="messageHint" hidden>{{ 'competition_display_control.no_elements.message'|trans }}</p>
+            </div>
+        </section>
+
+        {# A display as it looks now - loaded only on demand (it is a live display of its own) #}
+        {% if displays is not empty %}
+            <section class="card shadow-sm" data-display-control-preview>
+                <div class="card-body">
+                    <h2 class="h5">{{ 'competition_display_control.preview.title'|trans }}</h2>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <select class="form-select w-auto flex-grow-1" aria-label="{{ 'competition_display_control.preview.title'|trans }}" data-display-control-target="previewSelect">
+                            {% for display in displays %}
+                                <option value="{{ url('competition_display', {token: display.token}) }}">{{ display.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" data-action="display-control#showPreview">
+                            <i class="bi bi-eye me-1" aria-hidden="true"></i>{{ 'competition_display_control.preview.show'|trans }}
+                        </button>
+                    </div>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden bg-dark" data-display-control-target="previewWrap" hidden>
+                        <iframe data-display-control-target="previewFrame" title="{{ 'competition_display_control.preview.title'|trans }}" loading="lazy" referrerpolicy="no-referrer"></iframe>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

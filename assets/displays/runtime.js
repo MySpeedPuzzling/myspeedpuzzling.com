@@ -3,7 +3,7 @@
 // fetch, the clock, timers, the Mercure stream and the renderer; tests/display-runtime-harness.mjs drives it with fakes.
 //
 // - First state inline (CompetitionDisplayPayload), then GET /display/{token}/state: on every display signal
-//   (throttled - one fetch per SIGNAL_DEBOUNCE_MS at most, one in flight), every 60 s as a safety net (every 5 s while
+//   (throttled - one fetch per SIGNAL_DEBOUNCE_MS at most, one in flight; a `control` signal at once), every 60 s as a safety net (every 5 s while
 //   the stream is down), at the state's `refreshAtMs` (a reveal, a round switch; + up to 250 ms jitter), 2 s before and
 //   1 s after a scheduled start, and when the page becomes visible again.
 // - Stopwatch pushes of the shown round are applied at once (newest `asOfMs` wins); one of another followed round
@@ -87,6 +87,7 @@ export class DisplayRuntime {
         this.timers = {};
         this.inFlight = null;
         this.fetchAgain = false;
+        this.fetchAgainUrgent = false;
         this.designVersion = typeof state?.designVersion === 'number' ? state.designVersion : 0;
         this.designLoading = null;
         this.build = typeof state?.rendererBuild === 'string' ? state.rendererBuild : null;
@@ -168,6 +169,15 @@ export class DisplayRuntime {
         }
 
         if (message.type === 'display.signal') {
+            // The live control (v2 L1/L2): a tap on the organiser's phone - fetched at once, no debounce (a fetch in
+            // flight fetches once more after it)
+            if (message.what === 'control') {
+                this.clear('signal');
+                this.refresh({ urgent: true });
+
+                return;
+            }
+
             this.signal();
 
             return;
@@ -222,15 +232,17 @@ export class DisplayRuntime {
 
     /**
      * Fetches the state - one at a time; a call while one runs fetches once more after it. Resolves to the kind
-     * official_results_events.js understands (ok / forbidden / error).
+     * official_results_events.js understands (ok / forbidden / error). `urgent` (a live control signal): the fetch after
+     * a running one follows at once instead of after SIGNAL_DEBOUNCE_MS.
      */
-    refresh() {
+    refresh({ urgent = false } = {}) {
         if (this.closed) {
             return Promise.resolve('error');
         }
 
         if (this.inFlight !== null) {
             this.fetchAgain = true;
+            this.fetchAgainUrgent = this.fetchAgainUrgent || urgent;
 
             return this.inFlight;
         }
@@ -248,8 +260,16 @@ export class DisplayRuntime {
                 const kind = this.received(answer);
 
                 if (this.fetchAgain && !this.closed) {
+                    const urgentAgain = this.fetchAgainUrgent;
                     this.fetchAgain = false;
-                    this.signal();
+                    this.fetchAgainUrgent = false;
+
+                    if (urgentAgain) {
+                        this.clear('signal');
+                        this.refresh();
+                    } else {
+                        this.signal();
+                    }
                 }
 
                 return kind;

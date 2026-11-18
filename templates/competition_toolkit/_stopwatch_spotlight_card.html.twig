@@ -1,0 +1,23 @@
+{#
+    "Spotlight on displays" on the round's stopwatch page (competition toolkit v2 L2, displays-standings.md §5.3) - a
+    data-free shell; the picker loads the round's entries lazily (display_control_controller.js). One tap on a chip puts
+    the entry on every display of the round. Variables: round, competition.
+#}
+        <section class="card mt-4" data-display-spotlight-card
+                 data-controller="display-control"
+                 data-display-control-config-value="{{ {
+                     stateUrl: path('competition_display_control_state', {competitionId: competition.id, round: round.id}),
+                     spotlightUrl: path('set_round_spotlight', {roundId: round.id}),
+                     csrfToken: csrf_token('official_results'),
+                     roundId: round.id.toString,
+                 }|json_encode|e('html_attr') }}">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2">
+                    <h2 class="h5 mb-2">{{ 'competition_display_control.stopwatch_card'|trans }}</h2>
+                    <a href="{{ path('competition_display_control', {competitionId: competition.id, round: round.id}) }}" class="small" data-display-control-page-link>
+                        {{ 'competition_display_control.open'|trans }}
+                    </a>
+                </div>
+                {{ include('competition_toolkit/_display_spotlight_picker.html.twig') }}
+            </div>
+        </section>

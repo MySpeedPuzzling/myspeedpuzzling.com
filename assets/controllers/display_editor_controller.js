@@ -194,7 +194,7 @@ export default class extends Controller {
             nowMs: Date.now() + this.clockOffsetMs,
             design: this.state.design,
             images: this.images,
-            labels: { round: this.t('sample.round'), category: this.t('sample.category'), puzzle: this.t('sample.puzzle'), standing: this.t('sample.standing') },
+            labels: { round: this.t('sample.round'), category: this.t('sample.category'), puzzle: this.t('sample.puzzle'), standing: this.t('sample.standing'), message: this.t('sample.message') },
             standingTexts: this.config.standingTexts ?? {},
         });
     }

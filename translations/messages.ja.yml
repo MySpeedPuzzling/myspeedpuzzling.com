@@ -14380,6 +14380,7 @@ competition_display:
         delete: "削除"
         delete_confirm: "ディスプレイ「%name%」を削除しますか？ リンクは使えなくなります。"
         limit: "1つのイベントに作成できるディスプレイは%max%個までです。"
+        live_control: "ライブ操作"
     flash:
         added: "ディスプレイを追加しました。"
         saved: "ディスプレイの設定を保存しました。"
@@ -14531,6 +14532,7 @@ competition_display:
             category: "ソロ"
             puzzle: "サンプルパズル"
             standing: "個人選手権"
+            message: "休憩 - 次のラウンドは14:30"
         group:
             clock: "時計"
             text: "テキスト"
@@ -14554,6 +14556,8 @@ competition_display:
             finished_count: "完成数"
             ticker: "最新の完成者"
             standings: "総合順位"
+            message: "ライブメッセージ"
+            spotlight: "スポットライト"
         section:
             general: "要素"
             position: "位置とサイズ（画面の%）"
@@ -14638,6 +14642,15 @@ competition_display:
             clock:
                 seconds: "秒を表示"
                 format: "時計"
+            maxLines: "最大行数"
+            message:
+                whenEmpty: "メッセージがないとき"
+                emptyText: "メッセージがないときのテキスト"
+            pick: "表示内容"
+            spotlight:
+                show: "表示"
+                whenEmpty: "スポットライトに誰もいないとき"
+                emptyText: "スポットライトに誰もいないときのテキスト"
         style:
             font: "フォント"
             fontSize: "フォントサイズ（1080p時のpx）"
@@ -14751,6 +14764,42 @@ competition_display:
             500: "中太"
             700: "太字"
             900: "極太"
+            chosen: "ライブ操作で選んだ人"
+            latest_finisher: "最後に完成した人"
+competition_display_control:
+    title: "ライブ操作"
+    round: "ラウンド"
+    no_displays: "このイベントにはまだ表示がありません。まず追加してください。"
+    offline: "接続がありません。何も変更されていません。もう一度お試しください。"
+    open: "ライブ操作"
+    stopwatch_card: "表示のスポットライト"
+    no_elements:
+        message: "メッセージを表示する表示はまだありません。表示デザインに「ライブメッセージ」要素を追加してください。"
+        spotlight: "スポットライトを表示する表示はまだありません。表示デザインに「スポットライト」要素を追加してください。"
+    spotlight:
+        title: "スポットライト"
+        current: "現在スポットライト中"
+        none: "なし"
+        gone: "このラウンドにはもういません"
+        clear: "スポットライトを解除"
+        filter: "テーブルまたは名前"
+        just_finished: "完成したばかり"
+        empty: "このラウンドにはまだ誰も登録されていません。"
+        unknown_entry: "このエントリーはもうラウンドにいません。別の人を選んでください。"
+        failed: "スポットライトを変更できませんでした。もう一度お試しください。"
+    message:
+        title: "表示のメッセージ"
+        label: "新しいメッセージ"
+        placeholder: "休憩 - 次のラウンドは14:30"
+        set: "表示"
+        clear: "解除"
+        none: "表示中のメッセージはありません。"
+        recent: "最近 - タップで再表示"
+        too_long: "メッセージは最大%max%文字です。"
+        failed: "メッセージを変更できませんでした。もう一度お試しください。"
+    preview:
+        title: "プレビュー"
+        show: "プレビューを表示"
 time_proposal:
     reason:
         sign_in_required: "タイムを申告するにはサインインしてください。"

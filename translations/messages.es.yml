@@ -14391,6 +14391,7 @@ competition_display:
         delete: "Eliminar"
         delete_confirm: "¿Eliminar la pantalla «%name%»? Su enlace deja de funcionar."
         limit: "Un evento puede tener como máximo %max% pantallas."
+        live_control: "Control en directo"
     flash:
         added: "Pantalla añadida."
         saved: "Ajustes de la pantalla guardados."
@@ -14542,6 +14543,7 @@ competition_display:
             category: "Individual"
             puzzle: "Puzzle de ejemplo"
             standing: "Campeonato individual"
+            message: "Pausa: próxima ronda 14:30"
         group:
             clock: "Reloj"
             text: "Texto"
@@ -14565,6 +14567,8 @@ competition_display:
             finished_count: "Número de terminados"
             ticker: "Últimos en terminar"
             standings: "Clasificación general"
+            message: "Mensaje en directo"
+            spotlight: "Foco"
         section:
             general: "Elemento"
             position: "Posición y tamaño (% de la pantalla)"
@@ -14649,6 +14653,15 @@ competition_display:
             clock:
                 seconds: "Mostrar segundos"
                 format: "Reloj"
+            maxLines: "Máximo de líneas"
+            message:
+                whenEmpty: "Sin mensaje"
+                emptyText: "Texto sin mensaje"
+            pick: "Muestra"
+            spotlight:
+                show: "Mostrar"
+                whenEmpty: "Nadie en el foco"
+                emptyText: "Texto cuando no hay nadie en el foco"
         style:
             font: "Fuente"
             fontSize: "Tamaño de fuente (px a 1080p)"
@@ -14762,6 +14775,42 @@ competition_display:
             500: "Media"
             700: "Negrita"
             900: "Extranegrita"
+            chosen: "A quien elijas en el control en directo"
+            latest_finisher: "El último en terminar"
+competition_display_control:
+    title: "Control en directo"
+    round: "Ronda"
+    no_displays: "Este evento aún no tiene pantallas: añade una primero."
+    offline: "Sin conexión: no se cambió nada. Inténtalo de nuevo."
+    open: "Control en directo"
+    stopwatch_card: "Foco en las pantallas"
+    no_elements:
+        message: "Ninguna pantalla muestra todavía un mensaje: añade el elemento Mensaje en directo a un diseño de pantalla."
+        spotlight: "Ninguna pantalla muestra todavía el foco: añade el elemento Foco a un diseño de pantalla."
+    spotlight:
+        title: "Foco"
+        current: "Ahora en el foco"
+        none: "Nadie"
+        gone: "Ya no está en esta ronda"
+        clear: "Quitar el foco"
+        filter: "Mesa o nombre"
+        just_finished: "Acaban de terminar"
+        empty: "Aún no hay nadie inscrito en esta ronda."
+        unknown_entry: "Esta entrada ya no está en la ronda. Elige otra."
+        failed: "No se pudo cambiar el foco. Inténtalo de nuevo."
+    message:
+        title: "Mensaje en las pantallas"
+        label: "Nuevo mensaje"
+        placeholder: "Pausa: próxima ronda 14:30"
+        set: "Mostrar"
+        clear: "Quitar"
+        none: "No hay ningún mensaje en las pantallas."
+        recent: "Recientes: toca para mostrar de nuevo"
+        too_long: "Un mensaje puede tener como máximo %max% caracteres."
+        failed: "No se pudo cambiar el mensaje. Inténtalo de nuevo."
+    preview:
+        title: "Vista previa"
+        show: "Mostrar vista previa"
 time_proposal:
     reason:
         sign_in_required: "Inicia sesión para proponer tu tiempo."

@@ -438,3 +438,49 @@
 .msp-standings__empty {
     text-align: left;
 }
+
+// ---- live control (competition toolkit v2 L1/L2)
+
+.msp-el__message {
+    max-width: 100%;
+}
+
+.msp-spotlight__top {
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    max-width: 100%;
+    white-space: nowrap;
+}
+
+.msp-spotlight__rank {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.85;
+}
+
+.msp-spotlight__flags {
+    display: inline-flex;
+    gap: 0.2em;
+    font-size: 0.8em;
+}
+
+.msp-spotlight__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.msp-spotlight__members {
+    font-size: 0.55em;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.msp-spotlight__detail {
+    font-size: 0.6em;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.9;
+    white-space: nowrap;
+}

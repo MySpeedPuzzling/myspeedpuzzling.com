@@ -14,9 +14,9 @@ export const UNDO_LIMIT = 100;
 // The "Add element" menu, grouped (§8.2)
 export const CATALOGUE = [
     { group: 'clock', types: ['timer', 'status', 'progress', 'clock'] },
-    { group: 'text', types: ['text', 'field', 'round_badge'] },
+    { group: 'text', types: ['text', 'field', 'round_badge', 'message'] },
     { group: 'pictures', types: ['image', 'rotator', 'qr', 'box'] },
-    { group: 'results', types: ['leaderboard', 'finished_count', 'ticker', 'standings'] },
+    { group: 'results', types: ['leaderboard', 'finished_count', 'ticker', 'standings', 'spotlight'] },
     { group: 'other', types: ['puzzle'] },
 ];
 
@@ -38,6 +38,10 @@ const DEFAULT_FRAMES = {
     leaderboard: { x: 60, y: 10, w: 35, h: 80 },
     ticker: { x: 5, y: 80, w: 60, h: 15 },
     standings: { x: 58, y: 6, w: 38, h: 88 },
+    // The live control's message: a lower third
+    message: { x: 10, y: 78, w: 80, h: 12 },
+    // The live control's spotlight: a name plate in the lower left
+    spotlight: { x: 4, y: 70, w: 42, h: 20 },
 };
 
 const ID_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';

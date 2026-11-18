@@ -14207,6 +14207,17 @@ competition_toolkit:
         no_shows_wait: "Neúčasti se počítají, jakmile jsou zveřejněny výsledky kola - do té doby se soutěžící bez výsledku v něm ještě nepočítají."
         substitutes_warning: "{0}%count% dvojic nebo týmů se objevuje jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast.|{1}1 dvojice nebo tým se objevuje jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast.|[2,4]%count% dvojice nebo týmy se objevují jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast.|[5,Inf[%count% dvojic nebo týmů se objevuje jen v některých kolech - zkontrolujte náhradníky: změněná sestava je samostatný soutěžící a v kolech, která nehrála, dostane neúčast."
         publish_no_shows: "{0}%count% záznamů bez výsledku se v %standing% započítá jako neúčast.|{1}1 záznam bez výsledku se v %standing% započítá jako neúčast.|[2,4]%count% záznamy bez výsledku se v %standing% započítají jako neúčast.|[5,Inf[%count% záznamů bez výsledku se v %standing% započítá jako neúčast."
+        mode:
+            label: "Jak se rozhoduje"
+            sum: "Součet kol"
+            sum_help: "Časy vybraných kol se sečtou - vyhrává nejnižší součet."
+            stages: "Konečné pořadí podle pavouka"
+            stages_help: "Vpředu je ten, kdo se v pavouku dostal nejdál: nejdřív pořadí finále, pak všichni vyřazení v předchozí fázi podle svého místa v ní a tak dál. Kola se berou z kroků postupu - nevybíráte kola, penalizaci ani pořadí."
+            stages_no_steps: "Konečné pořadí potřebuje kroky postupu: nejdřív nastavte, jak se postupuje z kola do kola (skupiny → semifinále → finále)."
+            stages_categories: "Možné pro: %categories%"
+        numbered: "Očíslovat všechny napříč fázemi"
+        numbered_help: "Seznam 1-200 jako na WJPC; jinak si každá fáze nechá místa svého kola."
+        rule_numbered: "číslováno napříč fázemi"
     divisions:
         title: "Divize"
         intro: "Divize řadí lidi zvlášť uvnitř jednoho kola - např. Regular, Senior 55+ a Junior do 16 let skládají stejné puzzle při stejném startu. Celkové pořadí zůstává; každý záznam s divizí dostane navíc i pořadí v ní. Kola bez divizí fungují jako dřív."
@@ -14810,6 +14821,7 @@ competition_standing:
         wrong_category: "Všechna kola celkového pořadí musí být z jeho kategorie."
         limit_reached: "Událost může mít nejvýše 20 celkových pořadí."
         invalid_name: "Celkové pořadí potřebuje název."
+        no_steps: "Tato kategorie nemá funkční kroky postupu (žádné nejsou nastavené, nebo si odporují) - konečné pořadí je potřebuje."
 public_standing:
     event_links: "Celková pořadí:"
     part_of: "Součást: %name%"
@@ -14833,6 +14845,7 @@ public_standing:
         unfinished: "* nedokončeno: časový limit kola plus penalizace."
         incomplete: "Bez výsledku v některém z kol - uvedeni za všemi ostatními, bez umístění."
         not_published: "– = výsledky daného kola ještě nejsou zveřejněné."
+        stages: "Seřazeno podle dosažené fáze - nejvzdálenější první; (n.) = místo v daném kole."
     organiser:
         published: "Zveřejněno"
         not_published: "Nezveřejněno"
@@ -14846,6 +14859,13 @@ public_standing:
         unpublished: "Celkové pořadí „%name%“ už není veřejné."
     live:
         updated: "Aktualizováno v %time%"
+    stage:
+        reached: "Fáze %number%: %stage%"
+        qualified_for: "Postup do: %stage%"
+        result: "Výsledek"
+        after_stages: "po %counted% z %count% fází"
+        legend_qualified: "Postoupili do fáze, jejíž výsledky ještě nejsou všechny zveřejněné - do té doby bez místa."
+    stages_clash: "Kroky postupu této kategorie chybí nebo si odporují - nikoho nelze zařadit."
 advancement_step:
     card:
         none: "Zatím žádné kroky postupu. Krok určuje, kdo jde dál: „nejlepších 8 z každé skupiny jde do semifinále“."

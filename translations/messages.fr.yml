@@ -14200,6 +14200,17 @@ competition_toolkit:
         no_shows_wait: "Les absences sont comptées une fois les résultats d'une manche publiés - d'ici là, les concurrents sans résultat n'y sont pas encore comptés."
         substitutes_warning: "[0,1]1 duo ou équipe n'apparaît que dans certaines manches - vérifiez les remplaçants : une composition modifiée est un concurrent distinct et reçoit une absence dans les manches qu'elle n'a pas jouées.|]1,Inf[%count% duos ou équipes n'apparaissent que dans certaines manches - vérifiez les remplaçants : une composition modifiée est un concurrent distinct et reçoit une absence dans les manches qu'elle n'a pas jouées."
         publish_no_shows: "[0,1]1 concurrent sans résultat comptera comme absent dans %standing%.|]1,Inf[%count% concurrents sans résultat compteront comme absents dans %standing%."
+        mode:
+            label: "Comment c’est décidé"
+            sum: "Somme des manches"
+            sum_help: "Les temps des manches choisies sont additionnés - le total le plus bas gagne."
+            stages: "Classement final selon le tableau"
+            stages_help: "Devant se trouve qui est allé le plus loin dans le tableau : d’abord les places de la finale, puis tous ceux éliminés à la phase précédente selon leur place, et ainsi de suite. Les manches viennent des étapes de qualification - aucune manche, pénalité ni ordre à choisir."
+            stages_no_steps: "Le classement final a besoin d’étapes de qualification : déclarez d’abord comment on passe d’une manche à l’autre (groupes → demi-finales → finale)."
+            stages_categories: "Possible pour : %categories%"
+        numbered: "Numéroter tout le monde à travers les phases"
+        numbered_help: "Liste 1-200 comme au WJPC ; sinon chaque phase garde les places de sa manche."
+        rule_numbered: "numéroté à travers les phases"
     divisions:
         title: "Divisions"
         intro: "Les divisions classent les gens séparément au sein d'une même manche - p. ex. Regular, Senior 55+ et Junior moins de 16 ans qui assemblent le même puzzle au même départ. Le rang général reste ; chaque concurrent ayant une division obtient aussi son rang dans celle-ci. Les manches sans divisions fonctionnent comme avant."
@@ -14803,6 +14814,7 @@ competition_standing:
         wrong_category: "Toutes les manches d'un classement doivent être de sa catégorie."
         limit_reached: "Un événement peut avoir au maximum 20 classements."
         invalid_name: "Le classement a besoin d'un nom."
+        no_steps: "Cette catégorie n’a pas d’étapes de qualification valides (aucune déclarée, ou elles se contredisent) - un classement final en a besoin."
 public_standing:
     event_links: "Classements :"
     part_of: "Fait partie de %name%"
@@ -14826,6 +14838,7 @@ public_standing:
         unfinished: "* non terminé : la limite de temps de la manche plus la pénalité."
         incomplete: "Sans résultat dans l'une des manches - classé après tous les autres, sans place."
         not_published: "– = les résultats de cette manche ne sont pas encore publiés."
+        stages: "Classé par phase atteinte - la plus lointaine d’abord ; (n.) = la place dans cette manche."
     organiser:
         published: "Publié"
         not_published: "Non publié"
@@ -14839,6 +14852,13 @@ public_standing:
         unpublished: "Le classement « %name% » n'est plus public."
     live:
         updated: "Mis à jour à %time%"
+    stage:
+        reached: "Phase %number% : %stage%"
+        qualified_for: "Qualifié pour %stage%"
+        result: "Résultat"
+        after_stages: "après %counted% phases sur %count%"
+        legend_qualified: "Qualifié pour une phase dont les résultats ne sont pas encore tous publiés - sans place jusque-là."
+    stages_clash: "Les étapes de qualification de cette catégorie manquent ou se contredisent - personne ne peut être classé."
 advancement_step:
     card:
         none: "Pas encore d'étapes de qualification. Une étape déclare qui avance : « les 8 meilleurs de chaque groupe vont en demi-finale »."

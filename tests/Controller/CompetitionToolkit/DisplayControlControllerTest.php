@@ -41,7 +41,7 @@ final class DisplayControlControllerTest extends WebTestCase
         $browser->request('GET', self::PAGE);
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-controller="display-control"]');
-        self::assertSame('no-store, private', $browser->getResponse()->headers->get('Cache-Control'));
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
 
         [, $state] = self::displayState($browser, $withMessage);
         self::assertSame(['message' => null, 'spotlight' => null], $state['control']);

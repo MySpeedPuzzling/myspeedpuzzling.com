@@ -139,3 +139,48 @@ Where the code differs from the decisions above, or adds what they left open:
 - **Summary flash** counts from the handler's `ParticipantImportResult`; after full sync it also names the round
   entries and pairs/teams removed. Messages counted with `%count%` never start with `Word:` (Symfony's plural selector
   takes that for a label and drops it).
+
+## As built: team rows (Ticket Tailor-style team tickets, 2026-11-18)
+
+A registration export with **one row per team ticket** imports through the same preview → confirm, the same plan and
+the same applier - no second write path. Files without member columns are planned, hashed and fingerprinted exactly as
+before.
+
+- **Mapping** (`ColumnMapping`): member columns `player N name`, `player N`, `member N`, `team member N`, `name N`,
+  `participant #N`, `puzzler N`, `competitor N` (N = 1-12, case, `_`/`-` and gaps do not matter, the first column of a
+  number wins) are the repeated field `MemberName`. Detected member columns drop Name / First / Last name and the
+  per-person columns (player, #code, participant id, external id, status) from the detection; mapped by hand next to
+  members they are a mapping error (`team_tickets.mapping.*`) - a team row has several people. `member N msp` /
+  `member N email` are **not** built (no per-member reference yet; matching is by name + the row's country).
+- **Ticket type** (`TicketType`): detected (`ticket type`, `ticket`, `ticket name`, `ticket tier`) only next to member
+  columns - a file of people keeps such a column ignored unless mapped by hand. Next to it a `division(s)` header of an
+  event without divisions is no longer read as Rounds (a registration form's division question). The preview lists
+  every distinct ticket type with a select: a round or "Do not import"; until chosen the round is guessed - a round whose
+  name is in the ticket type (longest wins), else the one round of the kind it names (team/group, pair/duo, solo). The
+  choices live only in the URL / confirm form (`tickets[t<12 hex>]=<round id|skip>`, `ColumnMapping::ticketKey()`), are
+  part of every row (so of the fingerprint), and a round of another event is dropped. A ticket type nobody chose and
+  nothing could guess is an **error of the plan** (`ParticipantImportPlan::$errors`, `BuiltPlan::$errors`) - nothing
+  is imported (the console importer refuses it too). A row of a file of people with a ticket column follows the same
+  choices.
+- **Expansion** (`ColumnMapping::toRows()`): a team row gives one `ParticipantImportRowData` per filled member cell
+  (an empty cell is nobody), with the row's country, rounds, team cell, division and ticket; planned as row
+  `fileRow * 100 + member` (`MEMBER_ROW_FACTOR`), with `teamRow` / `member` carried. A row with no member but other
+  values stays as one nameless row (reported "missing name"). Every message, warning and blocker names the file's row
+  (`PlanBuilder::relabel()`, `fileRows()`), the preview groups by `ParticipantImportRow::fileRow()`.
+- **Planner** (`PlanBuilder::planTeamRows()`, before any matching): a team row's team = its Team cell, else
+  `Team of <first member>` (only in its pair/team rounds); its rounds = the round columns + the ticket's round. Members
+  vs the round's size (2 for pairs, `team_size` for teams; no size = no check): **more** keeps the whole row out
+  (`team_tickets.plan.too_many_members`, every person Skipped), **fewer** is a warning on its first person. **One person
+  (by the name key) in two team rows of one round** keeps both rows out (`person_in_two_teams` on each). A skipped
+  ticket type keeps its rows out (`ticket_skipped`). Any row kept out blocks full sync (`plan.blocker.rows_not_imported`)
+  - it would take those people off the event. Then the people are planned as rows of their own: matched by name
+  (+ country, name key) exactly as today, rows of one person add up, a re-import changes nothing.
+- **Divisions** (DV): the row's Division cell is on every member row, so the pair/team entry gets it (members agree by
+  construction); a solo ticket's goes to the person's entry.
+- **Preview**: a team row is one block - a header row (`tr[data-team-row]`: file row, team, rounds, people count) and
+  its people below (`data-team-member-of`, "Member N", their own New / Update / Unchanged badge and lines); a block is
+  folded with the unchanged rows only when none of its people changes (`ParticipantImportPreview::rowTables()`).
+  "Ticket types" section under the columns.
+- Tests: `tests/Value/ColumnMappingTeamRowsTest.php`, `tests/Services/ParticipantImport/ParticipantImportTeamRowsTest.php`
+  (the hand-off's made-up Ticket Tailor CSV `fixtures/ticket-tailor-team-tickets.csv`),
+  `tests/CompetitionToolkit/Divisions/DivisionsOnTeamRowsTest.php`, `ParticipantImportFlowTest::testTeamRowsAreOneBlockAndTicketTypesAreChosenOnThePreview`.

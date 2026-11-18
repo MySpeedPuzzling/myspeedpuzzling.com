@@ -15,8 +15,8 @@ use SpeedPuzzling\Web\Value\RegistrationStatus;
 /**
  * A personal claim link's page (docs/features/competitions-management/participant-linking.md §6.5, §8.1): the token's
  * participant with its event, whether the event is publicly visible (IsCompetitionPubliclyVisible - the page names
- * nothing of a draft to anybody off its team, DraftCanaryTest) and, for a signed-in viewer, the other row of the event
- * they are on the list as. No player identity is read - the organiser's names only. One statement; a malformed token
+ * nothing of a draft to anybody off its team, DraftCanaryTest) and, for a signed-in viewer, the other rows of the event
+ * they are on the list as (a name of one of them; paid = any of them is their own paid registration). No player identity is read - the organiser's names only. One statement; a malformed token
  * none.
  */
 readonly final class GetParticipantClaimPage
@@ -50,19 +50,20 @@ SELECT
     c.location,
     {$visible} AS publicly_visible,
     other.name AS viewer_other_name,
-    COALESCE(other.source = :selfJoined AND other.registration_status = :paid AND c.registration_managed, false) AS viewer_other_paid
+    COALESCE(other.paid AND c.registration_managed, false) AS viewer_other_paid
 FROM competition_participant cp
 INNER JOIN competition c ON c.id = cp.competition_id
 LEFT JOIN competition_series cs ON cs.id = c.series_id
 LEFT JOIN LATERAL (
-    SELECT own.name, own.source, own.registration_status
+    -- Every other row of the viewer at the event: the name of one, and whether any is their own paid registration
+    SELECT
+        MIN(own.name) AS name,
+        bool_or(own.source = :selfJoined AND own.registration_status = :paid) AS paid
     FROM competition_participant own
     WHERE own.competition_id = cp.competition_id
         AND own.player_id = CAST(:viewer AS uuid)
         AND own.deleted_at IS NULL
         AND own.id <> cp.id
-    ORDER BY own.id
-    LIMIT 1
 ) other ON true
 WHERE cp.claim_token = :token
 SQL,

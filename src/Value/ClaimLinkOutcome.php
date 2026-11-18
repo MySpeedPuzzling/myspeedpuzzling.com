@@ -20,4 +20,6 @@ enum ClaimLinkOutcome: string
     case BelongsToOther = 'belongs_to_other';
     // The player is on the event's list as another participant - the page offers the switch
     case IsOtherParticipant = 'is_other_participant';
+    // The switch would let go of the player's own paid registration without their yes (`release_paid`) - nothing changed
+    case ReleaseNotConfirmed = 'release_not_confirmed';
 }

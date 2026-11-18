@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionTagSheet;
 use SpeedPuzzling\Web\Services\NameTagQrCode;
+use SpeedPuzzling\Web\Value\CompetitionTagPrintKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -79,11 +80,18 @@ final class CompetitionNameTagsController extends AbstractController
         $asksForToolkit = $request->query->has('kind') || $request->query->has('layout');
 
         if ($toolkitConfigured || ($asksForToolkit && $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId))) {
-            return self::privatePage($this->render('live_results/competition_tags.html.twig', [
+            $response = self::privatePage($this->render('live_results/competition_tags.html.twig', [
                 'competition' => $competition,
                 'rounds' => $rounds,
                 'uses_table_numbers' => array_any($rounds, static fn (RoundResultsOverview $overview): bool => $overview->tableNumbersOff === false),
             ] + $this->competitionTagSheet->variables($request, $competitionId, $rounds, $round, $settings)));
+
+            // Claim slips carry personal claim links (participant-linking.md §7.4): never passed on in a Referer
+            if ($request->query->getString('kind') === CompetitionTagPrintKind::Claims->value) {
+                $response->headers->set('Referrer-Policy', 'same-origin');
+            }
+
+            return $response;
         }
 
         $sort = $request->query->getString('sort') === GetCompetitionNameTags::SORT_TABLE

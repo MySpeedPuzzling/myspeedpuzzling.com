@@ -1,6 +1,6 @@
 {#
     A personal claim link's page (docs/features/competitions-management/participant-linking.md §6.5,
-    ParticipantClaimController): one state per visit - not_valid / too_many (nothing named), draft_team, guest, unlinked,
+    ParticipantClaimController): one state per visit - not_valid / too_many (nothing named), draft_team, no_profile, guest, unlinked,
     already_yours, belongs_to_other, other_participant. The buttons post to participant_claim_confirm (stateless CSRF).
     Variables: state, page (ParticipantClaimPage, null for not_valid / too_many), token, event_url, return_path,
     csrf_token_id.
@@ -38,6 +38,8 @@
 
                         {% if state == 'draft_team' %}
                             <p class="mb-0" data-claim-message>{{ 'participant_claim_link.page.draft_team'|trans }}</p>
+                        {% elseif state == 'no_profile' %}
+                            <p class="mb-0" data-claim-message>{{ 'participant_claim_link.page.no_profile'|trans }}</p>
                         {% elseif state == 'guest' %}
                             <p data-claim-message>{{ 'participant_claim_link.page.is_this_you'|trans({'%name%': page.participantName}) }}</p>
                             <p class="text-muted small">{{ 'participant_claim_link.page.guest_help'|trans }}</p>
@@ -59,6 +61,16 @@
                             <form method="post" action="{{ path('participant_claim_confirm', {token: token}) }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
                                 <input type="hidden" name="action" value="dispute">
+                                {% if page.viewerOtherPaid %}
+                                    {# Approved, the dispute lets go of the viewer's own paid registration - only on their yes #}
+                                    <div class="alert alert-warning small py-2" data-claim-release-paid>
+                                        <p class="mb-2">{{ 'participant_claim_link.page.other_paid'|trans({'%other%': page.viewerOtherName}) }}</p>
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input" type="checkbox" name="release_paid" value="1" id="claim-release-paid" required>
+                                            <label class="form-check-label" for="claim-release-paid">{{ 'participant_claim_link.page.release_paid_confirm'|trans }}</label>
+                                        </div>
+                                    </div>
+                                {% endif %}
                                 <button type="submit" class="btn btn-outline-primary" data-claim-dispute>{{ 'participant_claim_link.page.dispute'|trans }}</button>
                             </form>
                         {% elseif state == 'other_participant' %}
@@ -69,6 +81,10 @@
                             <form method="post" action="{{ path('participant_claim_confirm', {token: token}) }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
                                 <input type="hidden" name="switch" value="1">
+                                {% if page.viewerOtherPaid %}
+                                    {# The note above said it: "Switch" is the yes to letting go of the paid registration #}
+                                    <input type="hidden" name="release_paid" value="1" data-claim-release-paid>
+                                {% endif %}
                                 <button type="submit" class="btn btn-primary" data-claim-switch>{{ 'participant_claim_link.page.switch'|trans({'%name%': page.participantName}) }}</button>
                             </form>
                         {% endif %}

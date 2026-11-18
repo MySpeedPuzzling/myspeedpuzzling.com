@@ -10,7 +10,8 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 /**
  * "Yes, link my profile" on a personal claim link's page (docs/features/competitions-management/participant-linking.md
  * §5.2, §6.5): the organiser handed the link to one person - it links at once under every claim policy. `$switch` = the
- * player, on the event's list as somebody else, said "Switch". The competition is the one the page read for the token;
+ * player, on the event's list as somebody else, said "Switch"; `$releasesOwnRegistration` = they said yes to letting go
+ * of their own paid registration (`release_paid`, the page asks when it is paid). The competition is the one the page read for the token;
  * the handler reads the token again under the event's lock and returns a ClaimLinkOutcome.
  */
 readonly final class ClaimParticipantByToken implements SerializedByLock
@@ -20,6 +21,7 @@ readonly final class ClaimParticipantByToken implements SerializedByLock
         public string $token,
         public string $playerId,
         public bool $switch = false,
+        public bool $releasesOwnRegistration = false,
     ) {
     }
 

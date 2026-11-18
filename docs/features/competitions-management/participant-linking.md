@@ -1000,10 +1000,14 @@ competitor page bullet in `competition-toolkit.md`), `docs/TODO.md` leftovers, a
   `handOwnLink()` (the online personal link on events with online timing, §5.6).
 - Claim page (`ParticipantClaimController`, `participant_claim` / `participant_claim_link` / `participant_claim_confirm`,
   `templates/participant_claim/page.html.twig`): every §6.5 state; `GetParticipantClaimPage` (1 statement, embeds
-  `IsCompetitionPubliclyVisible`, reads the viewer's other row for the switch, no player identity). Limiter
-  `participant_claim_page` (30/min/IP, page and POST); unknown tokens remembered 10 s (`ClaimTokenMemo`, removed rows
-  are not - a restore must work at once). The dispute = `ClaimParticipant` (limiter `participant_claim` per player).
-  The switch page says when it lets go of the viewer's own paid registration.
+  `IsCompetitionPubliclyVisible`, reads all the viewer's other rows - one name, `bool_or` paid - no player identity).
+  Limits (`ClaimPageLimit`, page and POST): `participant_claim_page_player` 30/min per signed-in player,
+  `participant_claim_page` 120/min per IP for guests (a venue's Wi-Fi is one address); unknown tokens remembered 10 s
+  (`ClaimTokenMemo`, removed rows are not - a restore must work at once). The dispute = `ClaimParticipant` (limiter
+  `participant_claim` per player). A switch or dispute that lets go of the viewer's own paid registration on a managed
+  event needs `release_paid`: the switch page says it (hidden field), the dispute form asks (checkbox); a registration
+  paid after the page was shown → `ReleaseNotConfirmed`, back to the page. `no_profile` state for an account without a
+  player. The claim slips page sends `Referrer-Policy: same-origin`.
 - R4: `OnlineTokenRedactor` redacts `/claim/<token>` and `/<locale>/claim/<token>` (also `\/` and `%2F`) and the
   current token of `participant_claim*` routes - the Sentry scrubber and the Monolog processor use it.
 - Organiser: sheet row ⋯ "Copy claim link / Show claim QR / New claim link" for unlinked rows (desktop grid;

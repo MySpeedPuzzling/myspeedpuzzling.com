@@ -170,6 +170,8 @@ final class ParticipantClaimLinksOrganiserTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('no-store', (string) $this->browser->getResponse()->headers->get('Cache-Control'));
+        // The slips carry the links - never passed on in a Referer
+        self::assertSame('same-origin', $this->browser->getResponse()->headers->get('Referrer-Policy'));
         self::assertSame('claims', $page->filter('[data-tag-kind] option[selected]')->attr('value'));
         // Slips are printed on the A4 sheet of tags only
         self::assertCount(0, $page->filter('[data-tag-layout]'));

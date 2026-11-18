@@ -44,6 +44,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 minute',
             ],
+            // Per player, and the test players are the same in every run - a test of the limit uses it up and resets it
+            'participant_claim_page_player' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+            ],
             'event_result_claim' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

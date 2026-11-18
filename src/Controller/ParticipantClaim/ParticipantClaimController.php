@@ -8,13 +8,13 @@ use SpeedPuzzling\Web\Query\GetParticipantClaimPage;
 use SpeedPuzzling\Web\Results\ParticipantClaimPage;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ClaimPageLimit;
 use SpeedPuzzling\Web\Services\ParticipantLinking\ClaimTokenMemo;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\EventListener\AbstractSessionListener;
-use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -24,11 +24,12 @@ use Symfony\Component\Routing\Attribute\Route;
  * - `not_valid` (404): an unknown or cleared token, a removed participant, or an event not publicly visible to anybody
  *   off its team - one text for all, nothing named (DraftCanaryTest);
  * - `draft_team`: the event's team on its draft's link - it works once the event is published;
+ * - `no_profile`: signed in to an account without a player profile - nothing to link (a failed registration);
  * - `guest`: sign in or create an account and come back here (a validated `?return=`) - nothing says whether an account
  *   exists;
  * - `unlinked`, `already_yours`, `belongs_to_other` (the dispute is offered), `other_participant` (the switch).
  *
- * Limiter `participant_claim_page`: 30 per minute per IP, counted before anything is read; a token the database
+ * Limits (ClaimPageLimit): per player when signed in, per IP for guests, counted before anything is read; a token the database
  * does not know is remembered for a few seconds (ClaimTokenMemo) - asked again it costs no statement. `private, no-store`,
  * `Referrer-Policy: same-origin` (the token never leaves the site in a Referer), `X-Robots-Tag: noindex, nofollow`;
  * the route name keeps the token out of the logs (OnlineTokenRedactor).
@@ -42,7 +43,7 @@ final class ParticipantClaimController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly ClaimTokenMemo $claimTokenMemo,
-        private readonly RateLimiterFactoryInterface $participantClaimPageLimiter,
+        private readonly ClaimPageLimit $claimPageLimit,
     ) {
     }
 
@@ -54,7 +55,9 @@ final class ParticipantClaimController extends AbstractController
     )]
     public function __invoke(Request $request, string $token): Response
     {
-        if ($this->participantClaimPageLimiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted() === false) {
+        $viewerPlayerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+
+        if ($this->claimPageLimit->accepts($request, $viewerPlayerId) === false) {
             return self::withPrivateHeaders($this->render('participant_claim/page.html.twig', ['state' => 'too_many', 'page' => null], new Response(status: Response::HTTP_TOO_MANY_REQUESTS)));
         }
 
@@ -62,7 +65,6 @@ final class ParticipantClaimController extends AbstractController
             return $this->notValid();
         }
 
-        $viewerPlayerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
         $page = $this->getParticipantClaimPage->byToken($token, $viewerPlayerId);
 
         if ($page === null) {
@@ -84,15 +86,17 @@ final class ParticipantClaimController extends AbstractController
             return $this->page('draft_team', $page, $token);
         }
 
-        return $this->page(self::state($page, $viewerPlayerId), $page, $token);
+        return $this->page(self::state($page, $viewerPlayerId, signedIn: $this->getUser() !== null), $page, $token);
     }
 
     /**
      * What the page says to this viewer about this participant (§6.5's table)
      */
-    public static function state(ParticipantClaimPage $page, null|string $viewerPlayerId): string
+    public static function state(ParticipantClaimPage $page, null|string $viewerPlayerId, bool $signedIn = false): string
     {
         return match (true) {
+            // Signed in, but the account has no player profile (its creation failed) - signing in again would not help
+            $viewerPlayerId === null && $signedIn => 'no_profile',
             $viewerPlayerId === null => 'guest',
             $page->isLinkedTo($viewerPlayerId) => 'already_yours',
             $page->linkedPlayerId !== null => 'belongs_to_other',

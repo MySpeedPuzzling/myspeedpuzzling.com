@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\ParticipantAlreadyLinked;
 use SpeedPuzzling\Web\Message\ClaimParticipantByToken;
 use SpeedPuzzling\Web\Message\GenerateParticipantClaimTokens;
 use SpeedPuzzling\Web\Message\RegenerateParticipantClaimToken;
+use SpeedPuzzling\Web\Query\GetParticipantClaimPage;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\ParticipantLinking\ParticipantLinks;
@@ -175,6 +176,64 @@ final class ParticipantClaimTokensTest extends KernelTestCase
         self::assertNotNull($this->column(Wjpc::PARTICIPANT_SELF_JOINED, 'deleted_at'));
     }
 
+    /**
+     * The switch lets go of the player's own paid registration only on their yes - read under the lock, so a
+     * registration paid after the page was shown is never soft-deleted by a "Switch" from it. Only while the event
+     * manages registration (a paid status left from before means nothing).
+     */
+    public function testASwitchLetsGoOfAPaidRegistrationOnlyOnAYes(): void
+    {
+        $token = $this->tokenOfUnconnected();
+        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'paid' WHERE id = :id", ['id' => Wjpc::PARTICIPANT_SELF_JOINED]);
+        $this->database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => self::EVENT]);
+
+        self::assertSame(ClaimLinkOutcome::ReleaseNotConfirmed, $this->claim($token, PlayerFixture::PLAYER_WITH_FAVORITES, switch: true));
+        self::assertNull($this->linkedPlayer(Wjpc::PARTICIPANT_UNCONNECTED));
+        self::assertNull($this->column(Wjpc::PARTICIPANT_SELF_JOINED, 'deleted_at'));
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->linkedPlayer(Wjpc::PARTICIPANT_SELF_JOINED));
+
+        self::assertSame(ClaimLinkOutcome::Linked, $this->claim($token, PlayerFixture::PLAYER_WITH_FAVORITES, switch: true, releasesOwnRegistration: true));
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->linkedPlayer(Wjpc::PARTICIPANT_UNCONNECTED));
+        self::assertNotNull($this->column(Wjpc::PARTICIPANT_SELF_JOINED, 'deleted_at'));
+    }
+
+    public function testAPaidStatusFromBeforeManagementAsksNothing(): void
+    {
+        $token = $this->tokenOfUnconnected();
+        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'paid' WHERE id = :id", ['id' => Wjpc::PARTICIPANT_SELF_JOINED]);
+        $this->database->executeStatement('UPDATE competition SET registration_managed = false WHERE id = :id', ['id' => self::EVENT]);
+
+        self::assertSame(ClaimLinkOutcome::Linked, $this->claim($token, PlayerFixture::PLAYER_WITH_FAVORITES, switch: true));
+    }
+
+    /**
+     * The page reads every other row of the viewer at the event: a paid registration of theirs is told about even when
+     * it is not the first of them
+     */
+    public function testThePageToldOfAPaidRegistrationAmongSeveralRows(): void
+    {
+        $token = $this->tokenOfUnconnected();
+        $this->database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => self::EVENT]);
+        // A second own row, newer (a higher id) than the fixture's unpaid self-joined one - and paid
+        $this->database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, player_id, registration_status, connected_at, connected_via)
+             VALUES (gen_uuid_v7(), 'Mike J.', 'us', :competition, 'self_joined', :player, 'paid', " . TestClock::SQL_NOW . ", 'self_join')",
+            ['competition' => self::EVENT, 'player' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $page = self::getContainer()->get(GetParticipantClaimPage::class)->byToken($token, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        self::assertNotNull($page);
+        self::assertTrue($page->viewerOtherPaid);
+        self::assertNotNull($page->viewerOtherName);
+
+        // Not managed: nothing to tell
+        $this->database->executeStatement('UPDATE competition SET registration_managed = false WHERE id = :id', ['id' => self::EVENT]);
+        self::assertFalse(self::getContainer()->get(GetParticipantClaimPage::class)->byToken($token, PlayerFixture::PLAYER_WITH_FAVORITES)?->viewerOtherPaid);
+        // A guest has no other row
+        self::assertNull(self::getContainer()->get(GetParticipantClaimPage::class)->byToken($token, null)?->viewerOtherName);
+    }
+
     public function testAnOrganisersRowOfThePlayerIsOnlyLetGoOfOnASwitch(): void
     {
         $token = $this->tokenOfUnconnected();
@@ -273,9 +332,9 @@ final class ParticipantClaimTokensTest extends KernelTestCase
         return $token;
     }
 
-    private function claim(string $token, string $playerId, bool $switch = false, string $competitionId = self::EVENT): ClaimLinkOutcome
+    private function claim(string $token, string $playerId, bool $switch = false, string $competitionId = self::EVENT, bool $releasesOwnRegistration = false): ClaimLinkOutcome
     {
-        $outcome = $this->messageBus->dispatch(new ClaimParticipantByToken($competitionId, $token, $playerId, $switch))->last(HandledStamp::class)?->getResult();
+        $outcome = $this->messageBus->dispatch(new ClaimParticipantByToken($competitionId, $token, $playerId, $switch, $releasesOwnRegistration))->last(HandledStamp::class)?->getResult();
         self::assertInstanceOf(ClaimLinkOutcome::class, $outcome);
 
         return $outcome;

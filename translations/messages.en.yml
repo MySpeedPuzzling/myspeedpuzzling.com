@@ -15647,6 +15647,7 @@ participant_claim_link:
         not_valid: "This link is not valid any more. Ask the organiser for a new one."
         too_many: "Too many tries in a short time - please wait a minute and open the link again."
         draft_team: "This link works once the event is published."
+        no_profile: "Your account has no player profile yet, so there is nothing to link. Please contact us and we will sort it out."
         is_this_you: "%name% - is this you?"
         guest_help: "Sign in or create an account - you come back here and link your profile to this name on the participant list."
         sign_in: "Sign in"
@@ -15658,6 +15659,7 @@ participant_claim_link:
         dispute: "It's me - tell the organiser"
         other_participant: "You are on this list as %other%. Switch to %name%?"
         other_paid: "Your paid registration as %other% will be let go of."
+        release_paid_confirm: "Yes, let go of my paid registration once the organiser confirms this name is mine"
         switch: "Switch to %name%"
     flash:
         linked: "Linked - this name on the participant list is you now."

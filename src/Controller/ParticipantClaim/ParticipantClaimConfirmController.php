@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Message\ClaimParticipant;
 use SpeedPuzzling\Web\Message\ClaimParticipantByToken;
 use SpeedPuzzling\Web\Query\GetParticipantClaimPage;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Services\ParticipantLinking\ClaimPageLimit;
 use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ClaimLinkOutcome;
@@ -29,7 +30,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - "It's me - tell the organiser" (`action=dispute`) on a name linked to another profile → ClaimParticipant (the
  *   dispute request, ParticipantClaims - limiter `participant_claim` per player like every pick).
  * Anything the page must say instead (linked to another meanwhile, the switch, not valid any more) → back to the page,
- * which shows it. Limiter `participant_claim_page` (per IP) like the page; the stateless CSRF token of the forms.
+ * which shows it. A switch or a dispute that lets go of the player's own paid registration needs their yes
+ * (`release_paid` - the page asks for it, registration.md). The page's limits (ClaimPageLimit); the stateless CSRF token
+ * of the forms.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ParticipantClaimConfirmController extends AbstractController
@@ -41,7 +44,7 @@ final class ParticipantClaimConfirmController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly ParticipantsSheetLiveUpdates $sheetLiveUpdates,
         private readonly TranslatorInterface $translator,
-        private readonly RateLimiterFactoryInterface $participantClaimPageLimiter,
+        private readonly ClaimPageLimit $claimPageLimit,
         private readonly RateLimiterFactoryInterface $participantClaimLimiter,
     ) {
     }
@@ -61,7 +64,7 @@ final class ParticipantClaimConfirmController extends AbstractController
             return $this->withFlash('warning', 'participant_claim_link.flash.no_profile', $pageUrl);
         }
 
-        if ($this->participantClaimPageLimiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted() === false) {
+        if ($this->claimPageLimit->accepts($request, $profile->playerId) === false) {
             return $this->withFlash('warning', 'participant_claim_link.flash.too_many', $pageUrl);
         }
 
@@ -84,7 +87,7 @@ final class ParticipantClaimConfirmController extends AbstractController
                 return $this->redirect($pageUrl, Response::HTTP_SEE_OTHER);
             }
 
-            return $this->dispute($page->competitionId, $page->participantId, $profile->playerId, $eventUrl, $pageUrl);
+            return $this->dispute($page->competitionId, $page->participantId, $profile->playerId, $request->request->getBoolean('release_paid'), $eventUrl, $pageUrl);
         }
 
         $outcome = $this->messageBus->dispatch(new ClaimParticipantByToken(
@@ -92,10 +95,13 @@ final class ParticipantClaimConfirmController extends AbstractController
             token: $token,
             playerId: $profile->playerId,
             switch: $request->request->getBoolean('switch'),
+            releasesOwnRegistration: $request->request->getBoolean('release_paid'),
         ))->last(HandledStamp::class)?->getResult();
 
         return match ($outcome) {
             ClaimLinkOutcome::Linked => $this->linked($page->competitionId, $eventUrl),
+            // Their own registration became paid after the page was shown - the page says so now, the switch asks again
+            ClaimLinkOutcome::ReleaseNotConfirmed => $this->withFlash('warning', 'competition_registration.flash.release_paid_not_confirmed', $pageUrl),
             ClaimLinkOutcome::AlreadyYours => $this->withFlash('info', 'participant_claim_link.flash.already_yours', $eventUrl . '#taking-part'),
             default => $this->redirect($pageUrl, Response::HTTP_SEE_OTHER),
         };
@@ -109,7 +115,7 @@ final class ParticipantClaimConfirmController extends AbstractController
         return $this->withFlash('success', 'participant_claim_link.flash.linked', $eventUrl . '#taking-part');
     }
 
-    private function dispute(string $competitionId, string $participantId, string $playerId, string $eventUrl, string $pageUrl): Response
+    private function dispute(string $competitionId, string $participantId, string $playerId, bool $releasesOwnRegistration, string $eventUrl, string $pageUrl): Response
     {
         if ($this->participantClaimLimiter->create($playerId)->consume()->isAccepted() === false) {
             return $this->withFlash('warning', 'participant_linking.flash.too_many_claims', $pageUrl);
@@ -119,6 +125,7 @@ final class ParticipantClaimConfirmController extends AbstractController
             competitionId: $competitionId,
             playerId: $playerId,
             participantId: $participantId,
+            releasesOwnRegistration: $releasesOwnRegistration,
         ))->last(HandledStamp::class)?->getResult();
 
         if ($outcome === ClaimOutcome::DisputeSent || $outcome === ClaimOutcome::Linked || $outcome === ClaimOutcome::Requested) {

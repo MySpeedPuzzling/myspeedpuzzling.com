@@ -18,9 +18,16 @@ use SpeedPuzzling\Web\Value\CompetitorHeartbeatRecord;
  * evidence (reliability hardening T2, TimeProposalTiming) comes along: what the phone says about its clock and its
  * outbox, and `heartbeat` - what the server last heard from the competitor's page for this entry (read by the controller
  * from redis-state before the dispatch; null when nothing was heard or the store did not answer).
+ *
+ * `puzzles` (competition toolkit v2 C2): the competitor's puzzle choice of a `pick` round, stored with a new proposal
+ * only - a refused choice is dropped and said (TimeProposalAnswer::$puzzlesRefused), never the tap; a resend never
+ * changes it (ChangeTimeProposalPuzzles does).
  */
 readonly final class ProposeRoundTime implements SerializedByLock
 {
+    /**
+     * @param null|non-empty-list<array{position: int, label: string}> $puzzles
+     */
     public function __construct(
         public string $competitionId,
         public string $roundId,
@@ -44,6 +51,9 @@ readonly final class ProposeRoundTime implements SerializedByLock
         // T2: the phone's server-synced clock when it sent this request
         public null|int $sentAtMs = null,
         public null|CompetitorHeartbeatRecord $heartbeat = null,
+        // Competition toolkit v2 C2: the puzzles the competitor says they finished, as the places their phone shows
+        // (ProposalPuzzleChoice::fromWire() - the controller parsed it); null = none
+        public null|array $puzzles = null,
     ) {
     }
 

@@ -9,7 +9,7 @@ use DateTimeImmutable;
 /**
  * One time proposal as the judges' tools read it (GetTimeProposals) - the round state's `proposals` and the
  * `official_results.proposals` Mercure message (toolkit/B-qr-competitor-page.md §6.1 with R-review-and-plan.md §1.2;
- * no puzzle choice in v1). The same payload goes to the organisers' and the referees' topic: who proposed is the
+ * the puzzle choice since v2 C2). The same payload goes to the organisers' and the referees' topic: who proposed is the
  * participant's organiser-recorded name only - never the linked player's id, #code or profile name.
  *
  * - `late` = more than 5 s between the tap and the receipt - data kept for compatibility, no judge UI: the recorded
@@ -19,6 +19,9 @@ use DateTimeImmutable;
  * - `proposedBy.linkedAt` = when the proposer's profile was linked to that name, only when that was less than a day
  *   before the tap (R §2.4: "linked to this name on {date}"); null otherwise.
  * - `decided` once it is not pending.
+ * - `puzzles` (competition toolkit v2 C2) only when the competitor chose puzzles of a `pick` round: the judges get
+ *   `["<roundPuzzleId>", …]` in solving order (the card pre-selects them, the judge confirms), the competitor
+ *   `[{position, label}, …]` - what their phone shows. A puzzle removed from the round since is left out.
  *
  * forCompetitor() is what the competitor's own phone gets: the judge's identity and the link moment left out.
  */
@@ -26,6 +29,9 @@ readonly final class TimeProposalView implements \JsonSerializable
 {
     public const int RECENT_LINK_MS = 86_400_000;
 
+    /**
+     * @param null|non-empty-list<array{id: string, position: int, label: string}> $puzzles
+     */
     public function __construct(
         public string $id,
         public string $roundId,
@@ -54,6 +60,8 @@ readonly final class TimeProposalView implements \JsonSerializable
         public null|int $decidedSeconds,
         public null|string $decisionReason,
         public bool $forCompetitor = false,
+        // v2 C2: the competitor's puzzle choice as places of the round now (GetTimeProposals) - null = none
+        public null|array $puzzles = null,
     ) {
     }
 
@@ -86,6 +94,7 @@ readonly final class TimeProposalView implements \JsonSerializable
             decidedSeconds: $this->decidedSeconds,
             decisionReason: $this->decisionReason,
             forCompetitor: true,
+            puzzles: $this->puzzles,
         );
     }
 
@@ -113,7 +122,7 @@ readonly final class TimeProposalView implements \JsonSerializable
             ];
         }
 
-        return [
+        $json = [
             'id' => $this->id,
             'roundId' => $this->roundId,
             'entry' => $this->entry,
@@ -140,5 +149,15 @@ readonly final class TimeProposalView implements \JsonSerializable
             ],
             'decided' => $decided,
         ];
+
+        // v2 C2: only with a choice - proposals without one keep their JSON. The judges get the round puzzle ids to
+        // pre-select, the competitor's phone the places it shows (never an id: nothing of a hidden puzzle but its label)
+        if ($this->puzzles !== null) {
+            $json['puzzles'] = $this->forCompetitor
+                ? array_map(static fn (array $place): array => ['position' => $place['position'], 'label' => $place['label']], $this->puzzles)
+                : array_map(static fn (array $place): string => $place['id'], $this->puzzles);
+        }
+
+        return $json;
     }
 }

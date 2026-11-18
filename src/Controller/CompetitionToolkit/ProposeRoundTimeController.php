@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalApi;
 use SpeedPuzzling\Web\Value\CompetitorHeartbeatRecord;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Value\ProposalPuzzleChoice;
 use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,12 +33,16 @@ use Symfony\Component\Routing\Attribute\Route;
  * "Stop - propose my time" of a competitor's own page (competition toolkit P1, toolkit/B-qr-competitor-page.md §5,
  * R-review-and-plan.md §2.4): `POST {"proposalId": "<the phone's UUIDv7>", "entry": "participant_round:<id>" |
  * "team:<id>", "tappedAtMs": <the phone's server-synced clock at the tap>, "offsetMs", "rttMs", "stateHash",
- * "offsetSampleAgeMs", "queuedOffline", "attempts", "sentAtMs", "expectedPlayerId"}` (another player signed in
+ * "offsetSampleAgeMs", "queuedOffline", "attempts", "sentAtMs", "puzzles", "expectedPlayerId"}` (another player signed in
  * meanwhile: 409 `another_account`, OfficialResultsApi::anotherAccount()) → ProposeRoundTime → `{status:
  * proposed|known|refused, reason, message, proposal}` (TimeProposalApi). The server's receipt moment is taken here,
  * before the dispatch waits for the event's lock - and the timing evidence (reliability hardening T2): what the server
  * last heard from this player's page for this entry (CompetitorHeartbeats, one redis-state read - a store that does not
  * answer means no evidence, the tap is trusted).
+ *
+ * `puzzles` (competition toolkit v2 C2, optional): `[{"position", "label"}, …]` - the puzzles of a `pick` round the
+ * competitor says they finished, as their phone shows them (ProposalPuzzleChoice). A choice that cannot be used is
+ * dropped and said as `puzzlesRefused` + `puzzlesMessage` next to a stored proposal; unreadable is `invalid_puzzles`.
  *
  * Limited per player and round (`time_proposal`, 10 in 10 minutes - a stuck button never floods the judges, 429
  * `rate_limited`). A stored proposal is published to the round's judges after the commit, once the answer is sent
@@ -112,6 +117,17 @@ final class ProposeRoundTimeController extends AbstractController
             return $this->api->refusal('invalid_proposal', JsonResponse::HTTP_BAD_REQUEST);
         }
 
+        // v2 C2: the puzzle choice rides along - unreadable is no choice, said in the answer, never a 400 (the tap must
+        // survive an old or odd client)
+        $puzzlesUnreadable = false;
+
+        try {
+            $puzzles = ProposalPuzzleChoice::fromWire($body['puzzles'] ?? null);
+        } catch (\InvalidArgumentException) {
+            $puzzles = null;
+            $puzzlesUnreadable = true;
+        }
+
         if ($this->timeProposalLimiter->create($playerId . '-' . $round->id->toString())->consume()->isAccepted() === false) {
             return $this->api->refusal('rate_limited', JsonResponse::HTTP_TOO_MANY_REQUESTS);
         }
@@ -132,10 +148,15 @@ final class ProposeRoundTimeController extends AbstractController
             attempts: self::integer($body['attempts'] ?? null),
             sentAtMs: self::integer($body['sentAtMs'] ?? null),
             heartbeat: $this->heartbeat($round->id->toString(), $entry, $playerId),
+            puzzles: $puzzles,
         ));
 
         $answer = $envelope->last(HandledStamp::class)?->getResult();
         assert($answer instanceof TimeProposalAnswer);
+
+        if ($puzzlesUnreadable) {
+            $answer = $answer->withPuzzlesRefused(ProposalPuzzleChoice::INVALID);
+        }
 
         // Committed by now - the judges of the round learn about it once the phone has its answer (AfterResponse)
         if ($answer->changed() && $answer->proposalId !== null) {

@@ -67,6 +67,21 @@ class CompetitionTimeProposal
     #[Column(length: 32, nullable: true, enumType: TimeProposalDecisionReason::class)]
     public null|TimeProposalDecisionReason $decisionReason = null;
 
+    // Competition toolkit v2 C2: the competitor's word on which puzzles of a `pick` round they finished - round puzzle
+    // ids (competition_round_puzzle.id, lower-case) in solving order, resolved from the places the phone sent
+    // (ProposalPuzzleChoice). Null = none. No FK, like result_puzzles: a puzzle removed from the round drops out on read.
+    // Shown to the judge pre-selected, never copied onto the entry - the judge's Confirm records the choice.
+    /** @var null|list<string> */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $puzzleChoice = null;
+
+    // When the stored choice was made, on the phone's server-synced clock (the tap's moment for a choice sent with it) -
+    // a change made earlier than this (an old request replayed late by an outbox) never overwrites a newer choice
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BIGINT, nullable: true)]
+    public null|int $puzzleChoiceAtMs = null;
+
     public function __construct(
         // The phone's UUIDv7
         #[Id]
@@ -181,6 +196,14 @@ class CompetitionTimeProposal
         return $this->status === TimeProposalStatus::Pending;
     }
 
+    /**
+     * A choice made at `$atMs` is older than the stored one - a late replay that must not overwrite it
+     */
+    public function hasNewerPuzzleChoiceThan(null|int $atMs): bool
+    {
+        return $atMs !== null && $this->puzzleChoiceAtMs !== null && $atMs < $this->puzzleChoiceAtMs;
+    }
+
     public function isLate(): bool
     {
         return $this->lateByMs > self::LATE_AFTER_MS;
@@ -222,6 +245,26 @@ class CompetitionTimeProposal
         $this->decisionReason = $reason;
         $this->decidedByPlayer = $by;
         $this->decidedAt = $at;
+    }
+
+    /**
+     * The competitor's puzzle choice (ProposalPuzzleChoice::resolve() made it) - null or an empty list clears it. Only
+     * while pending: a decided proposal keeps what the judge saw.
+     *
+     * @param null|list<string> $roundPuzzleIds
+     * @param null|int $atMs when the phone made the choice (null: an old client that does not say - the stamp stays)
+     */
+    public function choosePuzzles(null|array $roundPuzzleIds, null|int $atMs = null): void
+    {
+        if ($this->isPending() === false) {
+            throw new \LogicException('Only a pending time proposal takes a puzzle choice.');
+        }
+
+        if ($atMs !== null) {
+            $this->puzzleChoiceAtMs = $atMs;
+        }
+
+        $this->puzzleChoice = $roundPuzzleIds === null || $roundPuzzleIds === [] ? null : array_map(strtolower(...), $roundPuzzleIds);
     }
 
     public function withdraw(DateTimeImmutable $at): void

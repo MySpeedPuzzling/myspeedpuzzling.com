@@ -87,6 +87,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '10 minutes',
             ],
+            // Per player and proposal - the proposal ids are new in every run, the budget is the production one
+            'time_proposal_puzzles' => [
+                'policy' => 'sliding_window',
+                'limit' => 30,
+                'interval' => '10 minutes',
+            ],
             'competition_display_image_upload' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

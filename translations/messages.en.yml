@@ -15035,6 +15035,12 @@ time_proposal:
         result_recorded: "A judge has recorded your result already."
         already_proposed: "A time is already waiting for the judge."
         proposal_not_found: "This time proposal does not exist."
+        puzzles_changed: "The puzzles of this round changed - choose again."
+        puzzles_not_used: "This round has no puzzle choice."
+        unknown_round_puzzle: "One of the chosen puzzles is not in this round any more - choose again."
+        puzzle_listed_twice: "The same puzzle was chosen twice - choose again."
+        too_many_puzzles: "More puzzles were chosen than this round has you solve - choose again."
+        invalid_puzzles: "The puzzle choice could not be read - choose again."
 competition_standing:
     challenge_time: "%label% %time%"
     rounds_count: "{0}No rounds|{1}%count% round|]1,Inf[%count% rounds"

@@ -8014,6 +8014,11 @@ participants_sheet_core:
         keys_ime: "Enter, pak psaní"
         does_ime: "Se zapnutou japonskou nebo jinou metodou zadávání začněte upravovat nejdřív klávesou Enter nebo F2."
         mac: "Na Macu použijte místo Ctrl klávesu Cmd."
+    puzzles_popover:
+        title: "Záznam po puzzlích"
+        none: "Bez záznamu po puzzlích"
+        edit_on_desk: "Upravit ve výsledkovém pultu"
+        own_time: "vlastní %time%"
 
 participants_sheet_round:
     pair: "Dvojice"

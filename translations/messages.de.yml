@@ -7924,6 +7924,11 @@ participants_sheet_core:
     keys_ime: "Enter, dann tippen"
     does_ime: "Mit einer japanischen oder anderen Eingabemethode beginnen Sie die Bearbeitung zuerst mit Enter oder F2."
     mac: "Auf dem Mac verwenden Sie Cmd statt Strg."
+  puzzles_popover:
+    title: "Aufzeichnung pro Puzzle"
+    none: "Keine Aufzeichnung pro Puzzle"
+    edit_on_desk: "Im Ergebnisbüro bearbeiten"
+    own_time: "eigene %time%"
 
 participants_sheet_round:
   pair: "Paar"

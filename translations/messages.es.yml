@@ -7925,6 +7925,11 @@ participants_sheet_core:
     keys_ime: "Intro, luego escribir"
     does_ime: "Con un método de entrada japonés u otro activado, empieza a editar primero con Intro o F2."
     mac: "En un Mac, usa Cmd en lugar de Ctrl."
+  puzzles_popover:
+    title: "Registro por puzle"
+    none: "Sin registro por puzle"
+    edit_on_desk: "Editar en la mesa de resultados"
+    own_time: "propio %time%"
 
 participants_sheet_round:
   pair: "Pareja"

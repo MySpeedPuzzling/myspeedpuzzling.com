@@ -7914,6 +7914,11 @@ participants_sheet_core:
     keys_ime: "Enter を押してから入力"
     does_ime: "日本語入力などのIMEがオンのときは、先にEnterまたはF2で編集を始めてください。"
     mac: "Macでは、Ctrlの代わりにCmd（⌘）を使います。"
+  puzzles_popover:
+    title: "パズルごとの記録"
+    none: "パズルごとの記録はありません"
+    edit_on_desk: "結果デスクで編集"
+    own_time: "自己申告 %time%"
 
 participants_sheet_round:
   pair: "ペア"

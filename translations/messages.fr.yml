@@ -8007,6 +8007,11 @@ participants_sheet_core:
     keys_ime: "Entrée, puis tapez"
     does_ime: "Avec une méthode de saisie japonaise ou autre activée, commencez d'abord la modification avec Entrée ou F2."
     mac: "Sur Mac, utilisez Cmd au lieu de Ctrl."
+  puzzles_popover:
+    title: "Détail par puzzle"
+    none: "Pas de détail par puzzle"
+    edit_on_desk: "Modifier au bureau des résultats"
+    own_time: "propre %time%"
 
 participants_sheet_round:
   pair: "Duo"

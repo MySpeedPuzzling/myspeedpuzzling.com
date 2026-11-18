@@ -17,7 +17,7 @@
 {% endfor %}
 {% set now_dates = now_rows|filter(r => not r.isPending)|length %}
 {% set tba_count = tba_rows|filter(r => not r.isPending)|length %}
-{% set add_url = path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) %}
+{% set add_url = path('event_wizard') %}
 {% set home_empty = page.homeCountry is not null and page.homeCountry.upcoming == 0 %}
 
 <section class="ev-block ev-agenda" aria-labelledby="ev-agenda-title" data-events-page-target="agenda" {{ search_nothing ?? false ? 'hidden' }}>

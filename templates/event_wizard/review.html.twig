@@ -21,6 +21,10 @@
                 {% endif %}
                 · {{ competition.isOnline ? 'competition.form.event_type_online'|trans : competition.location }}{% if competition.locationCountryCode is not null %}, <span class="fi fi-{{ competition.locationCountryCode.name }}"></span>{% endif %}
             </p>
+            {#- The calendar path ("Something else"): what kind of event it is -#}
+            {% if progress.path.value == 'calendar' and competition.eventTypes is not null %}
+                <p class="mb-1" data-event-wizard-review-types>{{ competition.eventTypes.types|map(type => type.translationKey|trans)|join(', ') }}</p>
+            {% endif %}
             {% if competition.organization is not null %}
                 <p class="small text-muted mb-0">{{ 'event_wizard.basics.under'|trans({'%organization%': competition.organization.name}) }}</p>
             {% endif %}

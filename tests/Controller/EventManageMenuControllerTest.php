@@ -108,7 +108,7 @@ final class EventManageMenuControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/event-actions/series/' . EventsPageFixture::SERIES_HARBOR_NIGHTS, server: $this->frameHeader());
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['Manage series', 'Add edition', 'Add several dates', 'Page content', 'Turn into an organization', 'Unpublish…', 'Delete series'], $this->itemLabels($crawler));
+        self::assertSame(['Manage series', 'Add the next dates', 'Page content', 'Turn into an organization', 'Unpublish…', 'Delete series'], $this->itemLabels($crawler));
         self::assertSame('/en/delete-series/' . EventsPageFixture::SERIES_HARBOR_NIGHTS, $crawler->filter('details[data-delete] form')->attr('action'));
 
         // An edition is deleted through its own route
@@ -313,7 +313,7 @@ final class EventManageMenuControllerTest extends WebTestCase
         }
     }
 
-    public function testTheSeriesMenuOffersSeveralDatesAndTurningIntoAnOrganization(): void
+    public function testTheSeriesMenuOffersTheNextDatesAndTurningIntoAnOrganization(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -321,9 +321,12 @@ final class EventManageMenuControllerTest extends WebTestCase
         // Under an organization already: no "Turn into an organization"
         $crawler = $browser->request('GET', '/en/event-actions/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS, server: $this->frameHeader());
         $labels = $this->itemLabels($crawler);
-        self::assertContains('Add several dates', $labels);
+        // One way to add dates - the wizard's "Add the next dates" (the classic "Add edition" / "Add several dates" retired)
+        self::assertContains('Add the next dates', $labels);
+        self::assertNotContains('Add several dates', $labels);
+        self::assertNotContains('Add edition', $labels);
         self::assertNotContains('Turn into an organization', $labels);
-        self::assertSame('/en/add-editions/' . OrganizationFixture::SERIES_LANTERN_NIGHTS, parse_url((string) $crawler->filter('a.ev-action:contains("Add several dates")')->attr('href'), PHP_URL_PATH));
+        self::assertSame('/en/new-event/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS . '/next-dates', $crawler->filter('a.ev-action:contains("Add the next dates")')->attr('href'));
 
         // A draft series without an organization
         $crawler = $browser->request('GET', '/en/event-actions/series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, server: $this->frameHeader());

@@ -4,50 +4,23 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\FormData\AddEditionsFormData;
-use SpeedPuzzling\Web\FormType\AddEditionsFormType;
-use SpeedPuzzling\Web\Message\AddEditions;
-use SpeedPuzzling\Web\Query\GetCompetitionSeries;
-use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
-use SpeedPuzzling\Web\Services\SeriesEditions\EditionsPreview;
-use SpeedPuzzling\Web\Value\EventTypes;
-use SpeedPuzzling\Web\Value\NewEdition;
-use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Add several dates" (docs/features/organizations/README.md "Add several dates", P15/P16): the rule (every week on a
- * weekday / the Nth or the last weekday of the month) or picked days come in the query string, the page previews the
- * dates with their names - a checked box each, a day already holding an edition of the series unchecked and marked -
- * and one POST to the same URL creates the checked ones (AddEditions, at most 24), as drafts with "Save as draft".
- * Nothing is created before the organiser saw the dates; nothing of the rule is stored.
+ * The old "Add several dates" address - retired on 2026-11-18 for the wizard's "Add the next dates"
+ * (`event_wizard_series_next_dates`, the same rule, preview and names - EventWizardDatesFormData extends
+ * AddEditionsFormData - plus each date's round; creation-wizard.md "Classic create retired"). A GET keeps its query
+ * string (a bookmarked rule opens the same preview there); a POST (the page left open in a tab) creates nothing: 303 to
+ * the rule's preview, where the dates are checked and created again - never half saved.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AddEditionsController extends AbstractController
 {
-    public const string CSRF_TOKEN_PREFIX = 'add_editions_';
-
-    public function __construct(
-        private readonly MessageBusInterface $messageBus,
-        private readonly GetCompetitionSeries $getCompetitionSeries,
-        private readonly TranslatorInterface $translator,
-        private readonly FormFactoryInterface $formFactory,
-        private readonly EditionsPreview $editionsPreview,
-        private readonly ClockInterface $clock,
-    ) {
-    }
-
     #[Route(
         path: [
             'cs' => '/pridat-edice/{seriesId}',
@@ -58,95 +31,18 @@ final class AddEditionsController extends AbstractController
             'de' => '/de/add-editions/{seriesId}',
         ],
         name: 'add_editions',
+        requirements: ['seriesId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request, string $seriesId): Response
     {
-        $this->denyAccessUnlessGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $seriesId);
+        // The rule's fields only - never the classic page's own return link
+        $query = array_diff_key($request->query->all(), ['return' => true, 'return_title' => true]);
 
-        $series = $this->getCompetitionSeries->byId($seriesId);
-        $today = OccurrenceDates::today($this->clock->now());
-
-        $data = new AddEditionsFormData(
-            weekday: (int) $today->format('N'),
-            starting: $today,
-            namePattern: AddEditionsFormData::defaultNamePattern($series->name),
-            // Its series' types preset - unchanged, the dates keep following them
-            eventTypes: $series->eventTypes->types ?? [],
+        return $this->redirectToRoute(
+            'event_wizard_series_next_dates',
+            ['seriesId' => $seriesId, ...$query],
+            $request->isMethod('GET') ? Response::HTTP_FOUND : Response::HTTP_SEE_OTHER,
         );
-
-        /** @var FormInterface<AddEditionsFormData> $form */
-        $form = $this->formFactory->createNamed('', AddEditionsFormType::class, $data);
-        $isPost = $request->isMethod('POST');
-
-        if ($isPost) {
-            if ($this->isCsrfTokenValid(self::CSRF_TOKEN_PREFIX . $seriesId, $request->request->getString('_token')) === false) {
-                throw $this->createAccessDeniedException();
-            }
-
-            // The rule stays in the query string of the form's action: the dates are worked out again, never posted
-            $form->submit($request->query->all());
-        } else {
-            $form->handleRequest($request);
-        }
-
-        // The id each day's edition gets - made with the preview, sent back with the form, so a form sent twice creates
-        // nothing twice (AddEditions skips ids that exist)
-        $postedIds = $isPost ? $request->request->all('ids') : [];
-        $preview = $form->isSubmitted() && $form->isValid() ? $this->editionsPreview->of($form->getData(), $seriesId, $request->getLocale(), $postedIds) : null;
-        $selectionError = null;
-        // The days checked in a refused POST stay checked; a fresh preview checks every free day
-        $selected = $isPost ? array_values(array_filter($request->request->all('selected'), is_string(...))) : null;
-
-        if ($selected !== null && $preview !== null) {
-            $editions = [];
-
-            foreach ($preview as $item) {
-                if (in_array($item['value'], $selected, true)) {
-                    $editions[] = new NewEdition(competitionId: Uuid::fromString($item['id']), name: $item['name'], date: $item['date']);
-                }
-            }
-
-            if ($editions !== []) {
-                $isDraft = $request->request->has('saveDraft');
-
-                $envelope = $this->messageBus->dispatch(new AddEditions(
-                    seriesId: $seriesId,
-                    editions: $editions,
-                    eligibility: $form->getData()->eligibility,
-                    eventTypes: EventTypes::of($form->getData()->eventTypes),
-                    isDraft: $isDraft,
-                ));
-                $created = $envelope->last(HandledStamp::class)?->getResult();
-
-                // A form sent again creates nothing - and says nothing
-                if (is_int($created) && $created > 0) {
-                    $this->addFlash('success', $this->translator->trans(
-                        $isDraft ? 'organizer_tools.flash.editions_added_draft' : 'organizer_tools.flash.editions_added',
-                        ['%count%' => $created],
-                    ));
-                }
-
-                return $this->redirectToRoute('manage_competition_series', ['seriesId' => $seriesId]);
-            }
-
-            $selectionError = $this->translator->trans('add_editions.none_selected', [], 'validators');
-        }
-
-        $response = $this->render('add_editions.html.twig', [
-            'form' => $form,
-            'series' => $series,
-            'preview' => $preview,
-            'selection_error' => $selectionError,
-            'selected' => $selected,
-            'csrf_token_id' => self::CSRF_TOKEN_PREFIX . $seriesId,
-        ]);
-
-        // A refused POST (an invalid rule, nothing checked) never answers 200 - Turbo would drop it
-        if ($isPost) {
-            $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        return $response;
     }
 }

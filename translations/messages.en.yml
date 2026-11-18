@@ -4692,9 +4692,6 @@ competition:
     pending_approval_info: "This event is pending admin approval and is not yet visible to other users."
     rejected_info: "This event was not approved."
     rejection_reason: "Reason"
-    add_event_info: "Add a new competition or event. It will be reviewed by an admin before being published."
-    managed_event_info: "Interested in fully managing participant registrations and payments through MySpeedPuzzling? Contact me at <a href=\"mailto:%email%\">%email%</a>."
-    submit_for_approval: "Submit for Approval"
     save_changes: "Save Changes"
     manage_rounds: "Manage Rounds"
     manage_editions: "Manage Editions"
@@ -4769,7 +4766,6 @@ competition:
         link: "Website URL"
         registration_link: "Registration URL"
         results_link: "Results URL"
-        links_per_edition: "Registration and results links are set for each edition separately, once the series is created."
         location: "Location"
         location_series_help: "Optional for a series - each edition has its own location. Fill it in only when it always takes place at the same venue."
         country: "Country"
@@ -4973,7 +4969,6 @@ competition:
             results_confirmed: "This round already has official results. Clear them at the results desk first - a reset starts the round again from scratch."
             ended_use_reset: "This online round has ended - Reset it to run it again."
     flash:
-        created: "Event submitted for approval."
         updated: "Event updated."
         approved: "Competition approved."
         round_added: "Round added."
@@ -5755,7 +5750,6 @@ series:
         edition_description_past_official: "%name% results: the official results round by round, plus the puzzles and participants. %series% speed puzzling competition held on %date%."
     manage: "Manage Series"
     edit_series: "Edit Series"
-    add_edition: "Add Edition"
     upcoming_editions: "Upcoming Editions"
     past_editions: "Past Editions"
     no_editions: "No editions yet. Add an edition to get started."
@@ -6031,7 +6025,6 @@ results_desk:
 
 edition:
     edit: "Edit Edition"
-    rounds_hint: "After creating the edition, you can add rounds with puzzles and time limits from the edition management page."
     date_not_set: "Date not set"
     form:
         name: "Edition name"
@@ -6045,7 +6038,6 @@ edition:
         link: "Website URL"
         link_help: "Shown as the \"Info\" button on the edition page."
     flash:
-        created: "Edition added."
         deleted: "Edition was deleted."
     delete:
         button: "Delete edition"
@@ -9369,7 +9361,6 @@ organizer_tools:
         delete_organization: "Delete organization"
         approve_organization: "Approve organization"
         reject_organization: "Reject organization…"
-        add_editions: "Add several dates"
         to_organization: "Turn into an organization"
         move_edition: "Move to another series"
         move_round: "Move to another event or edition"
@@ -9389,21 +9380,10 @@ organizer_tools:
         event_types_edition_help: "Its series' kinds are ticked - change them only when this date is different."
         schedule: "When it happens"
         schedule_help: "For a series, e.g. “Fourth Friday of the month, 8 pm” - each date is still its own edition."
-        save_draft: "Save as draft"
-        save_draft_help: "A draft is seen only by you and your team - publish it when it is ready."
-        submit_add_event: "Add event"
-        submit_add_series: "Add series"
-        add_info_approved: "Add a new competition or event. Under your approved organization it needs no review by an admin."
     flash:
         saved_as_draft: "Saved as a draft - only you and your team can see it. Publish it when it is ready."
         created_published: "Added - everyone can see it now."
-        editions_added: "1 edition added.|%count% editions added."
-        editions_added_draft: "1 edition added as a draft.|%count% editions added as drafts."
     add_editions:
-        title: "Add several dates"
-        link: "Add several dates at once"
-        link_hint: "- every week, the second Thursday or the last Friday of the month… or dates you pick."
-        intro: "Each date becomes an edition of its own. Nothing repeats by itself: when a venue moves a date, edit that one edition."
         how: "How"
         how_repeat: "Repeat"
         how_pick: "Pick dates"
@@ -9432,8 +9412,6 @@ organizer_tools:
         show: "Show the dates"
         preview_title: "1 date|%count% dates"
         taken: "already has an edition"
-        create: "Create 1 edition|Create %count% editions"
-        create_help: "Only the checked dates are created. As drafts, only you and your team see them until you publish each one."
 organization_page:
     meta:
         title: "%name% - puzzle events"
@@ -15372,7 +15350,6 @@ event_wizard:
         series_help: "The same event every week or month - club nights, monthly online cups."
         other: "Something else"
         other_help: "A meetup, puzzle swap, workshop or marathon - an event on the calendar, no rounds."
-        classic: "Prefer one form? Use the classic form"
         copy_title: "Or copy one of your events"
         copy_help: "The copy keeps the details, settings and rounds - you choose its new date."
         copy: "Copy"
@@ -15384,6 +15361,11 @@ event_wizard:
         qualify_every_round_counts_help: "Solo, pair and team rounds - the times are added up per category."
         qualify_empty: "Not sure yet"
         qualify_empty_help: "Start with no rounds and add them one by one."
+    # "Something else" - an event on the calendar without rounds (the calendar path)
+    calendar:
+        types_help: "Pick one or more. Running a competition? Go back and choose one of the competition answers."
+        types_required: "Pick at least one kind of event."
+        date_help: "An online event that is always on can stay without a date."
     basics:
         title: "The basics"
         under: "Under %organization%"

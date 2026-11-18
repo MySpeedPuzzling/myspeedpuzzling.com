@@ -12,7 +12,7 @@
         <h2 class="visually-hidden" id="series-upcoming-title">{{ 'series_page.upcoming'|trans }}</h2>
         <p class="ev-series-empty-text">{{ 'events.no_editions_yet'|trans }}</p>
         {% if is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted('COMPETITION_SERIES_EDIT', series.id) %}
-            <a class="ev-action-button" href="{{ path('add_edition', {seriesId: series.id, return: app.request.requestUri, return_title: series.name}) }}">{{ 'events_organizer.menu.add_edition'|trans }}</a>
+            <a class="ev-action-button" href="{{ path('event_wizard_series_next_dates', {seriesId: series.id}) }}">{{ 'events_organizer.menu.add_edition'|trans }}</a>
         {% endif %}
     </section>
 {% elseif page.months is not empty or page.ongoing is not empty or page.dateNotSet is not empty or page.next is null %}

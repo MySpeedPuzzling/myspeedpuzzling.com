@@ -26,6 +26,9 @@ readonly final class EventWizardState
         public bool $extrasOn = false,
         // Its rounds without any puzzle yet (several rounds: the Puzzles step is done when none is left)
         public int $roundsWithoutPuzzle = 0,
+        // Its event types are set and "Competition" is not one of them - without a round it is on the calendar path
+        // ("Something else", EventWizardPath::of())
+        public bool $calendarEvent = false,
     ) {
     }
 }

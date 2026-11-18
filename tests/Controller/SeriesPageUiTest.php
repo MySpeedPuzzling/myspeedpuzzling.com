@@ -178,7 +178,8 @@ final class SeriesPageUiTest extends WebTestCase
 
         $add = $crawler->filter('[data-series-empty] a');
         self::assertCount(1, $add);
-        self::assertStringStartsWith('/en/add-edition/' . EventsPageFixture::SERIES_SUMMIT_LEAGUE, (string) $add->attr('href'));
+        // The wizard's "Add the next dates" (the classic "Add edition" form was retired)
+        self::assertSame('/en/new-event/series/' . EventsPageFixture::SERIES_SUMMIT_LEAGUE . '/next-dates', $add->attr('href'));
     }
 
     public function testAFollowerSeesFollowingSeriesPressed(): void

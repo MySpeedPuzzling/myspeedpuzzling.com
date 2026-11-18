@@ -4133,9 +4133,6 @@ qr_code:
   "pending_approval_info": "Diese Veranstaltung wartet auf die Genehmigung eines Administrators und ist noch nicht für andere Benutzer sichtbar."
   "rejected_info": "Diese Veranstaltung wurde nicht genehmigt."
   "rejection_reason": "Grund"
-  "add_event_info": "Fügen Sie einen neuen Wettbewerb oder eine Veranstaltung hinzu. Sie wird von einem Administrator geprüft, bevor sie veröffentlicht wird."
-  "managed_event_info": "Interessiert an der vollständigen Verwaltung von Teilnehmerregistrierungen und Zahlungen über MySpeedPuzzling? Kontaktieren Sie mich unter <a href=\"mailto:%email%\">%email%</a>."
-  "submit_for_approval": "Zur Genehmigung einreichen"
   "save_changes": "Änderungen speichern"
   "manage_rounds": "Runden verwalten"
   "manage_editions": "Ausgaben verwalten"
@@ -4210,7 +4207,6 @@ qr_code:
     "link": "Website-URL"
     "registration_link": "Registrierungs-URL"
     "results_link": "Ergebnis-URL"
-    "links_per_edition": "Registrierungs- und Ergebnis-Links werden für jede Ausgabe einzeln angegeben, sobald die Serie angelegt ist."
     "location": "Ort"
     "location_series_help": "Bei einer Serie optional – jede Ausgabe hat ihren eigenen Ort. Füllen Sie das Feld nur aus, wenn sie immer am selben Ort stattfindet."
     "country": "Land"
@@ -4414,7 +4410,6 @@ qr_code:
       "results_confirmed": "Diese Runde hat bereits offizielle Ergebnisse. Löschen Sie sie zuerst im Ergebnisbüro – ein Zurücksetzen beginnt die Runde ganz von vorn."
       "ended_use_reset": "Diese Online-Runde ist beendet – setzen Sie die Stoppuhr zurück, um sie erneut zu starten."
   "flash":
-    "created": "Veranstaltung zur Genehmigung eingereicht."
     "updated": "Veranstaltung aktualisiert."
     "approved": "Wettbewerb genehmigt."
     "round_added": "Runde hinzugefügt."
@@ -5678,7 +5673,6 @@ official_results:
     edition_description_past_official: "%name% Ergebnisse: die offiziellen Ergebnisse Runde für Runde, dazu die Puzzles und Teilnehmer. %series% Speed Puzzle Wettbewerb am %date%."
   "manage": "Serie verwalten"
   "edit_series": "Serie bearbeiten"
-  "add_edition": "Ausgabe hinzufügen"
   "upcoming_editions": "Kommende Ausgaben"
   "past_editions": "Vergangene Ausgaben"
   "no_editions": "Noch keine Editionen. Jede Edition ist ein Termin dieser wiederkehrenden Veranstaltung — fügen Sie die erste hinzu."
@@ -5694,7 +5688,6 @@ official_results:
     "deleted": "Serie wurde gelöscht."
 "edition":
   "edit": "Ausgabe bearbeiten"
-  "rounds_hint": "Nach dem Erstellen der Edition können Sie Runden mit Puzzles und Zeitlimits auf der Verwaltungsseite hinzufügen."
   "date_not_set": "Datum noch offen"
   "form":
     "name": "Ausgabenname"
@@ -5714,7 +5707,6 @@ official_results:
     "modal_body": "Möchten Sie \"%name%\" wirklich löschen? Dies kann nicht rückgängig gemacht werden."
     "modal_cancel": "Abbrechen"
   "flash":
-    "created": "Ausgabe hinzugefügt."
     "deleted": "Ausgabe wurde gelöscht."
 
 # Referral Program
@@ -9028,7 +9020,6 @@ organizer_tools:
         delete_organization: "Organisation löschen"
         approve_organization: "Organisation genehmigen"
         reject_organization: "Organisation ablehnen…"
-        add_editions: "Mehrere Termine hinzufügen"
         to_organization: "In eine Organisation umwandeln"
         move_edition: "In eine andere Serie verschieben"
         move_round: "In eine andere Veranstaltung oder Ausgabe verschieben"
@@ -9048,21 +9039,10 @@ organizer_tools:
         event_types_edition_help: "Die Arten der Serie sind angekreuzt – nur ändern, wenn dieser Termin anders ist."
         schedule: "Wann es stattfindet"
         schedule_help: "Bei einer Serie z.B. „Vierter Freitag im Monat, 20 Uhr“ – jeder Termin bleibt eine eigene Ausgabe."
-        save_draft: "Als Entwurf speichern"
-        save_draft_help: "Einen Entwurf sehen nur Sie und Ihr Team – veröffentlichen Sie ihn, wenn er fertig ist."
-        submit_add_event: "Veranstaltung hinzufügen"
-        submit_add_series: "Serie hinzufügen"
-        add_info_approved: "Fügen Sie einen neuen Wettbewerb oder eine Veranstaltung hinzu. Unter Ihrer genehmigten Organisation ist keine Prüfung durch einen Administrator nötig."
     flash:
         saved_as_draft: "Als Entwurf gespeichert – nur Sie und Ihr Team können ihn sehen. Veröffentlichen Sie ihn, wenn er fertig ist."
         created_published: "Hinzugefügt – jetzt kann es jeder sehen."
-        editions_added: "1 Ausgabe hinzugefügt.|%count% Ausgaben hinzugefügt."
-        editions_added_draft: "1 Ausgabe als Entwurf hinzugefügt.|%count% Ausgaben als Entwürfe hinzugefügt."
     add_editions:
-        title: "Mehrere Termine hinzufügen"
-        link: "Mehrere Termine auf einmal hinzufügen"
-        link_hint: "– jede Woche, den zweiten Donnerstag oder den letzten Freitag im Monat … oder Termine Ihrer Wahl."
-        intro: "Jeder Termin wird zu einer eigenen Ausgabe. Nichts wiederholt sich von selbst: Wenn ein Termin verschoben wird, bearbeiten Sie genau diese eine Ausgabe."
         how: "Wie"
         how_repeat: "Wiederholen"
         how_pick: "Termine wählen"
@@ -9091,8 +9071,6 @@ organizer_tools:
         show: "Termine anzeigen"
         preview_title: "1 Termin|%count% Termine"
         taken: "hat bereits eine Ausgabe"
-        create: "1 Ausgabe anlegen|%count% Ausgaben anlegen"
-        create_help: "Es werden nur die markierten Termine angelegt. Als Entwürfe sehen nur Sie und Ihr Team sie, bis Sie jede einzelne Ausgabe veröffentlichen."
 organization_page:
     meta:
         title: "%name% – Puzzle-Veranstaltungen"
@@ -15121,7 +15099,6 @@ event_wizard:
         series_help: "Dieselbe Veranstaltung jede Woche oder jeden Monat – Clubabende, monatliche Online-Cups."
         other: "Etwas anderes"
         other_help: "Ein Treffen, eine Puzzle-Tauschbörse, ein Workshop oder ein Marathon – eine Veranstaltung im Kalender, ohne Runden."
-        classic: "Lieber ein Formular? Das klassische Formular nutzen"
         copy_title: "Oder eine Ihrer Veranstaltungen kopieren"
         copy_help: "Die Kopie behält Angaben, Einstellungen und Runden – Sie wählen ihr neues Datum."
         copy: "Kopieren"
@@ -15133,6 +15110,10 @@ event_wizard:
         qualify_every_round_counts_help: "Solo-, Paar- und Team-Runden – die Zeiten werden pro Kategorie zusammengezählt."
         qualify_empty: "Noch nicht sicher"
         qualify_empty_help: "Ohne Runden beginnen und sie einzeln hinzufügen."
+    calendar:
+        types_help: "Wähle eine oder mehrere Arten. Du veranstaltest einen Wettbewerb? Geh zurück und wähle eine der Wettbewerbs-Antworten."
+        types_required: "Wähle mindestens eine Art von Event."
+        date_help: "Ein Online-Event, das immer läuft, kann ohne Datum bleiben."
     basics:
         title: "Die Grundlagen"
         under: "Unter %organization%"

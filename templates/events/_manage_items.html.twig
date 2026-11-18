@@ -39,7 +39,7 @@
     {%- if is_granted('ORGANIZATION_EDIT', item.id) -%}
         {%- set links = [
             {label: 'organization.menu.edit', url: path('edit_organization', {organizationId: item.id}|merge(back))},
-            {label: 'organizer_tools.menu.add_event', url: path('add_competition', {organization: item.id}|merge(back))},
+            {label: 'organizer_tools.menu.add_event', url: path('event_wizard', {organization: item.id})},
         ] -%}
         {#- Its results import page - only where an admin set up a results source (docs/features/event-results-import/results-import-page.md) -#}
         {%- if item.resultsSourceCount > 0 and item.slug -%}
@@ -67,8 +67,7 @@
     {%- if is_granted('COMPETITION_SERIES_EDIT', item.id) -%}
         {%- set links = [
             {label: 'events_organizer.menu.manage_series', url: path('manage_competition_series', {seriesId: item.id}|merge(back))},
-            {label: 'events_organizer.menu.add_edition', url: path('add_edition', {seriesId: item.id}|merge(back))},
-            {label: 'organizer_tools.menu.add_editions', url: path('add_editions', {seriesId: item.id}|merge(back))},
+            {label: 'event_wizard_series.next_dates.button', url: path('event_wizard_series_next_dates', {seriesId: item.id})},
             {label: 'events_organizer.menu.page_content', url: path('manage_series_page', {seriesId: item.id}|merge(back))},
         ] -%}
         {%- if item.organizationId is null -%}

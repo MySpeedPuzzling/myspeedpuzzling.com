@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
+use SpeedPuzzling\Web\Value\EventType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
@@ -28,6 +29,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * - `multiDay` ("It lasts more days") - unticked, the event ends the day it starts (dateTo = dateFrom).
  *
  * The date is required for an online event too: its round needs a start.
+ *
+ * Option `calendar` (the calendar path, "Something else" - no rounds): "What kind of event" is required and never offers
+ * "Competition" (a competition takes one of the other answers - the kind is what tells its draft from a several-rounds
+ * draft without rounds, EventWizardPath::of()); an online one may stay undated (ongoing - as the event form allows).
  *
  * @extends AbstractType<CompetitionFormData>
  */
@@ -61,6 +66,13 @@ final class EventWizardBasicsFormType extends AbstractType
             ]);
         }
 
+        if ($options['calendar'] === true) {
+            $builder->add('eventTypes', EventTypesType::class, [
+                'choices' => array_values(array_filter(EventType::cases(), static fn (EventType $type): bool => $type !== EventType::Competition)),
+                'help' => 'event_wizard.calendar.types_help',
+            ]);
+        }
+
         $builder->add('multiDay', CheckboxType::class, [
             'label' => 'event_wizard.basics.multi_day',
             'mapped' => false,
@@ -89,11 +101,17 @@ final class EventWizardBasicsFormType extends AbstractType
             }
         });
 
-        // The round needs its day - for an online event too
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
+        // The round needs its day - for an online event too; an online event on the calendar path may be ongoing (no day)
+        $calendar = $options['calendar'] === true;
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($calendar): void {
             $form = $event->getForm();
+            $undatedAllowed = $calendar && $form->get('isOnline')->getData() === true;
 
-            if ($form->get('dateFrom')->getData() === null && $form->get('dateFrom')->getErrors()->count() === 0) {
+            if ($calendar && $form->get('eventTypes')->getData() === []) {
+                $form->get('eventTypes')->addError(new FormError($this->translator->trans('event_wizard.calendar.types_required')));
+            }
+
+            if ($undatedAllowed === false && $form->get('dateFrom')->getData() === null && $form->get('dateFrom')->getErrors()->count() === 0) {
                 $form->get('dateFrom')->addError(new FormError($this->translator->trans('event_wizard.basics.date_required')));
             }
 
@@ -108,8 +126,10 @@ final class EventWizardBasicsFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         // false: no start time - several rounds have their starts typed per round on the Structure step (W5)
-        $resolver->setDefaults(['start_time' => true]);
+        // true: the calendar path ("Something else") - see the class comment
+        $resolver->setDefaults(['start_time' => true, 'calendar' => false]);
         $resolver->setAllowedTypes('start_time', 'bool');
+        $resolver->setAllowedTypes('calendar', 'bool');
     }
 
     /**

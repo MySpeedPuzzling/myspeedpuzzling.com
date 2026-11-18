@@ -4200,9 +4200,6 @@ competition:
   "pending_approval_info": "Cet événement est en attente d'approbation par un administrateur et n'est pas encore visible pour les autres utilisateurs."
   "rejected_info": "Cet événement n'a pas été approuvé."
   "rejection_reason": "Raison"
-  "add_event_info": "Ajoutez une nouvelle compétition ou un événement. Il sera examiné par un administrateur avant d'être publié."
-  "managed_event_info": "Intéressé par la gestion complète des inscriptions et paiements des participants via MySpeedPuzzling ? Contactez-moi à <a href=\"mailto:%email%\">%email%</a>."
-  "submit_for_approval": "Soumettre pour approbation"
   "save_changes": "Enregistrer les modifications"
   "manage_rounds": "Gérer les manches"
   "manage_editions": "Gérer les éditions"
@@ -4277,7 +4274,6 @@ competition:
     "link": "URL du site web"
     "registration_link": "URL d'inscription"
     "results_link": "URL des résultats"
-    "links_per_edition": "Les liens d'inscription et de résultats se renseignent pour chaque édition, une fois la série créée."
     "location": "Lieu"
     "location_series_help": "Facultatif pour une série – chaque édition a son propre lieu. Ne le remplissez que si elle se déroule toujours au même endroit."
     "country": "Pays"
@@ -4481,7 +4477,6 @@ competition:
       "results_confirmed": "Cette manche a déjà des résultats officiels. Effacez-les d'abord au Bureau des résultats – une remise à zéro recommence la manche depuis le début."
       "ended_use_reset": "Cette manche en ligne est terminée – réinitialisez le chronomètre pour la relancer."
   "flash":
-    "created": "Événement soumis pour approbation."
     "updated": "Événement mis à jour."
     "approved": "Compétition approuvée."
     "round_added": "Manche ajoutée."
@@ -5745,7 +5740,6 @@ series:
     edition_description_past_official: "Résultats %name% : les résultats officiels manche par manche, ainsi que les puzzles et les participants. Concours de speed puzzle %series% organisé le %date%."
   "manage": "Gérer la série"
   "edit_series": "Modifier la série"
-  "add_edition": "Ajouter une édition"
   "upcoming_editions": "Prochaines éditions"
   "past_editions": "Éditions passées"
   "no_editions": "Pas encore d'éditions. Chaque édition correspond à une occurrence de cet événement récurrent — ajoutez la première."
@@ -5761,7 +5755,6 @@ series:
     "deleted": "La série a été supprimée."
 edition:
   "edit": "Modifier l'édition"
-  "rounds_hint": "Après avoir créé l'édition, vous pourrez ajouter des manches avec des puzzles et des temps limites depuis la page de gestion."
   "date_not_set": "Date à définir"
   "form":
     "name": "Nom de l'édition"
@@ -5781,7 +5774,6 @@ edition:
     "modal_body": "Êtes-vous sûr de vouloir supprimer « %name% » ? Cette action est irréversible."
     "modal_cancel": "Annuler"
   "flash":
-    "created": "Édition ajoutée."
     "deleted": "L'édition a été supprimée."
 
 # Referral Program
@@ -9111,7 +9103,6 @@ organizer_tools:
         delete_organization: "Supprimer l'organisation"
         approve_organization: "Approuver l'organisation"
         reject_organization: "Rejeter l'organisation…"
-        add_editions: "Ajouter plusieurs dates"
         to_organization: "Transformer en organisation"
         move_edition: "Déplacer vers une autre série"
         move_round: "Déplacer vers un autre événement ou une autre édition"
@@ -9131,21 +9122,10 @@ organizer_tools:
         event_types_edition_help: "Les types de la série sont cochés – modifiez-les seulement si cette date est différente."
         schedule: "Quand ça a lieu"
         schedule_help: "Pour une série, par ex. « Le quatrième vendredi du mois, 20 h » – chaque date reste une édition à part entière."
-        save_draft: "Enregistrer comme brouillon"
-        save_draft_help: "Un brouillon n'est visible que par vous et votre équipe – publiez-le quand il est prêt."
-        submit_add_event: "Ajouter l'événement"
-        submit_add_series: "Ajouter la série"
-        add_info_approved: "Ajoutez une nouvelle compétition ou un événement. Sous votre organisation approuvée, aucune vérification par un administrateur n'est nécessaire."
     flash:
         saved_as_draft: "Enregistré comme brouillon – il n'est visible que par vous et votre équipe. Publiez-le quand il est prêt."
         created_published: "Ajouté – tout le monde peut le voir maintenant."
-        editions_added: "%count% édition ajoutée.|%count% éditions ajoutées."
-        editions_added_draft: "%count% édition ajoutée comme brouillon.|%count% éditions ajoutées comme brouillons."
     add_editions:
-        title: "Ajouter plusieurs dates"
-        link: "Ajouter plusieurs dates d'un coup"
-        link_hint: "– chaque semaine, le deuxième jeudi ou le dernier vendredi du mois… ou les dates de votre choix."
-        intro: "Chaque date devient une édition à part. Rien ne se répète tout seul : quand un lieu déplace une date, modifiez cette édition-là."
         how: "Comment"
         how_repeat: "Répéter"
         how_pick: "Choisir des dates"
@@ -9174,8 +9154,6 @@ organizer_tools:
         show: "Afficher les dates"
         preview_title: "%count% date|%count% dates"
         taken: "a déjà une édition"
-        create: "Créer %count% édition|Créer %count% éditions"
-        create_help: "Seules les dates cochées sont créées. En brouillon, elles ne sont visibles que par vous et votre équipe jusqu'à la publication de chacune."
 organization_page:
     meta:
         title: "%name% – événements de puzzle"
@@ -15117,7 +15095,6 @@ event_wizard:
         series_help: "Le même événement chaque semaine ou chaque mois : soirées de club, coupes en ligne mensuelles."
         other: "Autre chose"
         other_help: "Une rencontre, un échange de puzzles, un atelier ou un marathon : un événement au calendrier, sans manches."
-        classic: "Vous préférez un seul formulaire ? Utilisez le formulaire classique"
         copy_title: "Ou copiez l'un de vos événements"
         copy_help: "La copie conserve les informations, les réglages et les manches - vous choisissez sa nouvelle date."
         copy: "Copier"
@@ -15129,6 +15106,10 @@ event_wizard:
         qualify_every_round_counts_help: "Manches en solo, en duo et en équipe : les temps sont additionnés par catégorie."
         qualify_empty: "Je ne sais pas encore"
         qualify_empty_help: "Commencez sans manches et ajoutez-les une par une."
+    calendar:
+        types_help: "Choisissez-en un ou plusieurs. Vous organisez une compétition ? Revenez en arrière et choisissez l'une des réponses « compétition »."
+        types_required: "Choisissez au moins un type d'événement."
+        date_help: "Un événement en ligne toujours ouvert peut rester sans date."
     basics:
         title: "L'essentiel"
         under: "Sous %organization%"

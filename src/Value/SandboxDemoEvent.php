@@ -46,7 +46,7 @@ readonly final class SandboxDemoEvent
     }
 
     /**
-     * Days between the first and the last round, relative to the demo day.
+     * The first and the last day of the event, relative to the demo day (which it always includes).
      *
      * @return array{int, int}
      */
@@ -54,6 +54,6 @@ readonly final class SandboxDemoEvent
     {
         $offsets = array_map(static fn (SandboxDemoRound $round): int => $round->dayOffset, $this->rounds);
 
-        return [min($offsets), max($offsets)];
+        return [min(0, ...$offsets), max(0, ...$offsets)];
     }
 }

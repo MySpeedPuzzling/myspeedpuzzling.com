@@ -56,7 +56,8 @@ final class SandboxDemoEventsConsoleCommand extends Command
         }
 
         $organizer = $input->getOption('organizer');
-        $organizerPlayerId = is_string($organizer) ? $this->simulationData->playerIdByEmail($organizer) : null;
+        $organizer = is_string($organizer) ? $organizer : '';
+        $organizerPlayerId = $this->simulationData->playerIdByEmail($organizer);
 
         if ($organizerPlayerId === null) {
             $io->error('The organiser has no account - run myspeedpuzzling:sandbox:seed first (or pass --organizer).');
@@ -65,13 +66,14 @@ final class SandboxDemoEventsConsoleCommand extends Command
         }
 
         $referee = $input->getOption('referee');
-        $refereePlayerId = is_string($referee) && $referee !== '' ? $this->simulationData->playerIdByEmail($referee) : null;
+        $referee = is_string($referee) ? $referee : '';
+        $refereePlayerId = $referee !== '' ? $this->simulationData->playerIdByEmail($referee) : null;
 
         $this->demoEvents->setUp($date, $organizerPlayerId, $refereePlayerId, static function (string $line) use ($io): void {
             $io->writeln($line);
         });
 
-        $io->success(sprintf('Demo events ready. Organiser: %s (password "sandbox")%s.', $organizer, $refereePlayerId !== null && is_string($referee) ? ', referee: ' . $referee : ''));
+        $io->success(sprintf('Demo events ready. Organiser: %s (password "sandbox")%s.', $organizer, $refereePlayerId !== null ? ', referee: ' . $referee : ''));
 
         return self::SUCCESS;
     }

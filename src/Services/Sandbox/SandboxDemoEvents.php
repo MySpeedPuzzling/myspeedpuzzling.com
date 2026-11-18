@@ -28,7 +28,10 @@ use SpeedPuzzling\Web\Message\PublishCompetitionStanding;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Message\SaveCompetitionDisplayDesign;
+use SpeedPuzzling\Web\Message\SetCompetitionDivisions;
+use SpeedPuzzling\Web\Message\SetRoundEntryDivisions;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
+use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Query\GetSandboxDemoData;
@@ -41,6 +44,8 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayPresets;
 use SpeedPuzzling\Web\Services\SameTablesCopy;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\DisplayKind;
+use SpeedPuzzling\Web\Value\DivisionInput;
+use SpeedPuzzling\Web\Value\EntryDivisionInput;
 use SpeedPuzzling\Web\Value\DisplayPreset;
 use SpeedPuzzling\Web\Value\QrTagMode;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -82,6 +87,7 @@ final readonly class SandboxDemoEvents
         private GetSandboxSimulationData $simulationData,
         private GetRoundResultsOverview $getRoundResultsOverview,
         private GetRoundResultEntries $getRoundResultEntries,
+        private GetCompetitionDivisions $getCompetitionDivisions,
         private SameTablesCopy $sameTablesCopy,
         private ClockInterface $clock,
         private UrlGeneratorInterface $urlGenerator,
@@ -134,6 +140,7 @@ final readonly class SandboxDemoEvents
         $roundIds = $this->rounds($event, $competitionId, $day, $say);
         $this->puzzles($event, $competitionId, $day, $roundIds, $say);
         $this->participants($event, $competitionId, $people, $say);
+        $this->divisions($event, $competitionId, $roundIds, $people, $say);
         $this->tables($event, $competitionId, $roundIds, $say);
         $this->results($event, $competitionId, $roundIds, $organizerPlayerId, $say);
 
@@ -385,6 +392,93 @@ final readonly class SandboxDemoEvents
         foreach ($result->errors as $error) {
             $say('Import error: ' . $error->trans($this->translator, 'en'));
         }
+    }
+
+    /**
+     * The event's divisions, the rounds' subsets (D1) and every entry's division: a group's n-th unit gets the division
+     * its rule names, the others the round's first one. Divisions the organiser added meanwhile are kept.
+     *
+     * @param array<string, string> $roundIds
+     * @param list<array{id: string, name: string, country: null|string, email: string}> $players
+     * @param \Closure(string): void $say
+     */
+    private function divisions(SandboxDemoEvent $event, string $competitionId, array $roundIds, array $players, \Closure $say): void
+    {
+        if ($event->divisions === []) {
+            return;
+        }
+
+        $inputs = [];
+        $subsets = [];
+        $ids = [];
+
+        foreach ($this->getCompetitionDivisions->ofCompetition($competitionId) as $division) {
+            $ids[$division->name] = $division->id;
+            $inputs[$division->name] = new DivisionInput($division->id, $division->name, $division->shortName);
+
+            foreach ($division->roundIds as $roundId) {
+                $subsets[$roundId][] = $division->id;
+            }
+        }
+
+        foreach ($event->divisions as $division) {
+            $ids[$division['name']] ??= Uuid::uuid7()->toString();
+            $inputs[$division['name']] = new DivisionInput($ids[$division['name']], $division['name'], $division['short']);
+        }
+
+        foreach ($event->rounds as $round) {
+            if ($round->divisions !== []) {
+                $subsets[$roundIds[$round->key]] = array_map(static fn (string $name): string => $ids[$name] ?? '', $round->divisions);
+            }
+        }
+
+        $this->messageBus->dispatch(new SetCompetitionDivisions($competitionId, array_values($inputs), $subsets));
+
+        $participants = $this->demoData->participantsByExternalId($competitionId);
+        $lineUp = self::lineUp($event, $players);
+        $assigned = 0;
+
+        foreach ($event->groups as $group) {
+            foreach ($group->roundKeys as $roundKey) {
+                $round = $event->round($roundKey);
+
+                if ($round->divisions === []) {
+                    continue;
+                }
+
+                $entries = [];
+
+                foreach ($lineUp['units'][$group->key] ?? [] as $unitIndex => $unit) {
+                    $firstMember = $lineUp['persons'][$unit['members'][0] ?? -1] ?? null;
+                    $participantId = $firstMember !== null ? ($participants[$firstMember['externalId']] ?? null) : null;
+
+                    if ($participantId !== null) {
+                        $entries[] = new EntryDivisionInput($participantId, null, self::unitDivision($group, $unitIndex + 1, $round));
+                    }
+                }
+
+                if ($entries !== []) {
+                    $this->messageBus->dispatch(new SetRoundEntryDivisions($competitionId, $roundIds[$roundKey], $entries));
+                    $assigned += count($entries);
+                }
+            }
+        }
+
+        $say(sprintf('Divisions: %d on the event, %d entries given one', count($inputs), $assigned));
+    }
+
+    /**
+     * The division of a group's n-th unit (1-based) in a round using divisions
+     */
+    public static function unitDivision(SandboxDemoGroup $group, int $unitNumber, SandboxDemoRound $round): string
+    {
+        foreach ($group->divisions as $division => $every) {
+            if ($every > 0 && $unitNumber % $every === 0 && in_array($division, $round->divisions, true)) {
+                return $division;
+            }
+        }
+
+        return $round->divisions[0] ?? SandboxDemoEventDefinitions::REGULAR;
     }
 
     /**
@@ -685,6 +779,7 @@ final readonly class SandboxDemoEvents
             $say('    desk            ' . $url('results_desk', ['roundId' => $round->roundId]));
             $say('    judge page      ' . $url('live_results', ['roundId' => $round->roundId]));
             $say('    stopwatch       ' . $url('manage_round_stopwatch', ['roundId' => $round->roundId]));
+            $say('    seating         ' . $url('round_seating', ['roundId' => $round->roundId]));
 
             if ($round->slug !== null) {
                 $say('    results         ' . $url('event_round_results', ['slug' => $event->slug, 'roundSlug' => $round->slug]));

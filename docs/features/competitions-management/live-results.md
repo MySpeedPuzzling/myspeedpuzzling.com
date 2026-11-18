@@ -309,12 +309,14 @@ Since toolkit C8 the scanner reads every competition tag (`parseCompetitionTagUr
 
 **Continuous scanning with a warm camera** (judge-speed J4, `assets/live_entry_scan_session.js`): scan → the card →
 Save → the scanner is back over Find at once with the Saved toast (Undo) on top of it (toast `z-index` 1095, above the
-overlays) and the same camera - no new `getUserMedia`, so no second permission question while the page is open. Only an
+overlays; at the top under the scanner's head while it shows, never over its footer buttons) and the same camera - no new `getUserMedia`, so no second permission question while the page is open. Only an
 entry opened by a scan, only its own Save (Save, Confirm / Use received, the puzzle choice, "Nothing changed") and only
 with the phone's preference "After Save, scan the next tag" on (default on; the switch in the sheet, on every round).
 Back, Escape, Undo and typed tables behave as before; a not-found or foreign tag closes the scanner with its notice.
 The tag just saved is ignored while it stays in view - until no frame showed it for 1.5 s ("Saved - point at the next
-tag"); any other tag acts at once; a code acts once per scan. The camera is parked (tracks live, no decoding) while a
+tag"); any other tag acts at once; a code acts once per scan; a frame with two tags that would act acts on neither
+(the next frame with one does - never a guess). The ignore ends once any code acted and when the page is hidden; the
+back/forward cache's `pageshow` restarts an open scanner. The camera is parked (tracks live, no decoding) while a
 card is open and released 90 s after the last read acted on (also with the scanner open), when the page is hidden,
 left or frozen, and when the browser ends the track (one automatic retry with the scanner open, then "Try again"). The
 Scan button shows a green dot while the camera is warm ("Scan - camera ready"). The scanner's footer: "Try again" (only

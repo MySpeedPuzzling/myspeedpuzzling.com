@@ -309,13 +309,13 @@ function nextRead(read) {
 }
 
 /**
- * Reads QR codes from `video` until stop(): onCode(rawValue) for every frame with a code - what to do with it is the
- * caller's (live_entry_scan_session.js); never stops the camera. A read still running when stop() is called is
- * dropped, never handed on.
+ * Reads QR codes from `video` until stop(): onCodes([rawValue, …]) for every frame with a code - every distinct code
+ * of the frame (two tags in view: the caller decides, live_entry_scan_session.js); never stops the camera. A read still
+ * running when stop() is called is dropped, never handed on.
  *
  * @returns {function(): void} stop
  */
-export function detectLoop({ video, reader: qr, onCode, schedule = nextRead }) {
+export function detectLoop({ video, reader: qr, onCodes, schedule = nextRead }) {
     let stopped = false;
 
     const read = async () => {
@@ -324,12 +324,11 @@ export function detectLoop({ video, reader: qr, onCode, schedule = nextRead }) {
         }
 
         if (video.readyState >= 2) {
-            let raw = null;
+            let raws = [];
 
             try {
                 const codes = await qr.detect(video);
-                const code = (codes ?? []).find((candidate) => typeof candidate?.rawValue === 'string' && candidate.rawValue !== '');
-                raw = code ? code.rawValue : null;
+                raws = [...new Set((codes ?? []).map((candidate) => candidate?.rawValue).filter((raw) => typeof raw === 'string' && raw !== ''))];
             } catch (e) {
                 // A frame that could not be read - the next one may
             }
@@ -338,8 +337,8 @@ export function detectLoop({ video, reader: qr, onCode, schedule = nextRead }) {
                 return;
             }
 
-            if (raw !== null) {
-                onCode(raw);
+            if (raws.length > 0) {
+                onCodes(raws);
             }
         }
 

@@ -290,8 +290,9 @@ export default class extends Controller {
             } else {
                 this.serverClock.hidden();
                 this.snapshots?.flush();
-                // Never a camera on behind a locked phone or another app
+                // Never a camera on behind a locked phone or another app; no old "saved tag" ignore armed for later
                 this.scanSession.release('hidden');
+                this.scanIgnore = null;
             }
         };
         // (Back from the back/forward cache, `visibilitychange` says visible again - the clock and the state with it)
@@ -301,6 +302,17 @@ export default class extends Controller {
             this.scanSession.release('pagehide');
         };
         this.onFreeze = () => this.scanSession.release('freeze');
+        // Safari's back/forward cache: the page comes back without a new connect() - the camera again if the scanner
+        // was open (pagehide released it)
+        this.onPageShow = (event) => {
+            if (event.persisted) {
+                this.serverClock.shown();
+
+                if (!this.scannerTarget.hidden) {
+                    this.startScanning();
+                }
+            }
+        };
         this.onFocus = () => {
             // Back from the sign-in tab
             if (this.outbox?.blocked != null || (this.stateBlocked !== null && this.stateBlocked !== 'gone')) {
@@ -356,6 +368,7 @@ export default class extends Controller {
         window.addEventListener('beforeunload', this.onBeforeUnload);
         window.addEventListener('popstate', this.onPopState);
         window.addEventListener('pagehide', this.onPageHide);
+        window.addEventListener('pageshow', this.onPageShow);
         document.addEventListener('visibilitychange', this.onVisibility);
         document.addEventListener('freeze', this.onFreeze);
         document.addEventListener('click', this.onLinkClick);
@@ -938,6 +951,7 @@ export default class extends Controller {
         window.removeEventListener('beforeunload', this.onBeforeUnload);
         window.removeEventListener('popstate', this.onPopState);
         window.removeEventListener('pagehide', this.onPageHide);
+        window.removeEventListener('pageshow', this.onPageShow);
         document.removeEventListener('visibilitychange', this.onVisibility);
         document.removeEventListener('freeze', this.onFreeze);
         document.removeEventListener('click', this.onLinkClick);
@@ -3824,6 +3838,7 @@ export default class extends Controller {
         // The camera stays warm for the next scan (released after a while, or when the page is hidden)
         this.scanSession?.park();
         this.scannerTarget.hidden = true;
+        this.element.classList.remove('lr-scanning');
 
         if (wasOpen && !keepHistory && this.view === 'find') {
             this.releaseHistory();
@@ -3844,6 +3859,8 @@ export default class extends Controller {
 
     showScanner(hint) {
         this.scannerTarget.hidden = false;
+        // The Saved toast moves to the top while the scanner shows - never over its footer's buttons
+        this.element.classList.add('lr-scanning');
         this.scanHintTarget.textContent = hint;
         this.claimHistory();
         this.startScanning();
@@ -3910,6 +3927,9 @@ export default class extends Controller {
      */
     async scanned(text) {
         this.scannerTarget.hidden = true;
+        this.element.classList.remove('lr-scanning');
+        // Acted on: the saved tag's ignore is spent (a later wake or retry never re-arms it)
+        this.scanIgnore = null;
         const tag = parseCompetitionTagUrl(text);
         const competitionId = String(this.settings.competitionId ?? '').toLowerCase();
 

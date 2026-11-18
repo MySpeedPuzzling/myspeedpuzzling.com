@@ -117,8 +117,8 @@ function fakeTimers() {
 // A read loop the scenario drives by hand: frame(raw) = one read with that code (null = nothing)
 function fakeLoop() {
     const loop = { running: [], started: 0 };
-    loop.start = ({ video, reader, onCode }) => {
-        const run = { video, reader, onCode, stopped: false };
+    loop.start = ({ video, reader, onCodes }) => {
+        const run = { video, reader, onCodes, stopped: false };
         loop.started += 1;
         loop.running.push(run);
 
@@ -127,7 +127,11 @@ function fakeLoop() {
         };
     };
     loop.frame = (raw) => {
-        loop.running.filter((run) => !run.stopped).forEach((run) => raw !== null && run.onCode(raw));
+        loop.frames(raw === null ? [] : [raw]);
+    };
+    // One read with several codes in it (two tags in view)
+    loop.frames = (raws) => {
+        loop.running.filter((run) => !run.stopped).forEach((run) => raws.length > 0 && run.onCodes(raws));
     };
     loop.active = () => loop.running.filter((run) => !run.stopped).length;
 
@@ -244,6 +248,60 @@ const scenarios = {
         await scan();
         loop.frame(TAG_13);
         assert.deepEqual(codes, [TAG_12, TAG_13, TAG_13, TAG_13]);
+    },
+
+    async 'two tags in one frame: the saved one ignored, the other acts - two new ones act on neither'() {
+        const { timers, loop, codes, scan } = setup();
+        const TAG_14 = TAG_12.replace('/t/12', '/t/14');
+
+        // The saved tag A listed first, the next tag B with it: B acts
+        await scan({ ignore: TAG_12 });
+        timers.advance(100);
+        loop.frames([TAG_12, TAG_13]);
+        assert.deepEqual(codes, [TAG_13]);
+
+        // Two tags that would both act: never a guess - nothing until a frame shows one of them alone
+        await scan();
+        loop.frames([TAG_13, TAG_14]);
+        loop.frames([TAG_14, TAG_13, TAG_14]);
+        assert.deepEqual(codes, [TAG_13]);
+        loop.frames([TAG_14]);
+        assert.deepEqual(codes, [TAG_13, TAG_14]);
+
+        // The ignored tag's memory moves only with its own sightings
+        await scan({ ignore: TAG_12 });
+        timers.advance(1_000);
+        loop.frames([TAG_12, TAG_13, TAG_14]);
+        assert.deepEqual(codes, [TAG_13, TAG_14], 'two would act - nothing');
+        timers.advance(1_000);
+        loop.frames([TAG_12]);
+        assert.deepEqual(codes, [TAG_13, TAG_14], 'A still in view (seen 1 s ago) - ignored');
+        timers.advance(OUT_OF_VIEW_MS);
+        loop.frames([TAG_12]);
+        assert.deepEqual(codes, [TAG_13, TAG_14, TAG_12], 'A after 1.5 s without it');
+    },
+
+    async 'detectLoop hands on every distinct code of a frame'() {
+        const queue = [];
+        const reader = { detect: async () => [{ rawValue: TAG_12 }, { rawValue: '' }, { rawValue: TAG_13 }, { rawValue: TAG_12 }, {}] };
+        const frames = [];
+        const stop = detectLoop({ video: fakeVideo(), reader, onCodes: (raws) => frames.push(raws), schedule: (read) => queue.push(read) });
+        await queue.shift()();
+        stop();
+        assert.deepEqual(frames, [[TAG_12, TAG_13]]);
+    },
+
+    async 'the ignore is per scan(): a scan without it (after a wake, a retry, a tap) acts on the saved tag at once'() {
+        const { session, loop, codes, scan } = setup();
+
+        await scan({ ignore: TAG_12 });
+        loop.frame(TAG_12);
+        assert.deepEqual(codes, []);
+        // The page went hidden (the controller drops its ignore) and came back: the next scan carries none
+        session.release('hidden');
+        await scan();
+        loop.frame(TAG_12);
+        assert.deepEqual(codes, [TAG_12]);
     },
 
     async 'scanDecision is pure: same raw in view ignored, out of view or another acts'() {
@@ -496,7 +554,7 @@ const scenarios = {
         };
         const video = fakeVideo();
         const codes = [];
-        const stop = detectLoop({ video, reader, onCode: (raw) => codes.push(raw), schedule });
+        const stop = detectLoop({ video, reader, onCodes: (raws) => codes.push(...raws), schedule });
 
         video.readyState = 1;
         await queue.shift()();
@@ -519,7 +577,7 @@ const scenarios = {
         const failing = [];
         const thrower = { n: 0, detect: async () => { thrower.n += 1; if (thrower.n === 1) { throw new Error('frame'); } return [{ rawValue: TAG_12 }]; } };
         const seen = [];
-        const stopSecond = detectLoop({ video, reader: thrower, onCode: (raw) => seen.push(raw), schedule: (read) => failing.push(read) });
+        const stopSecond = detectLoop({ video, reader: thrower, onCodes: (raws) => seen.push(...raws), schedule: (read) => failing.push(read) });
         await failing.shift()();
         await failing.shift()();
         stopSecond();

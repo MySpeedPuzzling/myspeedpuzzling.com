@@ -286,6 +286,7 @@
         .lr-scanner-hint { margin-bottom: .75rem; }
         {# Continuous scanning (judge-speed J4): the camera is warm - the next scan starts at once #}
         .lr-camera-ready { position: relative; }
+        .lr-scanning .lr-toast { top: calc(3.75rem + env(safe-area-inset-top, 0px)); bottom: auto; }
         .lr-camera-ready::after { content: ""; position: absolute; top: .25rem; right: .25rem; width: .5rem; height: .5rem; border-radius: 50%; background: #198754; box-shadow: 0 0 0 2px var(--bs-body-bg, #fff); }
         .lr-seg { display: flex; border: 1px solid var(--bs-border-color, #e3e9ef); border-radius: .5rem; overflow: hidden; }
         .lr-seg button { flex: 1 1 0; min-height: 2.75rem; border: 0; background: var(--bs-body-bg, #fff); color: inherit; font-weight: 500; }

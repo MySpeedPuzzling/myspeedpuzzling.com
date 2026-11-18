@@ -8,7 +8,8 @@
  *   second scan() while it starts joins the same request - never two getUserMedia).
  * - A code read is acted on once per scan(): the session parks itself before it hands the code on, a read still
  *   running is dropped. The tag the judge just saved (`ignore`) is ignored while it stays in view - until no frame
- *   showed it for OUT_OF_VIEW_MS; any other code acts at once.
+ *   showed it for OUT_OF_VIEW_MS; any other code acts at once. A frame with two codes that would act (two tags in
+ *   view) acts on neither - the next frame with one does: never a guess between entries.
  * - park(): reading stops, the <video> is taken off the stream, the tracks stay live - released after IDLE_MS.
  * - release(reason): the tracks stopped → cold. The controller calls it when the page is hidden, left or frozen;
  *   the session itself after IDLE_MS without a read acted on (scanning or parked) and when the browser ends the track.
@@ -44,7 +45,7 @@ export class ScanSession {
      * @param {object} options
      * @param {function(): Promise<{ok: boolean, camera?: object, reason?: string}>} options.openCamera official_results_scan.js openQrCamera()
      * @param {function(): Promise<object|null>} options.reader official_results_scan.js qrReader()
-     * @param {function({video, reader, onCode}): function(): void} options.loop official_results_scan.js detectLoop()
+     * @param {function({video, reader, onCodes}): function(): void} options.loop official_results_scan.js detectLoop()
      */
     constructor({ openCamera, reader, loop, now = () => Date.now(), setTimer = (callback, ms) => setTimeout(callback, ms), clearTimer = (id) => clearTimeout(id), idleMs = IDLE_MS, outOfViewMs = OUT_OF_VIEW_MS }) {
         this.openCamera = openCamera;
@@ -229,26 +230,38 @@ export class ScanSession {
         this.setState('scanning');
         // Scanning with nothing read counts as idle too - a phone put down with the scanner open turns its camera off
         this.startIdle();
-        this.stopLoop = this.loop({ video: request.video, reader: qr, onCode: (raw) => this.seen(request, raw) });
+        this.stopLoop = this.loop({ video: request.video, reader: qr, onCodes: (raws) => this.seen(request, raws) });
 
         return 'scanning';
     }
 
-    seen(request, raw) {
+    seen(request, raws) {
         if (this.request !== request || this.state !== 'scanning') {
             return;
         }
 
-        const { decision, memory } = scanDecision(this.memory, raw, this.now(), this.outOfViewMs);
-        this.memory = memory;
+        const now = this.now();
+        const acting = [];
 
-        if (decision === 'ignore') {
+        for (const raw of new Set(raws)) {
+            const { decision, memory } = scanDecision(this.memory, raw, now, this.outOfViewMs);
+
+            if (decision === 'ignore') {
+                // Only a sighting of the ignored tag moves its memory
+                this.memory = memory;
+            } else {
+                acting.push(raw);
+            }
+        }
+
+        // Nothing new, or two tags that would act in one frame - wait for a frame with exactly one
+        if (acting.length !== 1) {
             return;
         }
 
         // Once per scan(): parked before the code is handed on - a read after it is never acted on
         this.park();
-        request.onCode(raw);
+        request.onCode(acting[0]);
     }
 
     stopReading() {

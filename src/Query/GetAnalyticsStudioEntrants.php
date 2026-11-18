@@ -10,7 +10,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\AnalyticsStudioEntrant;
 use SpeedPuzzling\Web\Results\AnalyticsStudioMember;
 use SpeedPuzzling\Web\Results\AnalyticsStudioRound;
-use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
@@ -22,15 +21,14 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * pairs/teams with their going members. People of a pair/team round without a pair/team are no entry.
  *
  * No viewer (the studio's JSON is on the stateless firewall): names are the organiser's, masked by
- * OfficialEntrantsView::entrant() with viewer null, and a private player (PrivateProfileAccess::sqlIsPrivate() - no
- * allow list unmasks without a viewer) is never analysable. The blocklist is a documented exemption (analytics-studio.md
+ * OfficialEntrantsView::entrant() with viewer null, and a private player (the raw `player.is_private` - no allow list
+ * unmasks, also for a signed-in staff member's state: FU-ST) is never analysable. The blocklist is a documented exemption (analytics-studio.md
  * D3): one broadcast shows the same entrants to everybody. Ordered by name (team name or the people's names).
  */
 readonly final class GetAnalyticsStudioEntrants
 {
     public function __construct(
         private Connection $database,
-        private PrivateProfileAccess $privateProfileAccess,
     ) {
     }
 
@@ -62,7 +60,9 @@ readonly final class GetAnalyticsStudioEntrants
      */
     private function fetch(AnalyticsStudioRound $round, null|array $entryIds): array
     {
-        $private = $this->privateProfileAccess->sqlIsPrivate('player');
+        // The raw setting, never the viewer's allow list: the answers are shared (the 2 s state cache, one staff variant
+        // for all of an event's staff on the stateful firewall - FU-ST), so who happens to be signed in must not unmask
+        $private = 'player.is_private';
         $member = <<<SQL
 json_build_object(
     'participant_id', cp.id,

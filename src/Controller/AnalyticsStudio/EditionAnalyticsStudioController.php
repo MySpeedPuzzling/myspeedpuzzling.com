@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\AnalyticsStudio;
 use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\AnalyticsStudio\AnalyticsStudioPageBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -49,6 +50,9 @@ final class EditionAnalyticsStudioController extends AbstractController
 
         return AnalyticsStudioPageBuilder::protect($this->render('analytics_studio/page.html.twig', [
             'page' => $page,
+            // The event's staff (organisers, maintainers, referees, admins) read the staff state - the live ranking whatever
+            // the live results setting (analytics-studio.md "FU-ST"); its controller asks again on every request
+            'staff' => $this->isGranted(CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY, $competition->id->toString()),
             'event_url' => $this->generateUrl('edition_detail', ['seriesSlug' => $seriesSlug, 'editionSlug' => $editionSlug]),
             'studio_route' => 'edition_analytics_studio',
             'route_params' => ['seriesSlug' => $seriesSlug, 'editionSlug' => $editionSlug],

@@ -107,6 +107,25 @@ final class AnalyticsStudioSignalsTest extends WebTestCase
         self::assertSame(4800, $this->studioDatabase()->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => F::ENTRY_B_IVAN]));
     }
 
+    public function testAStaffStudioHearsEveryResultWriteOfAnUnpublishedRoundWithLiveResultsOff(): void
+    {
+        // FU-ST: the organiser's studio reads the staff state - the live ranking whatever the setting - so its round's
+        // results writes signal (data-free, the one public topic) while that staff studio is open
+        $browser = $this->organiser();
+        $this->clearAnalyticsStudioCache();
+        $this->studioJson($browser, '/analytics-studio/' . F::ROUND_GROUP_B . '/staff-state');
+        self::assertTrue($this->studioWatch()->staffWatched(F::ROUND_GROUP_B));
+        $signal = '{"type":"analytics_studio.signal","roundId":"' . F::ROUND_GROUP_B . '"}';
+
+        foreach ([[['seconds' => 5000], ['seconds' => 4100]], [['seconds' => 4100], null], [null, ['seconds' => 4800]]] as [$from, $to]) {
+            self::hub()->reset();
+            $this->postJson($browser, sprintf(self::CHANGES, F::ROUND_GROUP_B), ['changes' => [self::resultChange(F::ENTRY_B_IVAN, $from, $to)]]);
+
+            self::assertResponseIsSuccessful();
+            self::assertSame([$signal], self::signals(), json_encode($to, JSON_THROW_ON_ERROR));
+        }
+    }
+
     public function testPublishingAWatchedRoundSignals(): void
     {
         $browser = $this->organiser();

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Services\AnalyticsStudio;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
+use SpeedPuzzling\Web\Exceptions\CompetitorPageNotFound;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioEntrants;
 use SpeedPuzzling\Web\Query\GetAnalyticsStudioRound;
 use SpeedPuzzling\Web\Query\GetCompetitorPage;
@@ -157,6 +158,66 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
         self::assertSame([], $this->studio(F::ROUND_FINAL));
     }
 
+    /**
+     * FU-ST (Jan 2026-11-19): the public studio shows exactly what the public pages show of a round not published yet -
+     * the competitor page is the only one showing judge-entered results before publishing (the round page and the
+     * standings wait for publishing), both read LiveResultsBeforePublishing. For every setting, entry by entry: the
+     * studio has a result exactly when the competitor page shows one to a guest, with the same time and pieces.
+     */
+    public function testThePublicStudioShowsWhatTheCompetitorPageShowsBeforePublishing(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+        $database = $container->get(Connection::class);
+        // A did-not-start and a cleared entry too: neither page shows them
+        $database->executeStatement('UPDATE competition_participant_round SET result_seconds = NULL, result_did_not_start = true WHERE id = :id', ['id' => F::ENTRY_B_HUGO]);
+
+        foreach ([[false, false], [true, false], [false, true], [true, true]] as [$pages, $live]) {
+            $database->executeStatement(
+                'UPDATE competition SET competitor_pages = :pages, competitor_pages_live_results = :live WHERE id = :id',
+                ['pages' => $pages, 'live' => $live, 'id' => F::COMPETITION_RESULTS_CUP],
+                ['pages' => ParameterType::BOOLEAN, 'live' => ParameterType::BOOLEAN],
+            );
+            $studio = $this->studio(F::ROUND_GROUP_B);
+            $shown = [];
+
+            foreach ($this->entryIds(F::ROUND_GROUP_B) as $entryId) {
+                try {
+                    $page = $container->get(GetCompetitorPage::class)->of(F::COMPETITION_RESULTS_CUP, CompetitionTag::entry($entryId), null, TestClock::now());
+                } catch (CompetitorPageNotFound) {
+                    continue; // pages off: nothing of the round is public
+                }
+
+                $result = $page->rounds[0]->entry?->result;
+
+                if ($result !== null) {
+                    $shown[$entryId] = ['seconds' => $result->seconds, 'piecesPlaced' => $result->piecesPlaced];
+                }
+            }
+
+            $studioShown = array_map(static fn (array $row): array => ['seconds' => $row['seconds'], 'piecesPlaced' => $row['piecesPlaced']], $studio);
+            ksort($shown);
+            ksort($studioShown);
+            self::assertSame($shown, $studioShown, json_encode([$pages, $live], JSON_THROW_ON_ERROR));
+            self::assertCount($pages && $live ? 2 : 0, $studioShown, 'Gina and Ivan once both are on, never Hugo\'s did not start');
+        }
+    }
+
+    public function testTheEventsStaffSeeTheLiveRankingWhateverTheSetting(): void
+    {
+        self::bootKernel();
+
+        // The fixture: competitor pages and their live results off - the public nothing, the staff the ranking
+        self::assertSame([], $this->studio(F::ROUND_GROUP_B));
+        $staff = $this->studio(F::ROUND_GROUP_B, staff: true);
+        self::assertSame([F::ENTRY_B_GINA, F::ENTRY_B_HUGO, F::ENTRY_B_IVAN], array_keys($staff));
+        self::assertSame([1, 2, 3], array_column($staff, 'rank'));
+        self::assertSame(['official', 'official', 'official'], array_column($staff, 'state'));
+
+        // A published round: the official rows for both
+        self::assertSame(array_keys($this->studio(F::ROUND_GROUP_A)), array_keys($this->studio(F::ROUND_GROUP_A, staff: true)));
+    }
+
     private static function liveResultsOn(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
@@ -171,7 +232,7 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
      * @phpstan-impure
      * @return array<string, array{key: string, state: string, seconds: null|int, piecesPlaced: null|int, piecesCount: null|int, rank: null|int, qualified: bool, puzzles?: list<array{label: string, done: bool, seconds: null|int, piecesPlaced: null|int}>}>
      */
-    private function studio(string $roundId): array
+    private function studio(string $roundId, bool $staff = false): array
     {
         $container = self::getContainer();
         $round = $container->get(GetAnalyticsStudioRound::class)->byId($roundId);
@@ -180,7 +241,7 @@ final class AnalyticsStudioLiveResultsTest extends KernelTestCase
         $official = $round->published() ? $container->get(OfficialEntrantsView::class)->forRound($roundId, $round->category, null) : null;
 
         $rows = [];
-        foreach (AnalyticsStudioLiveResults::of($round, $entrants, $puzzles, $official) as $row) {
+        foreach (AnalyticsStudioLiveResults::of($round, $entrants, $puzzles, $official, $staff) as $row) {
             $rows[$row['key']] = $row;
         }
 

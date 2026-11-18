@@ -25,6 +25,8 @@ use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
  *   columns - what a judge or the desk entered; a competitor's time proposal is never one until a judge confirms it),
  *   ranked by OfficialResultsRanking (the round page's rule, ties share a place), in rank order; no qualified mark (the
  *   organiser decides that when publishing); did not start and no result yet are left out, as on the published round;
+ * - the same live ranking for the event's staff (organisers, maintainers, referees - FU-ST, Jan 2026-11-19) whatever
+ *   the setting: they are not the public, they watch the round they run;
  * - otherwise nothing - the ranking comes with publishing.
  *
  * Every row says `state: "official"` - the one state the page knows.
@@ -36,9 +38,11 @@ final class AnalyticsStudioLiveResults
 {
     /**
      * @param list<AnalyticsStudioEntrant> $entrants
+     * @param bool $staff the event's staff (FU-ST: its organisers, maintainers and referees) see the live ranking whatever
+     *                    the live results setting
      * @return list<array{key: string, state: string, seconds: null|int, piecesPlaced: null|int, piecesCount: null|int, rank: null|int, qualified: bool, puzzles?: list<array{label: string, done: bool, seconds: null|int, piecesPlaced: null|int}>}>
      */
-    public static function of(AnalyticsStudioRound $round, array $entrants, RoundPuzzlesNow $puzzles, null|OfficialRoundEntrants $official): array
+    public static function of(AnalyticsStudioRound $round, array $entrants, RoundPuzzlesNow $puzzles, null|OfficialRoundEntrants $official, bool $staff = false): array
     {
         $results = [];
 
@@ -50,7 +54,7 @@ final class AnalyticsStudioLiveResults
             return $results;
         }
 
-        if ($round->liveResults === false) {
+        if ($round->liveResults === false && $staff === false) {
             return [];
         }
 

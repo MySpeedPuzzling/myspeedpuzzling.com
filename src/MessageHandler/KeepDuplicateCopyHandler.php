@@ -87,7 +87,8 @@ readonly final class KeepDuplicateCopyHandler
             $firstTryLeftOff = $firstTryMayMove === false;
 
             if ($kept->takeOverFrom($deleted, $player, $firstTryMayMove)) {
-                $kept->changeCompetitionRound($this->roundResolver->resolve($kept));
+                $roundResolution = $this->roundResolver->resolve($kept);
+                $kept->roundResolved($roundResolution->round, $roundResolution->chosen);
             }
         }
 

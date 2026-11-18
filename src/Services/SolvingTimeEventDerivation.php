@@ -34,6 +34,7 @@ readonly final class SolvingTimeEventDerivation
             );
         }
 
-        $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
+        $roundResolution = $this->roundResolver->resolve($solvingTime);
+        $solvingTime->roundResolved($roundResolution->round, $roundResolution->chosen);
     }
 }

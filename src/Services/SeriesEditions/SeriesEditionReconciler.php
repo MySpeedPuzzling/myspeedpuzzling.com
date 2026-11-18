@@ -95,7 +95,8 @@ decided AS (
 UPDATE puzzle_solving_time AS target
 SET competition_id = decided.new_id,
     series_edition_match = decided.new_kind,
-    competition_round_id = CASE WHEN target.competition_id IS DISTINCT FROM decided.new_id THEN NULL ELSE target.competition_round_id END
+    competition_round_id = CASE WHEN target.competition_id IS DISTINCT FROM decided.new_id THEN NULL ELSE target.competition_round_id END,
+    round_chosen = CASE WHEN target.competition_id IS DISTINCT FROM decided.new_id THEN false ELSE target.round_chosen END
 FROM decided
 WHERE target.id = decided.id
     AND (target.competition_id IS DISTINCT FROM decided.new_id OR target.series_edition_match IS DISTINCT FROM decided.new_kind)

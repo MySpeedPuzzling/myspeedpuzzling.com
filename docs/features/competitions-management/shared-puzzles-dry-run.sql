@@ -1,0 +1,296 @@
+-- Shared puzzles (docs/features/competitions-management/shared-puzzles-and-divisions.md, Review amendment A6):
+-- READ-ONLY dry run of the new round rule (SolvingTimeRoundMatch) against the links stored today.
+--
+-- Lists, per competition, the solving times whose competition_round_id the new rule would change (link, unlink or
+-- move) - today's production has no round_chosen column yet, so every time counts as derived (chosen = false).
+-- An imported event result keeps its round (SolvingTimeRoundResolver::SQL_ROUND_IS_DERIVED), as the reconciler does.
+--
+-- GENERATED from src/Query/SolvingTimeRoundMatch.php (+ RoundTimezone::sqlResolve()) - regenerate it when the rule
+-- changes: the candidate CTEs below are the rule verbatim. Run with:
+--   psql "$DATABASE_URL" -f docs/features/competitions-management/shared-puzzles-dry-run.sql
+-- The transaction is READ ONLY and rolled back - the file cannot write anything.
+
+BEGIN TRANSACTION READ ONLY;
+
+
+-- 1. Per competition: how many links would change, and how
+WITH round_match_time AS (
+    SELECT pst.id AS time_id,
+        pst.competition_id,
+        pst.puzzle_id,
+        pst.puzzling_type AS category,
+        pst.competition_round_id AS current_round_id,
+        false AS chosen,
+        pst.player_id AS owner_id,
+        pst.team AS team_json,
+        pst.seconds_to_solve AS seconds,
+        pst.pieces_placed,
+        CASE WHEN pst.finished_at_precision IS NULL THEN CAST(pst.finished_at AS DATE) END AS solve_day,
+        pst.tracked_at,
+        pst.created_via
+    FROM puzzle_solving_time pst
+    WHERE pst.competition_id IS NOT NULL
+        AND (pst.created_via IS DISTINCT FROM 'event_import' OR pst.competition_round_id IS NULL)
+),
+round_match_counted AS (
+    SELECT t.*,
+        cr.id AS round_id,
+        cr.competition_id AS round_competition_id,
+        cr.starts_at AS round_starts_at,
+        cr.start_time_known AS round_start_time_known,
+        cr.timezone AS round_timezone,
+        COUNT(*) OVER (PARTITION BY t.time_id) AS n
+    FROM round_match_time t
+    INNER JOIN competition_round cr ON cr.competition_id = t.competition_id AND cr.category = t.category
+    WHERE EXISTS (SELECT 1 FROM competition_round_puzzle crp WHERE crp.round_id = cr.id AND crp.puzzle_id = t.puzzle_id)
+),
+round_match_candidate AS (
+    SELECT c.time_id,
+        c.current_round_id,
+        c.chosen,
+        c.round_id,
+        c.n,
+        COALESCE(ev.excluded, false) AS excluded,
+        COALESCE(ev.entry_mask, 0) AS entry_mask,
+        COALESCE(ev.result_match, false) AS result_match
+    FROM round_match_counted c
+    LEFT JOIN LATERAL (
+        SELECT entries.has_dns
+                OR (c.round_start_time_known AND c.created_via IN ('form', 'stopwatch', 'api') AND c.tracked_at < c.round_starts_at)
+                OR COALESCE(c.solve_day < CASE WHEN zone.known THEN CAST((c.round_starts_at AT TIME ZONE 'UTC') AT TIME ZONE zone.name AS DATE) END, false) AS excluded,
+            entries.entry_mask,
+            entries.result_match
+        FROM (
+            -- A zone PHP knows but this Postgres does not is never read (AT TIME ZONE would fail the whole statement):
+            -- the day exclusion is skipped for it
+            SELECT resolved.name, resolved.name IN (SELECT known.name FROM pg_timezone_names known) AS known
+            FROM (
+                SELECT CASE WHEN c.round_timezone IN ('Africa/Abidjan', 'Africa/Accra', 'Africa/Addis_Ababa', 'Africa/Algiers', 'Africa/Asmara', 'Africa/Bamako', 'Africa/Bangui', 'Africa/Banjul', 'Africa/Bissau', 'Africa/Blantyre', 'Africa/Brazzaville', 'Africa/Bujumbura', 'Africa/Cairo', 'Africa/Casablanca', 'Africa/Ceuta', 'Africa/Conakry', 'Africa/Dakar', 'Africa/Dar_es_Salaam', 'Africa/Djibouti', 'Africa/Douala', 'Africa/El_Aaiun', 'Africa/Freetown', 'Africa/Gaborone', 'Africa/Harare', 'Africa/Johannesburg', 'Africa/Juba', 'Africa/Kampala', 'Africa/Khartoum', 'Africa/Kigali', 'Africa/Kinshasa', 'Africa/Lagos', 'Africa/Libreville', 'Africa/Lome', 'Africa/Luanda', 'Africa/Lubumbashi', 'Africa/Lusaka', 'Africa/Malabo', 'Africa/Maputo', 'Africa/Maseru', 'Africa/Mbabane', 'Africa/Mogadishu', 'Africa/Monrovia', 'Africa/Nairobi', 'Africa/Ndjamena', 'Africa/Niamey', 'Africa/Nouakchott', 'Africa/Ouagadougou', 'Africa/Porto-Novo', 'Africa/Sao_Tome', 'Africa/Tripoli', 'Africa/Tunis', 'Africa/Windhoek', 'America/Adak', 'America/Anchorage', 'America/Anguilla', 'America/Antigua', 'America/Araguaina', 'America/Argentina/Buenos_Aires', 'America/Argentina/Catamarca', 'America/Argentina/Cordoba', 'America/Argentina/Jujuy', 'America/Argentina/La_Rioja', 'America/Argentina/Mendoza', 'America/Argentina/Rio_Gallegos', 'America/Argentina/Salta', 'America/Argentina/San_Juan', 'America/Argentina/San_Luis', 'America/Argentina/Tucuman', 'America/Argentina/Ushuaia', 'America/Aruba', 'America/Asuncion', 'America/Atikokan', 'America/Bahia', 'America/Bahia_Banderas', 'America/Barbados', 'America/Belem', 'America/Belize', 'America/Blanc-Sablon', 'America/Boa_Vista', 'America/Bogota', 'America/Boise', 'America/Cambridge_Bay', 'America/Campo_Grande', 'America/Cancun', 'America/Caracas', 'America/Cayenne', 'America/Cayman', 'America/Chicago', 'America/Chihuahua', 'America/Ciudad_Juarez', 'America/Costa_Rica', 'America/Coyhaique', 'America/Creston', 'America/Cuiaba', 'America/Curacao', 'America/Danmarkshavn', 'America/Dawson', 'America/Dawson_Creek', 'America/Denver', 'America/Detroit', 'America/Dominica', 'America/Edmonton', 'America/Eirunepe', 'America/El_Salvador', 'America/Fort_Nelson', 'America/Fortaleza', 'America/Glace_Bay', 'America/Goose_Bay', 'America/Grand_Turk', 'America/Grenada', 'America/Guadeloupe', 'America/Guatemala', 'America/Guayaquil', 'America/Guyana', 'America/Halifax', 'America/Havana', 'America/Hermosillo', 'America/Indiana/Indianapolis', 'America/Indiana/Knox', 'America/Indiana/Marengo', 'America/Indiana/Petersburg', 'America/Indiana/Tell_City', 'America/Indiana/Vevay', 'America/Indiana/Vincennes', 'America/Indiana/Winamac', 'America/Inuvik', 'America/Iqaluit', 'America/Jamaica', 'America/Juneau', 'America/Kentucky/Louisville', 'America/Kentucky/Monticello', 'America/Kralendijk', 'America/La_Paz', 'America/Lima', 'America/Los_Angeles', 'America/Lower_Princes', 'America/Maceio', 'America/Managua', 'America/Manaus', 'America/Marigot', 'America/Martinique', 'America/Matamoros', 'America/Mazatlan', 'America/Menominee', 'America/Merida', 'America/Metlakatla', 'America/Mexico_City', 'America/Miquelon', 'America/Moncton', 'America/Monterrey', 'America/Montevideo', 'America/Montserrat', 'America/Nassau', 'America/New_York', 'America/Nome', 'America/Noronha', 'America/North_Dakota/Beulah', 'America/North_Dakota/Center', 'America/North_Dakota/New_Salem', 'America/Nuuk', 'America/Ojinaga', 'America/Panama', 'America/Paramaribo', 'America/Phoenix', 'America/Port-au-Prince', 'America/Port_of_Spain', 'America/Porto_Velho', 'America/Puerto_Rico', 'America/Punta_Arenas', 'America/Rankin_Inlet', 'America/Recife', 'America/Regina', 'America/Resolute', 'America/Rio_Branco', 'America/Santarem', 'America/Santiago', 'America/Santo_Domingo', 'America/Sao_Paulo', 'America/Scoresbysund', 'America/Sitka', 'America/St_Barthelemy', 'America/St_Johns', 'America/St_Kitts', 'America/St_Lucia', 'America/St_Thomas', 'America/St_Vincent', 'America/Swift_Current', 'America/Tegucigalpa', 'America/Thule', 'America/Tijuana', 'America/Toronto', 'America/Tortola', 'America/Vancouver', 'America/Whitehorse', 'America/Winnipeg', 'America/Yakutat', 'Antarctica/Casey', 'Antarctica/Davis', 'Antarctica/DumontDUrville', 'Antarctica/Macquarie', 'Antarctica/Mawson', 'Antarctica/McMurdo', 'Antarctica/Palmer', 'Antarctica/Rothera', 'Antarctica/Syowa', 'Antarctica/Troll', 'Antarctica/Vostok', 'Arctic/Longyearbyen', 'Asia/Aden', 'Asia/Almaty', 'Asia/Amman', 'Asia/Anadyr', 'Asia/Aqtau', 'Asia/Aqtobe', 'Asia/Ashgabat', 'Asia/Atyrau', 'Asia/Baghdad', 'Asia/Bahrain', 'Asia/Baku', 'Asia/Bangkok', 'Asia/Barnaul', 'Asia/Beirut', 'Asia/Bishkek', 'Asia/Brunei', 'Asia/Chita', 'Asia/Colombo', 'Asia/Damascus', 'Asia/Dhaka', 'Asia/Dili', 'Asia/Dubai', 'Asia/Dushanbe', 'Asia/Famagusta', 'Asia/Gaza', 'Asia/Hebron', 'Asia/Ho_Chi_Minh', 'Asia/Hong_Kong', 'Asia/Hovd', 'Asia/Irkutsk', 'Asia/Jakarta', 'Asia/Jayapura', 'Asia/Jerusalem', 'Asia/Kabul', 'Asia/Kamchatka', 'Asia/Karachi', 'Asia/Kathmandu', 'Asia/Khandyga', 'Asia/Kolkata', 'Asia/Krasnoyarsk', 'Asia/Kuala_Lumpur', 'Asia/Kuching', 'Asia/Kuwait', 'Asia/Macau', 'Asia/Magadan', 'Asia/Makassar', 'Asia/Manila', 'Asia/Muscat', 'Asia/Nicosia', 'Asia/Novokuznetsk', 'Asia/Novosibirsk', 'Asia/Omsk', 'Asia/Oral', 'Asia/Phnom_Penh', 'Asia/Pontianak', 'Asia/Pyongyang', 'Asia/Qatar', 'Asia/Qostanay', 'Asia/Qyzylorda', 'Asia/Riyadh', 'Asia/Sakhalin', 'Asia/Samarkand', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Srednekolymsk', 'Asia/Taipei', 'Asia/Tashkent', 'Asia/Tbilisi', 'Asia/Tehran', 'Asia/Thimphu', 'Asia/Tokyo', 'Asia/Tomsk', 'Asia/Ulaanbaatar', 'Asia/Urumqi', 'Asia/Ust-Nera', 'Asia/Vientiane', 'Asia/Vladivostok', 'Asia/Yakutsk', 'Asia/Yangon', 'Asia/Yekaterinburg', 'Asia/Yerevan', 'Atlantic/Azores', 'Atlantic/Bermuda', 'Atlantic/Canary', 'Atlantic/Cape_Verde', 'Atlantic/Faroe', 'Atlantic/Madeira', 'Atlantic/Reykjavik', 'Atlantic/South_Georgia', 'Atlantic/St_Helena', 'Atlantic/Stanley', 'Australia/Adelaide', 'Australia/Brisbane', 'Australia/Broken_Hill', 'Australia/Darwin', 'Australia/Eucla', 'Australia/Hobart', 'Australia/Lindeman', 'Australia/Lord_Howe', 'Australia/Melbourne', 'Australia/Perth', 'Australia/Sydney', 'Europe/Amsterdam', 'Europe/Andorra', 'Europe/Astrakhan', 'Europe/Athens', 'Europe/Belgrade', 'Europe/Berlin', 'Europe/Bratislava', 'Europe/Brussels', 'Europe/Bucharest', 'Europe/Budapest', 'Europe/Busingen', 'Europe/Chisinau', 'Europe/Copenhagen', 'Europe/Dublin', 'Europe/Gibraltar', 'Europe/Guernsey', 'Europe/Helsinki', 'Europe/Isle_of_Man', 'Europe/Istanbul', 'Europe/Jersey', 'Europe/Kaliningrad', 'Europe/Kirov', 'Europe/Kyiv', 'Europe/Lisbon', 'Europe/Ljubljana', 'Europe/London', 'Europe/Luxembourg', 'Europe/Madrid', 'Europe/Malta', 'Europe/Mariehamn', 'Europe/Minsk', 'Europe/Monaco', 'Europe/Moscow', 'Europe/Oslo', 'Europe/Paris', 'Europe/Podgorica', 'Europe/Prague', 'Europe/Riga', 'Europe/Rome', 'Europe/Samara', 'Europe/San_Marino', 'Europe/Sarajevo', 'Europe/Saratov', 'Europe/Simferopol', 'Europe/Skopje', 'Europe/Sofia', 'Europe/Stockholm', 'Europe/Tallinn', 'Europe/Tirane', 'Europe/Ulyanovsk', 'Europe/Vaduz', 'Europe/Vatican', 'Europe/Vienna', 'Europe/Vilnius', 'Europe/Volgograd', 'Europe/Warsaw', 'Europe/Zagreb', 'Europe/Zurich', 'Indian/Antananarivo', 'Indian/Chagos', 'Indian/Christmas', 'Indian/Cocos', 'Indian/Comoro', 'Indian/Kerguelen', 'Indian/Mahe', 'Indian/Maldives', 'Indian/Mauritius', 'Indian/Mayotte', 'Indian/Reunion', 'Pacific/Apia', 'Pacific/Auckland', 'Pacific/Bougainville', 'Pacific/Chatham', 'Pacific/Chuuk', 'Pacific/Easter', 'Pacific/Efate', 'Pacific/Fakaofo', 'Pacific/Fiji', 'Pacific/Funafuti', 'Pacific/Galapagos', 'Pacific/Gambier', 'Pacific/Guadalcanal', 'Pacific/Guam', 'Pacific/Honolulu', 'Pacific/Kanton', 'Pacific/Kiritimati', 'Pacific/Kosrae', 'Pacific/Kwajalein', 'Pacific/Majuro', 'Pacific/Marquesas', 'Pacific/Midway', 'Pacific/Nauru', 'Pacific/Niue', 'Pacific/Norfolk', 'Pacific/Noumea', 'Pacific/Pago_Pago', 'Pacific/Palau', 'Pacific/Pitcairn', 'Pacific/Pohnpei', 'Pacific/Port_Moresby', 'Pacific/Rarotonga', 'Pacific/Saipan', 'Pacific/Tahiti', 'Pacific/Tarawa', 'Pacific/Tongatapu', 'Pacific/Wake', 'Pacific/Wallis', 'UTC') THEN c.round_timezone WHEN LOWER(rc.location_country_code) IN ('af', 'dz', 'as', 'ad', 'ao', 'ai', 'aq', 'ag', 'am', 'aw', 'az', 'bs', 'bb', 'bz', 'bj', 'bm', 'bt', 'bo', 'bq', 'bw', 'bv', 'io', 'bn', 'bf', 'bi', 'cv', 'kh', 'cm', 'ky', 'cf', 'td', 'cx', 'cc', 'km', 'cd', 'cg', 'cr', 'cu', 'cw', 'cz', 'ci', 'dj', 'dm', 'do', 'ec', 'sv', 'gq', 'er', 'sz', 'et', 'fk', 'fj', 'gf', 'pf', 'tf', 'ga', 'gm', 'ge', 'gh', 'gi', 'gl', 'gd', 'gp', 'gu', 'gt', 'gn', 'gw', 'gy', 'ht', 'hm', 'hn', 'ir', 'iq', 'jm', 'jo', 'kz', 'ki', 'kp', 'kg', 'la', 'lb', 'ls', 'lr', 'ly', 'mg', 'mw', 'mv', 'ml', 'mh', 'mq', 'mr', 'mu', 'yt', 'fm', 'mn', 'ms', 'mz', 'mm', 'na', 'nr', 'np', 'nc', 'ni', 'ne', 'nu', 'mp', 'om', 'pw', 'ps', 'pa', 'pg', 'py', 'pn', 'pr', 'rw', 're', 'bl', 'sh', 'kn', 'lc', 'mf', 'pm', 'vc', 'ws', 'st', 'sn', 'sc', 'sl', 'sx', 'sk', 'sb', 'so', 'gs', 'ss', 'lk', 'sd', 'sr', 'sy', 'tj', 'tz', 'tl', 'tg', 'tk', 'to', 'tt', 'tn', 'tm', 'tc', 'tv', 'ug', 'uy', 'uz', 'vu', 've', 'vg', 'vi', 'wf', 'eh', 'ye', 'zm', 'zw') THEN 'Europe/Prague' WHEN LOWER(rc.location_country_code) IN ('al') THEN 'Europe/Tirane' WHEN LOWER(rc.location_country_code) IN ('ar') THEN 'America/Argentina/Buenos_Aires' WHEN LOWER(rc.location_country_code) IN ('au', 'nf') THEN 'Australia/Sydney' WHEN LOWER(rc.location_country_code) IN ('at') THEN 'Europe/Vienna' WHEN LOWER(rc.location_country_code) IN ('bh', 'kw', 'qa', 'sa') THEN 'Asia/Riyadh' WHEN LOWER(rc.location_country_code) IN ('bd') THEN 'Asia/Dhaka' WHEN LOWER(rc.location_country_code) IN ('by') THEN 'Europe/Minsk' WHEN LOWER(rc.location_country_code) IN ('be') THEN 'Europe/Brussels' WHEN LOWER(rc.location_country_code) IN ('ba') THEN 'Europe/Sarajevo' WHEN LOWER(rc.location_country_code) IN ('br') THEN 'America/Sao_Paulo' WHEN LOWER(rc.location_country_code) IN ('bg') THEN 'Europe/Sofia' WHEN LOWER(rc.location_country_code) IN ('ca') THEN 'America/Toronto' WHEN LOWER(rc.location_country_code) IN ('cl') THEN 'America/Santiago' WHEN LOWER(rc.location_country_code) IN ('cn', 'hk', 'mo') THEN 'Asia/Shanghai' WHEN LOWER(rc.location_country_code) IN ('co') THEN 'America/Bogota' WHEN LOWER(rc.location_country_code) IN ('ck', 'nz') THEN 'Pacific/Auckland' WHEN LOWER(rc.location_country_code) IN ('hr') THEN 'Europe/Zagreb' WHEN LOWER(rc.location_country_code) IN ('cy', 'gr') THEN 'Europe/Athens' WHEN LOWER(rc.location_country_code) IN ('dk', 'fo') THEN 'Europe/Copenhagen' WHEN LOWER(rc.location_country_code) IN ('eg') THEN 'Africa/Cairo' WHEN LOWER(rc.location_country_code) IN ('ee') THEN 'Europe/Tallinn' WHEN LOWER(rc.location_country_code) IN ('fi', 'ax') THEN 'Europe/Helsinki' WHEN LOWER(rc.location_country_code) IN ('fr', 'mc') THEN 'Europe/Paris' WHEN LOWER(rc.location_country_code) IN ('de') THEN 'Europe/Berlin' WHEN LOWER(rc.location_country_code) IN ('gg', 'im', 'je', 'gb') THEN 'Europe/London' WHEN LOWER(rc.location_country_code) IN ('va', 'it', 'sm') THEN 'Europe/Rome' WHEN LOWER(rc.location_country_code) IN ('hu') THEN 'Europe/Budapest' WHEN LOWER(rc.location_country_code) IN ('is') THEN 'Atlantic/Reykjavik' WHEN LOWER(rc.location_country_code) IN ('in') THEN 'Asia/Kolkata' WHEN LOWER(rc.location_country_code) IN ('id') THEN 'Asia/Jakarta' WHEN LOWER(rc.location_country_code) IN ('ie') THEN 'Europe/Dublin' WHEN LOWER(rc.location_country_code) IN ('il') THEN 'Asia/Jerusalem' WHEN LOWER(rc.location_country_code) IN ('jp') THEN 'Asia/Tokyo' WHEN LOWER(rc.location_country_code) IN ('ke') THEN 'Africa/Nairobi' WHEN LOWER(rc.location_country_code) IN ('kr') THEN 'Asia/Seoul' WHEN LOWER(rc.location_country_code) IN ('lv') THEN 'Europe/Riga' WHEN LOWER(rc.location_country_code) IN ('li', 'ch') THEN 'Europe/Zurich' WHEN LOWER(rc.location_country_code) IN ('lt') THEN 'Europe/Vilnius' WHEN LOWER(rc.location_country_code) IN ('lu') THEN 'Europe/Luxembourg' WHEN LOWER(rc.location_country_code) IN ('my') THEN 'Asia/Kuala_Lumpur' WHEN LOWER(rc.location_country_code) IN ('mt') THEN 'Europe/Malta' WHEN LOWER(rc.location_country_code) IN ('mx') THEN 'America/Mexico_City' WHEN LOWER(rc.location_country_code) IN ('md') THEN 'Europe/Chisinau' WHEN LOWER(rc.location_country_code) IN ('me') THEN 'Europe/Podgorica' WHEN LOWER(rc.location_country_code) IN ('ma') THEN 'Africa/Casablanca' WHEN LOWER(rc.location_country_code) IN ('nl') THEN 'Europe/Amsterdam' WHEN LOWER(rc.location_country_code) IN ('ng') THEN 'Africa/Lagos' WHEN LOWER(rc.location_country_code) IN ('mk') THEN 'Europe/Skopje' WHEN LOWER(rc.location_country_code) IN ('no', 'sj') THEN 'Europe/Oslo' WHEN LOWER(rc.location_country_code) IN ('pk') THEN 'Asia/Karachi' WHEN LOWER(rc.location_country_code) IN ('pe') THEN 'America/Lima' WHEN LOWER(rc.location_country_code) IN ('ph') THEN 'Asia/Manila' WHEN LOWER(rc.location_country_code) IN ('pl') THEN 'Europe/Warsaw' WHEN LOWER(rc.location_country_code) IN ('pt') THEN 'Europe/Lisbon' WHEN LOWER(rc.location_country_code) IN ('ro') THEN 'Europe/Bucharest' WHEN LOWER(rc.location_country_code) IN ('ru') THEN 'Europe/Moscow' WHEN LOWER(rc.location_country_code) IN ('rs') THEN 'Europe/Belgrade' WHEN LOWER(rc.location_country_code) IN ('sg') THEN 'Asia/Singapore' WHEN LOWER(rc.location_country_code) IN ('si') THEN 'Europe/Ljubljana' WHEN LOWER(rc.location_country_code) IN ('za') THEN 'Africa/Johannesburg' WHEN LOWER(rc.location_country_code) IN ('es') THEN 'Europe/Madrid' WHEN LOWER(rc.location_country_code) IN ('se') THEN 'Europe/Stockholm' WHEN LOWER(rc.location_country_code) IN ('tw') THEN 'Asia/Taipei' WHEN LOWER(rc.location_country_code) IN ('th') THEN 'Asia/Bangkok' WHEN LOWER(rc.location_country_code) IN ('tr') THEN 'Europe/Istanbul' WHEN LOWER(rc.location_country_code) IN ('ua') THEN 'Europe/Kyiv' WHEN LOWER(rc.location_country_code) IN ('ae') THEN 'Asia/Dubai' WHEN LOWER(rc.location_country_code) IN ('um', 'us') THEN 'America/New_York' WHEN LOWER(rc.location_country_code) IN ('vn') THEN 'Asia/Ho_Chi_Minh' WHEN LOWER(rcs.location_country_code) IN ('af', 'dz', 'as', 'ad', 'ao', 'ai', 'aq', 'ag', 'am', 'aw', 'az', 'bs', 'bb', 'bz', 'bj', 'bm', 'bt', 'bo', 'bq', 'bw', 'bv', 'io', 'bn', 'bf', 'bi', 'cv', 'kh', 'cm', 'ky', 'cf', 'td', 'cx', 'cc', 'km', 'cd', 'cg', 'cr', 'cu', 'cw', 'cz', 'ci', 'dj', 'dm', 'do', 'ec', 'sv', 'gq', 'er', 'sz', 'et', 'fk', 'fj', 'gf', 'pf', 'tf', 'ga', 'gm', 'ge', 'gh', 'gi', 'gl', 'gd', 'gp', 'gu', 'gt', 'gn', 'gw', 'gy', 'ht', 'hm', 'hn', 'ir', 'iq', 'jm', 'jo', 'kz', 'ki', 'kp', 'kg', 'la', 'lb', 'ls', 'lr', 'ly', 'mg', 'mw', 'mv', 'ml', 'mh', 'mq', 'mr', 'mu', 'yt', 'fm', 'mn', 'ms', 'mz', 'mm', 'na', 'nr', 'np', 'nc', 'ni', 'ne', 'nu', 'mp', 'om', 'pw', 'ps', 'pa', 'pg', 'py', 'pn', 'pr', 'rw', 're', 'bl', 'sh', 'kn', 'lc', 'mf', 'pm', 'vc', 'ws', 'st', 'sn', 'sc', 'sl', 'sx', 'sk', 'sb', 'so', 'gs', 'ss', 'lk', 'sd', 'sr', 'sy', 'tj', 'tz', 'tl', 'tg', 'tk', 'to', 'tt', 'tn', 'tm', 'tc', 'tv', 'ug', 'uy', 'uz', 'vu', 've', 'vg', 'vi', 'wf', 'eh', 'ye', 'zm', 'zw') THEN 'Europe/Prague' WHEN LOWER(rcs.location_country_code) IN ('al') THEN 'Europe/Tirane' WHEN LOWER(rcs.location_country_code) IN ('ar') THEN 'America/Argentina/Buenos_Aires' WHEN LOWER(rcs.location_country_code) IN ('au', 'nf') THEN 'Australia/Sydney' WHEN LOWER(rcs.location_country_code) IN ('at') THEN 'Europe/Vienna' WHEN LOWER(rcs.location_country_code) IN ('bh', 'kw', 'qa', 'sa') THEN 'Asia/Riyadh' WHEN LOWER(rcs.location_country_code) IN ('bd') THEN 'Asia/Dhaka' WHEN LOWER(rcs.location_country_code) IN ('by') THEN 'Europe/Minsk' WHEN LOWER(rcs.location_country_code) IN ('be') THEN 'Europe/Brussels' WHEN LOWER(rcs.location_country_code) IN ('ba') THEN 'Europe/Sarajevo' WHEN LOWER(rcs.location_country_code) IN ('br') THEN 'America/Sao_Paulo' WHEN LOWER(rcs.location_country_code) IN ('bg') THEN 'Europe/Sofia' WHEN LOWER(rcs.location_country_code) IN ('ca') THEN 'America/Toronto' WHEN LOWER(rcs.location_country_code) IN ('cl') THEN 'America/Santiago' WHEN LOWER(rcs.location_country_code) IN ('cn', 'hk', 'mo') THEN 'Asia/Shanghai' WHEN LOWER(rcs.location_country_code) IN ('co') THEN 'America/Bogota' WHEN LOWER(rcs.location_country_code) IN ('ck', 'nz') THEN 'Pacific/Auckland' WHEN LOWER(rcs.location_country_code) IN ('hr') THEN 'Europe/Zagreb' WHEN LOWER(rcs.location_country_code) IN ('cy', 'gr') THEN 'Europe/Athens' WHEN LOWER(rcs.location_country_code) IN ('dk', 'fo') THEN 'Europe/Copenhagen' WHEN LOWER(rcs.location_country_code) IN ('eg') THEN 'Africa/Cairo' WHEN LOWER(rcs.location_country_code) IN ('ee') THEN 'Europe/Tallinn' WHEN LOWER(rcs.location_country_code) IN ('fi', 'ax') THEN 'Europe/Helsinki' WHEN LOWER(rcs.location_country_code) IN ('fr', 'mc') THEN 'Europe/Paris' WHEN LOWER(rcs.location_country_code) IN ('de') THEN 'Europe/Berlin' WHEN LOWER(rcs.location_country_code) IN ('gg', 'im', 'je', 'gb') THEN 'Europe/London' WHEN LOWER(rcs.location_country_code) IN ('va', 'it', 'sm') THEN 'Europe/Rome' WHEN LOWER(rcs.location_country_code) IN ('hu') THEN 'Europe/Budapest' WHEN LOWER(rcs.location_country_code) IN ('is') THEN 'Atlantic/Reykjavik' WHEN LOWER(rcs.location_country_code) IN ('in') THEN 'Asia/Kolkata' WHEN LOWER(rcs.location_country_code) IN ('id') THEN 'Asia/Jakarta' WHEN LOWER(rcs.location_country_code) IN ('ie') THEN 'Europe/Dublin' WHEN LOWER(rcs.location_country_code) IN ('il') THEN 'Asia/Jerusalem' WHEN LOWER(rcs.location_country_code) IN ('jp') THEN 'Asia/Tokyo' WHEN LOWER(rcs.location_country_code) IN ('ke') THEN 'Africa/Nairobi' WHEN LOWER(rcs.location_country_code) IN ('kr') THEN 'Asia/Seoul' WHEN LOWER(rcs.location_country_code) IN ('lv') THEN 'Europe/Riga' WHEN LOWER(rcs.location_country_code) IN ('li', 'ch') THEN 'Europe/Zurich' WHEN LOWER(rcs.location_country_code) IN ('lt') THEN 'Europe/Vilnius' WHEN LOWER(rcs.location_country_code) IN ('lu') THEN 'Europe/Luxembourg' WHEN LOWER(rcs.location_country_code) IN ('my') THEN 'Asia/Kuala_Lumpur' WHEN LOWER(rcs.location_country_code) IN ('mt') THEN 'Europe/Malta' WHEN LOWER(rcs.location_country_code) IN ('mx') THEN 'America/Mexico_City' WHEN LOWER(rcs.location_country_code) IN ('md') THEN 'Europe/Chisinau' WHEN LOWER(rcs.location_country_code) IN ('me') THEN 'Europe/Podgorica' WHEN LOWER(rcs.location_country_code) IN ('ma') THEN 'Africa/Casablanca' WHEN LOWER(rcs.location_country_code) IN ('nl') THEN 'Europe/Amsterdam' WHEN LOWER(rcs.location_country_code) IN ('ng') THEN 'Africa/Lagos' WHEN LOWER(rcs.location_country_code) IN ('mk') THEN 'Europe/Skopje' WHEN LOWER(rcs.location_country_code) IN ('no', 'sj') THEN 'Europe/Oslo' WHEN LOWER(rcs.location_country_code) IN ('pk') THEN 'Asia/Karachi' WHEN LOWER(rcs.location_country_code) IN ('pe') THEN 'America/Lima' WHEN LOWER(rcs.location_country_code) IN ('ph') THEN 'Asia/Manila' WHEN LOWER(rcs.location_country_code) IN ('pl') THEN 'Europe/Warsaw' WHEN LOWER(rcs.location_country_code) IN ('pt') THEN 'Europe/Lisbon' WHEN LOWER(rcs.location_country_code) IN ('ro') THEN 'Europe/Bucharest' WHEN LOWER(rcs.location_country_code) IN ('ru') THEN 'Europe/Moscow' WHEN LOWER(rcs.location_country_code) IN ('rs') THEN 'Europe/Belgrade' WHEN LOWER(rcs.location_country_code) IN ('sg') THEN 'Asia/Singapore' WHEN LOWER(rcs.location_country_code) IN ('si') THEN 'Europe/Ljubljana' WHEN LOWER(rcs.location_country_code) IN ('za') THEN 'Africa/Johannesburg' WHEN LOWER(rcs.location_country_code) IN ('es') THEN 'Europe/Madrid' WHEN LOWER(rcs.location_country_code) IN ('se') THEN 'Europe/Stockholm' WHEN LOWER(rcs.location_country_code) IN ('tw') THEN 'Asia/Taipei' WHEN LOWER(rcs.location_country_code) IN ('th') THEN 'Asia/Bangkok' WHEN LOWER(rcs.location_country_code) IN ('tr') THEN 'Europe/Istanbul' WHEN LOWER(rcs.location_country_code) IN ('ua') THEN 'Europe/Kyiv' WHEN LOWER(rcs.location_country_code) IN ('ae') THEN 'Asia/Dubai' WHEN LOWER(rcs.location_country_code) IN ('um', 'us') THEN 'America/New_York' WHEN LOWER(rcs.location_country_code) IN ('vn') THEN 'Asia/Ho_Chi_Minh' ELSE 'Europe/Prague' END AS name
+                FROM competition rc
+                LEFT JOIN competition_series rcs ON rcs.id = rc.series_id
+                WHERE rc.id = c.round_competition_id
+            ) resolved
+        ) zone
+        CROSS JOIN (
+            SELECT COALESCE(bit_or(CASE WHEN entry.dns = false THEN CAST(1 AS BIGINT) << person.bit END), 0) AS entry_mask,
+                COALESCE(bool_or(entry.dns), false) AS has_dns,
+                COALESCE(bool_or(entry.dns = false AND (entry.seconds = c.seconds OR (c.pieces_placed IS NOT NULL AND entry.pieces_placed = c.pieces_placed))), false) AS result_match
+            FROM (
+                SELECT c.owner_id AS player_id, 0 AS bit
+                WHERE c.owner_id IS NOT NULL
+                UNION ALL
+                SELECT CAST(member.value ->> 'player_id' AS UUID), CAST(LEAST(member.position, 62) AS INT)
+                FROM json_array_elements(COALESCE(c.team_json -> 'puzzlers', CAST('[]' AS JSON))) WITH ORDINALITY AS member(value, position)
+                WHERE member.value ->> 'player_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            ) person
+            INNER JOIN competition_participant cp ON cp.player_id = person.player_id AND cp.deleted_at IS NULL
+            INNER JOIN competition_participant_round cpr ON cpr.participant_id = cp.id AND cpr.round_id = c.round_id
+            LEFT JOIN competition_team ct ON ct.id = cpr.team_id
+            CROSS JOIN LATERAL (
+                SELECT CASE WHEN cpr.team_id IS NULL THEN cpr.result_did_not_start ELSE ct.result_did_not_start END AS dns,
+                    CASE WHEN cpr.team_id IS NULL THEN cpr.result_seconds ELSE ct.result_seconds END AS seconds,
+                    CASE WHEN cpr.team_id IS NULL THEN cpr.result_pieces_placed ELSE ct.result_pieces_placed END AS pieces_placed
+            ) entry
+        ) entries
+        WHERE c.n > 1
+    ) ev ON true
+),
+round_match_evaluated AS (
+    SELECT candidate.*,
+        COALESCE(bit_or(candidate.entry_mask) OVER (PARTITION BY candidate.time_id), 0) AS union_mask
+    FROM round_match_candidate candidate
+),
+round_match_answer AS (
+SELECT e.time_id,
+    CASE
+        WHEN MAX(e.n) = 1 THEN (array_agg(e.round_id))[1]
+        WHEN bool_or(e.chosen AND e.round_id = e.current_round_id) THEN (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id))[1]
+        WHEN bool_or(e.chosen) THEN NULL
+        -- The evidence's answer, else (A3b, sticky) the round the time already holds while it is a remaining candidate
+        ELSE COALESCE(
+            CASE
+                WHEN MAX(e.union_mask) = 0 THEN CASE
+                    WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
+                END
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask))[1]
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match))[1]
+            END,
+            (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id AND e.excluded = false))[1]
+        )
+    END AS round_id,
+    COALESCE(bool_or(e.chosen AND e.round_id = e.current_round_id), false) AS chosen,
+    MAX(e.n) AS candidates
+FROM round_match_evaluated e
+GROUP BY e.time_id
+),
+dry_run AS (
+    -- A time with candidates gets the rule's answer; a time without any keeps no round (the unlink statement - the same
+    -- as today, shown too)
+    SELECT pst.id AS time_id,
+        pst.competition_id,
+        pst.competition_round_id AS stored_round_id,
+        answer.round_id AS new_round_id,
+        COALESCE(answer.candidates, 0) AS candidates
+    FROM puzzle_solving_time pst
+    LEFT JOIN round_match_answer answer ON answer.time_id = pst.id
+    WHERE pst.competition_id IS NOT NULL
+        AND (pst.created_via IS DISTINCT FROM 'event_import' OR pst.competition_round_id IS NULL)
+        AND answer.round_id IS DISTINCT FROM pst.competition_round_id
+)
+SELECT c.id AS competition_id,
+    c.name AS competition,
+    COUNT(*) AS changes,
+    COUNT(*) FILTER (WHERE d.stored_round_id IS NULL) AS would_link,
+    COUNT(*) FILTER (WHERE d.new_round_id IS NULL) AS would_unlink,
+    COUNT(*) FILTER (WHERE d.stored_round_id IS NOT NULL AND d.new_round_id IS NOT NULL) AS would_move,
+    COUNT(*) FILTER (WHERE d.candidates > 1) AS with_several_candidates
+FROM dry_run d
+INNER JOIN competition c ON c.id = d.competition_id
+GROUP BY c.id, c.name
+ORDER BY changes DESC, c.name;
+
+-- 2. Every changed time: stored round -> new round
+WITH round_match_time AS (
+    SELECT pst.id AS time_id,
+        pst.competition_id,
+        pst.puzzle_id,
+        pst.puzzling_type AS category,
+        pst.competition_round_id AS current_round_id,
+        false AS chosen,
+        pst.player_id AS owner_id,
+        pst.team AS team_json,
+        pst.seconds_to_solve AS seconds,
+        pst.pieces_placed,
+        CASE WHEN pst.finished_at_precision IS NULL THEN CAST(pst.finished_at AS DATE) END AS solve_day,
+        pst.tracked_at,
+        pst.created_via
+    FROM puzzle_solving_time pst
+    WHERE pst.competition_id IS NOT NULL
+        AND (pst.created_via IS DISTINCT FROM 'event_import' OR pst.competition_round_id IS NULL)
+),
+round_match_counted AS (
+    SELECT t.*,
+        cr.id AS round_id,
+        cr.competition_id AS round_competition_id,
+        cr.starts_at AS round_starts_at,
+        cr.start_time_known AS round_start_time_known,
+        cr.timezone AS round_timezone,
+        COUNT(*) OVER (PARTITION BY t.time_id) AS n
+    FROM round_match_time t
+    INNER JOIN competition_round cr ON cr.competition_id = t.competition_id AND cr.category = t.category
+    WHERE EXISTS (SELECT 1 FROM competition_round_puzzle crp WHERE crp.round_id = cr.id AND crp.puzzle_id = t.puzzle_id)
+),
+round_match_candidate AS (
+    SELECT c.time_id,
+        c.current_round_id,
+        c.chosen,
+        c.round_id,
+        c.n,
+        COALESCE(ev.excluded, false) AS excluded,
+        COALESCE(ev.entry_mask, 0) AS entry_mask,
+        COALESCE(ev.result_match, false) AS result_match
+    FROM round_match_counted c
+    LEFT JOIN LATERAL (
+        SELECT entries.has_dns
+                OR (c.round_start_time_known AND c.created_via IN ('form', 'stopwatch', 'api') AND c.tracked_at < c.round_starts_at)
+                OR COALESCE(c.solve_day < CASE WHEN zone.known THEN CAST((c.round_starts_at AT TIME ZONE 'UTC') AT TIME ZONE zone.name AS DATE) END, false) AS excluded,
+            entries.entry_mask,
+            entries.result_match
+        FROM (
+            -- A zone PHP knows but this Postgres does not is never read (AT TIME ZONE would fail the whole statement):
+            -- the day exclusion is skipped for it
+            SELECT resolved.name, resolved.name IN (SELECT known.name FROM pg_timezone_names known) AS known
+            FROM (
+                SELECT CASE WHEN c.round_timezone IN ('Africa/Abidjan', 'Africa/Accra', 'Africa/Addis_Ababa', 'Africa/Algiers', 'Africa/Asmara', 'Africa/Bamako', 'Africa/Bangui', 'Africa/Banjul', 'Africa/Bissau', 'Africa/Blantyre', 'Africa/Brazzaville', 'Africa/Bujumbura', 'Africa/Cairo', 'Africa/Casablanca', 'Africa/Ceuta', 'Africa/Conakry', 'Africa/Dakar', 'Africa/Dar_es_Salaam', 'Africa/Djibouti', 'Africa/Douala', 'Africa/El_Aaiun', 'Africa/Freetown', 'Africa/Gaborone', 'Africa/Harare', 'Africa/Johannesburg', 'Africa/Juba', 'Africa/Kampala', 'Africa/Khartoum', 'Africa/Kigali', 'Africa/Kinshasa', 'Africa/Lagos', 'Africa/Libreville', 'Africa/Lome', 'Africa/Luanda', 'Africa/Lubumbashi', 'Africa/Lusaka', 'Africa/Malabo', 'Africa/Maputo', 'Africa/Maseru', 'Africa/Mbabane', 'Africa/Mogadishu', 'Africa/Monrovia', 'Africa/Nairobi', 'Africa/Ndjamena', 'Africa/Niamey', 'Africa/Nouakchott', 'Africa/Ouagadougou', 'Africa/Porto-Novo', 'Africa/Sao_Tome', 'Africa/Tripoli', 'Africa/Tunis', 'Africa/Windhoek', 'America/Adak', 'America/Anchorage', 'America/Anguilla', 'America/Antigua', 'America/Araguaina', 'America/Argentina/Buenos_Aires', 'America/Argentina/Catamarca', 'America/Argentina/Cordoba', 'America/Argentina/Jujuy', 'America/Argentina/La_Rioja', 'America/Argentina/Mendoza', 'America/Argentina/Rio_Gallegos', 'America/Argentina/Salta', 'America/Argentina/San_Juan', 'America/Argentina/San_Luis', 'America/Argentina/Tucuman', 'America/Argentina/Ushuaia', 'America/Aruba', 'America/Asuncion', 'America/Atikokan', 'America/Bahia', 'America/Bahia_Banderas', 'America/Barbados', 'America/Belem', 'America/Belize', 'America/Blanc-Sablon', 'America/Boa_Vista', 'America/Bogota', 'America/Boise', 'America/Cambridge_Bay', 'America/Campo_Grande', 'America/Cancun', 'America/Caracas', 'America/Cayenne', 'America/Cayman', 'America/Chicago', 'America/Chihuahua', 'America/Ciudad_Juarez', 'America/Costa_Rica', 'America/Coyhaique', 'America/Creston', 'America/Cuiaba', 'America/Curacao', 'America/Danmarkshavn', 'America/Dawson', 'America/Dawson_Creek', 'America/Denver', 'America/Detroit', 'America/Dominica', 'America/Edmonton', 'America/Eirunepe', 'America/El_Salvador', 'America/Fort_Nelson', 'America/Fortaleza', 'America/Glace_Bay', 'America/Goose_Bay', 'America/Grand_Turk', 'America/Grenada', 'America/Guadeloupe', 'America/Guatemala', 'America/Guayaquil', 'America/Guyana', 'America/Halifax', 'America/Havana', 'America/Hermosillo', 'America/Indiana/Indianapolis', 'America/Indiana/Knox', 'America/Indiana/Marengo', 'America/Indiana/Petersburg', 'America/Indiana/Tell_City', 'America/Indiana/Vevay', 'America/Indiana/Vincennes', 'America/Indiana/Winamac', 'America/Inuvik', 'America/Iqaluit', 'America/Jamaica', 'America/Juneau', 'America/Kentucky/Louisville', 'America/Kentucky/Monticello', 'America/Kralendijk', 'America/La_Paz', 'America/Lima', 'America/Los_Angeles', 'America/Lower_Princes', 'America/Maceio', 'America/Managua', 'America/Manaus', 'America/Marigot', 'America/Martinique', 'America/Matamoros', 'America/Mazatlan', 'America/Menominee', 'America/Merida', 'America/Metlakatla', 'America/Mexico_City', 'America/Miquelon', 'America/Moncton', 'America/Monterrey', 'America/Montevideo', 'America/Montserrat', 'America/Nassau', 'America/New_York', 'America/Nome', 'America/Noronha', 'America/North_Dakota/Beulah', 'America/North_Dakota/Center', 'America/North_Dakota/New_Salem', 'America/Nuuk', 'America/Ojinaga', 'America/Panama', 'America/Paramaribo', 'America/Phoenix', 'America/Port-au-Prince', 'America/Port_of_Spain', 'America/Porto_Velho', 'America/Puerto_Rico', 'America/Punta_Arenas', 'America/Rankin_Inlet', 'America/Recife', 'America/Regina', 'America/Resolute', 'America/Rio_Branco', 'America/Santarem', 'America/Santiago', 'America/Santo_Domingo', 'America/Sao_Paulo', 'America/Scoresbysund', 'America/Sitka', 'America/St_Barthelemy', 'America/St_Johns', 'America/St_Kitts', 'America/St_Lucia', 'America/St_Thomas', 'America/St_Vincent', 'America/Swift_Current', 'America/Tegucigalpa', 'America/Thule', 'America/Tijuana', 'America/Toronto', 'America/Tortola', 'America/Vancouver', 'America/Whitehorse', 'America/Winnipeg', 'America/Yakutat', 'Antarctica/Casey', 'Antarctica/Davis', 'Antarctica/DumontDUrville', 'Antarctica/Macquarie', 'Antarctica/Mawson', 'Antarctica/McMurdo', 'Antarctica/Palmer', 'Antarctica/Rothera', 'Antarctica/Syowa', 'Antarctica/Troll', 'Antarctica/Vostok', 'Arctic/Longyearbyen', 'Asia/Aden', 'Asia/Almaty', 'Asia/Amman', 'Asia/Anadyr', 'Asia/Aqtau', 'Asia/Aqtobe', 'Asia/Ashgabat', 'Asia/Atyrau', 'Asia/Baghdad', 'Asia/Bahrain', 'Asia/Baku', 'Asia/Bangkok', 'Asia/Barnaul', 'Asia/Beirut', 'Asia/Bishkek', 'Asia/Brunei', 'Asia/Chita', 'Asia/Colombo', 'Asia/Damascus', 'Asia/Dhaka', 'Asia/Dili', 'Asia/Dubai', 'Asia/Dushanbe', 'Asia/Famagusta', 'Asia/Gaza', 'Asia/Hebron', 'Asia/Ho_Chi_Minh', 'Asia/Hong_Kong', 'Asia/Hovd', 'Asia/Irkutsk', 'Asia/Jakarta', 'Asia/Jayapura', 'Asia/Jerusalem', 'Asia/Kabul', 'Asia/Kamchatka', 'Asia/Karachi', 'Asia/Kathmandu', 'Asia/Khandyga', 'Asia/Kolkata', 'Asia/Krasnoyarsk', 'Asia/Kuala_Lumpur', 'Asia/Kuching', 'Asia/Kuwait', 'Asia/Macau', 'Asia/Magadan', 'Asia/Makassar', 'Asia/Manila', 'Asia/Muscat', 'Asia/Nicosia', 'Asia/Novokuznetsk', 'Asia/Novosibirsk', 'Asia/Omsk', 'Asia/Oral', 'Asia/Phnom_Penh', 'Asia/Pontianak', 'Asia/Pyongyang', 'Asia/Qatar', 'Asia/Qostanay', 'Asia/Qyzylorda', 'Asia/Riyadh', 'Asia/Sakhalin', 'Asia/Samarkand', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Srednekolymsk', 'Asia/Taipei', 'Asia/Tashkent', 'Asia/Tbilisi', 'Asia/Tehran', 'Asia/Thimphu', 'Asia/Tokyo', 'Asia/Tomsk', 'Asia/Ulaanbaatar', 'Asia/Urumqi', 'Asia/Ust-Nera', 'Asia/Vientiane', 'Asia/Vladivostok', 'Asia/Yakutsk', 'Asia/Yangon', 'Asia/Yekaterinburg', 'Asia/Yerevan', 'Atlantic/Azores', 'Atlantic/Bermuda', 'Atlantic/Canary', 'Atlantic/Cape_Verde', 'Atlantic/Faroe', 'Atlantic/Madeira', 'Atlantic/Reykjavik', 'Atlantic/South_Georgia', 'Atlantic/St_Helena', 'Atlantic/Stanley', 'Australia/Adelaide', 'Australia/Brisbane', 'Australia/Broken_Hill', 'Australia/Darwin', 'Australia/Eucla', 'Australia/Hobart', 'Australia/Lindeman', 'Australia/Lord_Howe', 'Australia/Melbourne', 'Australia/Perth', 'Australia/Sydney', 'Europe/Amsterdam', 'Europe/Andorra', 'Europe/Astrakhan', 'Europe/Athens', 'Europe/Belgrade', 'Europe/Berlin', 'Europe/Bratislava', 'Europe/Brussels', 'Europe/Bucharest', 'Europe/Budapest', 'Europe/Busingen', 'Europe/Chisinau', 'Europe/Copenhagen', 'Europe/Dublin', 'Europe/Gibraltar', 'Europe/Guernsey', 'Europe/Helsinki', 'Europe/Isle_of_Man', 'Europe/Istanbul', 'Europe/Jersey', 'Europe/Kaliningrad', 'Europe/Kirov', 'Europe/Kyiv', 'Europe/Lisbon', 'Europe/Ljubljana', 'Europe/London', 'Europe/Luxembourg', 'Europe/Madrid', 'Europe/Malta', 'Europe/Mariehamn', 'Europe/Minsk', 'Europe/Monaco', 'Europe/Moscow', 'Europe/Oslo', 'Europe/Paris', 'Europe/Podgorica', 'Europe/Prague', 'Europe/Riga', 'Europe/Rome', 'Europe/Samara', 'Europe/San_Marino', 'Europe/Sarajevo', 'Europe/Saratov', 'Europe/Simferopol', 'Europe/Skopje', 'Europe/Sofia', 'Europe/Stockholm', 'Europe/Tallinn', 'Europe/Tirane', 'Europe/Ulyanovsk', 'Europe/Vaduz', 'Europe/Vatican', 'Europe/Vienna', 'Europe/Vilnius', 'Europe/Volgograd', 'Europe/Warsaw', 'Europe/Zagreb', 'Europe/Zurich', 'Indian/Antananarivo', 'Indian/Chagos', 'Indian/Christmas', 'Indian/Cocos', 'Indian/Comoro', 'Indian/Kerguelen', 'Indian/Mahe', 'Indian/Maldives', 'Indian/Mauritius', 'Indian/Mayotte', 'Indian/Reunion', 'Pacific/Apia', 'Pacific/Auckland', 'Pacific/Bougainville', 'Pacific/Chatham', 'Pacific/Chuuk', 'Pacific/Easter', 'Pacific/Efate', 'Pacific/Fakaofo', 'Pacific/Fiji', 'Pacific/Funafuti', 'Pacific/Galapagos', 'Pacific/Gambier', 'Pacific/Guadalcanal', 'Pacific/Guam', 'Pacific/Honolulu', 'Pacific/Kanton', 'Pacific/Kiritimati', 'Pacific/Kosrae', 'Pacific/Kwajalein', 'Pacific/Majuro', 'Pacific/Marquesas', 'Pacific/Midway', 'Pacific/Nauru', 'Pacific/Niue', 'Pacific/Norfolk', 'Pacific/Noumea', 'Pacific/Pago_Pago', 'Pacific/Palau', 'Pacific/Pitcairn', 'Pacific/Pohnpei', 'Pacific/Port_Moresby', 'Pacific/Rarotonga', 'Pacific/Saipan', 'Pacific/Tahiti', 'Pacific/Tarawa', 'Pacific/Tongatapu', 'Pacific/Wake', 'Pacific/Wallis', 'UTC') THEN c.round_timezone WHEN LOWER(rc.location_country_code) IN ('af', 'dz', 'as', 'ad', 'ao', 'ai', 'aq', 'ag', 'am', 'aw', 'az', 'bs', 'bb', 'bz', 'bj', 'bm', 'bt', 'bo', 'bq', 'bw', 'bv', 'io', 'bn', 'bf', 'bi', 'cv', 'kh', 'cm', 'ky', 'cf', 'td', 'cx', 'cc', 'km', 'cd', 'cg', 'cr', 'cu', 'cw', 'cz', 'ci', 'dj', 'dm', 'do', 'ec', 'sv', 'gq', 'er', 'sz', 'et', 'fk', 'fj', 'gf', 'pf', 'tf', 'ga', 'gm', 'ge', 'gh', 'gi', 'gl', 'gd', 'gp', 'gu', 'gt', 'gn', 'gw', 'gy', 'ht', 'hm', 'hn', 'ir', 'iq', 'jm', 'jo', 'kz', 'ki', 'kp', 'kg', 'la', 'lb', 'ls', 'lr', 'ly', 'mg', 'mw', 'mv', 'ml', 'mh', 'mq', 'mr', 'mu', 'yt', 'fm', 'mn', 'ms', 'mz', 'mm', 'na', 'nr', 'np', 'nc', 'ni', 'ne', 'nu', 'mp', 'om', 'pw', 'ps', 'pa', 'pg', 'py', 'pn', 'pr', 'rw', 're', 'bl', 'sh', 'kn', 'lc', 'mf', 'pm', 'vc', 'ws', 'st', 'sn', 'sc', 'sl', 'sx', 'sk', 'sb', 'so', 'gs', 'ss', 'lk', 'sd', 'sr', 'sy', 'tj', 'tz', 'tl', 'tg', 'tk', 'to', 'tt', 'tn', 'tm', 'tc', 'tv', 'ug', 'uy', 'uz', 'vu', 've', 'vg', 'vi', 'wf', 'eh', 'ye', 'zm', 'zw') THEN 'Europe/Prague' WHEN LOWER(rc.location_country_code) IN ('al') THEN 'Europe/Tirane' WHEN LOWER(rc.location_country_code) IN ('ar') THEN 'America/Argentina/Buenos_Aires' WHEN LOWER(rc.location_country_code) IN ('au', 'nf') THEN 'Australia/Sydney' WHEN LOWER(rc.location_country_code) IN ('at') THEN 'Europe/Vienna' WHEN LOWER(rc.location_country_code) IN ('bh', 'kw', 'qa', 'sa') THEN 'Asia/Riyadh' WHEN LOWER(rc.location_country_code) IN ('bd') THEN 'Asia/Dhaka' WHEN LOWER(rc.location_country_code) IN ('by') THEN 'Europe/Minsk' WHEN LOWER(rc.location_country_code) IN ('be') THEN 'Europe/Brussels' WHEN LOWER(rc.location_country_code) IN ('ba') THEN 'Europe/Sarajevo' WHEN LOWER(rc.location_country_code) IN ('br') THEN 'America/Sao_Paulo' WHEN LOWER(rc.location_country_code) IN ('bg') THEN 'Europe/Sofia' WHEN LOWER(rc.location_country_code) IN ('ca') THEN 'America/Toronto' WHEN LOWER(rc.location_country_code) IN ('cl') THEN 'America/Santiago' WHEN LOWER(rc.location_country_code) IN ('cn', 'hk', 'mo') THEN 'Asia/Shanghai' WHEN LOWER(rc.location_country_code) IN ('co') THEN 'America/Bogota' WHEN LOWER(rc.location_country_code) IN ('ck', 'nz') THEN 'Pacific/Auckland' WHEN LOWER(rc.location_country_code) IN ('hr') THEN 'Europe/Zagreb' WHEN LOWER(rc.location_country_code) IN ('cy', 'gr') THEN 'Europe/Athens' WHEN LOWER(rc.location_country_code) IN ('dk', 'fo') THEN 'Europe/Copenhagen' WHEN LOWER(rc.location_country_code) IN ('eg') THEN 'Africa/Cairo' WHEN LOWER(rc.location_country_code) IN ('ee') THEN 'Europe/Tallinn' WHEN LOWER(rc.location_country_code) IN ('fi', 'ax') THEN 'Europe/Helsinki' WHEN LOWER(rc.location_country_code) IN ('fr', 'mc') THEN 'Europe/Paris' WHEN LOWER(rc.location_country_code) IN ('de') THEN 'Europe/Berlin' WHEN LOWER(rc.location_country_code) IN ('gg', 'im', 'je', 'gb') THEN 'Europe/London' WHEN LOWER(rc.location_country_code) IN ('va', 'it', 'sm') THEN 'Europe/Rome' WHEN LOWER(rc.location_country_code) IN ('hu') THEN 'Europe/Budapest' WHEN LOWER(rc.location_country_code) IN ('is') THEN 'Atlantic/Reykjavik' WHEN LOWER(rc.location_country_code) IN ('in') THEN 'Asia/Kolkata' WHEN LOWER(rc.location_country_code) IN ('id') THEN 'Asia/Jakarta' WHEN LOWER(rc.location_country_code) IN ('ie') THEN 'Europe/Dublin' WHEN LOWER(rc.location_country_code) IN ('il') THEN 'Asia/Jerusalem' WHEN LOWER(rc.location_country_code) IN ('jp') THEN 'Asia/Tokyo' WHEN LOWER(rc.location_country_code) IN ('ke') THEN 'Africa/Nairobi' WHEN LOWER(rc.location_country_code) IN ('kr') THEN 'Asia/Seoul' WHEN LOWER(rc.location_country_code) IN ('lv') THEN 'Europe/Riga' WHEN LOWER(rc.location_country_code) IN ('li', 'ch') THEN 'Europe/Zurich' WHEN LOWER(rc.location_country_code) IN ('lt') THEN 'Europe/Vilnius' WHEN LOWER(rc.location_country_code) IN ('lu') THEN 'Europe/Luxembourg' WHEN LOWER(rc.location_country_code) IN ('my') THEN 'Asia/Kuala_Lumpur' WHEN LOWER(rc.location_country_code) IN ('mt') THEN 'Europe/Malta' WHEN LOWER(rc.location_country_code) IN ('mx') THEN 'America/Mexico_City' WHEN LOWER(rc.location_country_code) IN ('md') THEN 'Europe/Chisinau' WHEN LOWER(rc.location_country_code) IN ('me') THEN 'Europe/Podgorica' WHEN LOWER(rc.location_country_code) IN ('ma') THEN 'Africa/Casablanca' WHEN LOWER(rc.location_country_code) IN ('nl') THEN 'Europe/Amsterdam' WHEN LOWER(rc.location_country_code) IN ('ng') THEN 'Africa/Lagos' WHEN LOWER(rc.location_country_code) IN ('mk') THEN 'Europe/Skopje' WHEN LOWER(rc.location_country_code) IN ('no', 'sj') THEN 'Europe/Oslo' WHEN LOWER(rc.location_country_code) IN ('pk') THEN 'Asia/Karachi' WHEN LOWER(rc.location_country_code) IN ('pe') THEN 'America/Lima' WHEN LOWER(rc.location_country_code) IN ('ph') THEN 'Asia/Manila' WHEN LOWER(rc.location_country_code) IN ('pl') THEN 'Europe/Warsaw' WHEN LOWER(rc.location_country_code) IN ('pt') THEN 'Europe/Lisbon' WHEN LOWER(rc.location_country_code) IN ('ro') THEN 'Europe/Bucharest' WHEN LOWER(rc.location_country_code) IN ('ru') THEN 'Europe/Moscow' WHEN LOWER(rc.location_country_code) IN ('rs') THEN 'Europe/Belgrade' WHEN LOWER(rc.location_country_code) IN ('sg') THEN 'Asia/Singapore' WHEN LOWER(rc.location_country_code) IN ('si') THEN 'Europe/Ljubljana' WHEN LOWER(rc.location_country_code) IN ('za') THEN 'Africa/Johannesburg' WHEN LOWER(rc.location_country_code) IN ('es') THEN 'Europe/Madrid' WHEN LOWER(rc.location_country_code) IN ('se') THEN 'Europe/Stockholm' WHEN LOWER(rc.location_country_code) IN ('tw') THEN 'Asia/Taipei' WHEN LOWER(rc.location_country_code) IN ('th') THEN 'Asia/Bangkok' WHEN LOWER(rc.location_country_code) IN ('tr') THEN 'Europe/Istanbul' WHEN LOWER(rc.location_country_code) IN ('ua') THEN 'Europe/Kyiv' WHEN LOWER(rc.location_country_code) IN ('ae') THEN 'Asia/Dubai' WHEN LOWER(rc.location_country_code) IN ('um', 'us') THEN 'America/New_York' WHEN LOWER(rc.location_country_code) IN ('vn') THEN 'Asia/Ho_Chi_Minh' WHEN LOWER(rcs.location_country_code) IN ('af', 'dz', 'as', 'ad', 'ao', 'ai', 'aq', 'ag', 'am', 'aw', 'az', 'bs', 'bb', 'bz', 'bj', 'bm', 'bt', 'bo', 'bq', 'bw', 'bv', 'io', 'bn', 'bf', 'bi', 'cv', 'kh', 'cm', 'ky', 'cf', 'td', 'cx', 'cc', 'km', 'cd', 'cg', 'cr', 'cu', 'cw', 'cz', 'ci', 'dj', 'dm', 'do', 'ec', 'sv', 'gq', 'er', 'sz', 'et', 'fk', 'fj', 'gf', 'pf', 'tf', 'ga', 'gm', 'ge', 'gh', 'gi', 'gl', 'gd', 'gp', 'gu', 'gt', 'gn', 'gw', 'gy', 'ht', 'hm', 'hn', 'ir', 'iq', 'jm', 'jo', 'kz', 'ki', 'kp', 'kg', 'la', 'lb', 'ls', 'lr', 'ly', 'mg', 'mw', 'mv', 'ml', 'mh', 'mq', 'mr', 'mu', 'yt', 'fm', 'mn', 'ms', 'mz', 'mm', 'na', 'nr', 'np', 'nc', 'ni', 'ne', 'nu', 'mp', 'om', 'pw', 'ps', 'pa', 'pg', 'py', 'pn', 'pr', 'rw', 're', 'bl', 'sh', 'kn', 'lc', 'mf', 'pm', 'vc', 'ws', 'st', 'sn', 'sc', 'sl', 'sx', 'sk', 'sb', 'so', 'gs', 'ss', 'lk', 'sd', 'sr', 'sy', 'tj', 'tz', 'tl', 'tg', 'tk', 'to', 'tt', 'tn', 'tm', 'tc', 'tv', 'ug', 'uy', 'uz', 'vu', 've', 'vg', 'vi', 'wf', 'eh', 'ye', 'zm', 'zw') THEN 'Europe/Prague' WHEN LOWER(rcs.location_country_code) IN ('al') THEN 'Europe/Tirane' WHEN LOWER(rcs.location_country_code) IN ('ar') THEN 'America/Argentina/Buenos_Aires' WHEN LOWER(rcs.location_country_code) IN ('au', 'nf') THEN 'Australia/Sydney' WHEN LOWER(rcs.location_country_code) IN ('at') THEN 'Europe/Vienna' WHEN LOWER(rcs.location_country_code) IN ('bh', 'kw', 'qa', 'sa') THEN 'Asia/Riyadh' WHEN LOWER(rcs.location_country_code) IN ('bd') THEN 'Asia/Dhaka' WHEN LOWER(rcs.location_country_code) IN ('by') THEN 'Europe/Minsk' WHEN LOWER(rcs.location_country_code) IN ('be') THEN 'Europe/Brussels' WHEN LOWER(rcs.location_country_code) IN ('ba') THEN 'Europe/Sarajevo' WHEN LOWER(rcs.location_country_code) IN ('br') THEN 'America/Sao_Paulo' WHEN LOWER(rcs.location_country_code) IN ('bg') THEN 'Europe/Sofia' WHEN LOWER(rcs.location_country_code) IN ('ca') THEN 'America/Toronto' WHEN LOWER(rcs.location_country_code) IN ('cl') THEN 'America/Santiago' WHEN LOWER(rcs.location_country_code) IN ('cn', 'hk', 'mo') THEN 'Asia/Shanghai' WHEN LOWER(rcs.location_country_code) IN ('co') THEN 'America/Bogota' WHEN LOWER(rcs.location_country_code) IN ('ck', 'nz') THEN 'Pacific/Auckland' WHEN LOWER(rcs.location_country_code) IN ('hr') THEN 'Europe/Zagreb' WHEN LOWER(rcs.location_country_code) IN ('cy', 'gr') THEN 'Europe/Athens' WHEN LOWER(rcs.location_country_code) IN ('dk', 'fo') THEN 'Europe/Copenhagen' WHEN LOWER(rcs.location_country_code) IN ('eg') THEN 'Africa/Cairo' WHEN LOWER(rcs.location_country_code) IN ('ee') THEN 'Europe/Tallinn' WHEN LOWER(rcs.location_country_code) IN ('fi', 'ax') THEN 'Europe/Helsinki' WHEN LOWER(rcs.location_country_code) IN ('fr', 'mc') THEN 'Europe/Paris' WHEN LOWER(rcs.location_country_code) IN ('de') THEN 'Europe/Berlin' WHEN LOWER(rcs.location_country_code) IN ('gg', 'im', 'je', 'gb') THEN 'Europe/London' WHEN LOWER(rcs.location_country_code) IN ('va', 'it', 'sm') THEN 'Europe/Rome' WHEN LOWER(rcs.location_country_code) IN ('hu') THEN 'Europe/Budapest' WHEN LOWER(rcs.location_country_code) IN ('is') THEN 'Atlantic/Reykjavik' WHEN LOWER(rcs.location_country_code) IN ('in') THEN 'Asia/Kolkata' WHEN LOWER(rcs.location_country_code) IN ('id') THEN 'Asia/Jakarta' WHEN LOWER(rcs.location_country_code) IN ('ie') THEN 'Europe/Dublin' WHEN LOWER(rcs.location_country_code) IN ('il') THEN 'Asia/Jerusalem' WHEN LOWER(rcs.location_country_code) IN ('jp') THEN 'Asia/Tokyo' WHEN LOWER(rcs.location_country_code) IN ('ke') THEN 'Africa/Nairobi' WHEN LOWER(rcs.location_country_code) IN ('kr') THEN 'Asia/Seoul' WHEN LOWER(rcs.location_country_code) IN ('lv') THEN 'Europe/Riga' WHEN LOWER(rcs.location_country_code) IN ('li', 'ch') THEN 'Europe/Zurich' WHEN LOWER(rcs.location_country_code) IN ('lt') THEN 'Europe/Vilnius' WHEN LOWER(rcs.location_country_code) IN ('lu') THEN 'Europe/Luxembourg' WHEN LOWER(rcs.location_country_code) IN ('my') THEN 'Asia/Kuala_Lumpur' WHEN LOWER(rcs.location_country_code) IN ('mt') THEN 'Europe/Malta' WHEN LOWER(rcs.location_country_code) IN ('mx') THEN 'America/Mexico_City' WHEN LOWER(rcs.location_country_code) IN ('md') THEN 'Europe/Chisinau' WHEN LOWER(rcs.location_country_code) IN ('me') THEN 'Europe/Podgorica' WHEN LOWER(rcs.location_country_code) IN ('ma') THEN 'Africa/Casablanca' WHEN LOWER(rcs.location_country_code) IN ('nl') THEN 'Europe/Amsterdam' WHEN LOWER(rcs.location_country_code) IN ('ng') THEN 'Africa/Lagos' WHEN LOWER(rcs.location_country_code) IN ('mk') THEN 'Europe/Skopje' WHEN LOWER(rcs.location_country_code) IN ('no', 'sj') THEN 'Europe/Oslo' WHEN LOWER(rcs.location_country_code) IN ('pk') THEN 'Asia/Karachi' WHEN LOWER(rcs.location_country_code) IN ('pe') THEN 'America/Lima' WHEN LOWER(rcs.location_country_code) IN ('ph') THEN 'Asia/Manila' WHEN LOWER(rcs.location_country_code) IN ('pl') THEN 'Europe/Warsaw' WHEN LOWER(rcs.location_country_code) IN ('pt') THEN 'Europe/Lisbon' WHEN LOWER(rcs.location_country_code) IN ('ro') THEN 'Europe/Bucharest' WHEN LOWER(rcs.location_country_code) IN ('ru') THEN 'Europe/Moscow' WHEN LOWER(rcs.location_country_code) IN ('rs') THEN 'Europe/Belgrade' WHEN LOWER(rcs.location_country_code) IN ('sg') THEN 'Asia/Singapore' WHEN LOWER(rcs.location_country_code) IN ('si') THEN 'Europe/Ljubljana' WHEN LOWER(rcs.location_country_code) IN ('za') THEN 'Africa/Johannesburg' WHEN LOWER(rcs.location_country_code) IN ('es') THEN 'Europe/Madrid' WHEN LOWER(rcs.location_country_code) IN ('se') THEN 'Europe/Stockholm' WHEN LOWER(rcs.location_country_code) IN ('tw') THEN 'Asia/Taipei' WHEN LOWER(rcs.location_country_code) IN ('th') THEN 'Asia/Bangkok' WHEN LOWER(rcs.location_country_code) IN ('tr') THEN 'Europe/Istanbul' WHEN LOWER(rcs.location_country_code) IN ('ua') THEN 'Europe/Kyiv' WHEN LOWER(rcs.location_country_code) IN ('ae') THEN 'Asia/Dubai' WHEN LOWER(rcs.location_country_code) IN ('um', 'us') THEN 'America/New_York' WHEN LOWER(rcs.location_country_code) IN ('vn') THEN 'Asia/Ho_Chi_Minh' ELSE 'Europe/Prague' END AS name
+                FROM competition rc
+                LEFT JOIN competition_series rcs ON rcs.id = rc.series_id
+                WHERE rc.id = c.round_competition_id
+            ) resolved
+        ) zone
+        CROSS JOIN (
+            SELECT COALESCE(bit_or(CASE WHEN entry.dns = false THEN CAST(1 AS BIGINT) << person.bit END), 0) AS entry_mask,
+                COALESCE(bool_or(entry.dns), false) AS has_dns,
+                COALESCE(bool_or(entry.dns = false AND (entry.seconds = c.seconds OR (c.pieces_placed IS NOT NULL AND entry.pieces_placed = c.pieces_placed))), false) AS result_match
+            FROM (
+                SELECT c.owner_id AS player_id, 0 AS bit
+                WHERE c.owner_id IS NOT NULL
+                UNION ALL
+                SELECT CAST(member.value ->> 'player_id' AS UUID), CAST(LEAST(member.position, 62) AS INT)
+                FROM json_array_elements(COALESCE(c.team_json -> 'puzzlers', CAST('[]' AS JSON))) WITH ORDINALITY AS member(value, position)
+                WHERE member.value ->> 'player_id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            ) person
+            INNER JOIN competition_participant cp ON cp.player_id = person.player_id AND cp.deleted_at IS NULL
+            INNER JOIN competition_participant_round cpr ON cpr.participant_id = cp.id AND cpr.round_id = c.round_id
+            LEFT JOIN competition_team ct ON ct.id = cpr.team_id
+            CROSS JOIN LATERAL (
+                SELECT CASE WHEN cpr.team_id IS NULL THEN cpr.result_did_not_start ELSE ct.result_did_not_start END AS dns,
+                    CASE WHEN cpr.team_id IS NULL THEN cpr.result_seconds ELSE ct.result_seconds END AS seconds,
+                    CASE WHEN cpr.team_id IS NULL THEN cpr.result_pieces_placed ELSE ct.result_pieces_placed END AS pieces_placed
+            ) entry
+        ) entries
+        WHERE c.n > 1
+    ) ev ON true
+),
+round_match_evaluated AS (
+    SELECT candidate.*,
+        COALESCE(bit_or(candidate.entry_mask) OVER (PARTITION BY candidate.time_id), 0) AS union_mask
+    FROM round_match_candidate candidate
+),
+round_match_answer AS (
+SELECT e.time_id,
+    CASE
+        WHEN MAX(e.n) = 1 THEN (array_agg(e.round_id))[1]
+        WHEN bool_or(e.chosen AND e.round_id = e.current_round_id) THEN (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id))[1]
+        WHEN bool_or(e.chosen) THEN NULL
+        -- The evidence's answer, else (A3b, sticky) the round the time already holds while it is a remaining candidate
+        ELSE COALESCE(
+            CASE
+                WHEN MAX(e.union_mask) = 0 THEN CASE
+                    WHEN COUNT(*) FILTER (WHERE e.excluded = false) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false))[1]
+                END
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask))[1]
+                WHEN COUNT(*) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match) = 1 THEN (array_agg(e.round_id) FILTER (WHERE e.excluded = false AND e.union_mask <> 0 AND e.entry_mask = e.union_mask AND e.result_match))[1]
+            END,
+            (array_agg(e.round_id) FILTER (WHERE e.round_id = e.current_round_id AND e.excluded = false))[1]
+        )
+    END AS round_id,
+    COALESCE(bool_or(e.chosen AND e.round_id = e.current_round_id), false) AS chosen,
+    MAX(e.n) AS candidates
+FROM round_match_evaluated e
+GROUP BY e.time_id
+),
+dry_run AS (
+    -- A time with candidates gets the rule's answer; a time without any keeps no round (the unlink statement - the same
+    -- as today, shown too)
+    SELECT pst.id AS time_id,
+        pst.competition_id,
+        pst.competition_round_id AS stored_round_id,
+        answer.round_id AS new_round_id,
+        COALESCE(answer.candidates, 0) AS candidates
+    FROM puzzle_solving_time pst
+    LEFT JOIN round_match_answer answer ON answer.time_id = pst.id
+    WHERE pst.competition_id IS NOT NULL
+        AND (pst.created_via IS DISTINCT FROM 'event_import' OR pst.competition_round_id IS NULL)
+        AND answer.round_id IS DISTINCT FROM pst.competition_round_id
+)
+SELECT d.competition_id,
+    d.time_id,
+    d.candidates,
+    stored.name AS stored_round,
+    d.stored_round_id,
+    new_round.name AS new_round,
+    d.new_round_id
+FROM dry_run d
+LEFT JOIN competition_round stored ON stored.id = d.stored_round_id
+LEFT JOIN competition_round new_round ON new_round.id = d.new_round_id
+ORDER BY d.competition_id, d.time_id;
+
+-- 3. Rounds of one category sharing a puzzle today (only a puzzle merge can make them before package S2)
+SELECT a.competition_id, a.category, crp_a.puzzle_id, a.name AS round_a, b.name AS round_b
+FROM competition_round a
+INNER JOIN competition_round b ON b.competition_id = a.competition_id AND b.category = a.category AND b.id > a.id
+INNER JOIN competition_round_puzzle crp_a ON crp_a.round_id = a.id
+INNER JOIN competition_round_puzzle crp_b ON crp_b.round_id = b.id AND crp_b.puzzle_id = crp_a.puzzle_id
+ORDER BY a.competition_id;
+
+ROLLBACK;

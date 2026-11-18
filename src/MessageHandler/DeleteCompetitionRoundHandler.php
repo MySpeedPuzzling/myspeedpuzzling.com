@@ -99,7 +99,7 @@ readonly final class DeleteCompetitionRoundHandler
         }
 
         $this->database->executeStatement(
-            'UPDATE puzzle_solving_time SET competition_round_id = NULL WHERE competition_round_id = :id',
+            'UPDATE puzzle_solving_time SET competition_round_id = NULL, round_chosen = false WHERE competition_round_id = :id',
             $params,
         );
         $this->database->executeStatement(

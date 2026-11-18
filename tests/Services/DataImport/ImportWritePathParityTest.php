@@ -78,6 +78,8 @@ final class ImportWritePathParityTest extends KernelTestCase
         // Never linked to an event - by the form here (no event picked), by the import always
         'competition_id',
         'competition_round_id',
+        // No round named - false in both (shared puzzles A4)
+        'round_chosen',
         'competition_series_id',
         'series_edition_match',
         'pieces_placed',

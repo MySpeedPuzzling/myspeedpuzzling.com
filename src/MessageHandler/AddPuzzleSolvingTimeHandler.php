@@ -303,7 +303,8 @@ readonly final class AddPuzzleSolvingTimeHandler
             );
         }
 
-        $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
+        $roundResolution = $this->roundResolver->resolve($solvingTime);
+        $solvingTime->roundResolved($roundResolution->round, $roundResolution->chosen);
 
         // Before persist: the insights tables do not know this solve yet
         $this->solvingTimePredictor->predictAddedTime($solvingTime);

@@ -70,6 +70,9 @@ readonly final class RemovedResultSnapshot
         public DatePrecision $finishedAtPrecision = DatePrecision::Day,
         // Time spent on an unfinished result - older snapshots have no key, read as null
         public null|int $secondsSpent = null,
+        // The round was named by the player (PuzzleSolvingTime::$roundChosen) - Undo names it again (shared puzzles A5);
+        // older snapshots have no key, read as false
+        public bool $roundChosen = false,
     ) {
     }
 
@@ -130,6 +133,7 @@ readonly final class RemovedResultSnapshot
             finishedPuzzlePhotoUploadMetadata: $time->finishedPuzzlePhotoUploadMetadata(),
             finishedAtPrecision: $time->datePrecision(),
             secondsSpent: $time->secondsSpent,
+            roundChosen: $time->roundChosen,
         );
     }
 
@@ -160,7 +164,7 @@ readonly final class RemovedResultSnapshot
      */
     public function toArray(): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'seconds_to_solve' => $this->secondsToSolve,
             'player_id' => $this->playerId,
@@ -200,6 +204,13 @@ readonly final class RemovedResultSnapshot
             'finished_at_precision' => $this->finishedAtPrecision === DatePrecision::Day ? null : $this->finishedAtPrecision->value,
             'seconds_spent' => $this->secondsSpent,
         ];
+
+        // Only when set - every other snapshot stays as it was
+        if ($this->roundChosen) {
+            $data['round_chosen'] = true;
+        }
+
+        return $data;
     }
 
     /**
@@ -207,7 +218,7 @@ readonly final class RemovedResultSnapshot
      */
     public static function fromArray(array $data): self
     {
-        /** @var array{id: string, seconds_to_solve: null|int, player_id: null|string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int, finished_puzzle_photo_upload_metadata?: null|array<mixed>, finished_at_precision?: null|string, seconds_spent?: null|int} $data */
+        /** @var array{id: string, seconds_to_solve: null|int, player_id: null|string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int, finished_puzzle_photo_upload_metadata?: null|array<mixed>, finished_at_precision?: null|string, seconds_spent?: null|int, round_chosen?: bool} $data */
 
         return new self(
             id: $data['id'],
@@ -248,6 +259,7 @@ readonly final class RemovedResultSnapshot
             finishedPuzzlePhotoUploadMetadata: UploadedImageMetadata::fromArray($data['finished_puzzle_photo_upload_metadata'] ?? null),
             finishedAtPrecision: DatePrecision::ofStored($data['finished_at_precision'] ?? null),
             secondsSpent: $data['seconds_spent'] ?? null,
+            roundChosen: $data['round_chosen'] ?? false,
         );
     }
 }

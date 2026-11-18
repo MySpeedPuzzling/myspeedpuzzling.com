@@ -153,7 +153,7 @@ readonly final class ConvertCompetitionToSeriesHandler
         // about the time itself. Its first edition re-matches them (SeriesEditionsChanged)
         $database->executeStatement(
             'UPDATE puzzle_solving_time
-             SET competition_series_id = :seriesId, competition_id = NULL, competition_round_id = NULL, series_edition_match = NULL
+             SET competition_series_id = :seriesId, competition_id = NULL, competition_round_id = NULL, round_chosen = false, series_edition_match = NULL
              WHERE competition_id = :competitionId',
             [...$params, 'seriesId' => $series->id->toString()],
         );

@@ -62,7 +62,7 @@ readonly final class DeleteCompetitionSeriesHandler
         }
 
         $this->database->executeStatement(
-            'UPDATE puzzle_solving_time SET competition_round_id = NULL
+            'UPDATE puzzle_solving_time SET competition_round_id = NULL, round_chosen = false
              WHERE competition_round_id IN (
                  SELECT cr.id FROM competition_round cr
                  INNER JOIN competition c ON c.id = cr.competition_id

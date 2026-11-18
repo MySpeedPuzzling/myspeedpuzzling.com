@@ -75,6 +75,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetRoundsWithPublishedOfficialResults.php' => self::NOTIFICATION,
         'Query/GetStoredFileReferences.php' => self::WRITE,
         'Query/GetSuspiciousTimeCaseDetail.php' => self::VIA_SOLVING_TIMES,
+        'Query/SolvingTimeRoundMatch.php' => self::WRITE . ' The round rule reads a candidate round\'s competition + series only for its country (the round\'s local day) - used by the resolver and RoundResultsReconciler.',
         'Services/CompetitionSlugGenerator.php' => self::WRITE,
         'Services/Drafts/UnpublishBlockers.php' => self::WRITE,
         'Services/ParticipantsSheet/SheetChangesPlanner.php' => self::ORGANISER,

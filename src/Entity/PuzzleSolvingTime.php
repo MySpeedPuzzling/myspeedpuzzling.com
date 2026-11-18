@@ -161,6 +161,17 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[JoinColumn(nullable: true)]
     public null|RelayResult $relayResult = null;
 
+    /**
+     * The round was named by the player (Add to my profile, the round picker, the API's roundId) - kept while it is still
+     * a candidate (a round of the time's competition, its category, holding its puzzle), see SolvingTimeRoundMatch
+     * (docs/features/competitions-management/shared-puzzles-and-divisions.md §2.2, A4). False = the round follows the
+     * rule. Written only through chooseCompetitionRound() / changeCompetitionRound() / roundResolved() - and in SQL by
+     * the reconciler and every statement that clears competition_round_id (RoundChosenResetCoverageTest)
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $roundChosen = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -789,10 +800,6 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
-     * The round is never chosen by hand - it follows from competition + puzzle + solo/duo/team
-     * (see SolvingTimeRoundResolver), so callers set it after the time's other data is final.
-     */
-    /**
      * Whoever tracked the time, plus every registered member of its group. Puzzlers stored
      * by name only have no account, so they can never match.
      */
@@ -934,9 +941,37 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
+    /**
+     * The round as the rule derives it - a round named before is forgotten (roundChosen = false)
+     */
     public function changeCompetitionRound(null|CompetitionRound $competitionRound): void
     {
         $this->competitionRound = $competitionRound;
+        $this->roundChosen = false;
+    }
+
+    /**
+     * The player (or the API) named the round - kept while it is a candidate of the time (SolvingTimeRoundMatch)
+     */
+    public function chooseCompetitionRound(CompetitionRound $competitionRound): void
+    {
+        $this->competitionRound = $competitionRound;
+        $this->roundChosen = true;
+    }
+
+    /**
+     * What SolvingTimeRoundResolver answered (RoundResolution): a named round it kept is still chosen, anything else is
+     * derived
+     */
+    public function roundResolved(null|CompetitionRound $competitionRound, bool $chosen): void
+    {
+        if ($chosen && $competitionRound !== null) {
+            $this->chooseCompetitionRound($competitionRound);
+
+            return;
+        }
+
+        $this->changeCompetitionRound($competitionRound);
     }
 
     /**

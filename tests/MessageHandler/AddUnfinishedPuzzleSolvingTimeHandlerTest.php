@@ -220,7 +220,7 @@ final class AddUnfinishedPuzzleSolvingTimeHandlerTest extends KernelTestCase
         // What the save's own resolvers answer for the stored result - the pre-resolved edition and round are theirs
         $stored = self::getContainer()->get(PuzzleSolvingTimeRepository::class)->get($timeId);
         self::assertSame($edition, self::getContainer()->get(SeriesEditionResolver::class)->resolve($stored)->competitionId);
-        self::assertSame($round, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($stored)?->id->toString());
+        self::assertSame($round, self::getContainer()->get(SolvingTimeRoundResolver::class)->resolve($stored)->round?->id->toString());
     }
 
     public function testASeriesPickMatchedOnlyByTheDayIsRefused(): void

@@ -216,6 +216,14 @@ export function choiceAfterProposal(format, current, untouched, record, proposal
 }
 
 /**
+ * Whether the card may still follow the proposal's choice (v2 C3): only while the judge has done nothing on it - on
+ * the entry step, no time typed, the pieces form closed. Once false it stays false (the caller keeps it).
+ */
+export function proposalChoiceUntouched({ fromProposal, view, typedTime, piecesOpen }) {
+    return fromProposal === true && view === 'entry' && String(typedTime ?? '').trim() === '' && piecesOpen !== true;
+}
+
+/**
  * The puzzles a pending proposal names (competition toolkit v2 C3) as labels - "B → A" - or null (none, not a pick
  * round, decided).
  */

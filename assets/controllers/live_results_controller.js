@@ -43,7 +43,7 @@ import { finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, s
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 import { myTablesOf, parseTables, recentMine, splitMine, todo, withMyTables } from '../live_entry_my_tables.js';
-import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
+import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalChoiceUntouched, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -2003,9 +2003,13 @@ export default class extends Controller {
         this.clearButtonTarget.disabled = shown.value === null || shown.value === undefined;
 
         // A proposal push (its puzzles changed, it was decided) while the chips still show its choice untouched (v2 C3) -
-        // never under a judge who tapped a chip, typed pieces or is on the confirm step
-        if (this.choiceFromProposal && this.view === 'entry' && this.piecesFormTarget.classList.contains('lr-hidden')) {
-            this.applyProposalChoice(entry, true);
+        // once the judge typed a time or pieces, tapped a chip or went on to confirm, never again on this card
+        if (this.choiceFromProposal) {
+            if (proposalChoiceUntouched({ fromProposal: true, view: this.view, typedTime: this.timeInputTarget.value, piecesOpen: !this.piecesFormTarget.classList.contains('lr-hidden') })) {
+                this.applyProposalChoice(entry, true);
+            } else {
+                this.choiceFromProposal = false;
+            }
         }
 
         this.renderPuzzles(entry, items);

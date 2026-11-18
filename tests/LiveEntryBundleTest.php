@@ -49,7 +49,7 @@ use Symfony\Component\Process\Process;
  *   (toolkit v2 J4): 221.4 → 227.5 KB / 60.7 → 62.4 KB gzip - continuous scanning with a warm camera
  *   (live_entry_scan_session.js: the camera's state machine, the just-saved tag ignored in view; the scanner split into
  *   camera / one reader / read loop; the resume after Save, Try again, the camera-ready dot in the controller); budget
- *   229 KB / 63.5 KB gzip. 2026-11-18 (toolkit v2 C3): 227.9 → 230.1 KB / 62.5 → 63.0 KB gzip - the competitor's puzzle
+ *   229 KB / 63.5 KB gzip. 2026-11-18 (toolkit v2 C3): 227.9 → 230.4 KB / 62.5 → 63.1 KB gzip - the competitor's puzzle
  *   choice pre-selected on the card (choiceWithProposal / choiceAfterProposal, "Chosen on their phone - check", "Their
  *   phone says", the labels on the waiting rows; round_puzzle_pick.js shared with the competitor page); budget
  *   231.5 KB / 63.5 KB gzip;

@@ -918,6 +918,18 @@ Object.assign(scenarios, {
         }
     },
 
+    async 'C3: a chip-less tap answered known never clears a choice stored from elsewhere'() {
+        const { outbox, network, advance } = setup();
+        await outbox.load();
+        network.answers.push({ kind: 'ok', data: { status: 'known', proposal: { id: 'y', status: 'pending', puzzles: [B] } } });
+        await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, id: 'y' });
+        await advance(0);
+        await advance(1000);
+
+        assert.deepEqual(network.requests.map((r) => r.action), ['propose'], 'no choice of its own - nothing to reconcile');
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
     async 'C3: answers say what happened to the choice; refusals of a change keep the tap; Undo drops an unsent change'() {
         const { outbox, network, answers, advance } = setup();
         await outbox.load();

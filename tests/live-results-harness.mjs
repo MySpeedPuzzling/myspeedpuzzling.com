@@ -48,7 +48,7 @@ import { choiceOf, choiceWithProposal, describeChoice, missingChoice, pickFormat
 import { togglePick as sharedTogglePick } from '../assets/round_puzzle_pick.js';
 import { normaliseDraft } from '../assets/live_entry_draft.js';
 import { isMine, parseTables, recentMine, splitMine, todo } from '../assets/live_entry_my_tables.js';
-import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalNotes, proposalOfEntry, proposalPanel, proposalTiming, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../assets/live_entry_proposals.js';
+import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalChoiceUntouched, proposalNotes, proposalOfEntry, proposalPanel, proposalTiming, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../assets/official_results_finished_missing.js';
 import { convertTyped, count, MISSING, openAfterPick, openFor, opensUnfinished, openOfRecord, PLACED, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../assets/official_results_missing.js';
@@ -2652,6 +2652,16 @@ Object.assign(scenarios, {
         assert.deepEqual(choiceAfterProposal(format, [P_A], false, null, { ...pending, puzzles: [P_C] }), { choice: [P_A], fromProposal: false });
         // The judge's own record differs: it wins, the note says what the phone says
         assert.deepEqual(choiceAfterProposal(format, [], true, [{ roundPuzzleId: P_C, done: false }], pending), { choice: [P_C], fromProposal: false });
+    },
+
+    'v2 C3: a push follows the phone only until the judge does anything on the card'() {
+        const base = { fromProposal: true, view: 'entry', typedTime: '', piecesOpen: false };
+        assert.equal(proposalChoiceUntouched(base), true);
+        assert.equal(proposalChoiceUntouched({ ...base, typedTime: '49:1' }), false, 'a time being typed');
+        assert.equal(proposalChoiceUntouched({ ...base, typedTime: '  ' }), true);
+        assert.equal(proposalChoiceUntouched({ ...base, piecesOpen: true }), false, 'pieces being counted');
+        assert.equal(proposalChoiceUntouched({ ...base, view: 'confirm' }), false, 'on the confirm step');
+        assert.equal(proposalChoiceUntouched({ ...base, fromProposal: false }), false, 'a chip, a split or a draft');
     },
 
     'v2 C3: the card says where the chips come from; the waiting rows show the labels'() {

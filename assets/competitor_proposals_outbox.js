@@ -579,9 +579,11 @@ export class ProposalOutbox {
                 if (current.withdrawAfter && current.action === 'propose' && answer.data?.status !== 'withdrawn') {
                     await this.put({ id: item.id, action: 'withdraw', userId: this.userId, roundId: item.roundId, createdAt: this.now(), attempts: 0, nextAttemptAt: 0, offline: false });
                 } else if (current.action === 'propose' && answer.data?.status === 'known' && answer.data.proposal?.status === 'pending'
+                    && typeof current.chosenAtMs === 'number' && Number.isFinite(current.chosenAtMs)
                     && !this.items.has(item.id + PUZZLES_SUFFIX) && !sameChoice(current.puzzles, answer.data.proposal.puzzles)) {
-                    // A resend never changes the stored choice: the phone's (changed meanwhile) goes as a change
-                    await this.setPuzzles(item.id, item.roundId, current.puzzles ?? null, current.chosenAtMs ?? null);
+                    // A resend never changes the stored choice: the phone's (changed meanwhile) goes as a change - only a
+                    // choice the phone made (with its moment): a chip-less tap never clears another device's newer one
+                    await this.setPuzzles(item.id, item.roundId, current.puzzles ?? null, current.chosenAtMs);
                 }
 
                 this.onAnswer(item.roundId, {

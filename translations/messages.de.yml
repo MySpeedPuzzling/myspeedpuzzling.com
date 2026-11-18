@@ -5018,6 +5018,19 @@ live_results:
     no_worker: "Diese App kann die Seite ohne Verbindung nicht erneut öffnen – lassen Sie sie offen oder nutzen Sie den Browser."
   prefs:
     auto_open_table: "Tisch öffnen, sobald keine andere Tischnummer mit dem Eingegebenen beginnt (auf diesem Handy)"
+  my_tables:
+    label: "Meine Tische"
+    placeholder: "z. B. 1-20, 41-45"
+    help: "Nur auf diesem Handy, für diese Veranstaltung. Listen zeigen Ihre Tische zuerst - Tippen oder Scannen findet weiterhin jeden Tisch."
+    error_syntax: "Schreiben Sie Tischnummern und Bereiche wie 1-20, 41-45 (die kleinere Zahl zuerst)."
+    error_range: "Tischnummern gehen von 1 bis 9999."
+    error_too_many: "Höchstens 20 Bereiche."
+    chip: "Meine Tische %tables%"
+    edit: "Bearbeiten"
+    todo_title: "Offen an meinen Tischen (%count%)"
+    todo_empty: "Jeder Ihrer Tische hat ein Ergebnis."
+    other_tables: "{0}+ %count% an anderen Tischen|{1}+ 1 an einem anderen Tisch|]1,Inf[+ %count% an anderen Tischen"
+    others_divider: "Andere Tische"
   tags:
     foreign: "Dieser QR-Code ist kein Schild dieser Veranstaltung."
     lineup_not_in_round: "Dieses Paar/Team spielt nicht in %round%."

@@ -5093,6 +5093,19 @@ live_results:
     no_worker: "Tato aplikace neumí stránku znovu otevřít bez připojení - nechte ji otevřenou, nebo použijte prohlížeč."
   prefs:
     auto_open_table: "Otevřít stůl, jakmile žádné jiné číslo stolu nezačíná tím, co je napsáno (na tomto telefonu)"
+  my_tables:
+    label: "Moje stoly"
+    placeholder: "např. 1-20, 41-45"
+    help: "Jen na tomto telefonu, pro tuto událost. Seznamy ukazují vaše stoly jako první - psaní nebo skenování dál najde každý stůl."
+    error_syntax: "Pište čísla stolů a rozsahy jako 1-20, 41-45 (menší číslo první)."
+    error_range: "Čísla stolů jsou od 1 do 9999."
+    error_too_many: "Nejvýše 20 rozsahů."
+    chip: "Moje stoly %tables%"
+    edit: "Upravit"
+    todo_title: "Zbývá u mých stolů (%count%)"
+    todo_empty: "Každý váš stůl má výsledek."
+    other_tables: "{0}+ %count% u jiných stolů|{1}+ 1 u jiného stolu|[2,Inf[+ %count% u jiných stolů"
+    others_divider: "Ostatní stoly"
   tags:
     foreign: "Tento QR kód není jmenovkou této události."
     lineup_not_in_round: "Tato dvojice/tým nehraje v kole %round%."

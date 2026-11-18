@@ -5085,6 +5085,19 @@ live_results:
     no_worker: "Cette application ne peut pas rouvrir la page sans connexion - gardez-la ouverte, ou utilisez le navigateur."
   prefs:
     auto_open_table: "Ouvrir une table dès qu'aucun autre numéro de table ne commence par ce qui est saisi (sur ce téléphone)"
+  my_tables:
+    label: "Mes tables"
+    placeholder: "p. ex. 1-20, 41-45"
+    help: "Seulement sur ce téléphone, pour cet événement. Les listes montrent d’abord vos tables - taper ou scanner trouve toujours toutes les tables."
+    error_syntax: "Écrivez des numéros de table et des plages comme 1-20, 41-45 (le plus petit nombre d’abord)."
+    error_range: "Les numéros de table vont de 1 à 9999."
+    error_too_many: "20 plages au maximum."
+    chip: "Mes tables %tables%"
+    edit: "Modifier"
+    todo_title: "À faire à mes tables (%count%)"
+    todo_empty: "Chacune de vos tables a un résultat."
+    other_tables: "{0}+ %count% à une autre table|{1}+ 1 à une autre table|]1,Inf[+ %count% à d’autres tables"
+    others_divider: "Autres tables"
   tags:
     foreign: "Ce code QR n'est pas un badge de cet événement."
     lineup_not_in_round: "Ce duo/cette équipe ne joue pas dans %round%."

@@ -5008,6 +5008,19 @@ live_results:
     no_worker: "このアプリでは接続なしでページを開き直せません。ページを開いたままにするか、ブラウザを使ってください。"
   prefs:
     auto_open_table: "入力した番号で始まる他のテーブル番号がなくなったら、すぐにテーブルを開く（このスマートフォンで）"
+  my_tables:
+    label: "担当テーブル"
+    placeholder: "例: 1-20, 41-45"
+    help: "この端末・このイベントのみ。一覧では担当テーブルが先に表示されます。入力やスキャンでは引き続きすべてのテーブルを探せます。"
+    error_syntax: "テーブル番号と範囲を 1-20, 41-45 のように入力してください（小さい番号が先）。"
+    error_range: "テーブル番号は1から9999までです。"
+    error_too_many: "範囲は最大20個です。"
+    chip: "担当テーブル %tables%"
+    edit: "編集"
+    todo_title: "担当テーブルの残り（%count%）"
+    todo_empty: "担当テーブルはすべて結果があります。"
+    other_tables: "{0}+ 他のテーブルに%count%件|]0,Inf[+ 他のテーブルに%count%件"
+    others_divider: "他のテーブル"
   tags:
     foreign: "このQRコードは、このイベントのタグではありません。"
     lineup_not_in_round: "このペア/チームは%round%に出場していません。"

@@ -26,14 +26,14 @@ final class OfficialResultsPuzzlesParityTest extends TestCase
 
     public function testTheBrowserJudgesARecordLikeTheServer(): void
     {
-        $cases = [...self::handWritten(), ...self::generated()];
+        $cases = [...self::handWritten(), ...self::shapes(), ...self::generated()];
         $expected = array_map(static fn (array $case): array => self::server($case), $cases);
 
         self::assertSame($expected, $this->runInNode($cases));
     }
 
     /**
-     * @return list<array{items: null|list<array<string, mixed>>, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>}>
+     * @return list<array{items: mixed, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>}>
      */
     private static function handWritten(): array
     {
@@ -63,9 +63,50 @@ final class OfficialResultsPuzzlesParityTest extends TestCase
     }
 
     /**
+     * RoundEntryPuzzles::fromWire()'s shape rules - the server answers `invalid_change` before any other rule; a few
+     * readable ones on the edge (an explicit null split, a wrapped or upper-case id, exactly 50 items) go on to the rules.
+     *
+     * @return list<array{items: mixed, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>}>
+     */
+    private static function shapes(): array
+    {
+        [$a, $b] = self::IDS;
+        $round = self::round(2, [500, 500, 1000]);
+
+        $records = [
+            'not a list',
+            42,
+            ['an item'],
+            [null],
+            [[$a, true]],
+            [['roundPuzzleId' => $a, 'done' => true, 'extra' => 1]],
+            [['roundPuzzleId' => $a, 'done' => false, 'atSeconds' => 10]],
+            [['roundPuzzleId' => $a, 'done' => true, 'piecesPlaced' => 10]],
+            [['roundPuzzleId' => 'not-a-uuid', 'done' => false]],
+            [['roundPuzzleId' => 123, 'done' => false]],
+            [['roundPuzzleId' => $a, 'done' => 'yes']],
+            [['roundPuzzleId' => $a, 'done' => 1]],
+            [['roundPuzzleId' => $a]],
+            [['roundPuzzleId' => $a, 'done' => null]],
+            [['roundPuzzleId' => $a, 'done' => true, 'atSeconds' => '10']],
+            [['roundPuzzleId' => $a, 'done' => false, 'piecesPlaced' => 1.5]],
+            [['roundPuzzleId' => $a, 'done' => true], ['roundPuzzleId' => $b, 'done' => false, 'atSeconds' => 5]],
+            array_fill(0, RoundEntryPuzzles::MAX_ITEMS + 1, ['roundPuzzleId' => $a, 'done' => false]),
+            // Readable
+            [['roundPuzzleId' => $a, 'done' => false, 'atSeconds' => null, 'piecesPlaced' => null]],
+            [['roundPuzzleId' => strtoupper($a), 'done' => true, 'atSeconds' => 100]],
+            [['roundPuzzleId' => '{' . $a . '}', 'done' => false]],
+            [['roundPuzzleId' => 'urn:uuid:' . $a, 'done' => false]],
+            array_fill(0, RoundEntryPuzzles::MAX_ITEMS, ['roundPuzzleId' => $a, 'done' => false]),
+        ];
+
+        return array_map(static fn (mixed $items): array => ['items' => $items, 'round' => $round, 'result' => ['seconds' => 100]], $records);
+    }
+
+    /**
      * Deterministic pseudo-random records - many of them wrong in some way.
      *
-     * @return list<array{items: null|list<array<string, mixed>>, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>}>
+     * @return list<array{items: mixed, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>}>
      */
     private static function generated(): array
     {
@@ -141,23 +182,31 @@ final class OfficialResultsPuzzlesParityTest extends TestCase
     }
 
     /**
-     * @param array{items: null|list<array<string, mixed>>, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>} $case
-     * @return array{items: null|string, consistency: null|string, validate: null|string, total: int, durations: list<null|int>, maximum: int}
+     * @param array{items: mixed, round: array{toSolve: int, puzzles: list<array{roundPuzzleId: string, piecesCount: int}>}, result: null|array<string, int|bool>} $case
+     * @return array{shape: null|string, items: null|string, consistency?: null|string, validate: null|string, total?: int, durations?: list<null|int>, maximum?: int}
      */
     private static function server(array $case): array
     {
         $pieces = self::piecesById($case['round']);
         $toSolve = $case['round']['toSolve'];
-        $puzzles = RoundEntryPuzzles::fromWire($case['items']);
+
+        try {
+            $puzzles = RoundEntryPuzzles::fromWire($case['items']);
+        } catch (\InvalidArgumentException) {
+            // RoundResultChangesParser: an unreadable value = an unreadable change
+            return ['shape' => 'invalid_change', 'items' => 'invalid_change', 'validate' => 'invalid_change'];
+        }
+
         $items = $puzzles?->itemsRefusal($toSolve, $pieces);
         $consistency = RoundEntryPuzzles::consistencyRefusal(RoundEntryResult::fromWire($case['result']), $puzzles, $toSolve, $pieces);
 
         return [
+            'shape' => null,
             'items' => $items,
             'consistency' => $consistency,
             'validate' => $items ?? $consistency,
             'total' => $puzzles?->piecesPlaced($pieces) ?? 0,
-            'durations' => array_map(static fn (int $index): null|int => $puzzles?->duration($index), array_keys($case['items'] ?? [])),
+            'durations' => $puzzles === null ? [] : array_map(static fn (int $index): null|int => $puzzles->duration($index), array_keys($puzzles->items)),
             'maximum' => RoundEntryPuzzles::unfinishedMaximum($toSolve, $pieces),
         ];
     }

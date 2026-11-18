@@ -52,13 +52,15 @@ use Symfony\Component\Process\Process;
  *   229 KB / 63.5 KB gzip. 2026-11-18 (toolkit v2 C3): 227.9 → 230.4 KB / 62.5 → 63.1 KB gzip - the competitor's puzzle
  *   choice pre-selected on the card (choiceWithProposal / choiceAfterProposal, "Chosen on their phone - check", "Their
  *   phone says", the labels on the waiting rows; round_puzzle_pick.js shared with the competitor page); budget
- *   231.5 KB / 63.5 KB gzip;
+ *   231.5 KB / 63.5 KB gzip. 2026-11-18 (follow-ups FU-M): 231.0 → 231.6 KB / 63.3 → 63.4 KB gzip - the record's shape
+ *   rules of RoundEntryPuzzles::fromWire() mirrored in official_results_puzzles.js (shapeRefusal(): keys, types, UUID
+ *   ids, at most 50 items - `invalid_change` like the server); budget 232.5 KB / 64 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 231_500;
-    private const int GZIP_BUDGET_BYTES = 63_500;
+    private const int MINIFIED_BUDGET_BYTES = 232_500;
+    private const int GZIP_BUDGET_BYTES = 64_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

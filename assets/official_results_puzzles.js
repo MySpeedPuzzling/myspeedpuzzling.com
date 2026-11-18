@@ -8,12 +8,42 @@
  * piecesCount}, …]}. A result is RoundEntryResult's wire format: null | {seconds} | {piecesPlaced} | {didNotStart: true}.
  * Refusals are the official_results.reason.* keys the server answers with.
  *
- * Not mirrored here - checked server-side only (RoundEntryPuzzles' shape rules, which the browser's own forms never
- * break): unknown keys on an item, `atSeconds` on an item that is not done, more than 50 items. A record failing one of
- * them passes here and is refused by the server.
+ * The shape rules of RoundEntryPuzzles::fromWire() are mirrored by shapeRefusal() (the server answers a record of
+ * another shape with `invalid_change`). Two differences of JSON itself stay server-side only
+ * (docs/features/competitions-management/round-formats.md "Browser twin"): a whole number written with a fraction
+ * (`100.0` - PHP reads a float and refuses it, JavaScript cannot tell it from `100`), and a JSON object PHP decodes into
+ * a list (`{}` or keys "0".."n-1" - the browser builds arrays only and refuses any other value here).
  */
 
 export const MAX_SECONDS = 86399;
+
+// RoundEntryPuzzles::MAX_ITEMS - far more than any round has puzzles
+const MAX_ITEMS = 50;
+
+const ITEM_KEYS = ['roundPuzzleId', 'done', 'atSeconds', 'piecesPlaced'];
+
+// Ramsey's Uuid::isValid() (GenericValidator): any variant, an optional "urn:" and "uuid:" and one pair of braces
+const HEX = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const UUID = new RegExp(`^(?:urn:)?(?:uuid:)?(?:\\{${HEX}\\}|${HEX})$`, 'i');
+
+// A key whose value is undefined never reaches the server (JSON.stringify drops it)
+function readable(item) {
+    return item !== null && typeof item === 'object'
+        && Object.keys(item).every((name) => item[name] === undefined || ITEM_KEYS.includes(name))
+        && typeof item.roundPuzzleId === 'string' && UUID.test(item.roundPuzzleId)
+        && typeof item.done === 'boolean'
+        && (!given(item.atSeconds) || (Number.isInteger(item.atSeconds) && item.done))
+        && (!given(item.piecesPlaced) || (Number.isInteger(item.piecesPlaced) && !item.done));
+}
+
+/**
+ * RoundEntryPuzzles::fromWire() - the record's shape: null or a list of at most 50 items, each exactly
+ * {roundPuzzleId: a UUID, done: true|false, atSeconds?: an integer on a done item, piecesPlaced?: an integer on one
+ * not done}. `invalid_change` (what the server answers for an unreadable change) or null = readable.
+ */
+export function shapeRefusal(items) {
+    return given(items) && (!Array.isArray(items) || items.length > MAX_ITEMS || !items.every(readable)) ? 'invalid_change' : null;
+}
 
 function piecesById(round) {
     const pieces = new Map();
@@ -38,10 +68,16 @@ function given(value) {
 }
 
 /**
- * RoundEntryPuzzles::itemsRefusal() - rules 2-5: puzzles of the round, each once, at most K, splits and pieces in
+ * The shape (shapeRefusal()), then RoundEntryPuzzles::itemsRefusal() - rules 2-5: puzzles of the round, each once, at most K, splits and pieces in
  * range, finished puzzles first with increasing splits. Null = fine.
  */
 export function itemsRefusal(items, round) {
+    const shape = shapeRefusal(items);
+
+    if (shape !== null) {
+        return shape;
+    }
+
     const pieces = piecesById(round);
     const record = list(items);
     const seen = new Set();

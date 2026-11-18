@@ -7,6 +7,9 @@
 // - assets/competitor_page_live.js: the 5-second poll while something waits for the judge
 // - T2 (timing you can trust): proposalBody() / outboxSummary() of the outbox and assets/competitor_heartbeat.js - the
 //   beat's body, its rhythm, nothing while hidden, at once when back, an expired token, a reload's unsent tap
+// - v2 C3 (puzzle choice of a pick round): the choice stored with the tap and sent in its body, changed in place while
+//   the tap is on the phone, a `puzzles` item after it (never before it, a newer one replaces an unsent older one), a
+//   `known` resend whose stored choice differs, the chips in the sheet never moving the tap, the waiting slot's choice
 
 import assert from 'node:assert/strict';
 import {
@@ -17,10 +20,13 @@ import {
     ProposalOutbox,
     proposalBody,
     proposalRequest,
+    puzzlesBody,
+    sameChoice,
 } from '../assets/competitor_proposals_outbox.js';
 import { CompetitorHeartbeat, heartbeatBody, heartbeatDelay, HEARTBEAT_MS, MIN_GAP_MS, sendHeartbeat } from '../assets/competitor_heartbeat.js';
 import { createServerClock } from '../assets/round_stopwatch_clock.js';
-import { currentProposal, FINAL_REFUSALS, proposalPanel, secondsAt, waitsForJudge } from '../assets/competitor_proposals_view.js';
+import { choiceLabels, choiceOfPlaces, choiceWire, currentProposal, FINAL_REFUSALS, pickOf, proposalPanel, secondsAt, togglePick, waitsForJudge } from '../assets/competitor_proposals_view.js';
+import { togglePick as judgeTogglePick } from '../assets/live_entry_puzzles.js';
 import { CompetitorPageLive, PROPOSAL_POLL_MS } from '../assets/competitor_page_live.js';
 
 const NOW = 1_800_000_000_000;
@@ -776,6 +782,261 @@ Object.assign(scenarios, {
         assert.equal(clock.sampleAgeMs(), 90_000);
         clock.observe({ sentAtMs: local - 300, receivedAtMs: local, serverNowMs: local + 1000 });
         assert.equal(clock.sampleAgeMs(), 90_000, 'the best round trip is still the older one');
+    },
+});
+
+// ---- v2 C3: the puzzle choice of a pick round
+const B = { position: 2, label: 'B' };
+const A = { position: 1, label: 'A' };
+const C = { position: 3, label: 'C' };
+
+function pickRound(overrides = {}) {
+    return round({
+        puzzleFormat: { mode: 'pick', toSolve: 2 },
+        puzzles: [
+            { position: 1, label: 'A', puzzle: { name: 'Out now' } },
+            { position: 2, label: 'B', puzzle: null },
+            { position: 3, label: 'C', puzzle: null },
+        ],
+        ...overrides,
+    });
+}
+
+Object.assign(scenarios, {
+    async 'C3: a tap carries its puzzle choice - stored with it, sent in its body; without one the body is as before'() {
+        const { outbox, storage, network, advance } = setup();
+        await outbox.load();
+        const item = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW - 250, puzzles: [B, A] });
+        const stored = (await storage.getAll())[0];
+
+        assert.deepEqual(stored.puzzles, [B, A]);
+        assert.equal(stored.chosenAtMs, NOW - 250, 'a choice sent with the tap takes the tap\'s moment');
+        assert.deepEqual(proposalBody(item, NOW).puzzles, [B, A]);
+        await advance(0);
+        assert.deepEqual(network.requests[0].puzzles, [B, A]);
+
+        const plain = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, puzzles: [] });
+        assert.equal('puzzles' in plain, false);
+        assert.equal('puzzles' in proposalBody(plain, NOW), false, 'a tap without a choice keeps its body');
+    },
+
+    async 'C3: a change while the tap is still on the phone edits it in place - same id, same tap moment, one item'() {
+        const { outbox, network, advance, clock } = setup();
+        await outbox.load();
+        network.answers.push({ kind: 'offline' });
+        const item = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW - 5000, puzzles: [A] });
+        await advance(0);
+        clock.now += 300;
+        await outbox.setPuzzles(item.id, ROUND, [B, C], NOW + 300);
+
+        assert.equal(outbox.own().length, 1);
+        assert.equal(outbox.itemOf(ROUND).id, item.id);
+        assert.equal(outbox.itemOf(ROUND).tappedAtMs, NOW - 5000, 'choosing never moves the tap');
+        await advance(1000);
+        assert.deepEqual(network.requests.map((r) => [r.action, r.id, r.puzzles]), [['propose', item.id, [A]], ['propose', item.id, [B, C]]]);
+        assert.equal(outbox.hasUnsent(), false);
+
+        // Cleared in place: the tap goes without a choice
+        network.answers.push({ kind: 'offline' });
+        const second = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, puzzles: [A] });
+        await advance(0);
+        await outbox.setPuzzles(second.id, ROUND, null, NOW + 2000);
+        assert.equal('puzzles' in outbox.itemOf(ROUND), false);
+    },
+
+    async 'C3: a change after the tap was sent is a puzzles item - the newest replaces an unsent older one'() {
+        const { outbox, network, answers, advance } = setup();
+        await outbox.load();
+        const item = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW });
+        await advance(0);
+        network.answers.push({ kind: 'offline' });
+        await outbox.setPuzzles(item.id, ROUND, [A], NOW + 100);
+        await advance(0);
+        await outbox.setPuzzles(item.id, ROUND, [C, B], NOW + 200);
+
+        assert.equal(outbox.own().length, 1);
+        assert.equal(outbox.itemOf(ROUND), null, 'a puzzle change is no tap');
+        assert.equal(outbox.choiceItemOf(item.id).action, 'puzzles');
+        assert.deepEqual(puzzlesBody(outbox.choiceItemOf(item.id)), { expectedPlayerId: USER, puzzles: [C, B], chosenAtMs: NOW + 200 });
+        network.answers.push({ kind: 'ok', data: { status: 'chosen', proposal: { id: item.id, status: 'pending', puzzles: [C, B] } } });
+        await advance(1000);
+
+        assert.deepEqual(network.requests.map((r) => [r.action, r.puzzles ?? null]), [['propose', null], ['puzzles', [A]], ['puzzles', [C, B]]]);
+        assert.deepEqual(answers.at(-1), { roundId: ROUND, kind: 'chosen', action: 'puzzles', proposal: { id: item.id, status: 'pending', puzzles: [C, B] }, proposalId: item.id });
+        assert.equal(outbox.hasUnsent(), false);
+        assert.deepEqual(puzzlesBody({ userId: USER, puzzles: null, chosenAtMs: 5 }), { expectedPlayerId: USER, puzzles: null, chosenAtMs: 5 }, 'clearing sends null');
+    },
+
+    async 'C3: a puzzle change never goes before its tap, and never spins while the tap waits'() {
+        const { outbox, network, timers, advance } = setup();
+        await outbox.load();
+        let release;
+        network.hold = new Promise((resolve) => {
+            release = resolve;
+        });
+        network.answers.push({ kind: 'busy', retryAfterMs: 5000 });
+        const item = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW });
+        await advance(0);
+        assert.equal(outbox.isSending(item.id), true);
+        // While the tap is on its way: a puzzles item (its answer may or may not carry the old choice)
+        await outbox.setPuzzles(item.id, ROUND, [B], NOW + 50);
+        network.hold = null;
+        release();
+        await advance(0);
+
+        assert.deepEqual(network.requests.map((r) => r.action), ['propose'], 'the busy tap holds its change back');
+        assert.ok(timers.length <= 1, 'one timer - the tap\'s retry, no busy loop');
+        await advance(5000);
+        await advance(0);
+        assert.deepEqual(network.requests.map((r) => r.action), ['propose', 'propose', 'puzzles']);
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'C3: a resend answered known whose stored choice is not the phone\'s sends the phone\'s as a change'() {
+        const { outbox, network, advance } = setup();
+        await outbox.load();
+        network.answers.push({ kind: 'offline' });
+        const item = await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, puzzles: [A] });
+        await advance(0);
+        await outbox.setPuzzles(item.id, ROUND, [B], NOW + 500);
+        // The first send did arrive (the answer was lost): the server keeps A
+        network.answers.push({ kind: 'ok', data: { status: 'known', proposal: { id: item.id, status: 'pending', puzzles: [A] } } });
+        network.answers.push({ kind: 'ok', data: { status: 'chosen', proposal: { id: item.id, status: 'pending', puzzles: [B] } } });
+        await advance(1000);
+        await advance(0);
+
+        assert.deepEqual(network.requests.map((r) => [r.action, r.puzzles, r.chosenAtMs]), [['propose', [A], NOW], ['propose', [B], NOW + 500], ['puzzles', [B], NOW + 500]]);
+
+        // The same choice stored, or the proposal decided meanwhile: nothing more
+        for (const proposal of [{ id: 'x', status: 'pending', puzzles: [A] }, { id: 'x', status: 'confirmed' }]) {
+            const other = setup();
+            await other.outbox.load();
+            other.network.answers.push({ kind: 'ok', data: { status: 'known', proposal } });
+            await other.outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, puzzles: [A], id: 'x' });
+            await other.advance(0);
+            assert.deepEqual(other.network.requests.map((r) => r.action), ['propose']);
+        }
+    },
+
+    async 'C3: a chip-less tap answered known never clears a choice stored from elsewhere'() {
+        const { outbox, network, advance } = setup();
+        await outbox.load();
+        network.answers.push({ kind: 'ok', data: { status: 'known', proposal: { id: 'y', status: 'pending', puzzles: [B] } } });
+        await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, id: 'y' });
+        await advance(0);
+        await advance(1000);
+
+        assert.deepEqual(network.requests.map((r) => r.action), ['propose'], 'no choice of its own - nothing to reconcile');
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'C3: answers say what happened to the choice; refusals of a change keep the tap; Undo drops an unsent change'() {
+        const { outbox, network, answers, advance } = setup();
+        await outbox.load();
+        network.answers.push({ kind: 'ok', data: { status: 'proposed', proposal: { id: 'p9', status: 'pending' }, puzzlesRefused: 'puzzles_changed', puzzlesMessage: 'Changed' } });
+        await outbox.propose({ roundId: ROUND, entry: ENTRY, tappedAtMs: NOW, puzzles: [A], id: 'p9' });
+        await advance(0);
+        assert.deepEqual([answers[0].kind, answers[0].puzzlesRefused, answers[0].puzzlesMessage], ['proposed', 'puzzles_changed', 'Changed']);
+
+        network.answers.push({ kind: 'refused', reason: 'puzzles_changed', message: 'Choose again', proposal: null });
+        await outbox.setPuzzles('p9', ROUND, [B], NOW + 10);
+        await advance(0);
+        assert.deepEqual([answers[1].action, answers[1].kind, answers[1].reason, answers[1].proposalId], ['puzzles', 'refused', 'puzzles_changed', 'p9']);
+        assert.equal(outbox.hasUnsent(), false);
+
+        network.answers.push({ kind: 'offline' });
+        await outbox.setPuzzles('p9', ROUND, [B], NOW + 20);
+        await advance(0);
+        network.answers.push({ kind: 'offline' });
+        await outbox.withdraw('p9', ROUND);
+        assert.equal(outbox.choiceItemOf('p9'), null, 'a withdrawn proposal has no choice to change');
+        assert.equal(outbox.itemOf(ROUND).action, 'withdraw');
+    },
+
+    'C3: puzzle changes are no taps - the heartbeat summary is unchanged'() {
+        const items = [
+            { id: 'p1:puzzles', action: 'puzzles', proposalId: 'p1', userId: USER, roundId: ROUND, puzzles: [A], chosenAtMs: NOW },
+        ];
+        assert.deepEqual(outboxSummary(items, USER, ROUND), { unsent: 0, oldestUnsentTapMs: null });
+        assert.deepEqual(outboxSummary(items, USER, ROUND, NOW - 4000), { unsent: 1, oldestUnsentTapMs: NOW - 4000 }, 'the sheet open with chips still holds the tap');
+        assert.equal(sameChoice(null, []), true);
+        assert.equal(sameChoice([A, B], [A, B]), true);
+        assert.equal(sameChoice([A, B], [B, A]), false);
+        assert.equal(sameChoice([{ position: 1, label: 'X' }], [A]), false, 'a relabelled place is another choice');
+    },
+
+    'C3: one tap rule on both pages; places from the state, labels only for a hidden puzzle'() {
+        assert.equal(togglePick, judgeTogglePick, 'the judge\'s card and the phone share one rule');
+        assert.deepEqual(togglePick([], '2', 1), ['2']);
+        assert.deepEqual(togglePick(['2'], '1', 1), ['1']);
+        assert.deepEqual(togglePick(['2'], '2', 1), []);
+        assert.deepEqual(togglePick(['2', '1'], '3', 2), ['2', '3'], 'K chosen: the last is replaced');
+
+        const pick = pickOf(pickRound());
+        assert.deepEqual(pick.slots.map((slot) => [slot.key, slot.label, slot.name]), [['1', 'A', 'Out now'], ['2', 'B', null], ['3', 'C', null]]);
+        assert.equal(pick.toSolve, 2);
+        assert.equal(pickOf(round()), null, 'a one-result round has no chips');
+        assert.equal(pickOf(pickRound({ puzzleFormat: { mode: 'pick', toSolve: null } })).toSolve, 1);
+        assert.deepEqual(choiceWire(pick, ['2', '1']), [B, A]);
+        assert.equal(choiceWire(pick, []), null);
+        assert.deepEqual(choiceOfPlaces(pick, [B, { position: 1, label: 'Z' }]), ['2'], 'a place relabelled since is dropped');
+        assert.equal(choiceLabels([B, A]), 'B → A');
+        assert.equal(choiceLabels(null), null);
+    },
+
+    'C3: the "Propose?" sheet of a pick round has optional chips - choosing never moves the tap\'s time'() {
+        const r = pickRound({ stopwatch: stopwatch('running', NOW - 2952_400) });
+        const none = proposalPanel({ round: r, nowMs: NOW + 4000, confirming: { tappedAtMs: NOW, choice: [] } });
+        const chosen = proposalPanel({ round: r, nowMs: NOW + 9000, confirming: { tappedAtMs: NOW, choice: ['2', '1'] } });
+
+        assert.equal(none.mode, 'confirm');
+        assert.equal(none.confirm.seconds, 2952);
+        assert.equal(chosen.confirm.seconds, 2952, 'the tap\'s moment is frozen at Stop');
+        assert.deepEqual(chosen.confirm.pick.chips.map((chip) => [chip.label, chip.order]), [['A', 2], ['B', 1], ['C', 0]]);
+        assert.notEqual(none.key, chosen.key, 'a chip tap draws the sheet again');
+        assert.deepEqual(proposalPanel({ round: round({ stopwatch: stopwatch('running', NOW - 2952_400) }), nowMs: NOW, confirming: { tappedAtMs: NOW } }).confirm, { seconds: 2952 }, 'one-result rounds unchanged');
+    },
+
+    'C3: a waiting tap says its puzzles and offers to change them'() {
+        const r = pickRound({ stopwatch: stopwatch('running', NOW - 60_000) });
+        const item = { id: 'p1', action: 'propose', tappedAtMs: NOW - 10_000, offline: true, puzzles: [B, A] };
+        const offline = proposalPanel({ round: r, nowMs: NOW, item });
+
+        assert.deepEqual([offline.mode, offline.status.puzzles, offline.choice.link, offline.undo], ['offline', 'B → A', 'puzzles_change', true]);
+        const editing = proposalPanel({ round: r, nowMs: NOW, item, choosing: { proposalId: 'p1', choice: ['2'], message: null } });
+        assert.deepEqual(editing.choice.edit.chips.map((chip) => chip.order), [0, 1, 0]);
+        assert.equal(editing.undo, false, 'Save or Cancel first');
+        assert.equal(proposalPanel({ round: r, nowMs: NOW, item, blocked: 'auth' }).choice, null, 'nothing could be sent');
+
+        const pending = proposalPanel({ round: pickRound({ proposal: proposal({ puzzles: [C] }) }), nowMs: NOW });
+        assert.deepEqual([pending.mode, pending.status.puzzles, pending.choice.link, pending.choice.proposalId], ['pending', 'C', 'puzzles_change', 'p1']);
+        const tell = proposalPanel({ round: pickRound({ proposal: proposal() }), nowMs: NOW });
+        assert.deepEqual([tell.status.puzzles, tell.choice.link], [null, 'puzzles_tell']);
+        assert.equal(waitsForJudge([pending, editing]), true);
+
+        // A change still on the phone, then a `chosen` answer newer than the state - the state once it is newer
+        const sending = proposalPanel({ round: pickRound({ proposal: proposal({ puzzles: [C] }) }), nowMs: NOW, choiceItem: { proposalId: 'p1', puzzles: [A] } });
+        assert.deepEqual([sending.status.puzzles, sending.status.sending], ['A', true]);
+        const answered = { kind: 'chosen', proposalId: 'p1', proposal: proposal({ puzzles: [A, B] }), atMs: NOW };
+        assert.equal(proposalPanel({ round: pickRound({ proposal: proposal({ puzzles: [C] }) }), nowMs: NOW, choiceAnswer: answered, stateAtMs: NOW - 1 }).status.puzzles, 'A → B');
+        assert.equal(proposalPanel({ round: pickRound({ proposal: proposal({ puzzles: [C] }) }), nowMs: NOW, choiceAnswer: answered, stateAtMs: NOW + 1 }).status.puzzles, 'C');
+
+        // A one-result round: the slot as before
+        const plain = proposalPanel({ round: round({ proposal: proposal() }), nowMs: NOW });
+        assert.equal(plain.choice, null);
+        assert.equal('puzzles' in plain.status, false);
+    },
+
+    'C3: a choice that was not taken is said - the time still waits for the judge'() {
+        const r = pickRound({ proposal: proposal() });
+        const refusedWithTap = proposalPanel({ round: r, nowMs: NOW, answer: { kind: 'proposed', proposalId: 'p1', proposal: proposal(), puzzlesRefused: 'too_many_puzzles', puzzlesMessage: 'Too many' } });
+        assert.deepEqual([refusedWithTap.mode, refusedWithTap.status.notSent, refusedWithTap.choice.link], ['pending', 'Too many', 'puzzles_tell']);
+
+        const refusedChange = proposalPanel({ round: r, nowMs: NOW, choiceAnswer: { kind: 'refused', reason: 'too_late', message: 'Too late', proposalId: 'p1' } });
+        assert.equal(refusedChange.status.notSent, 'Too late');
+        const changed = proposalPanel({ round: r, nowMs: NOW, choiceAnswer: { kind: 'refused', reason: 'puzzles_changed', message: 'Choose again', proposalId: 'p1' }, choosing: { proposalId: 'p1', choice: [], message: 'Choose again' } });
+        assert.deepEqual([changed.status.notSent, changed.choice.edit.message], [null, 'Choose again'], 'the chips open again with the message');
+        assert.equal(proposalPanel({ round: r, nowMs: NOW, answer: { kind: 'proposed', proposalId: 'p1', puzzlesRefused: 'too_many_puzzles', puzzlesMessage: 'x' }, choiceItem: { proposalId: 'p1', puzzles: [A] } }).status.notSent, null, 'a new change on its way');
     },
 });
 

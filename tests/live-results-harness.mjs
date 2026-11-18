@@ -44,10 +44,11 @@ import {
     urlWithoutLanding,
 } from '../assets/live_entry_page.js';
 import { formatResultTime, parseResultTime } from '../assets/official_results_time.js';
-import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick } from '../assets/live_entry_puzzles.js';
+import { choiceOf, choiceWithProposal, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, recordFor, saveFields, togglePick } from '../assets/live_entry_puzzles.js';
+import { togglePick as sharedTogglePick } from '../assets/round_puzzle_pick.js';
 import { normaliseDraft } from '../assets/live_entry_draft.js';
 import { isMine, parseTables, recentMine, splitMine, todo } from '../assets/live_entry_my_tables.js';
-import { ageOf, applyOutcome, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalNotes, proposalOfEntry, proposalPanel, proposalTiming, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../assets/live_entry_proposals.js';
+import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalChoiceUntouched, proposalNotes, proposalOfEntry, proposalPanel, proposalTiming, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../assets/live_entry_proposals.js';
 import { validate } from '../assets/official_results_puzzles.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../assets/official_results_finished_missing.js';
 import { convertTyped, count, MISSING, openAfterPick, openFor, opensUnfinished, openOfRecord, PLACED, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../assets/official_results_missing.js';
@@ -2617,6 +2618,83 @@ function entry(ref, name, tableNumber, extra = {}) {
         ...extra,
     };
 }
+
+// ---- competition toolkit v2 C3: the competitor's puzzle choice pre-selected on the judge's card
+Object.assign(scenarios, {
+    'v2 C3: the card\'s choice is completed from a pending proposal - the judge\'s own record wins'() {
+        const k2 = pickRound(2);
+        const k1 = pickRound(1);
+
+        assert.equal(togglePick, sharedTogglePick, 'one tap rule for the card and the competitor\'s phone');
+        assert.deepEqual(choiceWithProposal(k2, [], [P_B.toUpperCase(), P_A]), { choice: [P_B, P_A], fromProposal: true, differs: false });
+        assert.deepEqual(choiceWithProposal(k2, [], [P_C, 'not-of-the-round', P_C, P_A, P_B]).choice, [P_C, P_A], 'known puzzles only, once, at most K');
+        assert.deepEqual(choiceWithProposal(k1, [], [P_C]).choice, [P_C]);
+        assert.deepEqual(choiceWithProposal(k2, [P_B], [P_B, P_A]), { choice: [P_B, P_A], fromProposal: true, differs: false }, 'a record that is the start of it is extended');
+        assert.deepEqual(choiceWithProposal(k2, [P_A], [P_B, P_A]), { choice: [P_A], fromProposal: false, differs: true }, 'another record stays');
+        assert.deepEqual(choiceWithProposal(k2, [P_A], null), { choice: [P_A], fromProposal: false, differs: false });
+        assert.deepEqual(choiceWithProposal(k2, [], []), { choice: [], fromProposal: false, differs: false });
+        assert.deepEqual(choiceWithProposal(null, [], [P_A]), { choice: [], fromProposal: false, differs: false }, 'not a pick round');
+    },
+
+    'v2 C3: pre-selected only while untouched - a push re-applies, a decision drops it, the judge\'s (or a draft\'s) choice stays'() {
+        const format = pickRound(2);
+        const pending = proposalOf(PROP_1, ANNA, { puzzles: [P_B, P_A] });
+
+        // Opened: nothing recorded → the phone's choice
+        let card = choiceAfterProposal(format, [], true, null, pending);
+        assert.deepEqual(card, { choice: [P_B, P_A], fromProposal: true });
+        // The competitor changed it meanwhile (a push): the chips follow while untouched
+        card = choiceAfterProposal(format, card.choice, card.fromProposal, null, { ...pending, puzzles: [P_C] });
+        assert.deepEqual(card, { choice: [P_C], fromProposal: true });
+        // Withdrawn / decided elsewhere: back to the record
+        assert.deepEqual(choiceAfterProposal(format, card.choice, card.fromProposal, [{ roundPuzzleId: P_A, done: false }], { ...pending, status: 'withdrawn' }), { choice: [P_A], fromProposal: false });
+        // The judge tapped a chip (or a draft was restored): never overwritten by a push
+        assert.deepEqual(choiceAfterProposal(format, [P_A], false, null, { ...pending, puzzles: [P_C] }), { choice: [P_A], fromProposal: false });
+        // The judge's own record differs: it wins, the note says what the phone says
+        assert.deepEqual(choiceAfterProposal(format, [], true, [{ roundPuzzleId: P_C, done: false }], pending), { choice: [P_C], fromProposal: false });
+    },
+
+    'v2 C3: a push follows the phone only until the judge does anything on the card'() {
+        const base = { fromProposal: true, view: 'entry', typedTime: '', piecesOpen: false };
+        assert.equal(proposalChoiceUntouched(base), true);
+        assert.equal(proposalChoiceUntouched({ ...base, typedTime: '49:1' }), false, 'a time being typed');
+        assert.equal(proposalChoiceUntouched({ ...base, typedTime: '  ' }), true);
+        assert.equal(proposalChoiceUntouched({ ...base, piecesOpen: true }), false, 'pieces being counted');
+        assert.equal(proposalChoiceUntouched({ ...base, view: 'confirm' }), false, 'on the confirm step');
+        assert.equal(proposalChoiceUntouched({ ...base, fromProposal: false }), false, 'a chip, a split or a draft');
+    },
+
+    'v2 C3: the card says where the chips come from; the waiting rows show the labels'() {
+        const format = pickRound(2);
+        const pending = proposalOf(PROP_1, ANNA, { puzzles: [P_B, P_A] });
+
+        assert.equal(proposalChoiceLabels(format, pending), 'B → A');
+        assert.equal(proposalChoiceLabels(format, proposalOf(PROP_1, ANNA)), null, 'no choice');
+        assert.equal(proposalChoiceLabels(format, { ...pending, status: 'confirmed' }), null, 'decided');
+        assert.equal(proposalChoiceLabels(null, pending), null, 'not a pick round');
+        assert.deepEqual(proposalChoiceNote(format, [P_B, P_A], pending, true), { key: 'proposalChoiceNote' });
+        assert.deepEqual(proposalChoiceNote(format, [P_A], pending, false), { key: 'proposalChoiceDiffers', labels: 'B → A' });
+        assert.equal(proposalChoiceNote(format, [P_B, P_A], pending, false), null, 'the judge chose the same');
+        assert.equal(proposalChoiceNote(format, [], proposalOf(PROP_1, ANNA), false), null);
+    },
+
+    'v2 C3: a pre-selected complete choice confirms with one tap - result and record in one group, nothing before it'() {
+        const format = pickRound(2);
+        const anna = entry(ANNA, 'Anna', 12);
+        const pending = proposalOf(PROP_1, ANNA, { puzzles: [P_B, P_A] });
+        const { choice } = choiceAfterProposal(format, [], true, null, pending);
+        const { fields, needsChoice } = confirmFields(format, choice, proposalValue(pending), anna, [], PROP_1);
+
+        assert.equal(needsChoice, false);
+        assert.deepEqual(fields, [
+            { field: 'puzzles', to: [{ roundPuzzleId: P_B, done: true }, { roundPuzzleId: P_A, done: true }] },
+            { field: 'result', to: { seconds: 2712 }, proposalId: PROP_1 },
+        ]);
+        // A partial choice (1 of 2): the judge completes it - Confirm still asks first
+        const partial = choiceAfterProposal(format, [], true, null, { ...pending, puzzles: [P_B] });
+        assert.equal(confirmFields(format, partial.choice, proposalValue(pending), anna, [], PROP_1).needsChoice, true);
+    },
+});
 
 const results = {};
 

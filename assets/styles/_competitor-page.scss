@@ -291,6 +291,70 @@
     align-self: center;
 }
 
+// Puzzle choice of a pick round (toolkit v2 C3): optional chips in the "Propose?" sheet and under a waiting proposal -
+// big targets, the solving order as a badge
+.competitor-pick {
+    margin: .25rem 0 .75rem;
+    text-align: left;
+}
+
+.competitor-pick-question {
+    font-weight: 600;
+    margin-bottom: .375rem;
+}
+
+.competitor-pick-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.competitor-pick-chip {
+    position: relative;
+    min-width: 3.5rem;
+    min-height: 3rem;
+    padding: .375rem .75rem;
+    border: 2px solid $gray-400;
+    border-radius: .5rem;
+    background: $white;
+    font-weight: 700;
+    text-align: left;
+    line-height: 1.2;
+
+    &.is-on {
+        border-color: $success;
+        background: rgba($success, .12);
+    }
+}
+
+.competitor-pick-name {
+    display: block;
+    font-size: .75rem;
+    font-weight: 400;
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.competitor-pick-order {
+    position: absolute;
+    top: -.5rem;
+    right: -.5rem;
+    min-width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 1rem;
+    background: $success;
+    color: $white;
+    font-size: .75rem;
+    line-height: 1.375rem;
+    text-align: center;
+}
+
+.competitor-pick-link {
+    align-self: center;
+}
+
 .competitor-round-signin {
     margin-bottom: .5rem;
 }

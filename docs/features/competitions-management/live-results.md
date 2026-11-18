@@ -188,6 +188,15 @@ longer lists unless it came after the state was read). Server side: `official-re
   person or table / other). A proposal decided elsewhere, withdrawn or superseded while the card is open changes in place.
 - **Find**: "Proposals waiting (N)" (pending, not decided on this device, oldest receipt first); a row **opens the card**
   - nothing is confirmed from the list.
+- **The competitor's puzzle choice** (competition toolkit v2 C3; server: competitor-pages.md "Puzzle choice with the
+  proposal"): a pending proposal of a pick round may carry `puzzles` (round puzzle ids, solving order). Opening the
+  card pre-selects them (`choiceAfterProposal()` / `choiceWithProposal()`: nothing recorded, or a record that is the
+  start of the phone's → the phone's, known puzzles only, at most K; another record stays - the judge's wins) with
+  "Chosen on their phone - check" over the chips. While untouched a push re-applies it (the competitor changed it, or
+  it was decided/withdrawn → back to the record) - never once the judge tapped a chip or a split, typed pieces, is on
+  the confirm step or a draft was restored. A choice that differs from the phone's shows "Their phone says: B → A".
+  **Nothing is saved by the pre-select**: Confirm (one tap when K are known - `confirmFields()` unchanged) or Save sends
+  it with the result. The waiting rows add the labels ("3 min · B → A"). Harness: `tests/live-results-harness.mjs`.
 - **Outbox**: a confirmation is the `result` change with `proposalId` (pick rounds: with `puzzles` in one group, and the
   puzzle choice is required first); a rejection is `field: "proposal"` (`from: {id}`, never chained, no Undo once sent).
   Offline both wait like any change; the outcome's `proposal: {id, status}` updates the page at once (`not_pending` /

@@ -54,6 +54,51 @@ SQL, [
     }
 
     /**
+     * The made-up players by their number (`test-user+N`), with the name and country they show - the people of the
+     * demo events (docs/features/sandbox/README.md "Demo events"). Never the free account.
+     *
+     * @return list<array{id: string, name: string, country: null|string, email: string}>
+     */
+    public function demoPeople(): array
+    {
+        $rows = $this->database->fetchAllAssociative(<<<SQL
+SELECT p.id, p.name, p.country, ua.email
+FROM player p
+JOIN user_account ua ON ua.user_id = p.user_id
+WHERE ua.email LIKE :emailLike
+  AND ua.email <> :freePlayer
+  AND p.name IS NOT NULL
+ORDER BY length(ua.email), ua.email
+SQL, [
+            'emailLike' => SandboxPeople::EMAIL_LIKE,
+            'freePlayer' => SandboxPeople::FREE_PLAYER_EMAIL,
+        ]);
+
+        return array_map(
+            static function (array $row): array {
+                /** @var array{id: string, name: string, country: null|string, email: string} $row */
+                return $row;
+            },
+            $rows,
+        );
+    }
+
+    /**
+     * The player of a made-up account (the demo events' organiser and referee) - null when the seed has not made it.
+     */
+    public function playerIdByEmail(string $email): null|string
+    {
+        $id = $this->database->fetchOne(<<<SQL
+SELECT p.id
+FROM player p
+JOIN user_account ua ON ua.user_id = p.user_id
+WHERE lower(ua.email) = lower(:email)
+SQL, ['email' => $email]);
+
+        return is_string($id) ? $id : null;
+    }
+
+    /**
      * Approved puzzles with a picture in the common piece counts - the ones people actually log. A stable sample
      * (by id), so the seed and the cron draw from the same pool.
      *

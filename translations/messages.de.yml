@@ -5176,6 +5176,7 @@ name_tags:
     empty_lineups: "Noch keine Paare oder Teams – stellen Sie sie zuerst in der Teilnehmertabelle zusammen."
     empty_entries: "In dieser Runde ist noch niemand."
     print_tags: "Schilder drucken"
+    show_flags: "Länderflaggen anzeigen"
   waitlist: "{1}Dazu die 1 Person auf der Warteliste|[0,Inf[Dazu die %count% Personen auf der Warteliste"
   first_round_note: "Der Tisch auf einem Schild ist der der ersten Runde der Person – drucken Sie erneut, nachdem Sie eine Runde neu platziert haben."
 results_desk:

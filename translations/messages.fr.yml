@@ -5243,6 +5243,7 @@ name_tags:
     empty_lineups: "Pas encore de duos ni d'équipes - formez-les d'abord sur la feuille des participants."
     empty_entries: "Personne n'est encore dans cette manche."
     print_tags: "Imprimer les badges"
+    show_flags: "Afficher les drapeaux des pays"
   waitlist: "{1}Aussi la personne en liste d'attente|[0,Inf[Aussi les %count% personnes en liste d'attente"
   first_round_note: "La table sur un badge est celle de la première manche de la personne - réimprimez après avoir refait le plan de table d'une manche."
 results_desk:

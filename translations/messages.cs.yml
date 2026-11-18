@@ -5251,6 +5251,7 @@ name_tags:
     empty_lineups: "Zatím žádné dvojice ani týmy - nejdřív je sestavte na stránce účastníků."
     empty_entries: "V tomto kole zatím nikdo není."
     print_tags: "Tisknout jmenovky"
+    show_flags: "Zobrazit vlajky zemí"
   waitlist: "{1}Také 1 člověk z čekací listiny|[2,4]Také %count% lidé z čekací listiny|[0,Inf[Také %count% lidí z čekací listiny"
   first_round_note: "Stůl na jmenovce je stůl prvního kola daného člověka - po novém rozsazení kola vytiskněte jmenovky znovu."
 results_desk:

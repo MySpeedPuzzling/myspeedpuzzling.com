@@ -5177,6 +5177,7 @@ name_tags:
     empty_lineups: "Aún no hay parejas ni equipos: créalos primero en la hoja de participantes."
     empty_entries: "Aún no hay nadie en esta ronda."
     print_tags: "Imprimir acreditaciones"
+    show_flags: "Mostrar banderas de países"
   waitlist: "{1}También 1 persona de la lista de espera|[0,Inf[También %count% personas de la lista de espera"
   first_round_note: "La mesa de una acreditación es la de la primera ronda de la persona: vuelve a imprimir tras distribuir de nuevo las mesas de una ronda."
 results_desk:

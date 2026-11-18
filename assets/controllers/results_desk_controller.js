@@ -375,7 +375,11 @@ export default class extends Controller {
     renderTable() {
         const usesTables = this.usesTableNumbers();
         this.tableColumnTargets.forEach((column) => { column.hidden = !usesTables; });
-        this.divisionColumnTargets.forEach((column) => { column.hidden = !this.usesDivisions(); });
+        // d-sm-table-cell (the column is hidden below sm, real events L5) would win over [hidden] - toggled with it
+        this.divisionColumnTargets.forEach((column) => {
+            column.hidden = !this.usesDivisions();
+            column.classList.toggle('d-sm-table-cell', this.usesDivisions());
+        });
         this.renderDivisionFilter();
 
         const visible = this.visibleEntries();
@@ -458,8 +462,11 @@ export default class extends Controller {
 
         cells.push(`<td class="text-end fw-semibold text-nowrap">${entry.rank ?? (entry.result?.didNotStart ? '<span class="text-body-secondary">–</span>' : '')}${this.divisionRankHtml(entry)}</td>`);
 
+        // Phone width (real events L5): the Division column is hidden below sm - the chip goes under the entrant's name
+        const divisionChip = this.usesDivisions() && entry.division ? `<span class="badge text-bg-light border fw-normal">${escapeHtml(entry.division.name)}</span>` : '';
+
         if (this.usesDivisions()) {
-            cells.push(`<td class="small" data-division-cell>${entry.division ? `<span class="badge text-bg-light border fw-normal">${escapeHtml(entry.division.name)}</span>` : '<span class="text-body-secondary">—</span>'}</td>`);
+            cells.push(`<td class="small d-none d-sm-table-cell" data-division-cell>${divisionChip !== '' ? divisionChip : '<span class="text-body-secondary">—</span>'}</td>`);
         }
 
         if (usesTables) {
@@ -470,9 +477,9 @@ export default class extends Controller {
         }
 
         // Phone width (real events L1): the Country and Entered columns are hidden below sm / md so the result column
-        // shows without a sideways scroll - the flags go next to the name, "entered by" under the result
+        // shows without a sideways scroll - the flags go next to the name, "entered by" under the result (Division: above)
         const flags = this.flagsHtml(entry.countries ?? []);
-        cells.push(`<td>${flags !== '' ? `<span class="d-sm-none float-end ms-1">${flags}</span>` : ''}${this.entrantHtml(entry)}${this.takeOutHtml(entry)}</td>`);
+        cells.push(`<td>${flags !== '' ? `<span class="d-sm-none float-end ms-1">${flags}</span>` : ''}${this.entrantHtml(entry)}${divisionChip !== '' ? `<div class="d-sm-none small mt-1">${divisionChip}</div>` : ''}${this.takeOutHtml(entry)}</td>`);
         cells.push(`<td class="text-nowrap d-none d-sm-table-cell">${flags}</td>`);
         const entered = this.enteredHtml(this.entries.get(entry.ref));
         cells.push(`<td>
@@ -502,7 +509,7 @@ export default class extends Controller {
 
         const label = entry.division.shortName ?? entry.division.name;
 
-        return ` <span class="small fw-normal text-body-secondary" data-division-rank title="${escapeHtml(this.t('division_rank', { division: entry.division.name, rank: entry.divisionRank }))}">· ${escapeHtml(label)} ${entry.divisionRank}</span>`;
+        return ` <span class="small fw-normal text-body-secondary" data-division-rank title="${escapeHtml(this.t('division_rank', { division: entry.division.name, rank: entry.divisionRank }))}"><span class="d-none d-sm-inline">· </span><br class="d-sm-none">${escapeHtml(label)} ${entry.divisionRank}</span>`;
     }
 
     /**

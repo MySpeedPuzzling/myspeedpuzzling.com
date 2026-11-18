@@ -258,7 +258,8 @@ For an organiser's own website (the SPWS Wix site): one published standing as a 
 2026-11-18 (no Docker - not walked in a browser yet).
 
 - **Route** `standing_embed` `GET /embed/standing/{standingId}` (English) or `/embed/standing/{standingId}/{locale}`
-  (cs, de, es, fr, ja), `?theme=dark` optional (anything else = light). By id, not by slug: the organiser's copy stays
+  (cs, de, es, fr, ja), `?theme=dark` optional (anything else = light; the dark theme stripes every other row a subtle dark `#262b33`
+  instead of the site's light `#f9fafb` - real events L5). By id, not by slug: the organiser's copy stays
   valid when the event's slug changes. `StandingEmbedController` on the **stateless firewall** (no session, no cookie, no
   viewer).
 - **Content:** `StandingPageBuilder::buildEmbed()` - the public page's table part (`_public_table` / `_public_stages`,

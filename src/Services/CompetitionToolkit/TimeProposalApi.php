@@ -23,7 +23,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * is the handler's (TimeProposalOwnership) - nothing here reads the competition.
  *
  * Answers: `{status, reason, message, proposal}` - `proposal` is the competitor's view (TimeProposalView::forCompetitor())
- * of the proposal written or found, `message` the translated reason (time_proposal.reason.*).
+ * of the proposal written or found, `message` the translated reason (time_proposal.reason.*); a stored proposal whose
+ * puzzle choice was dropped adds `puzzlesRefused` (the reason) and `puzzlesMessage` (competition toolkit v2 C2).
  */
 final readonly class TimeProposalApi
 {
@@ -44,6 +45,13 @@ final readonly class TimeProposalApi
         'too_late' => JsonResponse::HTTP_CONFLICT,
         'result_recorded' => JsonResponse::HTTP_CONFLICT,
         'already_proposed' => JsonResponse::HTTP_CONFLICT,
+        // A puzzle choice (v2 C2, ChangeTimeProposalPuzzles) - the round's puzzles changed since the phone's state, or
+        // the places do not fit the round
+        'puzzles_changed' => JsonResponse::HTTP_CONFLICT,
+        'puzzles_not_used' => JsonResponse::HTTP_CONFLICT,
+        'unknown_round_puzzle' => JsonResponse::HTTP_UNPROCESSABLE_ENTITY,
+        'puzzle_listed_twice' => JsonResponse::HTTP_UNPROCESSABLE_ENTITY,
+        'too_many_puzzles' => JsonResponse::HTTP_UNPROCESSABLE_ENTITY,
     ];
 
     public function __construct(
@@ -81,12 +89,20 @@ final readonly class TimeProposalApi
     {
         $status = $answer->reason !== null ? (self::REFUSAL_STATUS[$answer->reason] ?? JsonResponse::HTTP_CONFLICT) : JsonResponse::HTTP_OK;
 
-        return OfficialResultsApi::json([
+        $json = [
             'status' => $answer->status,
             'reason' => $answer->reason,
             'message' => $answer->reason !== null ? $this->translator->trans('time_proposal.reason.' . $answer->reason) : null,
             'proposal' => $proposal?->forCompetitor(),
-        ], $status);
+        ];
+
+        // v2 C2: the proposal is stored, the puzzle choice sent with it is not - only then (other answers keep their JSON)
+        if ($answer->puzzlesRefused !== null) {
+            $json['puzzlesRefused'] = $answer->puzzlesRefused;
+            $json['puzzlesMessage'] = $this->translator->trans('time_proposal.reason.' . $answer->puzzlesRefused);
+        }
+
+        return OfficialResultsApi::json($json, $status);
     }
 
     public function refusal(string $reason, int $status): JsonResponse

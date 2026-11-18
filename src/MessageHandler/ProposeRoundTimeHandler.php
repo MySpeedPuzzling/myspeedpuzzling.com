@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\TimeProposalAnswer;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalOwnership;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\TimeProposalTiming;
+use SpeedPuzzling\Web\Value\ProposalPuzzleChoice;
 use SpeedPuzzling\Web\Value\RoundClock;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
@@ -46,6 +47,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * ("Check this time"), plus `clockUncertain`.
  * A phone that timed against another stopwatch state (a pause/resume since) is flagged `clockChanged`. Nothing is
  * published here - the controller does after the commit.
+ *
+ * The puzzle choice (competition toolkit v2 C2, ProposalPuzzleChoice): resolved only once the proposal is stored - a
+ * refused choice is answered as `puzzlesRefused` with the proposal stored all the same, a `known` resend never changes
+ * the stored one (ChangeTimeProposalPuzzles does). A proposal without a choice runs exactly the statements it did.
  */
 #[AsMessageHandler]
 readonly final class ProposeRoundTimeHandler
@@ -168,7 +173,20 @@ readonly final class ProposeRoundTimeHandler
         );
         $this->proposalRepository->save($proposal);
 
-        return TimeProposalAnswer::proposed($proposal->id->toString(), $roundId);
+        // v2 C2: the puzzle choice sent with the tap - only on a new proposal, and never at the tap's cost
+        $puzzlesRefused = null;
+
+        if ($message->puzzles !== null) {
+            $choice = ProposalPuzzleChoice::resolveForRound($message->puzzles, $round);
+
+            if (is_string($choice)) {
+                $puzzlesRefused = $choice;
+            } else {
+                $proposal->choosePuzzles($choice, $message->tappedAtMs);
+            }
+        }
+
+        return TimeProposalAnswer::proposed($proposal->id->toString(), $roundId, $puzzlesRefused);
     }
 
     /**
@@ -209,15 +227,29 @@ readonly final class ProposeRoundTimeHandler
             return 'times_up';
         }
 
-        // The round's end: the time limit, or the Stop when it came first
-        $stoppedAtMs = $status === RoundStopwatchStatus::STOPPED && $stoppedAt !== null ? $stoppedAt->getTimestamp() * 1000 : null;
-        $endsAtMs = $stoppedAtMs !== null && ($limitEndsAtMs === null || $stoppedAtMs < $limitEndsAtMs) ? $stoppedAtMs : $limitEndsAtMs;
-
-        if ($endsAtMs !== null && $receivedAtMs > $endsAtMs + self::ACCEPTED_AFTER_END_MS) {
+        if (self::isTooLate($status, $startedAt, $stoppedAt, $minutesLimit, $receivedAtMs)) {
             return 'too_late';
         }
 
         return null;
+    }
+
+    /**
+     * Received more than 30 min after the round's end - the time limit, or the Stop when it came first (also the rule
+     * of a proposal's puzzle choice, ChangeTimeProposalPuzzlesHandler)
+     */
+    public static function isTooLate(null|string $status, null|DateTimeImmutable $startedAt, null|DateTimeImmutable $stoppedAt, null|int $minutesLimit, int $receivedAtMs): bool
+    {
+        if ($startedAt === null) {
+            return false;
+        }
+
+        $startedAtMs = $startedAt->getTimestamp() * 1000;
+        $limitEndsAtMs = $minutesLimit !== null ? $startedAtMs + $minutesLimit * 60_000 : null;
+        $stoppedAtMs = $status === RoundStopwatchStatus::STOPPED && $stoppedAt !== null ? $stoppedAt->getTimestamp() * 1000 : null;
+        $endsAtMs = $stoppedAtMs !== null && ($limitEndsAtMs === null || $stoppedAtMs < $limitEndsAtMs) ? $stoppedAtMs : $limitEndsAtMs;
+
+        return $endsAtMs !== null && $receivedAtMs > $endsAtMs + self::ACCEPTED_AFTER_END_MS;
     }
 
     private static function isFreshUuidV7(string $proposalId, int $receivedAtMs): bool

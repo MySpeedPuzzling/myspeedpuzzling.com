@@ -14782,6 +14782,12 @@ time_proposal:
         result_recorded: "Rozhodčí už váš výsledek zapsal."
         already_proposed: "Na rozhodčího už čeká jeden čas."
         proposal_not_found: "Tento návrh času neexistuje."
+        puzzles_changed: "Puzzle tohoto kola se změnila - vyberte znovu."
+        puzzles_not_used: "Toto kolo nemá výběr puzzle."
+        unknown_round_puzzle: "Jedno z vybraných puzzle už v tomto kole není - vyberte znovu."
+        puzzle_listed_twice: "Stejné puzzle bylo vybráno dvakrát - vyberte znovu."
+        too_many_puzzles: "Vybrali jste víc puzzle, než kolik se v tomto kole skládá - vyberte znovu."
+        invalid_puzzles: "Výběr puzzle se nepodařilo přečíst - vyberte znovu."
 competition_standing:
     challenge_time: "%label% %time%"
     rounds_count: "{0}Žádná kola|{1}%count% kolo|[2,4]%count% kola|[5,Inf[%count% kol"

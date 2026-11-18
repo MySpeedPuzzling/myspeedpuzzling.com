@@ -98,6 +98,9 @@ trait TimeProposalScenario
         return Uuid::uuid7(new DateTimeImmutable('@' . intdiv(self::nowMs() + $offsetMs, 1000)))->toString();
     }
 
+    /**
+     * @param null|non-empty-list<array{position: int, label: string}> $puzzles
+     */
     private static function propose(
         string $entry,
         string $playerId = PlayerFixture::PLAYER_ADMIN,
@@ -112,6 +115,7 @@ trait TimeProposalScenario
         null|int $attempts = 1,
         null|float $offsetMs = 12.5,
         null|float $rttMs = 80.0,
+        null|array $puzzles = null,
     ): TimeProposalAnswer {
         self::getContainer()->get(EntityManagerInterface::class)->clear();
 
@@ -131,6 +135,7 @@ trait TimeProposalScenario
             attempts: $attempts,
             sentAtMs: self::nowMs() - $receivedAgoMs,
             heartbeat: $heartbeat,
+            puzzles: $puzzles,
         ))->last(HandledStamp::class)?->getResult();
         assert($answer instanceof TimeProposalAnswer);
 

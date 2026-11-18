@@ -14775,6 +14775,12 @@ time_proposal:
         result_recorded: "Un arbitre a déjà enregistré votre résultat."
         already_proposed: "Un temps attend déjà l'arbitre."
         proposal_not_found: "Cette proposition de temps n'existe pas."
+        puzzles_changed: "Les puzzles de cette manche ont changé - choisissez à nouveau."
+        puzzles_not_used: "Cette manche n’a pas de choix de puzzle."
+        unknown_round_puzzle: "L’un des puzzles choisis n’est plus dans cette manche - choisissez à nouveau."
+        puzzle_listed_twice: "Le même puzzle a été choisi deux fois - choisissez à nouveau."
+        too_many_puzzles: "Plus de puzzles ont été choisis que cette manche n’en fait résoudre - choisissez à nouveau."
+        invalid_puzzles: "Le choix des puzzles n’a pas pu être lu - choisissez à nouveau."
 competition_standing:
     challenge_time: "%label% %time%"
     rounds_count: "{0}Aucune manche|{1}%count% manche|]1,Inf[%count% manches"

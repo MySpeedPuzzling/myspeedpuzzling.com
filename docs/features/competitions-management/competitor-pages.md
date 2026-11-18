@@ -312,6 +312,50 @@ judge confirms (C9), never official on its own. Server side: P1 (`official-resul
 - Tests: `tests/competitor-proposals-harness.mjs` → `CompetitorProposalsScriptTest`,
   `tests/Controller/CompetitorPage/CompetitorPageProposalsTest.php`.
 
+### Puzzle choice with the proposal (competition toolkit v2 C2 - server; the phone's chips and the judge's pre-select are C3)
+
+Design of record: `design-v2/competitors-splits.md` §2.2, decision D3 (in the delivery worktree). On a `pick` round the
+competitor may say which puzzles they finished - optional, partial allowed, **never at the tap's cost**, never applied
+without the judge's Confirm, never public.
+
+- **Wire - places, never ids** (the competitor JSON has no round puzzle id): `puzzles: [{position, label}, …]` in
+  solving order, `position` = the slot's place (1..N) and `label` = the label the phone shows (`ProposalPuzzleChoice::
+  fromWire()`: ≤ 50 items, positions 1..9999, labels 1..40 characters - `RoundPuzzleLabel::MAX_LENGTH`). Resolved under
+  the event's lock against the round's puzzles in the organiser's order: place p = the p-th puzzle, its effective label
+  must equal the sent one (a reorder or relabel since the phone's state = `puzzles_changed`, never a wrong puzzle).
+  Refusals (`time_proposal.reason.*`): `puzzles_not_used` (not a `pick` round), `unknown_round_puzzle`,
+  `puzzles_changed`, `puzzle_listed_twice`, `too_many_puzzles` (> K), `invalid_puzzles` (unreadable).
+- **With the tap**: `ProposeRoundTime.puzzles`, resolved only once the new proposal is stored. A choice that cannot be
+  used is dropped; the answer is still `proposed` (200) plus `puzzlesRefused` + `puzzlesMessage` - an unreadable choice
+  too (`invalid_puzzles`, never a 400). A `known` resend never changes the stored choice (idempotency) - the answer's
+  `proposal.puzzles` says what is stored, so a phone whose choice changed meanwhile sends it through the endpoint below.
+- **Changing it**: `POST /{_locale}/competitor-proposals/{proposalId}/puzzles` (`competitor_time_proposal_puzzles`,
+  `ChangeTimeProposalPuzzlesController` → `ChangeTimeProposalPuzzles`, `SerializedByLock` on the event's participants
+  lock) `{puzzles: [...] | null | [], expectedPlayerId}` - null/[] clears; a missing key or unreadable puzzles are 400
+  `invalid_puzzles`, unreadable JSON 400 `invalid_json` (never read as "clear"). `proposals_off` when the event takes
+  no proposals (any more); same owner rule as Undo (`TimeProposalOwnership`: linked before the start, own entry); not
+  pending → `known`; `too_late` more than 30 min after the round's end (`ProposeRoundTimeHandler::isTooLate()`, the
+  propose rule). **Out-of-order replay**: the body's optional `chosenAtMs` (the phone's server-synced clock when the
+  choice was made) is stored as `puzzle_choice_at_ms` (a choice sent with the tap takes the tap's moment); a change
+  older than the stored one answers `known` and changes nothing, so an outbox resending an old request late never
+  overwrites a newer choice (a client without it always applies). Applied → `chosen` and pushed
+  (`official_results.proposals`, after the answer). Own limiter `time_proposal_puzzles` 30 per player and proposal in
+  10 min - choosing never eats the taps' `time_proposal` budget. CSRF token `time_proposal` reused. Writes the proposal
+  row only - no entry, no `RecordRoundResults`; `TimeProposalResolver` unchanged.
+- **Storage**: `competition_time_proposal.puzzle_choice` jsonb NULL (round puzzle ids, lower-case, solving order) +
+  `puzzle_choice_at_ms` bigint NULL, no FK - a puzzle removed from the round drops out on read. `CompetitionTimeProposal::choosePuzzles()` (pending only).
+- **Reads (0 extra statements)**: `GetTimeProposals` reads `puzzle_choice` and, only when it is set, the round's
+  puzzles in one sub-select. `TimeProposalView` adds `puzzles` **only when a choice exists** (untouched proposals keep
+  their JSON): judges (round state `proposals`, Mercure on the organisers' and referees' topics) get
+  `["<roundPuzzleId>", …]`, the competitor (answers, `competitor_state`) `[{position, label}, …]` - nothing of a hidden
+  puzzle but its label.
+- **Shared puzzles** (real events S1): a choice names `competition_round_puzzle` rows - one per round - so the same
+  catalogue puzzle in two rounds is two different ids; the choice never touches `round_chosen` or players' own times.
+- Tests: `ProposalPuzzleChoiceTest` (pure), `ProposalPuzzleChoiceHandlersTest` (stored, dropped-with-time, resend,
+  0 round-puzzle reads without a choice, change/clear, owner, late link, decided → known, other event, views, delete),
+  `TimeProposalPuzzlesEndpointsTest` (wire, unreadable, 401/403/409/400/404/429, competitor state labels only),
+  `SerializedByLockMessagesTest`.
+
 ## Proposals end to end (B8 → P1 → C9 → B8)
 
 1. **Competitor** (B8 above): signed in as the person linked to the tag, on their own entry, taps Stop while the round

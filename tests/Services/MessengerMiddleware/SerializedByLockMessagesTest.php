@@ -52,6 +52,7 @@ use SpeedPuzzling\Web\Message\ChangeCompetitionDisplayFollow;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
+use SpeedPuzzling\Web\Message\ChangeTimeProposalPuzzles;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\CheckOnlineRoundFinishPhotos;
 use SpeedPuzzling\Web\Message\ChooseSolvingTimeRound;
@@ -282,6 +283,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new SendParticipantClaimInvitations($competitionId, [$participantId], 'player'))->lockKey());
         self::assertSame($key, (new SendParticipantClaimInvitations($competitionId, null, 'player'))->lockKey());
         self::assertSame($key, (new RefuseParticipantClaimInvitations($competitionId, $participantId))->lockKey());
+        // v2 C2: the puzzle choice of a pending proposal - never lands on one a judge decided meanwhile
+        self::assertSame($key, (new ChangeTimeProposalPuzzles(strtolower($competitionId), 'proposal', 'player', null))->lockKey());
     }
 
     /**

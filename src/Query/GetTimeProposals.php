@@ -10,7 +10,9 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionTimeProposal;
 use SpeedPuzzling\Web\Results\TimeProposalView;
+use SpeedPuzzling\Web\Value\ProposalPuzzleChoice;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 
 /**
  * Time proposals of a round for the judges' tools and the competitor's own answers (competition toolkit P1,
@@ -23,7 +25,7 @@ readonly final class GetTimeProposals
     // A decided proposal stays in the round state this long, so a judge sees "confirmed by Petra" right after
     public const string RECENTLY_DECIDED = '-10 minutes';
 
-    private const string SELECT = <<<SQL
+    private const string SELECT_TEMPLATE = <<<SQL
 SELECT
     tp.id,
     tp.round_id,
@@ -50,7 +52,13 @@ SELECT
     decider.name AS decided_by_name,
     decider.code AS decided_by_code,
     tp.decided_seconds,
-    tp.decision_reason
+    tp.decision_reason,
+    tp.puzzle_choice,
+    CASE WHEN tp.puzzle_choice IS NULL THEN NULL ELSE (
+        SELECT json_agg(json_build_object('id', crp.id, 'label', crp.label) ORDER BY %s)
+        FROM competition_round_puzzle crp
+        WHERE crp.round_id = tp.round_id
+    ) END AS round_puzzles
 FROM competition_time_proposal tp
 INNER JOIN competition_participant cp ON cp.id = tp.proposed_by_participant_id
 LEFT JOIN competition_participant_round cpr ON cpr.id = tp.participant_round_id
@@ -61,6 +69,12 @@ SQL;
     public function __construct(
         private Connection $database,
     ) {
+    }
+
+    // The round's puzzles in the organiser's order (RoundPuzzleLabel) - read only for a proposal with a puzzle choice
+    private static function select(): string
+    {
+        return sprintf(self::SELECT_TEMPLATE, RoundPuzzleLabel::sqlOrder('crp'));
     }
 
     /**
@@ -75,7 +89,7 @@ SQL;
         }
 
         $rows = $this->database->fetchAllAssociative(
-            self::SELECT . "\nWHERE tp.round_id = :roundId AND (tp.status = 'pending' OR tp.decided_at >= :since)\nORDER BY tp.tapped_at_ms, tp.id",
+            self::select() . "\nWHERE tp.round_id = :roundId AND (tp.status = 'pending' OR tp.decided_at >= :since)\nORDER BY tp.tapped_at_ms, tp.id",
             ['roundId' => $roundId, 'since' => $now->modify(self::RECENTLY_DECIDED)->format('Y-m-d H:i:s')],
         );
 
@@ -97,7 +111,7 @@ SQL;
         }
 
         $rows = $this->database->fetchAllAssociative(
-            self::SELECT . "\nWHERE tp.round_id = :roundId AND tp.id IN (:ids)\nORDER BY tp.tapped_at_ms, tp.id",
+            self::select() . "\nWHERE tp.round_id = :roundId AND tp.id IN (:ids)\nORDER BY tp.tapped_at_ms, tp.id",
             ['roundId' => $roundId, 'ids' => $proposalIds],
             ['ids' => ArrayParameterType::STRING],
         );
@@ -130,7 +144,7 @@ SQL;
         }
 
         $rows = $this->database->fetchAllAssociative(
-            'SELECT DISTINCT ON (COALESCE(latest.participant_round_id, latest.team_id)) * FROM (' . self::SELECT . "\nWHERE tp.participant_round_id IN (:solo) OR tp.team_id IN (:teams)) latest\n"
+            'SELECT DISTINCT ON (COALESCE(latest.participant_round_id, latest.team_id)) * FROM (' . self::select() . "\nWHERE tp.participant_round_id IN (:solo) OR tp.team_id IN (:teams)) latest\n"
             . "ORDER BY COALESCE(latest.participant_round_id, latest.team_id), (latest.status = 'pending') DESC, latest.tapped_at_ms DESC, latest.id DESC",
             ['solo' => $solo === [] ? [Uuid::NIL] : $solo, 'teams' => $teams === [] ? [Uuid::NIL] : $teams],
             ['solo' => ArrayParameterType::STRING, 'teams' => ArrayParameterType::STRING],
@@ -171,7 +185,7 @@ SQL;
      */
     private static function view(array $row): TimeProposalView
     {
-        /** @var array{id: string, round_id: string, participant_round_id: null|string, team_id: null|string, table_number: null|int, status: string, proposed_seconds: int, receipt_seconds: int, tapped_at_ms: int|string, received_at_ms: int|string, late_by_ms: int, clock_changed: bool, timing_verdict: null|string, last_heard_at_ms: null|int|string, clock_uncertain: bool, queued_offline: bool, send_attempts: null|int, proposed_by_participant_id: string, proposed_by_name: string, proposer_linked_at: null|string, decided_at: null|string, decided_by_player_id: null|string, decided_by_name: null|string, decided_by_code: null|string, decided_seconds: null|int, decision_reason: null|string} $row */
+        /** @var array{id: string, round_id: string, participant_round_id: null|string, team_id: null|string, table_number: null|int, status: string, proposed_seconds: int, receipt_seconds: int, tapped_at_ms: int|string, received_at_ms: int|string, late_by_ms: int, clock_changed: bool, timing_verdict: null|string, last_heard_at_ms: null|int|string, clock_uncertain: bool, queued_offline: bool, send_attempts: null|int, proposed_by_participant_id: string, proposed_by_name: string, proposer_linked_at: null|string, decided_at: null|string, decided_by_player_id: null|string, decided_by_name: null|string, decided_by_code: null|string, decided_seconds: null|int, decision_reason: null|string, puzzle_choice: null|string, round_puzzles: null|string} $row */
         $entry = $row['team_id'] !== null ? RoundEntryRef::team($row['team_id']) : RoundEntryRef::participantRound((string) $row['participant_round_id']);
 
         return new TimeProposalView(
@@ -200,6 +214,36 @@ SQL;
             decidedByName: $row['decided_by_name'] ?? ($row['decided_by_code'] !== null ? '#' . strtoupper($row['decided_by_code']) : null),
             decidedSeconds: $row['decided_seconds'],
             decisionReason: $row['decision_reason'],
+            puzzles: self::puzzles($row['puzzle_choice'], $row['round_puzzles']),
         );
+    }
+
+    /**
+     * The stored choice against the round's puzzles as they are now - null without a choice (or when none of its
+     * puzzles is in the round any more)
+     *
+     * @return null|non-empty-list<array{id: string, position: int, label: string}>
+     */
+    private static function puzzles(null|string $choice, null|string $roundPuzzles): null|array
+    {
+        $ids = ProposalPuzzleChoice::fromStored($choice);
+
+        if ($ids === null || $ids === [] || $roundPuzzles === null) {
+            return null;
+        }
+
+        $decoded = json_decode($roundPuzzles, true);
+        $rows = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $row) {
+            if (is_array($row) && is_string($row['id'] ?? null)) {
+                $label = $row['label'] ?? null;
+                $rows[] = ['id' => $row['id'], 'label' => is_string($label) ? $label : null];
+            }
+        }
+
+        $places = ProposalPuzzleChoice::places($ids, $rows);
+
+        return $places === [] ? null : $places;
     }
 }

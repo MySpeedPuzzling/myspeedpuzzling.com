@@ -129,6 +129,13 @@ return App::config([
                 'limit' => 10,
                 'interval' => '10 minutes',
             ],
+            // A competitor's "Change puzzles" of their pending proposal (competition toolkit v2 C2,
+            // ChangeTimeProposalPuzzlesController): per player and proposal, its own budget - choosing never eats the taps'
+            'time_proposal_puzzles' => [
+                'policy' => 'sliding_window',
+                'limit' => 30,
+                'interval' => '10 minutes',
+            ],
             // The feedback form (FeedbackController): every feedback is an e-mail to our inbox, up to 3 screenshots
             // attached (docs/features/feedback-screenshots.md). Per player - far above anybody writing to us, a stop
             // for a script.

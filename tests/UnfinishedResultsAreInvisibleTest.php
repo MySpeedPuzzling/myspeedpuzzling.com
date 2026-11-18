@@ -438,9 +438,10 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
 
         foreach (self::PUZZLES as $puzzleId) {
             $capture['puzzleSolvers'][$puzzleId] = [
-                'solo' => self::normalize($getPuzzleSolvers->soloByPuzzleId($puzzleId)),
-                'duo' => self::normalize($getPuzzleSolvers->duoByPuzzleId($puzzleId)),
-                'team' => self::normalize($getPuzzleSolvers->teamByPuzzleId($puzzleId)),
+                // Keyed by time: the lists order by the time alone, so two equal times may come in either order
+                'solo' => self::byTimeId(self::normalize($getPuzzleSolvers->soloByPuzzleId($puzzleId))),
+                'duo' => self::byTimeId(self::normalize($getPuzzleSolvers->duoByPuzzleId($puzzleId))),
+                'team' => self::byTimeId(self::normalize($getPuzzleSolvers->teamByPuzzleId($puzzleId))),
                 'relax' => $getPuzzleSolvers->relaxCountsByPuzzleId($puzzleId),
             ];
         }
@@ -562,6 +563,18 @@ final class UnfinishedResultsAreInvisibleTest extends KernelTestCase
         sort($values);
 
         return $values;
+    }
+
+    /**
+     * @param mixed $rows a normalized list of rows carrying `timeId`
+     * @return array<string, mixed> by time id, in id order
+     */
+    private static function byTimeId(mixed $rows): array
+    {
+        $byTimeId = self::byKey($rows, 'timeId');
+        ksort($byTimeId);
+
+        return $byTimeId;
     }
 
     /**

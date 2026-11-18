@@ -228,6 +228,8 @@ final class EditTimeController extends AbstractController
             $data->finishedAt,
             $data->isUnfinished(),
             $typedSeconds,
+            // The result's own round: a puzzle several rounds share keeps it (shared-puzzles-and-divisions.md S3)
+            $solvedPuzzle->roundId,
         );
 
         if ($editTimeForm->isSubmitted() && $data->isUnfinished()) {

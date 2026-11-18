@@ -15751,3 +15751,13 @@ event_wizard_more:
         last: "Poslední %weekday% v měsíci"
         at_time: "%when% v %time%"
         picked_at_time: "V %time% v každém termínu"
+shared_round:
+    link_to_round: "Tohle je můj čas - přiřadit ho ke kolu %round%"
+    not_identified: "Kolo: neurčeno - vyberte kolo, ve kterém jste skládali"
+    change: "Kolo: %round% - neskládali jste v tomto kole? Vyberte svoje"
+    choose: "Vybrat"
+    unfinished_not_identified: "Toto puzzle je v několika kolech této akce - přidejte svůj výsledek z oficiálních výsledků kola, ve kterém jste soutěžili (Přidat do mého profilu)."
+    flash:
+        linked: "Váš čas je teď v kole."
+        not_a_candidate: "Tento čas nelze zařadit do tohoto kola - kolo nemá toto puzzle pro jednotlivce, páry nebo týmy jako váš čas."
+        try_again: "To se nepovedlo - zkuste to prosím znovu."

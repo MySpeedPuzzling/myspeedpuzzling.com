@@ -1961,3 +1961,9 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
       the plan uses `custom_player_name_key` for the "Name and country" tier.
 - [ ] Link suggestions on the phone list and in the person editor (L5 built them on the desktop People grid only).
 - [ ] The sheet's setup checklist row "Help people link their profiles" (§7.5) - not built in L5.
+
+
+## Shared puzzles - explicit round (S3)
+See `docs/features/competitions-management/shared-puzzles-and-divisions.md` "As built: S3".
+- [ ] Browser walk before merge (no-Docker mode): Add to my profile from two rounds sharing a puzzle, the round page's "This is my time - link it", the result detail's "Choose the round" in the modal and on the full page, an unfinished entry from Add to my profile
+- [ ] Pick rounds: no "link it" for a time no round holds (only one-puzzle rounds have it)

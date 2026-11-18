@@ -119,6 +119,27 @@
                     <p class="fs-xs text-muted mb-0 mt-1" data-waiting-event-link><i class="ci-time me-1" aria-hidden="true"></i>{{ 'event_wizard_backfill.link.waiting_for'|trans({'%event%': attempt.waitingEventName}) }}</p>
                 {% endif %}
 
+                {#- Several rounds of its event hold its puzzle and the player chose none - only ever set for whoever may change the time -#}
+                {% if attempt.roundChoices is not empty %}
+                    {% set current_round = attempt.currentRoundChoice %}
+                    <form method="post" action="{{ path('choose_solving_time_round', {timeId: attempt.timeId}) }}" class="mt-1" data-round-choice>
+                        {% if round_choice_refusal|default(null) is not null and attempt.timeId == result.focusTimeId %}
+                            <p class="fs-xs text-danger mb-1" role="alert" data-round-choice-refused>{{ round_choice_refusal|trans }}</p>
+                        {% endif %}
+                        <label class="fs-xs text-muted d-block mb-1" for="round-choice-{{ attempt.timeId }}"><i class="bi bi-question-circle me-1" aria-hidden="true"></i>{{ current_round is not null ? 'shared_round.change'|trans({'%round%': current_round}) : 'shared_round.not_identified'|trans }}</label>
+                        <div class="d-flex gap-1" style="min-width: 0;">
+                            <select class="form-select form-select-sm" name="round_id" id="round-choice-{{ attempt.timeId }}" required style="min-width: 0;">
+                                {% for choice in attempt.roundChoices %}
+                                    <option value="{{ choice.id }}"{% if choice.current %} selected{% endif %}>{{ choice.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="hidden" name="back" value="{{ path('puzzle_result_detail', {timeId: result.focusTimeId}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('choose_solving_time_round_' ~ attempt.timeId) }}">
+                            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">{{ 'shared_round.choose'|trans }}</button>
+                        </div>
+                    </form>
+                {% endif %}
+
                 {% if attempt.comment %}
                     <p class="fs-xs text-muted fst-italic text-break mb-0 mt-1">{{ attempt.comment }}</p>
                 {% endif %}

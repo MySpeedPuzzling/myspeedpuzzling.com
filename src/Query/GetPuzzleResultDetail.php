@@ -194,7 +194,35 @@ SELECT
             LEFT JOIN competition waiting_competition ON waiting_competition.id = waiting.competition_id
             LEFT JOIN competition_series waiting_series ON waiting_series.id = waiting.series_id
         WHERE waiting.puzzle_solving_time_id = pst.id
-    ) END AS waiting_event_name
+    ) END AS waiting_event_name,
+    -- "Choose the round" (shared-puzzles-and-divisions.md §2.4 row 16): linked to its event, in no round or in one the
+    -- rule picked (not the player), for whoever may change it - the rounds that may hold it. Evaluated only for such a
+    -- time (no statement of its own); PHP keeps them only when there are several
+    CASE WHEN pst.competition_id IS NOT NULL
+        AND pst.round_chosen = false
+        AND pst.created_via IS DISTINCT FROM :eventImport
+        AND (pst.player_id = CAST(:viewerId AS UUID) OR EXISTS (
+            SELECT 1
+            FROM json_array_elements(pst.team -> 'puzzlers') AS chooser(player)
+            WHERE (chooser.player ->> 'player_id') = CAST(:viewerId AS VARCHAR)
+        ))
+    THEN (
+        SELECT JSON_AGG(JSON_BUILD_OBJECT('id', candidate_round.id, 'name', candidate_round.name, 'current', candidate_round.id IS NOT DISTINCT FROM pst.competition_round_id) ORDER BY candidate_round.starts_at, candidate_round.name)
+        FROM competition_round candidate_round
+        WHERE candidate_round.competition_id = pst.competition_id
+            AND candidate_round.category = pst.puzzling_type
+            AND EXISTS (
+                SELECT 1 FROM competition_round_puzzle candidate_puzzle
+                WHERE candidate_puzzle.round_id = candidate_round.id AND candidate_puzzle.puzzle_id = pst.puzzle_id
+            )
+            -- An unfinished result: only a round whose limit keeps its time spent / total as stored
+            -- (ChooseSolvingTimeRoundHandler - UnfinishedResult)
+            AND (
+                pst.pieces_placed IS NULL
+                OR (pst.finished_later_seconds IS NULL AND candidate_round.minutes_limit * 60 = pst.seconds_spent)
+                OR (pst.finished_later_seconds IS NOT NULL AND candidate_round.minutes_limit IS NOT NULL AND pst.finished_later_seconds > candidate_round.minutes_limit * 60)
+            )
+    ) END AS round_choices
 FROM focus
     INNER JOIN subject_times ON true
     INNER JOIN puzzle_solving_time pst ON pst.id = subject_times.id
@@ -256,6 +284,7 @@ SQL;
          *     ranking_opted_out: bool,
          *     players: null|string,
          *     waiting_event_name: null|string,
+         *     round_choices: null|string,
          * }> $rows
          */
 
@@ -318,6 +347,7 @@ SQL;
                 piecesPlaced: $row['pieces_placed'],
                 finishedLaterSeconds: $row['finished_later_seconds'],
                 waitingEventName: $row['waiting_event_name'],
+                roundChoices: self::roundChoices($row['round_choices']),
             );
         }
 
@@ -582,5 +612,29 @@ SQL;
         }
 
         return [$compared, $bestCompared];
+    }
+
+    /**
+     * The rounds the viewer may place the time in - only when there are several (with one, the rule places it itself);
+     * `current` = the round the rule linked it to (a player may correct it)
+     *
+     * @return list<array{id: string, name: string, current: bool}>
+     */
+    private static function roundChoices(null|string $json): array
+    {
+        if ($json === null) {
+            return [];
+        }
+
+        $rounds = json_decode($json, true);
+        $choices = [];
+
+        foreach (is_array($rounds) ? $rounds : [] as $round) {
+            if (is_array($round) && is_string($round['id'] ?? null) && is_string($round['name'] ?? null)) {
+                $choices[] = ['id' => $round['id'], 'name' => $round['name'], 'current' => ($round['current'] ?? false) === true];
+            }
+        }
+
+        return count($choices) >= 2 ? $choices : [];
     }
 }

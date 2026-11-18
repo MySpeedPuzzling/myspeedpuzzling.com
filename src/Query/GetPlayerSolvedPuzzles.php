@@ -139,6 +139,7 @@ SELECT
     CASE WHEN {$publicCompetition} THEN round.slug END AS round_slug,
     CASE WHEN {$publicCompetition} THEN c.slug END AS round_competition_slug,
     CASE WHEN {$publicCompetition} THEN cs.slug END AS round_series_slug,
+    puzzle_solving_time.competition_round_id AS round_id,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -193,6 +194,7 @@ SQL;
          *     competition_id: null|string,
          *     series_pick_id: null|string,
          *     competition_is_edition: bool,
+         *     round_id: null|string,
          * } $row
          */
         $row = $this->database

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultRoundNotIdentified;
 use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -83,6 +84,13 @@ final class UnfinishedResultFields
                 '%minutes%' => $refusal->minutesLimit,
                 '%time%' => (new SolvingTime($refusal->totalSeconds))->toTimeString() ?? '',
             ])));
+
+            return true;
+        }
+
+        // Before its parent: the puzzle is in several rounds of the category and nothing named one of them
+        if ($refusal instanceof UnfinishedResultRoundNotIdentified) {
+            $form->get('unfinished')->addError(new FormError($translator->trans('shared_round.unfinished_not_identified')));
 
             return true;
         }

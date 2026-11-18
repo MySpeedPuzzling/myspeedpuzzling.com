@@ -140,6 +140,7 @@ readonly final class OfficialEntryTimePrefill
             // A pair/team row of a round whose category says solo cannot exist - but never a solo form for a team row
             category: $entry->isTeam && $category === RoundCategory::Solo ? RoundCategory::Team : $category,
             memberChoices: $memberChoices,
+            roundId: $round->id,
         );
     }
 

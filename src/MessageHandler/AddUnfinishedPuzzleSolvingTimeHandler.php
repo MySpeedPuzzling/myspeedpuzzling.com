@@ -44,6 +44,7 @@ use SpeedPuzzling\Web\Services\UnfinishedResults\UnfinishedResultRound;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTimeRoundEvidence;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use SpeedPuzzling\Web\Value\UnfinishedResult;
 use SpeedPuzzling\Web\Value\UploadedImageMetadata;
@@ -155,6 +156,16 @@ readonly final class AddUnfinishedPuzzleSolvingTimeHandler
             puzzleId: $puzzle->id->toString(),
             puzzlingType: PuzzlingType::fromPuzzlersCount($puzzlersCount),
             solveDay: $finishedAt ?? $trackedAt,
+            // What the result is saved with below - a puzzle in several rounds of the category is placed by it
+            evidence: new SolvingTimeRoundEvidence(
+                ownerId: $player->id->toString(),
+                team: $group,
+                seconds: null,
+                piecesPlaced: $message->piecesPlaced,
+                solveDay: $finishedAt,
+                trackedAt: $trackedAt,
+                createdVia: $message->createdVia,
+            ),
         );
 
         $unfinished = UnfinishedResult::fromInput(
@@ -244,6 +255,11 @@ readonly final class AddUnfinishedPuzzleSolvingTimeHandler
 
         if ($event->series !== null) {
             $solvingTime->seriesEditionResolved($event->competition, $event->seriesEditionMatch);
+        }
+
+        // A round named for it (Add to my profile, the API) stays the player's choice (round_chosen)
+        if ($event->roundChosen) {
+            $solvingTime->chooseCompetitionRound($event->round);
         }
 
         // Nothing to predict without a time - kept for the same order as the finished path (a no-op)

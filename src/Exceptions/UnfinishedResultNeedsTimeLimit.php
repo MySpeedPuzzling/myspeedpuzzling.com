@@ -10,6 +10,6 @@ namespace SpeedPuzzling\Web\Exceptions;
  * competition, no such round or a round without a limit: there is nothing it could be unfinished against
  * (docs/features/competitions-management/unfinished-results-plan.md "Refined 2026-11-16", rule 1).
  */
-final class UnfinishedResultNeedsTimeLimit extends \Exception
+class UnfinishedResultNeedsTimeLimit extends \Exception
 {
 }

@@ -44,6 +44,7 @@ readonly final class UnfinishedResultForm
      * Null = the form shows nothing of it: the kill switch is off and the result is no unfinished one.
      *
      * @param array<string> $groupPlayers the co-puzzler inputs as posted (empty ones are not counted)
+     * @param null|string $namedRoundId the round of the official entry the form was filled in from (Add to my profile)
      */
     public function state(
         PuzzleAddMode $mode,
@@ -53,6 +54,7 @@ readonly final class UnfinishedResultForm
         null|DateTimeImmutable $solveDay,
         bool $on,
         null|int $typedSeconds,
+        null|string $namedRoundId = null,
     ): null|UnfinishedFormState {
         $on = $on && $mode === PuzzleAddMode::SpeedPuzzling;
 
@@ -61,7 +63,7 @@ readonly final class UnfinishedResultForm
         }
 
         $round = $mode === PuzzleAddMode::SpeedPuzzling
-            ? $this->hint->forPick($competition, $puzzleId, 1 + self::coPuzzlers($groupPlayers), $solveDay)
+            ? $this->hint->forPick($competition, $puzzleId, 1 + self::coPuzzlers($groupPlayers), $solveDay, $namedRoundId)
             : null;
 
         return new UnfinishedFormState(
@@ -70,6 +72,7 @@ readonly final class UnfinishedResultForm
             typedSeconds: $typedSeconds !== null && $typedSeconds > 0 ? $typedSeconds : null,
             piecesTotal: $round !== null || $on ? $this->piecesCount($puzzleId) : null,
             enabled: $this->hint->isEnabled(),
+            namedRoundId: $namedRoundId,
         );
     }
 

@@ -15744,3 +15744,13 @@ event_wizard_more:
         last: "Dernier %weekday% du mois"
         at_time: "%when% à %time%"
         picked_at_time: "À %time% à chaque date"
+shared_round:
+    link_to_round: "C'est mon temps - le lier à %round%"
+    not_identified: "Manche : non identifiée - choisissez la manche où vous l'avez fait"
+    change: "Manche : %round% - ce n'est pas votre manche ? Choisissez la vôtre"
+    choose: "Choisir"
+    unfinished_not_identified: "Ce puzzle est dans plusieurs manches de cet événement - ajoutez votre résultat depuis les résultats officiels de votre manche (Ajouter à mon profil)."
+    flash:
+        linked: "Votre temps est maintenant dans la manche."
+        not_a_candidate: "Ce temps ne peut pas aller dans cette manche - elle n'a pas ce puzzle en solo, en paire ou en équipe comme votre temps."
+        try_again: "Cela n'a pas fonctionné - veuillez réessayer."

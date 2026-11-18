@@ -23,6 +23,9 @@ readonly final class UnfinishedFormState
         public null|int $piecesTotal,
         // The kill switch (UNFINISHED_RESULTS_FORM) - off: nothing is asked any more, an unfinished result keeps its switch
         public bool $enabled,
+        // The round the form names (Add to my profile's entry, the edited result's own round) - the hint endpoint is
+        // asked with it, so a puzzle several rounds share keeps that round while the form is filled in
+        public null|string $namedRoundId = null,
     ) {
     }
 

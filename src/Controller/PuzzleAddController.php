@@ -460,6 +460,8 @@ final class PuzzleAddController extends AbstractController
             $data->finishedAt,
             $data->isUnfinished(),
             $typedSeconds,
+            // Add to my profile: the entry's round is the one a puzzle several rounds share is recorded against
+            $officialEntry?->roundId,
         );
 
         if ($addTimeForm->isSubmitted() && $data->isUnfinished()) {
@@ -616,6 +618,8 @@ final class PuzzleAddController extends AbstractController
                         $duplicateConfirmed && $check->duplicates?->needsConfirmation() === true,
                         // Only an answer to a time the check raised is a confirmation
                         $paceCheck !== null && $paceConfirmed ? SuspiciousTimeFormCheck::confirmedExpectation($paceCheck->assessment) : null,
+                        // Add to my profile names the entry's round (checked again on this submit above)
+                        $officialEntry?->roundId,
                     ),
                     PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $groupPlayers, $teamName),
                     PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
@@ -828,6 +832,7 @@ final class PuzzleAddController extends AbstractController
         FirstTryResolution $firstTryResolution,
         bool $duplicateConfirmed,
         null|int $paceConfirmedExpectedSeconds,
+        null|string $officialRoundId,
     ): Response {
         assert($data->puzzle !== null);
 
@@ -862,6 +867,7 @@ final class PuzzleAddController extends AbstractController
                     stopwatchId: $stopwatchId,
                     seriesId: $competitionPick?->seriesId(),
                     finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
+                    roundId: $officialRoundId,
                 ),
             );
 
@@ -893,6 +899,9 @@ final class PuzzleAddController extends AbstractController
                 paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
                 seriesId: $competitionPick?->seriesId(),
                 finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
+                // "Add to my profile": the official entry's round, so a puzzle several rounds share is filed in this one
+                // (shared-puzzles-and-divisions.md §2.4 row 4) - its competition is the round's, the form's pick
+                roundId: $officialRoundId,
             ),
         );
 

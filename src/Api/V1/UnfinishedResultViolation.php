@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 use ApiPlatform\Validator\Exception\ValidationException;
 use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
+use SpeedPuzzling\Web\Exceptions\UnfinishedResultRoundNotIdentified;
 use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
 use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -21,6 +22,10 @@ final class UnfinishedResultViolation
     public static function from(null|\Throwable $refusal): null|ValidationException
     {
         return match (true) {
+            $refusal instanceof UnfinishedResultRoundNotIdentified => self::violation(
+                'pieces_placed',
+                'This puzzle is in several rounds of this event for solo/duo/team and nothing about the result names one - name the round with round_id.',
+            ),
             $refusal instanceof UnfinishedResultNeedsTimeLimit => self::violation(
                 'pieces_placed',
                 'pieces_placed needs a competition round with a time limit for this puzzle and solo/duo/team - name its event with round_id, competition_id or series_id (a series counts when its edition is found by the puzzle).',

@@ -36,6 +36,7 @@ use SpeedPuzzling\Web\Services\UnfinishedResults\UnfinishedResultRound;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\SolvingTimeRoundEvidence;
 use SpeedPuzzling\Web\Value\UnfinishedResult;
 use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -125,6 +126,18 @@ readonly final class EditUnfinishedPuzzleSolvingTimeHandler
             puzzleId: $puzzle->id->toString(),
             puzzlingType: PuzzlingType::fromPuzzlersCount($puzzlersCount),
             solveDay: $solveDay,
+            // What the result is saved with below - a puzzle in several rounds of the category is placed by it, and a
+            // round the player named stays theirs while it is a candidate
+            evidence: new SolvingTimeRoundEvidence(
+                ownerId: $solvingTime->player?->id->toString(),
+                team: $group,
+                seconds: null,
+                piecesPlaced: $message->piecesPlaced,
+                // The day the edited row will know (modify() makes a changed day exact)
+                solveDay: $solvingTime->hasExactDay() || $dayChanges ? $finishedAt : null,
+                trackedAt: $solvingTime->trackedAt,
+                createdVia: $solvingTime->createdVia,
+            ),
         );
 
         $totalTime = $message->totalTime !== null ? SolvingTime::fromUserInput($message->totalTime) : null;
@@ -225,7 +238,7 @@ readonly final class EditUnfinishedPuzzleSolvingTimeHandler
             $solvingTime->seriesEditionResolved($event->competition, $event->seriesEditionMatch);
         }
 
-        $solvingTime->changeCompetitionRound($event->round);
+        $solvingTime->roundResolved($event->round, $event->roundChosen);
 
         $this->solvingTimePredictor->reconstructIfPending($solvingTime);
 

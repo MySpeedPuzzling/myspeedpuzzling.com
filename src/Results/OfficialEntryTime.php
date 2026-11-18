@@ -37,6 +37,9 @@ readonly final class OfficialEntryTime
         public array $memberChoices = [],
         // The pieces placed when the round's time ran out - the form opens with "I didn't finish within the time limit" on
         public null|int $piecesPlaced = null,
+        // The entry's round - the save names it (AddPuzzleSolvingTime::$roundId), so a puzzle several rounds share is
+        // filed in this one (docs/features/competitions-management/shared-puzzles-and-divisions.md §2.4 row 4)
+        public null|string $roundId = null,
     ) {
     }
 

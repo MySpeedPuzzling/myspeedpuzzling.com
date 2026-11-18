@@ -27,6 +27,8 @@ export default class extends Controller {
         hintUrl: String,
         round: Object,
         piecesTotal: { type: Number, default: 0 },
+        // The round the form names (Add to my profile's entry, the edited result's round) - asked with every hint
+        namedRound: { type: String, default: '' },
         texts: Object,
     };
 
@@ -130,6 +132,10 @@ export default class extends Controller {
 
         if (date && date.value) {
             params.set('date', date.value);
+        }
+
+        if (this.namedRoundValue) {
+            params.set('round', this.namedRoundValue);
         }
 
         return params.toString();

@@ -14,14 +14,15 @@ use SpeedPuzzling\Web\Value\StandingEntrant;
  * Rows keep the internal `key` (participant / line-up id) for the display's opaque row keys and a future grouping - it
  * is never rendered: PublicStandingJson is the whitelist of what leaves the server. Statuses are the calculator's values,
  * passed through as they are (a status added later needs no change here). A `stages` standing (competition toolkit v2
- * S5) adds `numberedAcrossStages` and its rows' stage fields - a `sum` snapshot has none of them. A standing limited to
- * one division (real events L2a) adds `division` {name, shortName}.
+ * S5) adds `numberedAcrossStages`, `stagesClassified` + `stagesTotal` (the displays' "after 1 of 2 stages", v2 S5b)
+ * and its rows' stage fields - a `sum` snapshot has none of them. A standing limited to one division (real events L2a)
+ * adds `division` {name, shortName}.
  *
  * @phpstan-type SnapshotEntrant array{name: string, country: null|string, playerCode: null|string}
  * @phpstan-type SnapshotScore array{roundId: string, status: string, scoreSeconds: null|int, timeSeconds: null|int, missingPieces: int, penaltySeconds: int, rank: null|int, result: null|array{seconds: null|int, piecesPlaced: null|int}}
  * @phpstan-type SnapshotRow array{key: string, rank: null|int, complete: bool, name: string, countries: list<string>, entrants: list<SnapshotEntrant>, totalSeconds: int, totalTimeSeconds: int, totalMissingPieces: int, totalPenaltySeconds: int, roundsScored: int, roundsFinished: int, perRound: list<SnapshotScore>, stage?: int, stageName?: null|string, stageRoundId?: null|string, stageRank?: null|int, qualifiedForStage?: bool}
  * @phpstan-type SnapshotRound array{id: string, name: string, slug: null|string, minutesLimit: null|int, published: bool, counted: bool}
- * @phpstan-type SnapshotData array{competitionId: string, standingId: string, name: string, slug: string, category: string, mode: string, numberedAcrossStages?: bool, division?: array{name: string, shortName: null|string}, published: bool, position: int, rules: array{penaltySecondsPerPiece: int, order: string, missing: string, penaliseFinishedMissing: bool}, provisional: bool, roundsCounted: int, roundsTotal: int, eventSlug: null|string, seriesSlug: null|string, rounds: list<SnapshotRound>, rows: list<SnapshotRow>, generatedAtMs: int}
+ * @phpstan-type SnapshotData array{competitionId: string, standingId: string, name: string, slug: string, category: string, mode: string, numberedAcrossStages?: bool, division?: array{name: string, shortName: null|string}, published: bool, position: int, rules: array{penaltySecondsPerPiece: int, order: string, missing: string, penaliseFinishedMissing: bool}, provisional: bool, stagesClassified?: int, stagesTotal?: int, roundsCounted: int, roundsTotal: int, eventSlug: null|string, seriesSlug: null|string, rounds: list<SnapshotRound>, rows: list<SnapshotRow>, generatedAtMs: int}
  */
 readonly final class PublicStandingSnapshot
 {
@@ -61,6 +62,7 @@ readonly final class PublicStandingSnapshot
             ...self::headData($head),
             'published' => true,
             'provisional' => $table->isProvisional(),
+            ...($table->table->stages !== null ? ['stagesClassified' => $table->table->stagesClassified(), 'stagesTotal' => $table->table->stagesTotal()] : []),
             'roundsCounted' => $table->roundsCounted(),
             'roundsTotal' => $table->roundsTotal(),
             'rounds' => array_map(static fn (StandingRoundColumn $round): array => [

@@ -19,14 +19,15 @@ use SpeedPuzzling\Web\Services\Standings\PublicStandingSnapshots;
  * - Rows cut to the element's `rows`; a row's `key` is opaque per display (an HMAC keyed with the token, like the
  *   results rows) - no participant, line-up or player id leaves the server, no #code either.
  * - A `stages` standing's rows (competition toolkit v2 S5) add `stage`, `stageName` (the renderer's `stage` column) and
- *   `stageRank` (the place in its round there); a `sum` standing's rows have none.
+ *   `stageRank` (the place in its round there); the standing adds `stages` (classified, total, numbered - its subtitle
+ *   "after 1 of 2 stages" and its place column, v2 S5b). A `sum` standing and its rows have none.
  * - **A standings failure never blanks the timer**: everything sits in one try/catch → every element null + a warning.
  *
  * Statements: warm 0 (snapshot + list cached per generation); cold: the list (1, only for `auto`), a snapshot (≤ 4).
  * No instance state (readonly).
  *
  * @phpstan-type DisplayStandingRow array{key: string, rank: null|int, complete: bool, name: string, members: list<string>, countries: list<string>, totalSeconds: int, totalTimeSeconds: int, totalMissingPieces: int, totalPenaltySeconds: int, roundsScored: int, perRound: list<array{status: string, scoreSeconds: null|int, missingPieces: int}>, stage?: int, stageName?: string, stageRank?: null|int}
- * @phpstan-type DisplayStanding array{name: string, category: string, provisional: bool, final: bool, roundsCounted: int, roundsTotal: int, rounds: list<array{name: string, counted: bool}>, rows: list<DisplayStandingRow>}
+ * @phpstan-type DisplayStanding array{name: string, category: string, provisional: bool, final: bool, roundsCounted: int, roundsTotal: int, stages?: array{classified: int, total: int, numbered: bool}, rounds: list<array{name: string, counted: bool}>, rows: list<DisplayStandingRow>}
  */
 final readonly class DisplayStandings
 {
@@ -151,6 +152,12 @@ final readonly class DisplayStandings
             'final' => !$data['provisional'],
             'roundsCounted' => $data['roundsCounted'],
             'roundsTotal' => $data['roundsTotal'],
+            // `stages` only (v2 S5b) - a sum's state stays as it was; a snapshot cached before S5b counts no stage yet
+            ...(isset($data['numberedAcrossStages']) ? ['stages' => [
+                'classified' => $data['stagesClassified'] ?? 0,
+                'total' => $data['stagesTotal'] ?? 0,
+                'numbered' => $data['numberedAcrossStages'],
+            ]] : []),
             'rounds' => array_map(static fn (array $round): array => [
                 'name' => $round['name'],
                 'counted' => $round['counted'],

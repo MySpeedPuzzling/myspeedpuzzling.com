@@ -415,10 +415,45 @@ export function standingScoreText(score) {
 }
 
 /**
- * "5 of 6 rounds" under an incomplete row's name (listed after everybody, without a rank).
+ * A `stages` standing (competition toolkit v2 S5b): the final classification across the bracket - `stages` holds
+ * how many stages are classified, of how many, and whether everybody is numbered across them. A sum has none.
+ */
+export function isStagesStanding(standing) {
+    return standing !== null && typeof standing === 'object' && standing.stages !== null && typeof standing.stages === 'object';
+}
+
+/**
+ * A row's place as the public page shows it: numbered across the stages = the number (`rank`), else the place in its
+ * stage's round (`stageRank`); a "qualified for" row has none. A sum row: its rank. The podium only in the last stage.
+ */
+export function standingPlace(row, standing) {
+    if (!isStagesStanding(standing)) {
+        const rank = typeof row.rank === 'number' ? row.rank : null;
+
+        return { place: rank, podium: rank !== null && rank <= 3 };
+    }
+
+    const place = standing.stages.numbered === true ? row.rank : row.stageRank;
+    const known = typeof place === 'number' ? place : null;
+
+    return { place: known, podium: known !== null && known <= 3 && row.stage === number(standing.stages.total, 0) };
+}
+
+/**
+ * "after 1 of 2 stages" (a `stages` standing's provisional subtitle) - '' while its stages clash (none).
+ */
+export function standingStagesText(standing, texts) {
+    const total = number(standing.stages?.total, 0);
+
+    return total > 0 ? template(texts.standingStagesOf ?? '%counted% / %count%', { '%counted%': number(standing.stages.classified, 0), '%count%': total }) : '';
+}
+
+/**
+ * "5 of 6 rounds" under an incomplete row's name (listed after everybody, without a rank). A `stages` row is never
+ * "incomplete" - one without a place is qualified or has no ranked result in its round.
  */
 export function standingIncompleteText(row, standing, texts) {
-    if (row.complete !== false) {
+    if (row.complete !== false || isStagesStanding(standing)) {
         return '';
     }
 
@@ -1235,7 +1270,9 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         const texts = state.texts ?? {};
         const standing = standingFor(element, state);
         const rows = standing !== null ? standing.rows.slice(0, props.rows) : [];
-        const rounds = standing !== null && Array.isArray(standing.rounds) ? standing.rounds : [];
+        const stages = isStagesStanding(standing);
+        // A `stages` row holds its stage round only - no column per round (the public page has none either)
+        const rounds = standing !== null && !stages && Array.isArray(standing.rounds) ? standing.rounds : [];
         const columns = props.columns;
         const emptyText = props.whenEmpty === 'text' ? (props.emptyText ?? '') : '';
         const showEmpty = (standing === null || rows.length === 0) && emptyText !== '';
@@ -1249,11 +1286,14 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         if (showTitle) {
             setText(view, 'name', view.refs.name, typeof standing.name === 'string' ? standing.name : '');
             const provisional = standing.final !== true;
-            // "Provisional" as a badge, then "2 of 6 rounds"; a final standing says "Final - all 6 rounds"
+            // "Provisional" as a badge, then "2 of 6 rounds" ("after 1 of 2 stages" - a `stages` one); a final standing
+            // says "Final - all 6 rounds" (as the public page does for both)
             const badge = provisional ? (texts.standingProvisional ?? '') : '';
-            const rest = provisional
-                ? template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(standing.roundsCounted, 0), '%count%': number(standing.roundsTotal, 0) })
-                : standingSubtitle(standing, texts);
+            const rest = !provisional
+                ? standingSubtitle(standing, texts)
+                : (stages
+                    ? standingStagesText(standing, texts)
+                    : template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(standing.roundsCounted, 0), '%count%': number(standing.roundsTotal, 0) }));
             setText(view, 'badge', view.refs.badge, badge);
             view.refs.badge.style.display = badge !== '' ? '' : 'none';
             setStyle(view.refs.badge, 'backgroundColor', accent());
@@ -1315,11 +1355,11 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                     node.textContent = value;
                 }
             };
-            const rank = typeof row.rank === 'number' ? row.rank : null;
+            const { place, podium: onPodium } = standingPlace(row, standing);
 
             if (cells.rank) {
-                set('rank', cells.rankPill, rank !== null ? String(rank) : '–');
-                const podium = rank !== null && rank <= 3 ? `msp-standings__rank msp-standings__rank--${rank}` : 'msp-standings__rank';
+                set('rank', cells.rankPill, place !== null ? String(place) : '–');
+                const podium = onPodium ? `msp-standings__rank msp-standings__rank--${place}` : 'msp-standings__rank';
 
                 if (cells.rankPill.className !== podium) {
                     cells.rankPill.className = podium;
@@ -1345,7 +1385,11 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
 
             set('name', cells.nameText, typeof row.name === 'string' ? row.name : '');
             const members = columns.includes('members') && Array.isArray(row.members) ? row.members.filter((name) => typeof name === 'string').join(', ') : '';
-            const sub = [members, standingIncompleteText(row, standing, texts)].filter((part) => part !== '').join(' · ');
+            // Without the stage column a `stages` standing names each stage on its first row
+            const stageLabel = stages && !cells.stage && typeof row.stageName === 'string' && (index === 0 || rows[index - 1]?.stageName !== row.stageName)
+                ? row.stageName
+                : '';
+            const sub = [stageLabel, members, standingIncompleteText(row, standing, texts)].filter((part) => part !== '').join(' · ');
             set('sub', cells.sub, sub);
             cells.sub.style.display = sub === '' ? 'none' : '';
 
@@ -1361,7 +1405,9 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
 
             if (cells.total) {
                 set('total', cells.totalText, standingTotalText(row));
-                const missing = columns.includes('missing') ? standingMissingText(row, texts) : '';
+                // Numbered across the stages: the place in the own round under the result, "(3.)" as on the public page
+                const roundPlace = stages && standing.stages.numbered === true && typeof row.stageRank === 'number' ? `(${row.stageRank}.)` : '';
+                const missing = [columns.includes('missing') ? standingMissingText(row, texts) : '', roundPlace].filter((part) => part !== '').join(' · ');
                 set('missing', cells.missing, missing);
                 cells.missing.style.display = missing === '' ? 'none' : '';
             }

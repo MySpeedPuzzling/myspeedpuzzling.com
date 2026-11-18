@@ -10,7 +10,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\RoundIsNoCandidateOfSolvingTime;
-use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultRoundNotIdentified;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddUnfinishedPuzzleSolvingTime;
@@ -148,9 +147,8 @@ final class SharedPuzzleExplicitRoundTest extends KernelTestCase
             $this->addUnfinished(userId: self::OTHER_USER, timeId: $timeId->toString());
             self::fail('Expected a refusal');
         } catch (HandlerFailedException $exception) {
+            // A subclass of UnfinishedResultNeedsTimeLimit: every existing catch of "no round with a limit" still catches it
             self::assertInstanceOf(UnfinishedResultRoundNotIdentified::class, $exception->getPrevious());
-            // Every existing catch of "no round with a limit" still catches it
-            self::assertInstanceOf(UnfinishedResultNeedsTimeLimit::class, $exception->getPrevious());
         }
 
         self::assertFalse($this->database->fetchOne('SELECT 1 FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId->toString()]));
@@ -194,11 +192,12 @@ final class SharedPuzzleExplicitRoundTest extends KernelTestCase
     {
         $timeId = $this->insertTime(owner: self::OTHER, category: 'solo');
 
+        // An HTTP exception (403) - UnwrapHttpExceptionMiddleware hands it over unwrapped
         try {
             $this->messageBus->dispatch(new ChooseSolvingTimeRound($timeId, self::MORNING, self::OWNER));
             self::fail('Expected a refusal');
-        } catch (HandlerFailedException $exception) {
-            self::assertInstanceOf(CanNotModifyOtherPlayersTime::class, $exception->getPrevious());
+        } catch (CanNotModifyOtherPlayersTime $refusal) {
+            self::assertSame(403, $refusal->getStatusCode());
         }
 
         self::assertSame(['round' => null, 'chosen' => false], $this->stored($timeId));

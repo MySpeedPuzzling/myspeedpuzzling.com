@@ -124,7 +124,7 @@ readonly final class UnfinishedResultHint
                     );
                     $event = $named->roundChosen && $named->competition->id->toString() === strtolower($competitionId) ? $named : null;
                 } catch (UnfinishedResultNeedsTimeLimit | CompetitionRoundNotFound) {
-                    $event = null;
+                    // $event stays null - the pick below decides
                 }
             }
 
@@ -183,7 +183,7 @@ SQL,
         );
 
         $limits = array_values(array_unique(array_map(static fn (array $round): null|int => $round['minutes_limit'] !== null ? (int) $round['minutes_limit'] : null, $rounds)));
-        $limit = count($limits) === 1 ? $limits[0] ?? null : null;
+        $limit = count($limits) === 1 ? $limits[0] : null;
 
         if (count($rounds) < 2 || $limit === null || array_any($rounds, static fn (array $round): bool => $round['hides'])) {
             return null;

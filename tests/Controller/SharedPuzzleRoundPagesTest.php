@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -221,13 +222,23 @@ final class SharedPuzzleRoundPagesTest extends WebTestCase
         $query = ['competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'puzzle' => PuzzleFixture::PUZZLE_1000_05, 'puzzlers' => '1', 'date' => '05.10.2026'];
 
         // Two limits, nothing named: no question
-        $browser->request('GET', '/en/solving-time-round-hint?' . http_build_query($query));
-        self::assertSame(['round' => null], json_decode((string) $browser->getResponse()->getContent(), true));
+        self::assertSame(['round' => null], $this->hint($browser, $query));
 
-        $browser->request('GET', '/en/solving-time-round-hint?' . http_build_query([...$query, 'round' => OfficialResultsFixture::ROUND_GROUP_A]));
-        $answer = json_decode((string) $browser->getResponse()->getContent(), true);
-        self::assertIsArray($answer);
-        self::assertSame(['name' => 'Group A', 'minutesLimit' => 90, 'category' => 'solo'], $answer['round']);
+        self::assertSame(
+            ['round' => ['name' => 'Group A', 'minutesLimit' => 90, 'category' => 'solo']],
+            $this->hint($browser, [...$query, 'round' => OfficialResultsFixture::ROUND_GROUP_A]),
+        );
+    }
+
+    /**
+     * @param array<string, string> $query
+     */
+    private function hint(KernelBrowser $browser, array $query): mixed
+    {
+        $browser->request('GET', '/en/solving-time-round-hint?' . http_build_query($query));
+        self::assertResponseIsSuccessful();
+
+        return json_decode((string) $browser->getResponse()->getContent(), true);
     }
 
     public function testARefusedChoiceInsideTheModalIsSaidNextToThePicker(): void

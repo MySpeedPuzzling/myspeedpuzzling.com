@@ -4311,6 +4311,10 @@ qr_code:
       saved_off: "Toto kolo už není bez krabice."
       confirm_off: "Obrázky puzzlí tohoto kola se zobrazí při jejich běžném odhalení – ihned, pokud už nastalo. Pokračovat?"
       badge: "Bez krabice"
+    shared_notice: "Použito také v %rounds% - časy se ke kolu přiřazují podle záznamu každého hráče; hráči si mohou kolo vybrat u svého výsledku."
+    shared_with: "Stejné puzzle jako %rounds%"
+    shared_hide_differs: "Tato kola drží puzzle v tajnosti různě. Dokud ho některé z nich ještě tají na celém webu, zůstává skryté i všude jinde; kolo, které ho odhalí, ho ukáže jen na stránkách své akce."
+    already_in_round: "Toto puzzle už je v kole %round% - kolo obsahuje každé puzzle jen jednou."
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Držet puzzle v tajnosti až do odhalení"

@@ -4237,6 +4237,10 @@ fair_use_policy:
       saved_off: "Esta ronda ya no es sin caja."
       confirm_off: "Las imágenes de los puzzles de esta ronda se mostrarán en su revelación normal, de inmediato si ya pasó. ¿Continuar?"
       badge: "Sin caja"
+    shared_notice: "También se usa en %rounds%: los tiempos se asignan a la ronda según la inscripción de cada jugador; los jugadores pueden elegir la ronda en su resultado."
+    shared_with: "El mismo puzzle que %rounds%"
+    shared_hide_differs: "Estas rondas mantienen este puzzle en secreto de forma distinta. Mientras alguna lo mantenga en secreto en todo el sitio, seguirá oculto en todas partes; una ronda que lo revela solo lo muestra en las páginas de su evento."
+    already_in_round: "Este puzzle ya está en %round%: una ronda incluye cada puzzle una sola vez."
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Mantener este puzzle en secreto hasta que se revele"

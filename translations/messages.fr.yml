@@ -4303,6 +4303,10 @@ competition:
       saved_off: "Cette manche n'est plus sans boîte."
       confirm_off: "Les images des puzzles de cette manche seront affichées à leur dévoilement normal – tout de suite s'il est passé. Continuer ?"
       badge: "Sans boîte"
+    shared_notice: "Aussi utilisé dans %rounds% - les temps sont rattachés à la manche selon l'inscription de chaque joueur ; les joueurs peuvent choisir la manche sur leur résultat."
+    shared_with: "Même puzzle que %rounds%"
+    shared_hide_differs: "Ces manches gardent ce puzzle secret différemment. Tant que l'une d'elles le garde secret sur tout le site, il reste caché partout ailleurs aussi ; une manche qui le révèle ne le montre que sur les pages de son événement."
+    already_in_round: "Ce puzzle est déjà dans %round% - une manche contient chaque puzzle une seule fois."
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Garder ce puzzle secret jusqu’à sa révélation"

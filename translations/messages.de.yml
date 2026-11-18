@@ -4236,6 +4236,10 @@ qr_code:
       saved_off: "Diese Runde ist nicht mehr ohne Schachtelbild."
       confirm_off: "Die Bilder der Puzzles dieser Runde werden zur normalen Enthüllung angezeigt – sofort, wenn sie schon vorbei ist. Fortfahren?"
       badge: "Ohne Schachtelbild"
+    shared_notice: "Auch verwendet in %rounds% - Zeiten werden der Runde über den Eintrag jedes Spielers zugeordnet; Spieler können die Runde bei ihrem Ergebnis wählen."
+    shared_with: "Gleiches Puzzle wie %rounds%"
+    shared_hide_differs: "Diese Runden halten das Puzzle unterschiedlich geheim. Solange eine davon es noch auf der ganzen Website geheim hält, bleibt es auch überall sonst verborgen; eine Runde, die es enthüllt, zeigt es nur auf den Seiten ihrer Veranstaltung."
+    already_in_round: "Dieses Puzzle ist schon in %round% - eine Runde führt jedes Puzzle nur einmal."
   "round_puzzle":
     "form":
       "hide_until_round_starts": "Dieses Puzzle bis zur Enthüllung geheim halten"

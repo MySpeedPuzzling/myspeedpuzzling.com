@@ -155,10 +155,11 @@ keeps its version, so open displays do not reload.
   the default, plain texts (control characters removed, length capped). A style key (D §4.1 minus the cut fonts) is
   kept only with a valid value; missing = the theme's/type's default. There is no field for raw CSS, HTML, classes or
   URLs, except the event's own uploads and one `https://` QR link (≤ 300 characters).
-- **16 element types** (`DisplayDesignSanitizer::ELEMENT_TYPES`, props in `props()`; `standings` = v2 S2, below): `timer`, `status`, `progress`,
+- **19 element types** (`DisplayDesignSanitizer::ELEMENT_TYPES`, props in `props()`; `standings` = v2 S2, `message` /
+  `spotlight` = v2 L1/L2, `bracket` = v2 S6, below): `timer`, `status`, `progress`,
   `text`, `field`, `round_badge`, `image` (upload or the event/series/organization logo), `rotator` (≤ 30 pictures),
   `clock`, `puzzle` (+ `hiddenText`), `finished_count`, `leaderboard` (≤ 30 rows), `ticker` (latest finishers, ≤ 10,
-  list only), `qr`, `box`, `standings`. The results types (`RESULTS_TYPES`: `finished_count`, `leaderboard`, `ticker`) carry `source`
+  list only), `qr`, `box`, `standings`, `message`, `spotlight`, `bracket`. The results types (`RESULTS_TYPES`: `finished_count`, `leaderboard`, `ticker`) carry `source`
   published|live + `whenUnpublished` + `unpublishedText`; leaderboard + ticker the optional view keys `division` /
   `challenge` (leaderboard only) - below "Division and challenge views".
 - **Fonts (4):** `rubik`, `bebas`, `roboto_mono`, `courier_prime`. They are self-hosted woff2 latin + latin-ext
@@ -391,6 +392,48 @@ Design of record: `toolkit/` v2 note `displays-standings.md` §3.2. As built 202
   failure → null + warning), fixture cases `standings: …`, `DisplayDesignSanitizerTest::testStandingsDemand…`,
   render harness `standings: …` + XSS, editor harness sample standing.
 
+## Bracket element (competition toolkit v2 S6)
+
+Design of record: `toolkit/` v2 note `displays-standings.md` §3.3. As built 2026-11-18:
+
+- **Type `bracket`** (sanitizer + `schema.js` + fixture cases `bracket: …`): props `category` `auto|solo|duo|team`
+  (`auto`), `names` 0-8 per box (3), `status` (true), `boxColor` / `lineColor` / `highlightColor` (null = dark
+  translucent box, white 40 % lines, the theme's accent), `whenEmpty` `nothing|text`, `emptyText` ≤ 80. Not a results
+  type (no `source`: it names entrants of published rounds only), but `usesResults()` is true for a shown one;
+  `bracketDemand()` lists the shown ones.
+- **State** (`DisplayBracket`, called by `GetCompetitionDisplayState`): key `bracket: {elementId: bracket|null}` only
+  when a bracket element is shown. A bracket = `{category, stages [{rounds [{name, status, current, showsTop,
+  entrants [{rank, name, qualified}], more}]}], gaps [[{fromY, toY}]]}` - no ids. Built by `BracketLayout::of()` over
+  the rounds the display reads anyway (statement 2 - the same rounds in the same order as `GetBracketRounds`, so no
+  statement of its own) and the steps; a box names entrants only once its round is published: its qualified, or the
+  top 3 of a round that qualified nobody (`BracketRound::withEntrants()`), through `OfficialEntrantsView::forRounds(…,
+  null, asGuest: true)` (nobody hidden - the displays' exemption; private players by the organiser's name), cut to the
+  element's `names`, `more` = the rest. `auto` = the bracket of the shown round's category, else the first; a category
+  without a bracket, no steps or clashing steps → null → `whenEmpty`. Each box's `status` (`BracketRoundStatus`) is
+  computed on every state from the round's stopwatch; `current` = the round on screen.
+- **Cache**: pool `competition_standings_cache`, key `bracket_v1_{cid}_{generation}_{rounds fingerprint}` (the
+  standings generation - every step write is a new one; the fingerprint = each round's id, name, category, start and
+  published flag, so publishing a round shows its qualified on the next state), 15 s (`BRACKET_LIFETIME`): a results
+  edit inside a round already published heals within it when no published standing counts the round. The cache failing
+  = computed (a warning). One try/catch: a failure = every element null + a warning, the timer never blanks.
+  Statements: warm +0, cold ≤ +3 (steps, people, teams).
+- **Texts** (only with a bracket element): `bracketStatus` {upcoming, live, finished, published}, `bracketTop`,
+  `bracketMore` - the public bracket page's texts, no new translation.
+- **Renderer** (`render.js` `updateBracket()`, `bracketColumns()` / `bracketPath()` / `bracketEntrantText()`,
+  `msp-bracket__*` in `display.scss`): stage columns absolutely positioned (gaps ≤ 10 %), a box per round centred in an
+  equal slot of its column (as the public page: the connectors' y = (index + ½) / rounds × 1000), one SVG per gap with a
+  path per line (`preserveAspectRatio="none"`, non-scaling strokes), box = name, status line (live in the highlight
+  colour), "Top places" over a top-3 box, "1. Anna Fast ✓" lines, "+ N more"; the shown round's box gets the highlight
+  border. Built again only when the bracket, the props or the texts changed. Nothing and no own text = the element is
+  hidden entirely.
+- **Signals**: a step write → `standingsChanged()` → new generation + `display.signal` `what: standings`; a round's
+  publication → the `round` signal (new fingerprint); results → `results` signals.
+- **Editor**: catalogue group Results, a help line under Category; sample = 4 groups → 2 semifinals → the final
+  (`sampleBracket()`, names cut per element) with `config.bracketTexts` (`CompetitionDisplayPayload::bracketTexts()`).
+- Tests: `DisplayBracketTest`, fixture cases `bracket: …`, `DisplayDesignSanitizerTest::testBracketDemand…`, render
+  harness `bracket: …` + XSS, editor harness sample bracket, `PrivateProfileCanaryTest::testACompetitionDisplayBracket…`,
+  `DisplaySecretPuzzleTest::testABracketCarriesNoPuzzle`.
+
 ## Division and challenge views (real events L2b, 2026-11-18)
 
 A leaderboard or ticker can show **one view of the round** instead of all of it (designs of record:
@@ -495,9 +538,10 @@ Design: `displays-standings.md` §5 (v2 design note). **Message per event, spotl
 - Live control (v2 L1/L2) not walked in a browser yet (no-Docker mode) - phone 375 control page, 1920 overlay.
 - Editor v3 (E1 deferrals): copy/paste across displays, group/ungroup, Shift range-select and multi-reorder in the
   layers list, spacing hints between siblings, segment guides, rotation-aware bounds.
-- v2 (R §3): copy from another event, ticker marquee,
-  the bracket overlay element, scenes, animations, 4:3 and portrait
-  (the standings element is built - v2 S2 above).
+- v2 (R §3): copy from another event, ticker marquee, scenes, animations, 4:3 and portrait
+  (the standings element is built - v2 S2 above; the bracket element - v2 S6 above).
+- Bracket element (v2 S6) not walked in a browser yet (no-Docker mode) - a 1920 screen with a 3-stage bracket while
+  publishing rounds; not tried in OBS.
 
 ## Tests
 

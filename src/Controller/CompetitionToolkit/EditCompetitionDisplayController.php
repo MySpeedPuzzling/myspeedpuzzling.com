@@ -90,6 +90,8 @@ final class EditCompetitionDisplayController extends AbstractController
                 'divisions' => $resultsOptions['divisions'],
                 'challenges' => $resultsOptions['challenges'],
                 'standingTexts' => $this->competitionDisplayPayload->sampleStandingTexts($page['locale']),
+                // The bracket element's texts for the sample bracket (v2 S6), in the display's language
+                'bracketTexts' => $this->competitionDisplayPayload->bracketTexts($page['locale']),
                 'saveUrl' => $this->generateUrl('save_competition_display', ['displayId' => $display->id]),
                 'uploadUrl' => $this->generateUrl('upload_competition_display_image', ['displayId' => $display->id]),
                 'designUrl' => $this->generateUrl('competition_display_design', ['token' => $display->token]),

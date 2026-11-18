@@ -14,13 +14,16 @@ export const MAX_BYTES = 65536;
 
 export const ELEMENT_TYPES = [
     'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message', 'spotlight',
+    'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message', 'spotlight', 'bracket',
 ];
 // The standings element's columns (competition toolkit v2 S2) - `stage` shows only once a standing has stages
 export const STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
 export const RESULTS_TYPES = ['finished_count', 'leaderboard', 'ticker', 'spotlight'];
 // What the spotlight element shows of its entry (competition toolkit v2 L2)
 export const SPOTLIGHT_SHOW = ['table', 'name', 'members', 'flag', 'result', 'rank'];
+// Which bracket the bracket element shows (competition toolkit v2 S6) and the most names a box lists
+export const BRACKET_CATEGORIES = ['auto', 'solo', 'duo', 'team'];
+export const BRACKET_MAX_NAMES = 8;
 export const FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
 export const PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
 
@@ -194,6 +197,18 @@ export const PROP_SPECS = {
         { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
         { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
     ],
+    // The bracket of one category (competition toolkit v2 S6, displays-standings.md §3.3): stage columns, a box per round,
+    // the qualified of its published rounds - public data, so no `source`
+    bracket: [
+        { key: 'category', kind: 'enum', options: BRACKET_CATEGORIES, default: 'auto' },
+        { key: 'names', kind: 'int', min: 0, max: BRACKET_MAX_NAMES, default: 3 },
+        { key: 'status', kind: 'bool', default: true },
+        { key: 'boxColor', kind: 'color', default: null },
+        { key: 'lineColor', kind: 'color', default: null },
+        { key: 'highlightColor', kind: 'color', default: null },
+        { key: 'whenEmpty', kind: 'enum', options: ['nothing', 'text'], default: 'nothing' },
+        { key: 'emptyText', kind: 'text', max: 80, multiline: false, trim: true },
+    ],
 };
 
 const DEFAULT_BACKGROUND_COLOR = '#0d1017';
@@ -234,11 +249,12 @@ function isLive(element) {
     return RESULTS_TYPES.includes(element?.type) && element.props?.source === 'live';
 }
 
-// A result edit in a published round changes a published standing - its `results` signals must reach the display
+// A result edit in a published round changes a published standing (and a bracket's qualified) - its `results` signals
+// must reach the display
 export function usesResults(design) {
     return shownResultsElements(design).length > 0 || (Array.isArray(design?.elements) ? design.elements : []).some((element) => element !== null
         && typeof element === 'object'
-        && element.type === 'standings'
+        && (element.type === 'standings' || element.type === 'bracket')
         && element.hidden !== true
         && Array.isArray(element.when?.phases)
         && element.when.phases.length > 0);

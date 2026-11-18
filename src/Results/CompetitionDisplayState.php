@@ -33,6 +33,9 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
      * @param null|array{message: null|string, spotlight: null|DisplayResultRow} $control the live control (v2 L1/L2) -
      *                                                                                 null = no shown message / spotlight
      *                                                                                 element, the key is left out then
+     * @param null|array<string, null|array<string, mixed>> $bracket element id => the bracket it shows (DisplayBracket,
+     *                                                               v2 S6); null = no shown bracket element - the key is
+     *                                                               left out of the answer then
      */
     public function __construct(
         public string $displayId,
@@ -54,6 +57,7 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
         public null|string $roundSlug = null,
         public null|array $standings = null,
         public null|array $control = null,
+        public null|array $bracket = null,
     ) {
     }
 
@@ -86,6 +90,11 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
         // Only a design with a message / spotlight element has the key (v2 L1/L2)
         if ($this->control !== null) {
             $answer['control'] = $this->control;
+        }
+
+        // Only a design with a bracket element has the key (v2 S6)
+        if ($this->bracket !== null) {
+            $answer['bracket'] = $this->bracket === [] ? new \stdClass() : $this->bracket;
         }
 
         return $answer;

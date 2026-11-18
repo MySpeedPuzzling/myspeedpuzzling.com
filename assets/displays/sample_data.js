@@ -148,14 +148,52 @@ export function sampleStanding(name = 'Solo championship') {
 }
 
 /**
+ * A made-up 3-stage bracket (competition toolkit v2 S6): 4 groups → 2 semifinals → the final; the groups published
+ * (their qualified listed), the semifinals running and coming, the final upcoming - for every bracket element of the
+ * design. The names are cut to each element's `names`, as the server does.
+ */
+export function sampleBracket(names = 3) {
+    const cut = Math.max(0, Math.min(8, Number.isInteger(names) ? names : 3));
+    const group = (index) => {
+        const entrants = SAMPLE_NAMES.slice(index * 4, index * 4 + 4).map(([name], at) => ({ rank: at + 1, name, qualified: at < 2 }))
+            .filter((entrant) => entrant.qualified);
+
+        return {
+            name: `Group ${String.fromCharCode(65 + index)}`,
+            status: 'published',
+            current: false,
+            showsTop: false,
+            entrants: entrants.slice(0, cut),
+            more: Math.max(0, entrants.length - cut),
+        };
+    };
+    const box = (name, status, current = false) => ({ name, status, current, showsTop: false, entrants: [], more: 0 });
+
+    return {
+        category: 'solo',
+        stages: [
+            { rounds: [group(0), group(1), group(2), group(3)] },
+            { rounds: [box('Semifinal 1', 'live', true), box('Semifinal 2', 'upcoming')] },
+            { rounds: [box('Final', 'upcoming')] },
+        ],
+        // BracketLayout's lines: groups A + B → semifinal 1, C + D → semifinal 2, both semifinals → the final
+        gaps: [
+            [{ fromY: 125, toY: 250 }, { fromY: 375, toY: 250 }, { fromY: 625, toY: 750 }, { fromY: 875, toY: 750 }],
+            [{ fromY: 250, toY: 500 }, { fromY: 750, toY: 500 }],
+        ],
+    };
+}
+
+/**
  * The state the preview renders, and the "now" it renders at.
  * Options: mode ('sample' | 'display'), phase (PREVIEW_PHASES), published, revealed, nowMs, design (QR placeholders
  * for QR elements the server has not drawn yet), images (pictures uploaded in this session: path → URL), labels
  * ({round, category, puzzle, standing, message} for the sample round, puzzles, standing and live message), standingTexts (the standings
- * element's texts for the sample standing's numbers, in the display's language).
+ * element's texts for the sample standing's numbers, in the display's language), bracketTexts (the bracket element's
+ * texts in the display's language).
  */
 export function previewState(base, options) {
-    const { mode, phase, published, revealed, nowMs, design, images = {}, labels = {}, standingTexts = {} } = options;
+    const { mode, phase, published, revealed, nowMs, design, images = {}, labels = {}, standingTexts = {}, bracketTexts = {} } = options;
     const state = { ...base, images: { ...(base.images ?? {}), ...images }, qr: { ...(base.qr ?? {}) } };
 
     for (const element of design?.elements ?? []) {
@@ -193,6 +231,13 @@ export function previewState(base, options) {
         state.standings = Object.fromEntries(standings.map((element) => [element.id, sample]));
         // The display's language, for the sample's own numbers (the editor page's `standingTexts`)
         state.texts = { ...state.texts, ...standingTexts };
+    }
+
+    const brackets = (design?.elements ?? []).filter((element) => element.type === 'bracket');
+
+    if (brackets.length > 0) {
+        state.bracket = Object.fromEntries(brackets.map((element) => [element.id, sampleBracket(element.props?.names)]));
+        state.texts = { ...state.texts, ...bracketTexts };
     }
 
     // The live control (v2 L1/L2): a sample message and spotlight for message / spotlight elements - the organiser sets the real one on the

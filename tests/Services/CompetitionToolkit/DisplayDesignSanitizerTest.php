@@ -125,6 +125,32 @@ final class DisplayDesignSanitizerTest extends TestCase
     }
 
     /**
+     * Competition toolkit v2 S6: every shown bracket element asks for its category's bracket with its names per box; it
+     * is no results type (no live results, nothing for resultsDemand()), but a display with one hears the results signals.
+     */
+    public function testBracketDemandListsTheShownBracketElements(): void
+    {
+        $design = new DisplayDesignSanitizer()->normaliseArray([
+            'schema' => 1,
+            'elements' => [
+                ['id' => 'brack001', 'type' => 'bracket', 'frame' => []],
+                ['id' => 'brack002', 'type' => 'bracket', 'frame' => [], 'props' => ['category' => 'duo', 'names' => 20]],
+                ['id' => 'brack003', 'type' => 'bracket', 'frame' => [], 'hidden' => true],
+                ['id' => 'brack004', 'type' => 'bracket', 'frame' => [], 'when' => ['phases' => []]],
+            ],
+        ], '018d0004-0000-0000-0000-00000000c0de');
+
+        self::assertSame([
+            'brack001' => ['category' => 'auto', 'names' => 3],
+            'brack002' => ['category' => 'duo', 'names' => 8],
+        ], DisplayDesignSanitizer::bracketDemand($design));
+        self::assertSame([], DisplayDesignSanitizer::resultsDemand($design));
+        self::assertSame([], DisplayDesignSanitizer::standingsDemand($design));
+        self::assertTrue(DisplayDesignSanitizer::usesResults($design));
+        self::assertFalse(DisplayDesignSanitizer::usesLiveResults($design));
+    }
+
+    /**
      * Real events L2b: a leaderboard/ticker showing a division or a challenge gets rows of its own (resultsViews) and
      * asks nothing of the whole round's rows (resultsDemand); a design without one has no views.
      */

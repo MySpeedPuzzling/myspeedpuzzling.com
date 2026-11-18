@@ -12,8 +12,8 @@ use stdClass;
 /**
  * The boundary of a display design - schema v1 (docs/features/competitions-management/toolkit/D-displays-overlays.md
  * §4, §4.1, §5 with the v1 cuts of R-review-and-plan.md §3: 4 fonts) + the `standings` element of competition toolkit
- * v2 S2 (displays-standings.md §3.2) and the live control's `message` / `spotlight` elements (v2 L1/L2,
- * displays-standings.md §5.2).
+ * v2 S2 (displays-standings.md §3.2), the live control's `message` / `spotlight` elements (v2 L1/L2,
+ * displays-standings.md §5.2) and the `bracket` element (v2 S6, displays-standings.md §3.3).
  *
  * A strict whitelist: only the known element types, keys and value ranges come out; there is no field for raw CSS,
  * HTML, SVG, classes or URLs except this event's own uploaded pictures and one https link for a QR code.
@@ -37,7 +37,7 @@ final readonly class DisplayDesignSanitizer
 
     public const array ELEMENT_TYPES = [
         'timer', 'status', 'progress', 'text', 'field', 'round_badge', 'image', 'rotator', 'clock', 'puzzle',
-        'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message', 'spotlight',
+        'finished_count', 'leaderboard', 'ticker', 'qr', 'box', 'standings', 'message', 'spotlight', 'bracket',
     ];
 
     /** Elements that show official results - each has a `source` (published | live) */
@@ -54,6 +54,12 @@ final readonly class DisplayDesignSanitizer
 
     /** Columns of the standings element (competition toolkit v2 S2) - `stage` shows only once a standing has stages */
     public const array STANDINGS_COLUMNS = ['rank', 'flag', 'name', 'members', 'total', 'rounds', 'missing', 'stage'];
+
+    /** Which bracket the bracket element shows (competition toolkit v2 S6): the shown round's category's, or one category's */
+    public const array BRACKET_CATEGORIES = ['auto', 'solo', 'duo', 'team'];
+
+    /** The most names a box of the bracket element lists (competition toolkit v2 S6) */
+    public const int BRACKET_MAX_NAMES = 8;
 
     public const array FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
     public const array PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
@@ -109,8 +115,39 @@ final readonly class DisplayDesignSanitizer
             return true;
         }
 
-        // A result edit in a published round changes a published standing - its `results` signals must reach the display
-        return self::standingsDemand($design) !== [];
+        // A result edit in a published round changes a published standing (and a bracket's qualified) - its `results`
+        // signals must reach the display
+        return self::standingsDemand($design) !== [] || self::bracketDemand($design) !== [];
+    }
+
+    /**
+     * The shown bracket elements (competition toolkit v2 S6, displays-standings.md §3.3) - each gets its bracket in the
+     * display's state. Not a results type: the bracket names entrants of published rounds only (public data), so it has
+     * no `source` and never asks for live results.
+     *
+     * @param array<string, mixed> $design a normalised design
+     * @return array<string, array{category: string, names: int}> element id => what it shows
+     */
+    public static function bracketDemand(array $design): array
+    {
+        $demand = [];
+
+        foreach (self::shownElementsOfType($design, 'bracket') as $element) {
+            if (!is_string($element['id'] ?? null)) {
+                continue;
+            }
+
+            $props = is_array($element['props'] ?? null) ? $element['props'] : [];
+            $category = $props['category'] ?? null;
+            $names = $props['names'] ?? null;
+
+            $demand[$element['id']] = [
+                'category' => is_string($category) && in_array($category, self::BRACKET_CATEGORIES, true) ? $category : 'auto',
+                'names' => is_int($names) ? max(0, min(self::BRACKET_MAX_NAMES, $names)) : 3,
+            ];
+        }
+
+        return $demand;
     }
 
     /**
@@ -762,6 +799,18 @@ final readonly class DisplayDesignSanitizer
                 'pick' => self::enum(self::get($input, 'pick'), ['chosen', 'latest_finisher'], 'chosen'),
                 'show' => self::subset(self::get($input, 'show'), self::SPOTLIGHT_SHOW, ['table', 'name', 'flag', 'result']),
                 ...self::resultsSource($input),
+                'whenEmpty' => self::enum(self::get($input, 'whenEmpty'), ['nothing', 'text'], 'nothing'),
+                'emptyText' => self::plain(self::get($input, 'emptyText'), 80, multiline: false, trim: true),
+            ],
+            // The bracket of one category (competition toolkit v2 S6): stage columns, a box per round, the qualified of
+            // its published rounds - public data, so no `source`
+            'bracket' => [
+                'category' => self::enum(self::get($input, 'category'), self::BRACKET_CATEGORIES, 'auto'),
+                'names' => self::integer(self::get($input, 'names'), 0, self::BRACKET_MAX_NAMES, 3),
+                'status' => self::boolean(self::get($input, 'status'), true),
+                'boxColor' => self::color(self::get($input, 'boxColor')),
+                'lineColor' => self::color(self::get($input, 'lineColor')),
+                'highlightColor' => self::color(self::get($input, 'highlightColor')),
                 'whenEmpty' => self::enum(self::get($input, 'whenEmpty'), ['nothing', 'text'], 'nothing'),
                 'emptyText' => self::plain(self::get($input, 'emptyText'), 80, multiline: false, trim: true),
             ],

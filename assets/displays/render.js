@@ -33,12 +33,18 @@ export const FONT_STACKS = {
 
 const DEFAULT_FONT_SIZES = {
     timer: 160, status: 48, progress: 32, text: 48, field: 48, round_badge: 40, image: 32, rotator: 32, clock: 64,
-    puzzle: 32, finished_count: 40, leaderboard: 32, ticker: 28, qr: 32, box: 32, standings: 30,
+    puzzle: 32, finished_count: 40, leaderboard: 32, ticker: 28, qr: 32, box: 32, standings: 30, bracket: 22,
 };
 
 // A standings row's background when the design gives none - readable over a stream's video and on a hall screen
 const STANDINGS_ROW_BACKGROUND = '#0d1017cc';
 const STANDINGS_ROW_ALT_BACKGROUND = '#161b26cc';
+// A bracket box's background and line colour when the design gives none
+const BRACKET_BOX_BACKGROUND = '#0d1017cc';
+const BRACKET_LINE_COLOR = '#ffffff66';
+const BRACKET_STATUSES = ['upcoming', 'live', 'finished', 'published'];
+// The connectors' viewBox height (BracketConnector::HEIGHT) - a box's middle is (index + ½) / rounds × 1000
+const BRACKET_LINE_HEIGHT = 1000;
 
 const SHADOWS = {
     soft: '0 2px 8px rgba(0,0,0,0.5)',
@@ -460,6 +466,64 @@ export function standingIncompleteText(row, standing, texts) {
     return template(texts.standingRoundsOf ?? '%scored% / %count%', { '%scored%': number(row.roundsScored, 0), '%count%': number(standing.roundsCounted, 0) });
 }
 
+// ---- bracket (competition toolkit v2 S6)
+
+/**
+ * The bracket the element shows - null = nothing (the element's `whenEmpty`).
+ */
+export function bracketFor(element, state) {
+    const bracket = state.bracket?.[element.id] ?? null;
+
+    return bracket !== null && typeof bracket === 'object' && Array.isArray(bracket.stages) && bracket.stages.length > 0 ? bracket : null;
+}
+
+/**
+ * Where the stage columns and the line gaps between them sit, in % of the element's width: equal columns, a gap of
+ * at most 10 % between neighbours (narrower with many stages).
+ */
+export function bracketColumns(stageCount) {
+    const count = Math.max(1, Math.floor(number(stageCount, 1)));
+    const gap = count > 1 ? Math.min(10, 30 / (count - 1)) : 0;
+    const width = (100 - gap * (count - 1)) / count;
+    const round2 = (value) => Math.round(value * 100) / 100;
+
+    return Array.from({ length: count }, (_, index) => ({
+        left: round2(index * (width + gap)),
+        width: round2(width),
+        gapLeft: round2(index * (width + gap) + width),
+        gapWidth: index < count - 1 ? round2(gap) : 0,
+    }));
+}
+
+/**
+ * A line of the bracket in its gap's viewBox (0-100 × 0-1000): a soft S-curve from a source box's middle to a target
+ * box's middle - BracketConnector::path(). Null for anything that is not two numbers in range.
+ */
+export function bracketPath(line) {
+    const fromY = line?.fromY;
+    const toY = line?.toY;
+    const valid = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= BRACKET_LINE_HEIGHT;
+
+    if (!valid(fromY) || !valid(toY)) {
+        return null;
+    }
+
+    const from = Math.round(fromY);
+    const to = Math.round(toY);
+
+    return `M0 ${from} C50 ${from} 50 ${to} 100 ${to}`;
+}
+
+/**
+ * One entrant line of a box: "1. Anna Fast" (the qualified mark is drawn apart).
+ */
+export function bracketEntrantText(entrant) {
+    const name = typeof entrant?.name === 'string' ? entrant.name : '';
+    const rank = typeof entrant?.rank === 'number' && Number.isFinite(entrant.rank) ? `${Math.round(entrant.rank)}. ` : '';
+
+    return name === '' ? '' : `${rank}${name}`;
+}
+
 // ---- live control (competition toolkit v2 L1/L2)
 
 /**
@@ -797,6 +861,13 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                 view.refs.text.style.webkitBoxOrient = 'vertical';
                 view.refs.text.style.webkitLineClamp = String(number(element.props.maxLines, 2));
                 view.refs.text.style.overflow = 'hidden';
+                break;
+            case 'bracket':
+                body.style.flexDirection = 'column';
+                body.style.alignItems = 'stretch';
+                view.refs.board = el('div', 'msp-bracket', body);
+                view.refs.empty = el('span', 'msp-el__line msp-bracket__empty', body);
+                view.refs.signature = null;
                 break;
             case 'standings':
                 body.style.flexDirection = 'column';
@@ -1422,6 +1493,124 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         });
     }
 
+    // The bracket (v2 S6): stage columns absolutely positioned, a box per round in an equal slot of its column, one SVG
+    // per gap with a path per line. Built again only when what it shows changed (a state, not every clock tick).
+    function updateBracket(view, element, state) {
+        const props = element.props;
+        const texts = state.texts ?? {};
+        const bracket = bracketFor(element, state);
+        const emptyText = props.whenEmpty === 'text' ? (props.emptyText ?? '') : '';
+        const showEmpty = bracket === null && emptyText !== '';
+
+        setText(view, 'empty', view.refs.empty, showEmpty ? emptyText : '');
+        view.refs.empty.style.display = showEmpty ? '' : 'none';
+        view.refs.board.style.display = bracket === null ? 'none' : '';
+        // Nothing to show and no own text: nothing at all - not even the element's panel
+        setStyle(view.node, 'visibility', bracket === null && emptyText === '' ? 'hidden' : '');
+
+        const signature = bracket === null ? '' : JSON.stringify([bracket, props, texts.bracketStatus ?? null, texts.bracketTop ?? null, texts.bracketMore ?? null, current.theme.accent]);
+
+        if (signature === view.refs.signature) {
+            return;
+        }
+
+        view.refs.signature = signature;
+        view.refs.board.replaceChildren();
+
+        if (bracket === null) {
+            return;
+        }
+
+        const stages = bracket.stages.filter((stage) => stage !== null && typeof stage === 'object' && Array.isArray(stage.rounds));
+        const columns = bracketColumns(stages.length);
+        const gaps = Array.isArray(bracket.gaps) ? bracket.gaps : [];
+        const boxBackground = safeColor(props.boxColor) ?? BRACKET_BOX_BACKGROUND;
+        const lineColor = safeColor(props.lineColor) ?? BRACKET_LINE_COLOR;
+        const highlight = safeColor(props.highlightColor) ?? accent();
+
+        stages.forEach((stage, stageIndex) => {
+            const column = columns[stageIndex];
+            const node = el('div', 'msp-bracket__stage', view.refs.board);
+            node.style.left = `${column.left}%`;
+            node.style.width = `${column.width}%`;
+            const rounds = stage.rounds.filter((round) => round !== null && typeof round === 'object');
+
+            rounds.forEach((round, index) => {
+                const slot = el('div', 'msp-bracket__slot', node);
+                slot.style.top = `${Math.round((index / rounds.length) * 10000) / 100}%`;
+                slot.style.height = `${Math.round((1 / rounds.length) * 10000) / 100}%`;
+                const box = el('div', round.current === true ? 'msp-bracket__box msp-bracket__box--current' : 'msp-bracket__box', slot);
+                box.style.backgroundColor = boxBackground;
+                box.style.borderColor = round.current === true ? highlight : 'transparent';
+
+                el('div', 'msp-bracket__name', box).textContent = typeof round.name === 'string' ? round.name : '';
+
+                const status = BRACKET_STATUSES.includes(round.status) ? round.status : null;
+
+                if (props.status === true && status !== null) {
+                    const line = el('div', `msp-bracket__status msp-bracket__status--${status}`, box);
+                    line.textContent = typeof texts.bracketStatus?.[status] === 'string' ? texts.bracketStatus[status] : '';
+
+                    if (status === 'live') {
+                        line.style.color = highlight;
+                    }
+                }
+
+                const entrants = (Array.isArray(round.entrants) ? round.entrants : []).slice(0, number(props.names, 3));
+
+                if (entrants.length > 0 && round.showsTop === true && typeof texts.bracketTop === 'string') {
+                    el('div', 'msp-bracket__label', box).textContent = texts.bracketTop;
+                }
+
+                for (const entrant of entrants) {
+                    const value = bracketEntrantText(entrant);
+
+                    if (value === '') {
+                        continue;
+                    }
+
+                    const row = el('div', 'msp-bracket__entrant', box);
+                    el('span', 'msp-bracket__entrant-name', row).textContent = value;
+
+                    if (entrant.qualified === true) {
+                        const mark = el('span', 'msp-bracket__mark', row);
+                        mark.textContent = '✓';
+                        mark.style.color = highlight;
+                    }
+                }
+
+                const more = Math.floor(number(round.more, 0));
+
+                if (entrants.length > 0 && more > 0) {
+                    el('div', 'msp-bracket__more', box).textContent = template(texts.bracketMore ?? '+%count%', { '%count%': more });
+                }
+            });
+
+            const lines = Array.isArray(gaps[stageIndex]) ? gaps[stageIndex].map(bracketPath).filter((path) => path !== null) : [];
+
+            if (column.gapWidth > 0 && lines.length > 0) {
+                const svg = document.createElementNS(SVG_NS, 'svg');
+                svg.setAttribute('class', 'msp-bracket__lines');
+                svg.setAttribute('viewBox', `0 0 100 ${BRACKET_LINE_HEIGHT}`);
+                svg.setAttribute('preserveAspectRatio', 'none');
+                svg.style.left = `${column.gapLeft}%`;
+                svg.style.width = `${column.gapWidth}%`;
+
+                for (const d of lines) {
+                    const path = document.createElementNS(SVG_NS, 'path');
+                    path.setAttribute('d', d);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', lineColor);
+                    path.setAttribute('stroke-width', '3');
+                    path.setAttribute('vector-effect', 'non-scaling-stroke');
+                    svg.appendChild(path);
+                }
+
+                view.refs.board.appendChild(svg);
+            }
+        });
+    }
+
     function updateSpotlight(view, element, state) {
         const { show } = element.props;
         const { row, text } = spotlightFor(element.props, state);
@@ -1602,6 +1791,9 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
                     break;
                 case 'standings':
                     updateStandings(view, element, state);
+                    break;
+                case 'bracket':
+                    updateBracket(view, element, state);
                     break;
                 case 'spotlight':
                     updateSpotlight(view, element, state);

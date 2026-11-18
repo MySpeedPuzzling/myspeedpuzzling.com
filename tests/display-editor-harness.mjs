@@ -465,6 +465,24 @@ check('preview: a sample live message for message elements only (v2 L1)', () => 
     assert(CATALOGUE.find((group) => group.group === 'results').types.includes('spotlight'), 'in the results group');
 });
 
+check('preview: a sample bracket per bracket element, names cut per element, texts of the display language (v2 S6)', () => {
+    const now = 1_763_380_000_000;
+    const design = { elements: [{ id: 'brack001', type: 'bracket', props: { names: 1 } }, { id: 'brack002', type: 'bracket', props: { names: 0 } }] };
+    const texts = { bracketStatus: { upcoming: 'Brzy', live: 'Živě', finished: 'Výsledky brzy', published: 'Výsledky' }, bracketTop: 'Nejlepší', bracketMore: '+ další %count%' };
+    const { state } = previewState(BASE, { mode: 'sample', phase: 'running', published: false, revealed: false, nowMs: now, design, bracketTexts: texts });
+    equal(Object.keys(state.bracket), ['brack001', 'brack002'], 'one per element');
+    const bracket = state.bracket.brack001;
+    equal(bracket.stages.map((stage) => stage.rounds.length), [4, 2, 1], 'groups → semifinals → final');
+    equal(bracket.gaps.map((gap) => gap.length), [4, 2], 'a line per feed between neighbouring stages');
+    equal(bracket.stages[0].rounds[0].entrants.map((entrant) => entrant.name), ['Anna Novotná'], 'names cut to the element');
+    equal(bracket.stages[0].rounds[0].more, 1, 'the rest counted');
+    equal(state.bracket.brack002.stages[0].rounds[0].entrants, [], 'no names');
+    equal(state.texts.bracketTop, 'Nejlepší', 'texts of the display language');
+    equal(state.results, null, 'a bracket needs no round results');
+    equal(previewState(BASE, { mode: 'sample', phase: 'running', published: true, revealed: false, nowMs: now, design: { elements: [] } }).state.bracket, undefined, 'none without an element');
+    assert(CATALOGUE.find((group) => group.group === 'results').types.includes('bracket'), 'in the results group');
+});
+
 check('preview: uploaded pictures merged, unsaved QR codes get a placeholder, display mode keeps the real state', () => {
     const design = { elements: [{ id: 'qr000001', type: 'qr' }] };
     const extra = { 'competition-displays/x.png': 'https://img.example/x.png' };

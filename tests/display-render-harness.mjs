@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import {
-    createRenderer, formatDuration, qrPath, resultsFor, safeImageUrl, statusText, timerText,
+    bracketColumns, bracketEntrantText, bracketPath, createRenderer, formatDuration, qrPath, resultsFor, safeImageUrl, statusText, timerText,
 } from '../assets/displays/render.js';
 
 const require = createRequire(import.meta.url);
@@ -71,6 +71,7 @@ function baseState(overrides = {}) {
             startsIn: 'Starts in %time%', timesUp: "Time's up", stopped: 'Paused', notStarted: 'Not started', finished: 'finished', piecesPlaced: '%count% pieces', table: 'Table %number%', pieces: '%count% pieces', category: 'Solo', invalid: 'No longer valid',
             standingProvisional: 'Provisional', standingRoundsOf: '%scored% of %count% rounds', standingRoundShort: 'R%number%', standingTotal: 'Total',
             standingFinal: { 3: 'Final - all 3 rounds' }, standingMissing: { 50: '50 pieces missing' },
+            bracketStatus: { upcoming: 'Upcoming', live: 'Live now', finished: 'Results coming', published: 'Results' }, bracketTop: 'Top places', bracketMore: '+ %count% more',
         },
         ...overrides,
     };
@@ -417,7 +418,7 @@ check('design swap: the old elements are gone, the element count is the new desi
 // ---- XSS corpus
 
 const ALLOWED_TAGS = ['DIV', 'SPAN', 'IMG', 'svg', 'rect', 'path'];
-const ALLOWED_ATTRIBUTES = ['class', 'style', 'src', 'alt', 'viewBox', 'preserveAspectRatio', 'shape-rendering', 'width', 'height', 'fill', 'd'];
+const ALLOWED_ATTRIBUTES = ['class', 'style', 'src', 'alt', 'viewBox', 'preserveAspectRatio', 'shape-rendering', 'width', 'height', 'fill', 'd', 'stroke', 'stroke-width', 'vector-effect'];
 const CLASS_PATTERN = /^(msp-[a-z0-9_-]+|fi|fi-[a-z]{2})$/;
 const EVIL = '<img src=x onerror=alert(1)></script><script>alert(1)</script>"\'><svg onload=alert(1)>javascript:alert(1) expression(alert(1)) url(javascript:x)';
 
@@ -426,6 +427,12 @@ function evilStanding() {
     const row = { key: EVIL, rank: EVIL, complete: EVIL, name: EVIL, members: [EVIL], countries: [EVIL, 'cz" onload="x', 'CZ', 'cz'], totalSeconds: EVIL, totalTimeSeconds: EVIL, totalMissingPieces: EVIL, totalPenaltySeconds: EVIL, roundsScored: EVIL, perRound: [score, EVIL, null], stageName: EVIL };
 
     return { name: EVIL, category: EVIL, provisional: EVIL, final: EVIL, roundsCounted: EVIL, roundsTotal: EVIL, rounds: [{ name: EVIL, counted: EVIL }, EVIL, null], rows: [row, { ...row, key: 'second' }, EVIL] };
+}
+
+function evilBracket() {
+    const round = { name: EVIL, status: EVIL, current: EVIL, showsTop: true, entrants: [{ rank: EVIL, name: EVIL, qualified: EVIL }, EVIL, null], more: EVIL };
+
+    return { category: EVIL, stages: [{ rounds: [round, EVIL, null] }, EVIL, { rounds: [{ ...round, status: 'live', current: true }] }], gaps: [[{ fromY: EVIL, toY: 'M0 0 L9 9' }, { fromY: 1, toY: 2 }, EVIL]] };
 }
 
 function evilState(standingIds = []) {
@@ -443,6 +450,7 @@ function evilState(standingIds = []) {
         qr: Object.fromEntries(Array.from({ length: 60 }, (_, index) => [`xss${String(index).padStart(5, '0')}`, { rows: [EVIL] }])),
         texts: Object.fromEntries(Object.keys(baseState().texts).map((key) => [key, EVIL])),
         standings: Object.fromEntries(standingIds.map((id) => [id, evilStanding()])),
+        bracket: Object.fromEntries(standingIds.map((id) => [id, evilBracket()])),
         control: { message: EVIL, spotlight: evilRow },
     });
 }
@@ -847,6 +855,104 @@ check('xss: a message fed evil data', () => {
     assert(problem === null, problem);
     assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
     assert(window.document.querySelectorAll('script').length === 0, 'no script');
+});
+
+// ---- bracket (competition toolkit v2 S6)
+
+const BOX = (name, status, entrants = [], extra = {}) => ({ name, status, current: false, showsTop: false, entrants, more: 0, ...extra });
+const BRACKET = () => ({
+    category: 'solo',
+    stages: [
+        { rounds: [
+            BOX('Group A', 'published', [{ rank: 1, name: 'Anna Fast', qualified: true }, { rank: 2, name: 'Ben Steady', qualified: true }], { more: 3 }),
+            BOX('Group B', 'finished'),
+        ] },
+        { rounds: [BOX('Final', 'live', [], { current: true })] },
+    ],
+    gaps: [[{ fromY: 250, toY: 500 }, { fromY: 750, toY: 500 }]],
+});
+
+check('bracket pure helpers: columns, connector paths, entrant lines', () => {
+    equal(bracketColumns(1), [{ left: 0, width: 100, gapLeft: 100, gapWidth: 0 }], 'one stage = the whole width');
+    equal(bracketColumns(2).map((column) => [column.left, column.width, column.gapWidth]), [[0, 45, 10], [55, 45, 0]], 'two stages, a 10 % gap');
+    equal(bracketColumns(4).map((column) => column.gapWidth), [10, 10, 10, 0], 'gaps of 10 %');
+    equal(bracketColumns(7)[0].gapWidth, 5, 'narrower gaps with many stages');
+    equal(bracketPath({ fromY: 250, toY: 500 }), 'M0 250 C50 250 50 500 100 500', 'BracketConnector::path()');
+    equal([bracketPath({ fromY: -1, toY: 5 }), bracketPath({ fromY: 1001, toY: 5 }), bracketPath({ fromY: '1', toY: 5 }), bracketPath(null)], [null, null, null, null], 'anything else draws nothing');
+    equal(bracketEntrantText({ rank: 2, name: 'Ben' }), '2. Ben', 'rank + name');
+    equal([bracketEntrantText({ rank: 2 }), bracketEntrantText({ rank: '2', name: 'Ben' })], ['', 'Ben'], 'no name = nothing, a bad rank is left out');
+});
+
+check('bracket: stage columns, a box per round, connectors, qualified names with marks, + more, statuses, the shown round highlighted', () => {
+    const { root, node } = render([element('br000001', 'bracket', { names: 3, status: true, lineColor: '#00ff00', highlightColor: '#ff0000', boxColor: '#123456' })], baseState({ bracket: { br000001: BRACKET() } }));
+    const el = node('br000001');
+    const stages = [...el.querySelectorAll('.msp-bracket__stage')];
+    equal(stages.map((stage) => [stage.style.left, stage.style.width]), [['0%', '45%'], ['55%', '45%']], 'columns');
+    equal(stages.map((stage) => [...stage.querySelectorAll('.msp-bracket__name')].map(text)), [['Group A', 'Group B'], ['Final']], 'boxes per stage');
+    equal([...stages[0].querySelectorAll('.msp-bracket__slot')].map((slot) => [slot.style.top, slot.style.height]), [['0%', '50%'], ['50%', '50%']], 'equal slots');
+    const groupA = stages[0].querySelectorAll('.msp-bracket__box')[0];
+    equal([...groupA.querySelectorAll('.msp-bracket__entrant-name')].map(text), ['1. Anna Fast', '2. Ben Steady'], 'names');
+    equal(groupA.querySelectorAll('.msp-bracket__mark').length, 2, 'qualified marks');
+    equal(groupA.querySelector('.msp-bracket__more').textContent, '+ 3 more', 'more');
+    equal(groupA.querySelector('.msp-bracket__status').textContent, 'Results', 'status text');
+    equal(groupA.style.backgroundColor, 'rgb(18, 52, 86)', 'own box colour');
+    const final = stages[1].querySelector('.msp-bracket__box');
+    equal(final.className, 'msp-bracket__box msp-bracket__box--current', 'the shown round');
+    equal(final.style.borderColor, 'rgb(255, 0, 0)', 'highlighted');
+    equal(final.querySelector('.msp-bracket__status').className, 'msp-bracket__status msp-bracket__status--live', 'live');
+    const svgs = [...el.querySelectorAll('svg.msp-bracket__lines')];
+    equal(svgs.length, 1, 'one gap');
+    equal([svgs[0].style.left, svgs[0].style.width], ['45%', '10%'], 'the gap between the columns');
+    equal([...svgs[0].querySelectorAll('path')].map((path) => path.getAttribute('d')), ['M0 250 C50 250 50 500 100 500', 'M0 750 C50 750 50 500 100 500'], 'connectors');
+    equal(svgs[0].querySelector('path').getAttribute('stroke'), '#00ff00', 'own line colour');
+    assert(root.textContent.includes('Group B') && !root.textContent.includes('Top places'), 'no top label for qualified');
+});
+
+check('bracket: names 0 and status off show only the boxes, a top-3 box is labelled, no bracket = whenEmpty, unchanged = not rebuilt', () => {
+    const top = BRACKET();
+    top.stages[0].rounds[0] = { ...top.stages[0].rounds[0], showsTop: true };
+    const { document, root } = dom();
+    const elements = [element('br000001', 'bracket', { names: 0, status: false }), element('br000002', 'bracket', { whenEmpty: 'text', emptyText: 'Bracket after the groups' })];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    renderer.render(baseState({ bracket: { br000001: top, br000002: null } }), START);
+    const [first, second] = root.querySelectorAll('.msp-el');
+    equal(first.querySelectorAll('.msp-bracket__entrant').length, 0, 'no names');
+    equal(first.querySelectorAll('.msp-bracket__status').length, 0, 'no status');
+    equal(first.querySelectorAll('.msp-bracket__more').length, 0, 'no more without names');
+    equal(second.querySelector('.msp-bracket__empty').textContent, 'Bracket after the groups', 'own text');
+    assert(!visible(second.querySelector('.msp-bracket')), 'no board');
+
+    renderer.render(baseState({ bracket: { br000001: top, br000002: top } }), START);
+    const box = second.querySelector('.msp-bracket__box');
+    equal(second.querySelector('.msp-bracket__label').textContent, 'Top places', 'top label');
+    assert(!visible(second.querySelector('.msp-bracket__empty')), 'text gone');
+    renderer.render(baseState({ bracket: { br000001: top, br000002: top } }), START + 1_000);
+    assert(second.querySelector('.msp-bracket__box') === box, 'the same bracket is not built again');
+
+    // No `bracket` in the state at all (an old answer), and an element without an own text: nothing, not even its panel
+    renderer.render(baseState(), START);
+    equal(first.style.visibility, 'hidden', 'nothing at all');
+    assert(visible(second.querySelector('.msp-bracket__empty')), 'the own text again');
+});
+
+check('xss: a bracket fed evil data', () => {
+    const { document, root, window } = dom();
+    const elements = [
+        element('br000001', 'bracket', { names: 8, status: true, whenEmpty: 'text', emptyText: EVIL, boxColor: EVIL, lineColor: EVIL, highlightColor: EVIL }),
+        element('br000002', 'bracket', { names: 8 }),
+    ];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'screen' });
+    renderer.render(evilState(['br000001', 'br000002']), START);
+    renderer.render(baseState({ bracket: EVIL }), START);
+    renderer.render(baseState({ bracket: { br000001: EVIL, br000002: { stages: EVIL, gaps: EVIL } } }), START);
+    renderer.render(evilState(['br000001', 'br000002']), START + 1_000);
+    const problem = injected(root);
+    assert(problem === null, problem);
+    assert(root.textContent.includes('<img src=x onerror=alert(1)>'), 'shown as text');
+    assert(window.document.querySelectorAll('script').length === 0, 'no script');
+    // Only valid lines are drawn, statuses only from the known list
+    equal([...root.querySelectorAll('svg path')].map((path) => path.getAttribute('d')), ['M0 1 C50 1 50 2 100 2', 'M0 1 C50 1 50 2 100 2'], 'lines');
+    equal([...root.querySelectorAll('.msp-bracket__status')].map((line) => line.className), ['msp-bracket__status msp-bracket__status--live', 'msp-bracket__status msp-bracket__status--live'], 'statuses');
 });
 
 check('no innerHTML / outerHTML / insertAdjacentHTML / document.write in the display scripts', () => {

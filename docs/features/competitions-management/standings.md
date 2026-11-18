@@ -337,6 +337,8 @@ an event with steps has a bracket.
   that qualified nobody (a final) - at most 32, from `OfficialEntrantsView::forRounds()` only (hidden players dropped
   without renumbering, private players by the organiser's name), and links the round page. `noindex` until a round is
   published. Statements: visibility, the event, the steps, the rounds (`GetBracketRounds`, no puzzles), ≤ 2 for entrants.
+- **On displays (v2 S6):** the `bracket` element shows the same layout and the same guest rule on a timer screen or
+  stream overlay (`DisplayBracket`, displays.md "Bracket element").
 - **Organiser view:** the steps page (`competition_advancement_steps_manage`) shows the bracket instead of A8's stage strip,
   each box with "Results x / y · qualified n" (`GetRoundResultsOverview`, published or not), Results desk / public
   results links, and a "Public page" link (not for a draft). Only with steps: an event without them asks nothing more.

@@ -36,7 +36,7 @@ jobs:
           image: postgres:18.7
           env:
               POSTGRES_PASSWORD: postgres
-          options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+          options: --shm-size=1g --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
           ports:
               - 5432:5432
       # RedisApiUsageCounterTest runs the API usage Lua script against a real Redis
@@ -99,7 +99,7 @@ jobs:
           env:
               POSTGRES_PASSWORD: postgres
               POSTGRES_DB: speedpuzzling
-          options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+          options: --shm-size=1g --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
           ports:
               - 5432:5432
     env:
@@ -219,7 +219,7 @@ jobs:
               env:
                   POSTGRES_PASSWORD: postgres
                   POSTGRES_DB: speedpuzzling_test
-              options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+              options: --shm-size=1g --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
               ports:
                   - 5432:5432
       steps:

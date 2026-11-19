@@ -61,6 +61,10 @@ services:
     # tools reach it by (`postgres:5432` on `<project>_default`) - keep them.
     postgres:
         image: postgres:18.7
+        # Parallel query workers exchange data through dynamic shared memory in /dev/shm. Docker's default 64 MB is
+        # what Postgres 18 alone fills, after which any parallel plan fails with "could not resize shared memory
+        # segment ... No space left on device" (500s on the home page, ladder, puzzle list). Production has 1 GB too
+        shm_size: 1gb
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: postgres

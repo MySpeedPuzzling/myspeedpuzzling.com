@@ -140,6 +140,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 |--------|----------|------|
 | GET | `/api/v1/puzzles?query=…&ean=…&manufacturer=…&pieces_min=…&pieces_max=…&sort=…&difficulty=…&page=…&limit=…` | Any valid PAT or OAuth2 token (no specific scope); `sort=easiest\|hardest` and `difficulty=` are members-only |
 | GET | `/api/v1/puzzles/{puzzleId}` | Any valid PAT or OAuth2 token (no specific scope); `prediction` / `solves` only with PAT or `results:read`, `difficulty` / `prediction` members-only |
+| GET | `/api/v1/puzzles/{puzzleId}/leaderboard?type=…&country=…&first_attempt_only=…&page=…&limit=…` | Any valid PAT or OAuth2 token (no specific scope) |
 
 ### Puzzles
 
@@ -579,6 +580,7 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/` | All API Platform resources, providers, and processors |
 | `src/Api/V1/PuzzleListResponse.php` | `GET /api/v1/puzzles` resource: the single declaration of its query parameters (validation + OpenAPI) |
 | `src/Api/V1/PuzzleDetailResponse.php` | `GET /api/v1/puzzles/{puzzleId}` resource - the card of one puzzle, built only via `fromCard()` (provider `PuzzleDetailResponseProvider`) |
+| `src/Api/V1/PuzzleLeaderboardResponse.php` | `GET /api/v1/puzzles/{puzzleId}/leaderboard` resource - the puzzle page's leaderboard (`GetPuzzleSolvers` + `PuzzlesSorter`, the website's privacy rules relative to the token owner, paginated in memory); provider `PuzzleLeaderboardResponseProvider` |
 | `src/Api/V1/LibraryResponse.php`, `WishlistResponse.php`, `UnsolvedPuzzlesResponse.php`, `LendBorrowResponse.php`, `SellSwapResponse.php` | The puzzle-library resources, each with its `/me/…` and `/players/{playerId}/…` operation (providers `My*ResponseProvider` / `Player*ResponseProvider`) |
 | `src/Api/V1/PlayerConnectionsResponse.php`, `PlayerConnectionResponse.php`, `src/Query/GetPlayerConnections.php` | `/me/favorites` + `/me/followers` (providers `MyFavoritesResponseProvider` / `MyFollowersResponseProvider`); `countsOf()` feeds `favorites_count` / `followers_count` on `/me` |
 | `src/Services/Api/PuzzleLibraryVisibility.php`, `PuzzleLibraryItemsFactory.php`, `PuzzleLibrarySummaryFactory.php` | The website's library visibility rule; the list items (one insights batch per list); the summary counts |

@@ -20,6 +20,7 @@ final class SecretPuzzleRouteCanaryTest extends KernelTestCase
      */
     private const array ALLOWED = [
         '_api_/v1/puzzles/{puzzleId}_get' => 'PuzzleDetailResponseProvider answers 404 while hide_until is ahead',
+        '_api_/v1/puzzles/{puzzleId}/leaderboard_get' => 'PuzzleLeaderboardResponseProvider answers 404 while hide_until is ahead - PuzzleLeaderboardEndpointTest::testSecretCompetitionPuzzleIsNotFound',
         '_api_/v1/me/puzzles/{puzzleId}/predicted-time_get' => 'numbers only, no name or picture (the 200 is a known existence signal, docs/TODO.md)',
         'admin_puzzle_approval_detail' => 'admins and moderators only; GetPuzzleApprovals leaves secret puzzles out, so the page is a 404',
         'admin_merge_unapproved_puzzle' => 'admins and moderators only; merges of a secret puzzle are refused (PuzzleIsStillSecret)',

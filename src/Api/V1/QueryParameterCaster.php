@@ -56,4 +56,15 @@ final class QueryParameterCaster
 
         return $items;
     }
+
+    /**
+     * Case-insensitive codes ("CZ", " cz ") compared in their lowercase form; an empty value is the same as not
+     * sending the parameter at all.
+     */
+    public static function lowercase(mixed $value): mixed
+    {
+        $trimmed = self::trim($value);
+
+        return is_string($trimmed) ? strtolower($trimmed) : $trimmed;
+    }
 }

@@ -31,6 +31,12 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 5. **(2026-10-22, after Phase 1 was paused on it) Keep both:** the UTC-on-write `datetime_immutable` type as the
    production safety net for any future path (Doctrine cookbook pattern) **and** the call-site fix in the two API v1
    processors. A test-only Doctrine listener asserting that every persisted value is UTC was rejected.
+6. **(2026-11-22, supersedes the API part of answer 2)** A result's `finished_at` is a **calendar day**, so API v1
+   `finishedAt` (`POST/PUT /api/v1/me/solving-times`) keeps the day **as the client wrote it** - the date part in the
+   input's own offset, stored at midnight UTC like the add-result form (`Value\ApiFinishDay`):
+   `2026-02-02T23:59:59-06:00` → `2026-02-02 00:00:00`; a date alone (`2026-02-02`) is accepted; anything unparsable is a
+   422. The time of day is not kept. Trigger: an API client in US Central saw an evening solve land on the next day.
+   The player's time zone is display only (`GET /api/v1/me` → `timezone`). The UTC-on-write type stays as the safety net.
 
 ## Open questions for Jan (answered above)
 

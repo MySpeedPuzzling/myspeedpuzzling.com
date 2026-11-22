@@ -436,10 +436,11 @@ final class PlayerProfileEndpointTest extends WebTestCase
         );
         $this->assertSame(['pieces_count', 'points', 'rank', 'total_players'], array_keys($schemas['PlayerRatingResponse']['properties']));
         $this->assertSame(['pieces_count', 'tier', 'percentile', 'confidence', 'qualifying_puzzles_count'], array_keys($schemas['PlayerSkillResponse']['properties']));
-        // the same three blocks on GET /me, appended after the PR 0 flags and followed by the connection counts
+        // the same three blocks on GET /me, appended after the PR 0 flags and followed by the connection counts and the
+        // owner's own time zone (2026-11) - never on the public PlayerProfile above
         $this->assertSame(
-            ['rating', 'skill', 'badges', 'favorites_count', 'followers_count'],
-            array_slice(array_keys($schemas['CurrentUser']['properties']), -5),
+            ['rating', 'skill', 'badges', 'favorites_count', 'followers_count', 'timezone'],
+            array_slice(array_keys($schemas['CurrentUser']['properties']), -6),
         );
     }
 

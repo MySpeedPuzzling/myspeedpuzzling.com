@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerConnections;
+use SpeedPuzzling\Web\Security\ApiUser;
 use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
 use SpeedPuzzling\Web\Services\Api\ProfileInsightsResponseFactory;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -47,6 +48,7 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
         $showsRanking = $profile->rankingOptedOut === false;
 
         $connectionCounts = $this->getPlayerConnections->countsOf($profile->playerId);
+        $user = $this->security->getUser();
 
         return new CurrentUserResponse(
             id: $profile->playerId,
@@ -73,6 +75,9 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
             badges: $this->profileInsights->badges($profile->playerId),
             favoritesCount: $connectionCounts->favorites,
             followersCount: $connectionCounts->followers,
+            // The owner's own data (scope profile:read), never on another player's profile; read from the token's
+            // player - at most one primary-key load when it is still a lazy reference (docs/features/player-timezone.md)
+            timezone: $user instanceof ApiUser ? $user->getPlayer()->timezone : null,
         );
     }
 }

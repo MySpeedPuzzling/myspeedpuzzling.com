@@ -6,8 +6,6 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use DateTimeImmutable;
-use DateTimeZone;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
@@ -21,12 +19,14 @@ use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
 use SpeedPuzzling\Web\Services\Api\SolvingTimeEventLinkResolver;
+use SpeedPuzzling\Web\Value\ApiFinishDay;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -72,12 +72,14 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         // publicly visible surfaces as 404 and ids that disagree as 422 - before anything is saved
         $eventLink = $this->eventLinkResolver->forCreate($data->roundId, $data->competitionId, $data->seriesId);
 
-        // An offset in the input keeps its instant, in UTC (2026-10-20T00:30:00+02:00 = 2026-10-19 22:30:00) - what
-        // the datetime_immutable type stores anyway; converted here already so the handler's day comparisons and
-        // this response see the value that is stored (docs/features/time-and-clock/STATUS.md, Jan's answer 2)
-        $finishedAt = $data->finishedAt !== null
-            ? new DateTimeImmutable($data->finishedAt)->setTimezone(new DateTimeZone('UTC'))
-            : null;
+        // The calendar day as the client wrote it, stored at midnight UTC like the add-result form - an offset only says
+        // which day it is there, never moves it (ApiFinishDay, docs/features/time-and-clock/STATUS.md, Jan's answer 6)
+        $finishedAt = null;
+
+        if ($data->finishedAt !== null) {
+            $finishedAt = ApiFinishDay::fromInput($data->finishedAt)
+                ?? throw new UnprocessableEntityHttpException('finished_at must be a date (2026-02-02) or a date-time (2026-02-02T21:30:00-06:00).');
+        }
 
         try {
             $this->messageBus->dispatch($data->piecesPlaced !== null

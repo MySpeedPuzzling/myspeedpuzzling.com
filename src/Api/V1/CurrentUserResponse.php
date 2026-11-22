@@ -26,7 +26,9 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
                     . '(enthusiast, apprentice, proficient, advanced, expert, master, legend; members only and null when opted out '
                     . 'of rankings, an empty list when there is no tier yet), "badges" the badge tokens the owner earned. '
                     . 'favorites_count and followers_count are the sizes of /me/favorites (players the owner follows) and '
-                    . '/me/followers (players who have the owner in their favorites).',
+                    . '/me/followers (players who have the owner in their favorites). '
+                    . 'timezone is the owner\'s IANA time zone set in their profile (e.g. America/Chicago), null while not known. '
+                    . 'It is for display only: finished_at of a result is a calendar day and is never converted with it.',
             ),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_PROFILE:READ')",
             provider: CurrentUserResponseProvider::class,
@@ -62,6 +64,8 @@ final class CurrentUserResponse
         public array $badges,
         public int $favoritesCount,
         public int $followersCount,
+        // Additive (2026-11): the owner's IANA time zone, null while not known (docs/features/player-timezone.md)
+        public null|string $timezone = null,
     ) {
     }
 }

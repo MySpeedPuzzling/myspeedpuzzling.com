@@ -77,12 +77,12 @@ final class UpdateSolvingTimeEndpointTest extends WebTestCase
 
         /** @var array{finished_at: null|string} $response */
         $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        // Same instant, in UTC - Jan's answer 2 (docs/features/time-and-clock/STATUS.md)
-        self::assertSame('2026-10-19T22:30:00+00:00', $response['finished_at']);
+        // The day as written in its offset, at midnight UTC - Jan's answer 6 (docs/features/time-and-clock/STATUS.md)
+        self::assertSame('2026-10-20T00:00:00+00:00', $response['finished_at']);
 
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
-        self::assertSame('2026-10-19 22:30:00', $database->fetchOne(
+        self::assertSame('2026-10-20 00:00:00', $database->fetchOne(
             'SELECT finished_at::text FROM puzzle_solving_time WHERE id = :id',
             ['id' => PuzzleSolvingTimeFixture::TIME_01],
         ));

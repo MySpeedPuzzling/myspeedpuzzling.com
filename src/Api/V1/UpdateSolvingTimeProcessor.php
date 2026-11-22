@@ -6,18 +6,18 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use DateTimeImmutable;
-use DateTimeZone;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditUnfinishedPuzzleSolvingTime;
+use SpeedPuzzling\Web\Value\ApiFinishDay;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use SpeedPuzzling\Web\Services\Api\SolvingTimeEventLinkResolver;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -62,12 +62,14 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('Player account has no linked user login.');
         }
 
-        // An offset in the input keeps its instant, in UTC (2026-10-20T00:30:00+02:00 = 2026-10-19 22:30:00) - what
-        // the datetime_immutable type stores anyway; converted here already so the handler's day comparisons and
-        // this response see the value that is stored (docs/features/time-and-clock/STATUS.md, Jan's answer 2)
-        $finishedAt = $data->finishedAt !== null
-            ? new DateTimeImmutable($data->finishedAt)->setTimezone(new DateTimeZone('UTC'))
-            : null;
+        // The calendar day as the client wrote it, stored at midnight UTC like the add-result form - an offset only says
+        // which day it is there, never moves it (ApiFinishDay, docs/features/time-and-clock/STATUS.md, Jan's answer 6)
+        $finishedAt = null;
+
+        if ($data->finishedAt !== null) {
+            $finishedAt = ApiFinishDay::fromInput($data->finishedAt)
+                ?? throw new UnprocessableEntityHttpException('finished_at must be a date (2026-02-02) or a date-time (2026-02-02T21:30:00-06:00).');
+        }
 
         // The handler passes the message's link straight to PuzzleSolvingTime::modify(), which assigns it
         // unconditionally - so without competition_id and series_id the current link is carried through exactly:

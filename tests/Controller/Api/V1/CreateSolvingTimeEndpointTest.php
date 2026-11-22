@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
@@ -330,7 +331,7 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
         self::assertNotSame($timeId, $this->extractTimeId($other));
     }
 
-    public function testFinishedAtWithAnOffsetIsStoredAsTheSameInstantInUtc(): void
+    public function testFinishedAtWithAnOffsetIsStoredAsTheDayWrittenAtMidnightUtc(): void
     {
         $browser = self::createClient();
 
@@ -358,15 +359,69 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
 
         /** @var array{time_id: string, finished_at: null|string} $response */
         $response = json_decode($first, true, 512, JSON_THROW_ON_ERROR);
-        // Same instant, in UTC - Jan's answer 2 (docs/features/time-and-clock/STATUS.md)
-        self::assertSame('2026-10-19T22:30:00+00:00', $response['finished_at']);
-        self::assertSame('2026-10-19 22:30:00', $this->database()->fetchOne(
+        // The day as written in its offset, at midnight UTC - Jan's answer 6 (docs/features/time-and-clock/STATUS.md)
+        self::assertSame('2026-10-20T00:00:00+00:00', $response['finished_at']);
+        self::assertSame('2026-10-20 00:00:00', $this->database()->fetchOne(
             'SELECT finished_at::text FROM puzzle_solving_time WHERE id = :id',
             ['id' => $response['time_id']],
         ));
 
         // A retry is recognised as the same entry: the day compared is the stored one, not the offset's
         self::assertSame($first, $send());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideFinishDays(): iterable
+    {
+        yield 'late evening west of UTC (the 3rd in UTC)' => ['2026-02-02T23:59:59-06:00', '2026-02-02T00:00:00+00:00'];
+        yield 'early morning east of UTC (the 1st in UTC)' => ['2026-02-02T07:00:00+09:00', '2026-02-02T00:00:00+00:00'];
+        yield 'UTC with Z' => ['2026-02-02T00:00:00Z', '2026-02-02T00:00:00+00:00'];
+        yield 'a date alone' => ['2026-02-02', '2026-02-02T00:00:00+00:00'];
+    }
+
+    #[DataProvider('provideFinishDays')]
+    public function testFinishedAtKeepsTheDayTheClientWrote(string $sent, string $expected): void
+    {
+        $browser = self::createClient();
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
+
+        $browser->request(
+            'POST',
+            '/api/v1/me/solving-times',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode([
+                'puzzle_id' => PuzzleFixture::PUZZLE_500_01,
+                'time' => '1:12:13',
+                'finished_at' => $sent,
+            ]),
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        /** @var array{finished_at: null|string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame($expected, $response['finished_at']);
+    }
+
+    public function testFinishedAtThatIsNoDateIsRefused(): void
+    {
+        $browser = self::createClient();
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
+
+        $browser->request(
+            'POST',
+            '/api/v1/me/solving-times',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode([
+                'puzzle_id' => PuzzleFixture::PUZZLE_500_01,
+                'time' => '1:12:13',
+                'finished_at' => 'yesterday-ish',
+            ]),
+        );
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     public function testAKeyReusedForAnotherResultIsRefused(): void

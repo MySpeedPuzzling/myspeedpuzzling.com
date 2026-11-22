@@ -39,6 +39,7 @@ Loaded automatically when you read or edit files of this area (personal access t
 - **"Me" endpoints:** `/api/v1/me/*` — PAT or OAuth2 with user context
 - **Player endpoints:** `/api/v1/players/{id}/*` — OAuth2 only
 - **Write endpoints:** `POST/PUT /api/v1/me/solving-times`, collection CRUD
+- **Finish day:** `finished_at` on `POST/PUT /me/solving-times` is the calendar day as the client wrote it (date part in the input's own offset, stored at midnight UTC like the form; a bare date accepted; unparsable = 422) - `Value\ApiFinishDay`, time-and-clock STATUS answer 6. `GET /me` carries the owner's `timezone` (display only, never on other players)
 - **Collections:** Membership gating — system collection (`default`) accessible to all, custom collections members-only
 - **OAuth2 client registration:** Web form → admin approval → credential claim link (one-time display)
 - **Audit:** `last_used_at` tracked for both PAT and OAuth2 tokens

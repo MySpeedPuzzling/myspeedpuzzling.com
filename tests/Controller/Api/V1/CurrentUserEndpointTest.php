@@ -76,6 +76,30 @@ final class CurrentUserEndpointTest extends WebTestCase
         $this->assertArrayHasKey('country', $response);
     }
 
+    public function testTimezoneIsTheOwnersOwn(): void
+    {
+        $browser = self::createClient();
+
+        // PLAYER_WITH_STRIPE is the only fixture player with a time zone
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_WITH_STRIPE));
+        $browser->request('GET', '/api/v1/me');
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{timezone: null|string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('Europe/London', $response['timezone']);
+
+        $browser->getCookieJar()->clear();
+        PatTestHelper::addBearerToken($browser, PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR));
+        $browser->request('GET', '/api/v1/me');
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{timezone?: null|string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayHasKey('timezone', $response);
+        self::assertNull($response['timezone']);
+    }
+
     public function testEmailIsNullWithoutEmailReadScope(): void
     {
         $browser = self::createClient();
@@ -553,7 +577,8 @@ final class CurrentUserEndpointTest extends WebTestCase
         $browser->request('GET', '/api/v1/me');
 
         $this->assertResponseIsSuccessful();
-        $this->assertQueryCountAtMost($browser, 6, 'non-member, personal access token (no skill query)');
+        // 7 since timezone (2026-11): the token's player is a lazy reference, loaded by reading it (one primary-key row)
+        $this->assertQueryCountAtMost($browser, 7, 'non-member, personal access token (no skill query)');
     }
 
     /**

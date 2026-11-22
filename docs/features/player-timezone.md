@@ -17,8 +17,10 @@ of day), digest e-mails, streak days and event times need the player's zone to s
   value only.
 - **No writes on GET**: a signed-in player without a zone is never set silently on a page view. The settings field and
   the profile panel ask instead.
-- **Private**: only `GetPlayerProfile::byUserId()` (the signed-in player's own row) selects it - `byId()`, public pages
-  and API v1 never see it. The puzzle-library export lists it in `about` (own data).
+- **Private**: only `GetPlayerProfile::byUserId()` (the signed-in player's own row) selects it - `byId()` and public pages
+  never see it. The puzzle-library export lists it in `about` (own data), and API v1 returns it only to the owner:
+  `GET /api/v1/me` → `timezone` (since 2026-11-22, read from the token's `Player`; display only - a result's
+  `finished_at` is a calendar day and is never converted with it). No other API answer carries it.
 
 ## Where it is detected
 

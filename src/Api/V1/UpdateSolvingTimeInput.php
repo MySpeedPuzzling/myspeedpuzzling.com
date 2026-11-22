@@ -17,6 +17,10 @@ use Symfony\Component\Validator\Constraints as Assert;
             openapi: new OpenApiOperation(
                 tags: ['My Results & Solving Times'],
                 description: 'Edits a solving time the token owner may change (theirs, or a pair/team result they are in). '
+                    . 'finished_at (optional) is the calendar day of the solve, not a moment: send the day as the user sees it - a date '
+                    . '(2026-02-02) or a date-time whose own offset gives that day (2026-02-02T23:59:59-06:00 is 2 February). The time of day is not kept; '
+                    . 'the response and every result list return the day at midnight UTC (2026-02-02T00:00:00+00:00) - read its date part as is, never convert it '
+                    . 'to a time zone. Anything else that is no date is a 422. '
                     . 'The event link: without competition_id and series_id (or with both null) the time keeps the link it has, exactly - '
                     . 'a link to a one-time event or an edition stays, a series stays a series and MySpeedPuzzling finds its edition again for the edited time. '
                     . 'competition_id (a one-time event or an edition, linked explicitly) or series_id (a series - MySpeedPuzzling finds the edition, '

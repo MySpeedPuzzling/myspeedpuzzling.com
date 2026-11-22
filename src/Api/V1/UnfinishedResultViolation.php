@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Validator\Exception\ValidationException;
 use SpeedPuzzling\Web\Exceptions\InvalidPiecesPlaced;
+use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultNeedsTimeLimit;
 use SpeedPuzzling\Web\Exceptions\UnfinishedResultRoundNotIdentified;
 use SpeedPuzzling\Web\Exceptions\UnfinishedTotalTimeWithinLimit;
@@ -16,6 +17,9 @@ use Symfony\Component\Validator\ConstraintViolationList;
  * A refused unfinished result (`pieces_placed` on `POST` / `PUT /me/solving-times`,
  * docs/features/competitions-management/unfinished-results-plan.md step 4) as the API's 422 - a violation on the field
  * at fault, the same rule the website applies (UnfinishedResult). Nothing was saved.
+ *
+ * Also a time too fast to be real (100+ pieces per minute per puzzler, SuspiciousPpm - the add form's "new world
+ * record" refusal): a violation on `time`, not the 500 it used to be (WEB-GC).
  */
 final class UnfinishedResultViolation
 {
@@ -39,6 +43,10 @@ final class UnfinishedResultViolation
             $refusal instanceof UnfinishedTotalTimeWithinLimit => self::violation(
                 'time',
                 sprintf('With pieces_placed, time is the total time when they finished afterwards and must be over the round\'s %d min limit - leave it out if they stopped when the time ran out.', $refusal->minutesLimit),
+            ),
+            $refusal instanceof SuspiciousPpm => self::violation(
+                'time',
+                sprintf('This time is too fast to be real (%s pieces per minute per puzzler, the limit is under 100) - check the time, it is HH:MM:SS or MM:SS.', $refusal->ppm),
             ),
             default => null,
         };

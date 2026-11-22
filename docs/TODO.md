@@ -902,6 +902,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       Rozebeest asked for it from a Trefl multipack puzzle page. Promised to Rozebeest (MSP #411, follow-up F197).
 - [ ] Puzzles needing improvement page: also list puzzles whose image needs improvement (from the image pipeline data),
       next to the missing-EAN ones. Promised to Vroni (MSP #426, follow-up F206).
+- [ ] API v1: add the owner's time zone (player.timezone, IANA id, null when unknown) to GET /api/v1/me
+      (CurrentUserResponse, scope profile:read); update docs/features/player-timezone.md, which says API v1 never sees
+      it. Promised to Greg (MSP #439, follow-up F214).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

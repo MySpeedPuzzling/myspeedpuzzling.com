@@ -904,7 +904,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       next to the missing-EAN ones. Promised to Vroni (MSP #426, follow-up F206).
 - [x] API v1: add the owner's time zone (player.timezone, IANA id, null when unknown) to GET /api/v1/me
       (CurrentUserResponse, scope profile:read); update docs/features/player-timezone.md, which says API v1 never sees
-      it. Promised to Greg (MSP #439, follow-up F214). Shipped 2026-11-22 before #439 was sent - the mail says it is live.
+      it. Promised to Greg (MSP #439, follow-up F214). Shipped 2026-11-22 (0397b35de), delivery mail MSP #441.
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

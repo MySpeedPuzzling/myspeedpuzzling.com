@@ -24,7 +24,6 @@ use SpeedPuzzling\Web\Services\EventsPage\EventUrls;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
-use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RowContext;
 use SpeedPuzzling\Web\Value\SearchText;
@@ -70,20 +69,19 @@ readonly final class SeriesPageBuilder
         string $locale,
         array $partnerListingCounts = [],
     ): SeriesPage {
-        $day = OccurrenceDates::today($now);
         $scope = EventsScope::everywhere();
 
         /** @var list<SeriesItem> $items */
         $items = [];
 
         foreach ($occurrences as $occurrence) {
-            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            // Today in the occurrence's own zone - its status and its "In 3 days" label alike
             $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($now), 'id' => count($items)];
         }
 
-        $rowOf = function (array $item) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
+        $rowOf = function (array $item) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $locale): AgendaRow {
             /** @var SeriesItem $item */
-            return $this->row($item, $goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale);
+            return $this->row($item, $goingCounts, $partnerListingCounts, $viewer, $scope, $now, $locale);
         };
 
         $live = array_values(array_filter($items, static fn (array $item): bool => $item['status'] === EventOccurrenceStatus::Live));
@@ -474,7 +472,6 @@ readonly final class SeriesPageBuilder
         null|EventsViewerData $viewer,
         EventsScope $scope,
         DateTimeImmutable $now,
-        DateTimeImmutable $day,
         string $locale,
     ): AgendaRow {
         return $this->rows->row(
@@ -485,7 +482,6 @@ readonly final class SeriesPageBuilder
             $viewer,
             $scope,
             $now,
-            $day,
             $locale,
             $item['occurrence']->logo,
             RowContext::SeriesPage,

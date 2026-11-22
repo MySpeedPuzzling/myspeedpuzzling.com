@@ -60,7 +60,6 @@ readonly final class EventRowFactory
         null|EventsViewerData $viewer,
         EventsScope $scope,
         DateTimeImmutable $now,
-        DateTimeImmutable $day,
         string $locale,
         null|string $logo,
         RowContext $context = RowContext::EventsPage,
@@ -114,7 +113,7 @@ readonly final class EventRowFactory
                 $context,
                 $partnerListingCounts[strtolower($occurrence->competitionId)] ?? 0,
             ),
-            when: self::when($status, $occurrence->startDate, $day),
+            when: self::when($status, $occurrence->startDate, $occurrence->today($now)),
             sessions: [],
             status: $status,
             scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
@@ -289,7 +288,8 @@ readonly final class EventRowFactory
             return null;
         }
 
-        // Counted from today in UTC - upcoming in a zone behind UTC, it may start on the UTC day itself: tomorrow there
+        // Counted from today in the occurrence's own zone ($day, EventOccurrence::today()) - its date is a day there, so a
+        // Tuesday event in Toronto is "In 2 days" on Sunday evening in Toronto, even though it is already Monday in UTC
         $days = $start > $day ? (int) $day->diff($start)->days : 1;
 
         if ($days === 1) {

@@ -26,7 +26,6 @@ use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
-use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\RowContext;
 use SpeedPuzzling\Web\Value\SearchText;
 
@@ -63,18 +62,17 @@ readonly final class OrganizationPageBuilder
         string $locale,
         array $partnerListingCounts = [],
     ): OrganizationPage {
-        $day = OccurrenceDates::today($now);
         $scope = EventsScope::everywhere();
 
         /** @var list<Item> $items */
         $items = [];
 
         foreach ($occurrences as $occurrence) {
-            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            // Today in the occurrence's own zone - its status and its "In 3 days" label alike
             $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($now), 'id' => count($items)];
         }
 
-        $rowOf = function (array $item) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
+        $rowOf = function (array $item) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $locale): AgendaRow {
             /** @var Item $item */
             return $this->rows->row(
                 $item['occurrence'],
@@ -84,7 +82,6 @@ readonly final class OrganizationPageBuilder
                 $viewer,
                 $scope,
                 $now,
-                $day,
                 $locale,
                 $item['occurrence']->logo,
                 RowContext::OrganizationPage,

@@ -149,8 +149,9 @@ JSON list of every round inside the same single statement).
 round's zone, else the event's or the series' country zone, else the assumed one - exactly the zone that dates its
 rounds). `status()` takes the request's instant, never a pre-computed day: a 7:30 pm Eastern contest (00:30 UTC in
 winter) stays live after UTC midnight, an Auckland event is live while the UTC date still says yesterday. The "Tomorrow",
-"This weekend", "In 3 days" labels and the calendar's "Today" cell count from the server's UTC date, from the
-controller's clock.
+"This weekend", "In 3 days" labels count from the same day (`EventOccurrence::today()`; since 2026-11-22 - they used to
+count from the UTC date, so on a Sunday evening in Toronto a Tuesday event there said "Tomorrow"). The calendar's
+"Today" cell still counts from the server's UTC date, from the controller's clock.
 
 **Written in the page's language.** Every date on the events pages comes from an ICU skeleton (`yMMMM` month headers,
 `MMMd` / `yMMMd` days, `MMMEd` next editions, `E` / `MMM` leaf parts), never a hand-written pattern:

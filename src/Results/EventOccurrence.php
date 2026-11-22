@@ -122,6 +122,15 @@ readonly final class EventOccurrence
         return $this->dates()->status($now, $this->isEdition(), $this->isOnline);
     }
 
+    /**
+     * Today in the occurrence's own zone - what its "Tomorrow", "This weekend", "In 3 days" label counts from, the
+     * same day status() reads (its date is a day there)
+     */
+    public function today(DateTimeImmutable $now): DateTimeImmutable
+    {
+        return OccurrenceDates::localDay($now, $this->dates()->zone());
+    }
+
     public function dates(): OccurrenceDates
     {
         return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session, $this->firstRound, $this->zone);

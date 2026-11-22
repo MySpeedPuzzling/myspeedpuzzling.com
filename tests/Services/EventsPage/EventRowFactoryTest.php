@@ -36,8 +36,8 @@ final class EventRowFactoryTest extends TestCase
         $session = $this->sprintSession(public: false);
         $factory = $this->factory();
 
-        $events = $factory->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), self::today(), 'en', null);
-        $series = $factory->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), self::today(), 'en', null, RowContext::SeriesPage);
+        $events = $factory->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), 'en', null);
+        $series = $factory->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), 'en', null, RowContext::SeriesPage);
 
         // The events page: the series name, the session under it, a star for the series, Recurring and the pending tag
         self::assertSame('Moonlight Sprint League', $events->title);
@@ -74,7 +74,7 @@ final class EventRowFactoryTest extends TestCase
             startDate: self::day('2026-07-01'),
         );
 
-        $row = $this->factory()->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::SeriesPage);
+        $row = $this->factory()->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null, RowContext::SeriesPage);
 
         self::assertSame('Lakeside Marathon', $row->title);
         self::assertNull($row->editionName);
@@ -121,9 +121,9 @@ final class EventRowFactoryTest extends TestCase
         $draft = $this->sprintSession(public: false, isDraft: true);
         $factory = $this->factory();
 
-        $events = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null);
-        $series = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::SeriesPage);
-        $organization = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+        $events = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null);
+        $series = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null, RowContext::SeriesPage);
+        $organization = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null, RowContext::OrganizationPage);
 
         self::assertSame([RowTagType::Draft, RowTagType::Recurring], self::tagTypes($events->tags));
         self::assertSame([RowTagType::Draft], self::tagTypes($series->tags));
@@ -161,9 +161,9 @@ final class EventRowFactoryTest extends TestCase
         );
         $factory = $this->factory();
 
-        $events = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null);
-        $series = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::SeriesPage);
-        $organization = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+        $events = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null);
+        $series = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null, RowContext::SeriesPage);
+        $organization = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), 'en', null, RowContext::OrganizationPage);
 
         self::assertSame([RowTagType::Recurring, RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($events->tags));
         self::assertSame('18+', $events->tags[1]->text);
@@ -180,7 +180,7 @@ final class EventRowFactoryTest extends TestCase
     {
         $session = $this->sprintSession();
 
-        $row = $this->factory()->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+        $row = $this->factory()->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), 'en', null, RowContext::OrganizationPage);
 
         // Named by its series with the session under it, Recurring kept (several series share the page)
         self::assertSame('Moonlight Sprint League', $row->title);
@@ -200,7 +200,7 @@ final class EventRowFactoryTest extends TestCase
     {
         $event = new EventOccurrence(competitionId: 'c-4', name: 'Riverbend Test Open', slug: 'riverbend-test-open', countryCode: CountryCode::us, startDate: self::day('2026-08-01'));
 
-        $row = $this->factory()->row($event, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::fromQuery('cz', null), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+        $row = $this->factory()->row($event, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::fromQuery('cz', null), self::now(), 'en', null, RowContext::OrganizationPage);
 
         self::assertSame('Riverbend Test Open', $row->title);
         self::assertNull($row->editionName);

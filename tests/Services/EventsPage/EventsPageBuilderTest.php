@@ -283,6 +283,27 @@ final class EventsPageBuilderTest extends TestCase
         ], $when);
     }
 
+    /**
+     * Sunday 15 November, 7:22 pm in Toronto = Monday 00:22 UTC: a Tuesday event in Toronto is two days away there,
+     * not "Tomorrow" by the UTC date (a player's report, 2026-11-16)
+     */
+    public function testLabelsCountFromTodayInTheOccurrencesOwnZone(): void
+    {
+        $page = $this->build([
+            $this->event('Toronto Tuesday', '2026-11-17', country: CountryCode::ca, zone: 'America/Toronto'),
+            $this->event('Toronto Wednesday', '2026-11-18', country: CountryCode::ca, zone: 'America/Toronto'),
+            $this->event('Bucharest Wednesday', '2026-11-18', country: CountryCode::ro, zone: 'Europe/Bucharest'),
+            $this->event('UTC Tuesday', '2026-11-17'),
+        ], [], today: '2026-11-16 00:22:00');
+
+        self::assertSame([
+            'Toronto Tuesday' => [WhenLabel::IN_DAYS, 2, true],
+            'UTC Tuesday' => [WhenLabel::TOMORROW, 1, true],
+            'Bucharest Wednesday' => [WhenLabel::IN_DAYS, 2, true],
+            'Toronto Wednesday' => [WhenLabel::IN_DAYS, 3, true],
+        ], $this->whenLabels($page));
+    }
+
     public function testOnASaturdayNextWeekendIsNotThisWeekend(): void
     {
         $page = $this->build([
@@ -911,6 +932,8 @@ final class EventsPageBuilderTest extends TestCase
         // the day of its last round - none: no rounds
         null|string $lastRound = null,
         null|OrganizationRef $organization = null,
+        // the zone its days are in - none: UTC
+        null|string $zone = null,
     ): EventOccurrence {
         return new EventOccurrence(
             competitionId: $this->nextId(),
@@ -931,6 +954,7 @@ final class EventsPageBuilderTest extends TestCase
             registrationClosesAt: $closesAt,
             hasResults: $resultsLink,
             isPublic: $public,
+            zone: $zone,
         );
     }
 

@@ -160,8 +160,8 @@ readonly final class OccurrenceDates
     }
 
     /**
-     * Today's date (UTC), at 00:00 UTC - what the "Tomorrow", "This weekend", "In 3 days" labels count from. Never a
-     * status: status() compares with today in the occurrence's own zone.
+     * Today's date (UTC), at 00:00 UTC. Never a status nor a "Tomorrow" / "In 3 days" label: both read today in the
+     * occurrence's own zone (status(), EventOccurrence::today()).
      */
     public static function today(DateTimeImmutable $now): DateTimeImmutable
     {

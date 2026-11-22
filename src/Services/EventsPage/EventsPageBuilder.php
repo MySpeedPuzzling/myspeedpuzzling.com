@@ -34,7 +34,6 @@ use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
-use SpeedPuzzling\Web\Value\OccurrenceDates;
 
 /**
  * Turns the occurrences and series into everything the events page renders (docs/features/events-page/
@@ -92,7 +91,6 @@ readonly final class EventsPageBuilder
         array $partnerListingCounts = [],
     ): EventsPage {
         $now = $today;
-        $day = OccurrenceDates::today($today);
 
         // Every occurrence shown on some view gets an index id (its position); "date not set" editions only count in
         // their series, a past one waiting for approval is nowhere
@@ -102,7 +100,7 @@ readonly final class EventsPageBuilder
         $editionsBySeries = [];
 
         foreach ($occurrences as $occurrence) {
-            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            // Today in the occurrence's own zone - its status and its "In 3 days" label alike
             $status = $occurrence->status($now);
 
             if ($occurrence->seriesId !== null) {
@@ -184,7 +182,7 @@ readonly final class EventsPageBuilder
         usort($tba, $this->compareByTitle(...));
         usort($ongoing, $this->compareByTitle(...));
 
-        $rowOf = function (array $item, null|string $logo = null) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
+        $rowOf = function (array $item, null|string $logo = null) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $locale): AgendaRow {
             /** @var ListedOccurrence $item */
             return $this->rows->row(
                 $item['occurrence'],
@@ -194,7 +192,6 @@ readonly final class EventsPageBuilder
                 $viewer,
                 $scope,
                 $now,
-                $day,
                 $locale,
                 $logo,
                 partnerListingCounts: $partnerListingCounts,
@@ -256,7 +253,7 @@ readonly final class EventsPageBuilder
             ),
             yourEvents: $this->yourEvents($listed, $viewer, $rowOf),
             live: array_map(static fn (array $item): AgendaRow => $rowOf($item), $live),
-            months: $this->months($upcoming, $rowOf, $viewer, $scope, $day, $locale),
+            months: $this->months($upcoming, $rowOf, $viewer, $scope, $now, $locale),
             tba: array_map(static fn (array $item): AgendaRow => $rowOf($item), $tba),
             seriesInPerson: array_values(array_filter($seriesLines, static fn (SeriesLine $line): bool => $line->isOnline === false)),
             seriesOnline: array_values(array_filter($seriesLines, static fn (SeriesLine $line): bool => $line->isOnline)),
@@ -343,7 +340,7 @@ readonly final class EventsPageBuilder
      *
      * @return list<AgendaMonth>
      */
-    private function months(array $upcoming, callable $rowOf, null|EventsViewerData $viewer, EventsScope $scope, DateTimeImmutable $day, string $locale): array
+    private function months(array $upcoming, callable $rowOf, null|EventsViewerData $viewer, EventsScope $scope, DateTimeImmutable $now, string $locale): array
     {
         /** @var array<string, list<ListedOccurrence>> $byMonth */
         $byMonth = [];
@@ -374,7 +371,7 @@ readonly final class EventsPageBuilder
                 if ($seriesId !== null && count($editionsBySeries[$seriesId]) >= 2) {
                     if (isset($grouped[$seriesId]) === false) {
                         $grouped[$seriesId] = true;
-                        $rows[] = $this->groupRow($editionsBySeries[$seriesId], $viewer, $scope, $day, $locale);
+                        $rows[] = $this->groupRow($editionsBySeries[$seriesId], $viewer, $scope, $now, $locale);
                     }
 
                     continue;
@@ -409,7 +406,7 @@ readonly final class EventsPageBuilder
     /**
      * @param non-empty-list<ListedOccurrence> $items
      */
-    private function groupRow(array $items, null|EventsViewerData $viewer, EventsScope $scope, DateTimeImmutable $day, string $locale): AgendaRow
+    private function groupRow(array $items, null|EventsViewerData $viewer, EventsScope $scope, DateTimeImmutable $now, string $locale): AgendaRow
     {
         $first = $items[0]['occurrence'];
         $last = $items[count($items) - 1]['occurrence'];
@@ -479,7 +476,7 @@ readonly final class EventsPageBuilder
             leaf: new DateLeaf($first->startDate, null, self::tone($first->isOnline, EventOccurrenceStatus::Upcoming)),
             place: $this->placeOf($first->isOnline, $first->location, $first->countryCode, $locale),
             tags: $tags,
-            when: self::when(EventOccurrenceStatus::Upcoming, $first->startDate, $day),
+            when: self::when(EventOccurrenceStatus::Upcoming, $first->startDate, $first->today($now)),
             sessions: $sessions,
             status: EventOccurrenceStatus::Upcoming,
             scopeKey: EventsScope::keyOf($first->isOnline, $first->countryCode),

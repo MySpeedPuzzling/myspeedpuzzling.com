@@ -32,6 +32,7 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
@@ -216,16 +217,21 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
     /**
      * The internal API's selectedFields: those fields as proposed (or as overridden), everything else as the puzzle
-     * has it now. The other names are applied as a diff against the list when proposed.
+     * has it now. A selected field the proposal does not change (PuzzleProposalChanges - its snapshot holds the puzzle
+     * as it was) keeps the puzzle's value too: several proposals of one puzzle may wait at once, each changing other
+     * fields, and approving one never reverts what another changed meanwhile. The other names are applied as a diff
+     * against the list when proposed.
      */
     private static function proposedValues(
         PuzzleChangeRequest $changeRequest,
         Puzzle $puzzle,
         ApprovePuzzleChangeRequest $message,
     ): PuzzleRecordValues {
+        $changes = $changeRequest->proposedChanges();
         $selected = static fn (string $field): bool => in_array($field, $message->selectedFields, true);
+        $applied = static fn (PuzzleProposalField $field): bool => $selected($field->value) && $changes->changes($field);
 
-        $manufacturer = $selected('manufacturer')
+        $manufacturer = $applied(PuzzleProposalField::Manufacturer)
             ? ($changeRequest->proposedManufacturer ?? $puzzle->manufacturer)
             : $puzzle->manufacturer;
 
@@ -243,22 +249,22 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
         if ($selected('nameLanguage') && $message->nameLanguageOverride !== false) {
             $nameLanguage = $message->nameLanguageOverride;
-        } elseif ($selected('nameLanguage') && $changeRequest->proposedAlternativeNames !== null) {
+        } elseif ($applied(PuzzleProposalField::NameLanguage)) {
             $nameLanguage = $changeRequest->proposedNameLanguage;
         }
 
         return new PuzzleRecordValues(
-            name: $selected('name') ? ($changeRequest->proposedName ?? $puzzle->name) : $puzzle->name,
+            name: $applied(PuzzleProposalField::Name) ? ($changeRequest->proposedName ?? $puzzle->name) : $puzzle->name,
             nameLanguage: $nameLanguage,
             alternativeNames: $alternativeNames,
             manufacturerId: $manufacturer?->id->toString(),
-            piecesCount: $selected('piecesCount') ? ($changeRequest->proposedPiecesCount ?? $puzzle->piecesCount) : $puzzle->piecesCount,
+            piecesCount: $applied(PuzzleProposalField::PiecesCount) ? ($changeRequest->proposedPiecesCount ?? $puzzle->piecesCount) : $puzzle->piecesCount,
             // A proposed '' removes every code (PuzzleChangeRequest::$proposedEan)
-            eans: $selected('ean') ? EanList::fromStored($changeRequest->proposedEan ?? $puzzle->ean) : $puzzle->eans(),
-            brandCodes: $selected('identificationNumber')
-                ? BrandCodeList::fromStored($changeRequest->proposedIdentificationNumber ?? $puzzle->identificationNumber)
+            eans: $applied(PuzzleProposalField::Ean) ? EanList::fromStored($changeRequest->proposedEan) : $puzzle->eans(),
+            brandCodes: $applied(PuzzleProposalField::IdentificationNumber)
+                ? BrandCodeList::fromStored($changeRequest->proposedIdentificationNumber)
                 : $puzzle->brandCodes(),
-            image: $selected('image') && $changeRequest->proposedImage !== null
+            image: $applied(PuzzleProposalField::Image)
                 ? PuzzleImageChoice::Proposed
                 : PuzzleImageChoice::Keep,
             recordVersion: $message->recordVersion,

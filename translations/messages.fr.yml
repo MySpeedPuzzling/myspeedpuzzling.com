@@ -3365,8 +3365,14 @@ competition_referees:
     "no_changes": "Aucune modification n'a été effectuée. Veuillez modifier au moins un champ avant de soumettre."
     "no_valid_duplicates": "Vous ne pouvez pas signaler un puzzle comme doublon de lui-même. Veuillez sélectionner un puzzle différent."
     "pending_proposal_exists": "Une proposition pour ce puzzle est déjà en attente d'examen."
-    "pending_proposal_exists_names_only": "Une autre proposition pour ce puzzle attend déjà d'être examinée. Tant qu'elle n'est pas traitée, seuls des noms peuvent être suggérés - annulez les autres modifications ou revenez plus tard."
+    "pending_proposal_fields": "Une autre suggestion pour %fields% attend déjà d'être examinée, votre modification de ce champ n'a donc pas été envoyée. Il affiche ce que le puzzle a maintenant - renvoyez le formulaire pour suggérer le reste."
     "validation_error": "Veuillez corriger les erreurs et réessayer."
+  "locked":
+    "waiting": "En attente d'examen : %value%"
+    "merge_pending": "Un signalement de doublon de ce puzzle attend d'être examiné."
+    "show_pending": "Voir ce qui attend"
+    "new_photo": "une nouvelle photo"
+    "no_codes": "aucun"
   "form":
     "brand": "Marque"
     "brand_help": "Absente de la liste ou mal orthographiée ? Saisissez le nom correct de la marque pour l'ajouter."

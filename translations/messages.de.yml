@@ -3298,8 +3298,14 @@ badges:
     "no_changes": "Es wurden keine Änderungen vorgenommen. Bitte ändere mindestens ein Feld vor dem Absenden."
     "no_valid_duplicates": "Du kannst ein Puzzle nicht als Duplikat von sich selbst melden. Bitte wähle ein anderes Puzzle."
     "pending_proposal_exists": "Ein Vorschlag für dieses Puzzle wartet bereits auf Überprüfung."
-    "pending_proposal_exists_names_only": "Für dieses Puzzle wartet bereits ein anderer Vorschlag auf Überprüfung. Bis darüber entschieden ist, können nur Namen vorgeschlagen werden - nimm die anderen Änderungen zurück oder versuche es später."
+    "pending_proposal_fields": "Ein anderer Vorschlag für %fields% wartet bereits auf Überprüfung, deshalb wurde deine Änderung dort nicht gesendet. Das Feld zeigt jetzt, was das Puzzle hat - sende das Formular erneut, um den Rest vorzuschlagen."
     "validation_error": "Bitte behebe die Fehler und versuche es erneut."
+  "locked":
+    "waiting": "Wartet auf Überprüfung: %value%"
+    "merge_pending": "Eine Duplikatmeldung zu diesem Puzzle wartet auf Überprüfung."
+    "show_pending": "Ansehen, was wartet"
+    "new_photo": "ein neues Foto"
+    "no_codes": "keiner"
   "form":
     "brand": "Marke"
     "brand_help": "Nicht in der Liste oder falsch geschrieben? Gib den richtigen Namen der Marke ein, um sie hinzuzufügen."

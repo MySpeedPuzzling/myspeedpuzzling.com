@@ -141,15 +141,34 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => '4005556789012']));
     }
 
-    public function testPuzzleWithAPendingProposalAnswersConflict(): void
+    public function testPuzzleWithAPendingMergeRequestAnswersConflictForEveryField(): void
     {
-        // PuzzleReportFixture holds a pending change request for this one
+        // PuzzleReportFixture holds a pending merge request of this one
         $response = $this->controller()($this->jsonRequest([
             'puzzleId' => PuzzleFixture::PUZZLE_500_02,
             'ean' => '4005555011897',
         ]));
 
         self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        self::assertIsArray($body);
+        self::assertSame('pending_proposal', $body['code']);
+        self::assertSame(['ean'], $body['fields']);
+    }
+
+    public function testAFieldAnotherPendingChangeRequestChangesAnswersConflictTheOthersAreFiled(): void
+    {
+        $response = $this->controller()($this->jsonRequest(['puzzleId' => PuzzleFixture::PUZZLE_1000_05, 'piecesCount' => 1500]));
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $response = $this->controller()($this->jsonRequest(['puzzleId' => PuzzleFixture::PUZZLE_1000_05, 'piecesCount' => 2000, 'ean' => '4005555011897']));
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        self::assertIsArray($body);
+        self::assertSame(['piecesCount'], $body['fields']);
+
+        $response = $this->controller()($this->jsonRequest(['puzzleId' => PuzzleFixture::PUZZLE_1000_05, 'ean' => '4005555011897']));
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
     }
 
     public function testNamesOnlyAreFiledWhileAnotherProposalWaits(): void

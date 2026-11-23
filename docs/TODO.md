@@ -803,7 +803,7 @@ A second puzzler asked for much the same, so it is not a one-off wish.
 
 ## Outdated puzzle requests (`docs/features/puzzle-approvals.md`, "Outdated requests", PR #247)
 
-- [ ] `GetPendingPuzzleProposals` (the puzzle page's "pending proposal" badge, `blocksNewProposal()`, the pending list)
+- [ ] `GetPendingPuzzleProposals` (the puzzle page's "pending proposal" badge, `locks()`, the pending list)
       and `GetPuzzleMergeRequests::sqlNoSecretPuzzle()` still match a merge request by its reported ids only. A pending
       request naming a puzzle merged into this one since (resolved through `puzzle_redirect` everywhere else -
       `MergeRequestPuzzles`) is not shown on this puzzle's page and does not block a new suggestion there.
@@ -884,10 +884,11 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       tag if missing and keep its puzzles in sync with the rounds (today only the internal API's SetCompetitionPuzzles
       creates/fills tags), so the puzzle badge and the puzzle database's 'Competition / event' filter work without
       asking us. Promised to Stefan (MSP #333, follow-up F152).
-- [ ] Let a player edit their own pending puzzle change suggestion or add to it (e.g. an EAN found after suggesting a
-      new picture) - today a pending picture/EAN/brand/pieces/code suggestion blocks any new one on that puzzle until a
-      moderator decides it (GetPendingPuzzleProposals::blocksNewProposal()). Promised to Patrick (MSP #340, follow-up
-      F160).
+- [ ] Let a player edit their own pending puzzle change suggestion (e.g. a typo in the EAN they suggested) - adding to
+      it is possible since 2026-11-23 (an EAN after a new picture: one pending proposal per field,
+      GetPendingPuzzleProposals::locks(), puzzle-approvals.md "Several proposals at once"); changing a field their own
+      pending suggestion changes still waits for the moderator. Promised to Patrick (MSP #340, follow-up F160) - tell
+      him the adding part shipped.
 - [ ] Report / suggest a change on event, edition and series pages (e.g. 'this is a duplicate of …', wrong date or
       details) so players can flag event listings without the feedback form - today there is no way to report or propose
       edits to an event they don't manage. Promised to SickHippie (MSP #342, follow-up F161).

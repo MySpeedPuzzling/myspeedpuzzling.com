@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
 use SpeedPuzzling\Web\FormType\PuzzleRecordFormType;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
+use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
+use SpeedPuzzling\Web\Results\PendingPuzzleProposal;
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOutcome;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
@@ -38,6 +40,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The reviewer's other names are applied as a diff against the ones the review was loaded with (the puzzle's names
  * now - the record version the form carries refuses the save when they changed since the page was rendered).
+ *
+ * Several proposals of one puzzle may wait at once (each changing other fields - GetPendingPuzzleProposals::locks()):
+ * the form starts from the puzzle as it is now with only this proposal's changes on it
+ * (PuzzleRecordFormData::fromChangeRequest()), so approving it never reverts what another one changed - and a puzzle
+ * saved since the page was rendered refuses the save (record version). A field this proposal changes that changed
+ * since it was proposed is pointed out above the form (PuzzleChangeRequestOverview::changedSinceProposed()).
  */
 final class PuzzleChangeRequestDetailController extends AbstractController
 {
@@ -47,6 +55,7 @@ final class PuzzleChangeRequestDetailController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly FormPhotoStash $formPhotoStash,
+        private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
     ) {
     }
 
@@ -132,6 +141,11 @@ final class PuzzleChangeRequestDetailController extends AbstractController
             'request' => $changeRequest,
             'form' => $form,
             'kept_photos' => $this->formPhotoStash->keep($form, $restoredPhotos, $player->playerId),
+            // Several proposals of one puzzle may wait at once, each changing other fields (GetPendingPuzzleProposals)
+            'other_pending_proposals' => array_values(array_filter(
+                $this->getPendingPuzzleProposals->forPuzzle($changeRequest->puzzleId),
+                static fn (PendingPuzzleProposal $proposal): bool => $proposal->id !== $changeRequest->id,
+            )),
         ]);
     }
 }

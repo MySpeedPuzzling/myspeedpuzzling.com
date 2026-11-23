@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Results\PuzzleRecord;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,11 +71,13 @@ final class ProposeChangesController extends AbstractController
 
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
 
-        // One proposal at a time (GetPendingPuzzleProposals) - the pending ones are shown instead of the form. Names only
-        // are proposed meanwhile too: they apply as a diff, so a submitted one is filed even when a proposal is waiting
-        $blocked = $this->getPendingPuzzleProposals->blocksNewProposal($puzzleId);
+        // A field a pending proposal changes waits for its review (GetPendingPuzzleProposals::locks()) - the form shows
+        // it locked, the others stay editable. Only when nothing but the names is left (or a merge request waits) the
+        // pending proposals are shown instead of the form. Names are proposed meanwhile too: they apply as a diff, so a
+        // submitted one is filed even then
+        $locks = $this->getPendingPuzzleProposals->locks($puzzleId);
 
-        if ($blocked && $request->isMethod('POST') === false) {
+        if ($locks->locksEveryField() && $request->isMethod('POST') === false) {
             return $this->pendingProposals($request, $puzzle);
         }
 
@@ -113,19 +116,31 @@ final class ProposeChangesController extends AbstractController
                 || $formData->names->toPuzzleNames()->cleanedFor($proposedName)->diff($record->alternativeNames)->isEmpty() === false;
 
             // The codes compared in their canonical form - the inputs show them as displayed (a UPC with its 12th digit)
-            $otherChanges = $formData->brand !== $puzzle->manufacturerId
-                || $formData->piecesCount !== $puzzle->piecesCount
-                || $formData->eanList()->toStored() !== EanList::fromStored($puzzle->puzzleEan)->toStored()
-                || $formData->brandCodeList()->toStored() !== BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->toStored()
-                || $formData->photo !== null;
+            $changedFields = array_keys(array_filter([
+                PuzzleProposalField::Manufacturer->value => $formData->brand !== $puzzle->manufacturerId,
+                PuzzleProposalField::PiecesCount->value => $formData->piecesCount !== $puzzle->piecesCount,
+                PuzzleProposalField::Ean->value => $formData->eanList()->toStored() !== EanList::fromStored($puzzle->puzzleEan)->toStored(),
+                PuzzleProposalField::IdentificationNumber->value => $formData->brandCodeList()->toStored() !== BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->toStored(),
+                PuzzleProposalField::Image->value => $formData->photo !== null,
+            ]));
+            $changedFields = array_map(PuzzleProposalField::from(...), $changedFields);
+            $otherChanges = $changedFields !== [];
 
             // Check if any values actually changed
             $hasChanges = $proposedName !== $record->name || $namesChanged || $otherChanges;
 
-            // A proposal filed since the form was opened waits for a moderator - names only may still be proposed. The
-            // form comes back with everything typed (the photo kept), so nothing is lost
-            if ($blocked && $otherChanges) {
-                $proposeForm->addError(new FormError($this->translator->trans('puzzle_report.flash.pending_proposal_exists_names_only')));
+            // A field another pending proposal changes (filed since the form was opened, or a locked field sent anyway)
+            // waits for its review. The form comes back with everything else typed (the photo kept) and the locked
+            // fields shown as the puzzle has them, so sending it again files the rest
+            $refusedFields = $locks->lockedAmong($changedFields);
+
+            if ($refusedFields !== []) {
+                $proposeForm->addError(new FormError($this->translator->trans('puzzle_report.flash.pending_proposal_fields', [
+                    '%fields%' => implode(', ', array_map(
+                        fn (PuzzleProposalField $field): string => $this->translator->trans($field->formLabel()),
+                        $refusedFields,
+                    )),
+                ])));
             } else {
                 return $this->submit($request, $formData, $puzzleId, $loggedPlayer->playerId, $record, $hasChanges, $namesChanged, $restoredPhotos);
             }
@@ -137,6 +152,7 @@ final class ProposeChangesController extends AbstractController
             'report_form' => $reportForm,
             'puzzle_id' => $puzzleId,
             'active_tab' => $activeTab,
+            'locks' => $locks,
             'kept_photos' => $this->formPhotoStash->keep($proposeForm, $restoredPhotos, $loggedPlayer->playerId),
         ];
 

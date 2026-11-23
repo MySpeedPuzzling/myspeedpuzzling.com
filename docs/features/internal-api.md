@@ -165,8 +165,12 @@ is `SerializedByLock` on the puzzle, so two at once never both pass):
 - **Never twice:** an `image_pipeline` request of the same puzzle, `sourceImageFingerprint` and tag already exists, in
   **any** status (a rejected one is remembered): `409` with `"code": "already_proposed"` (the error names that request).
   A new picture has a new fingerprint and may be proposed again.
-- An `image` counts as more than names, so a pending change request of more than its names (or a merge request) of the
-  puzzle answers `409` with `"code": "pending_proposal"` (one proposal at a time, like the web form).
+- **One pending proposal per field, like the web form** (`GetPendingPuzzleProposals::locks()`, puzzle-approvals.md
+  "Several proposals at once"): a field another pending change request of the puzzle changes (its proposed value
+  differs from its original; `image` = it proposes a picture), or any field while a merge request of the puzzle is
+  pending, answers `409` with `"code": "pending_proposal"` and `"fields"` - the refused fields as `selectedFields` names
+  (e.g. `["image"]`). The names never conflict. So the image pipeline's crop is refused only while another picture (or
+  a merge request) waits, and a waiting crop never holds up an EAN or pieces proposal.
 - Bad metadata (`source` other than the two, `tags`, `confidence`, `modelVersion`, `sourceImageFingerprint`, the two
   required ones missing for `image_pipeline`): `400` with `errors`.
 
@@ -197,7 +201,9 @@ already answers `409` and nothing changes (no second decision, no second notific
 request take the same per-puzzle lock (`SerializedByLock`), so they never both pass. An unknown id is a `404`.
 
 Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `nameLanguage`, `alternativeNames`,
-`manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, like ticking them in the admin review; `[]`
+`manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, like ticking them in the admin review. A selected
+field the request does not change (its proposed value equals its original - a request stores the whole record as it
+was) keeps the puzzle's value now, so selecting every field never reverts what another proposal changed meanwhile; `[]`
 approves without touching the puzzle (a proposal something else already satisfied, e.g. a brand fix a brand merge made).
 Optional `decisionNote` (≤ 500 characters, `400` above): the decision log's `note`, returned by the list as
 `decision.note` - e.g. `"auto: confidence 0.987, band ≥ 0.98, model artwork-crop 1.0.0"` when Claude Code approves an
@@ -1753,7 +1759,7 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `404 Not Found` | Unknown `featureRequestId` / `mergeRequestId` / brand / puzzle / competition / round id or slug | `{"error": "..."}` |
 | `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use; a change request already reviewed | `{"error": "..."}` |
 | `409 Conflict` | A taken competition slug; the round invariant (a puzzle in two rounds of one category); a round with results to delete; a shared tag; a competition already approved / rejected / an edition to approve; a known EAN for a new puzzle | `{"error": "..."}` |
-| `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one (`"code": "pending_proposal"`) | `{"error": "..."}` |
+| `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal of a field another pending proposal changes, or of any field while a merge request is pending (`"code": "pending_proposal"`, `"fields"`) | `{"error": "..."}` |
 | `409 Conflict` | A change proposal of the image pipeline made already (`already_proposed`) or of a picture the puzzle no longer has (`image_changed`); approving an image pipeline picture of a picture the puzzle no longer has (`image_changed`) or whose original could not be archived (`original_not_archived`); rejecting a change request decided already | `{"error": "...", "code": "..."}` |
 | `422 Unprocessable Entity` | A change proposal's `image` that is no JPEG / PNG / WebP of at most 15 MB | `{"error": "...", "errors": {"image": "..."}}` |
 | `200 OK` | The change request list | `{"changeRequests", "nextCursor"}` |

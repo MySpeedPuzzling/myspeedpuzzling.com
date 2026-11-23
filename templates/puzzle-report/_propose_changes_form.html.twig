@@ -1,5 +1,11 @@
-{# Propose puzzle changes form - used in both modal and full page #}
+{#
+    Propose puzzle changes form - used in both modal and full page. A field another pending proposal changes is shown
+    locked with what waits for review (locks: PendingProposalLocks, puzzle-report/_locked_field.html.twig); the names
+    are never locked.
+#}
 {% set in_modal = in_modal|default(false) %}
+{% set locks = locks|default(null) %}
+{% set locked_common = {puzzle_id: puzzle_id, in_modal: in_modal} %}
 
 {{ form_start(propose_form, {
     'action': path('puzzle_suggest_change', {puzzleId: puzzle_id}),
@@ -20,13 +26,53 @@
         {{ include('puzzle/_names_editor.html.twig', {names: propose_form.names}) }}
     </div>
 
-    {# A brand not in the list - a misspelled one's right name - can be typed: it becomes a new brand #}
-    <div data-controller="brand-picker" data-brand-picker-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}">
-        {{ form_row(propose_form.brand) }}
-    </div>
+    {% if locks is not null and locks.fieldLocked('manufacturer') %}
+        {% set waiting = locks.waitingForField('manufacturer') %}
+        {{ include('puzzle-report/_locked_field.html.twig', locked_common|merge({
+            label: 'puzzle_report.form.brand'|trans,
+            current: puzzle.manufacturerName,
+            waiting: waiting,
+            waiting_shown: waiting.proposedValue ?? '',
+            hidden_inputs: [{name: propose_form.brand.vars.full_name, value: puzzle.manufacturerId}],
+        }), with_context = false) }}
+        {% do propose_form.brand.setRendered %}
+    {% else %}
+        {# A brand not in the list - a misspelled one's right name - can be typed: it becomes a new brand #}
+        <div data-controller="brand-picker" data-brand-picker-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}">
+            {{ form_row(propose_form.brand) }}
+        </div>
+    {% endif %}
 
-    {{ form_row(propose_form.piecesCount) }}
+    {% if locks is not null and locks.fieldLocked('piecesCount') %}
+        {% set waiting = locks.waitingForField('piecesCount') %}
+        {{ include('puzzle-report/_locked_field.html.twig', locked_common|merge({
+            label: 'puzzle_report.form.pieces_count'|trans,
+            current: puzzle.piecesCount,
+            waiting: waiting,
+            waiting_shown: waiting.proposedValue ?? '',
+            hidden_inputs: [{name: propose_form.piecesCount.vars.full_name, value: puzzle.piecesCount}],
+        }), with_context = false) }}
+        {% do propose_form.piecesCount.setRendered %}
+    {% else %}
+        {{ form_row(propose_form.piecesCount) }}
+    {% endif %}
 
+    {% if locks is not null and locks.fieldLocked('ean') %}
+        {% set waiting = locks.waitingForField('ean') %}
+        {% set hidden_inputs = [] %}
+        {% for code in puzzle_eans(puzzle.puzzleEan) %}
+            {% set hidden_inputs = hidden_inputs|merge([{name: propose_form.eans.vars.full_name ~ '[' ~ loop.index0 ~ ']', value: code}]) %}
+        {% endfor %}
+        {% set proposed_codes = waiting is not null ? puzzle_eans(waiting.proposedValue) : [] %}
+        {{ include('puzzle-report/_locked_field.html.twig', locked_common|merge({
+            label: 'puzzle_report.form.ean'|trans,
+            current: puzzle_eans(puzzle.puzzleEan)|join(', '),
+            waiting: waiting,
+            waiting_shown: proposed_codes is not empty ? proposed_codes|join(', ') : 'puzzle_report.locked.no_codes'|trans,
+            hidden_inputs: hidden_inputs,
+        }), with_context = false) }}
+        {% do propose_form.eans.setRendered %}
+    {% else %}
     {# The scan button next to the first EAN input: a scanned code is added to the list (ean_scan_fill_controller.js) #}
     <div data-controller="barcode-scanner ean-scan-fill"
          data-action="barcode-scanner:scanned->ean-scan-fill#fill hide.bs.tab@document->barcode-scanner#stopScanning">
@@ -54,13 +100,51 @@
 
         {{ include('_barcode_scanner_panel.html.twig') }}
     </div>
+    {% endif %}
 
-    {{ include('puzzle/_code_inputs.html.twig', {
-        field: propose_form.brandCodes,
-        label: 'puzzle_report.form.identification_number'|trans,
-        help: 'puzzle_report.form.identification_number_help'|trans,
-    }, with_context = false) }}
+    {% if locks is not null and locks.fieldLocked('identificationNumber') %}
+        {% set waiting = locks.waitingForField('identificationNumber') %}
+        {% set hidden_inputs = [] %}
+        {% for code in puzzle_brand_codes(puzzle.puzzleIdentificationNumber) %}
+            {% set hidden_inputs = hidden_inputs|merge([{name: propose_form.brandCodes.vars.full_name ~ '[' ~ loop.index0 ~ ']', value: code}]) %}
+        {% endfor %}
+        {% set proposed_codes = waiting is not null ? puzzle_brand_codes(waiting.proposedValue) : [] %}
+        {{ include('puzzle-report/_locked_field.html.twig', locked_common|merge({
+            label: 'puzzle_report.form.identification_number'|trans,
+            current: puzzle_brand_codes(puzzle.puzzleIdentificationNumber)|join(', '),
+            waiting: waiting,
+            waiting_shown: proposed_codes is not empty ? proposed_codes|join(', ') : 'puzzle_report.locked.no_codes'|trans,
+            hidden_inputs: hidden_inputs,
+        }), with_context = false) }}
+        {% do propose_form.brandCodes.setRendered %}
+    {% else %}
+        {{ include('puzzle/_code_inputs.html.twig', {
+            field: propose_form.brandCodes,
+            label: 'puzzle_report.form.identification_number'|trans,
+            help: 'puzzle_report.form.identification_number_help'|trans,
+        }, with_context = false) }}
+    {% endif %}
 
+    {% if locks is not null and locks.fieldLocked('image') %}
+        {% set waiting = locks.waitingForField('image') %}
+        <div class="mb-3" data-locked-field>
+            <div class="form-label">{{ 'puzzle_report.form.photo'|trans }}</div>
+            <div class="form-text">
+                <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
+                {% if waiting is not null %}
+                    {{ 'puzzle_report.locked.waiting'|trans({'%value%': 'puzzle_report.locked.new_photo'|trans}) }}
+                {% else %}
+                    {{ 'puzzle_report.locked.merge_pending'|trans }}
+                {% endif %}
+                <a href="{{ path('puzzle_pending_proposals', {puzzleId: puzzle_id}) }}"
+                   class="ms-1"
+                   data-turbo-frame="{{ in_modal ? 'modal-frame' : '_top' }}">
+                    {{- 'puzzle_report.locked.show_pending'|trans -}}
+                </a>
+            </div>
+        </div>
+        {% do propose_form.photo.setRendered %}
+    {% else %}
     {# Photo upload with collapsible help #}
     <div class="mb-3">
         {{ form_label(propose_form.photo) }}
@@ -101,6 +185,8 @@
             </div>
         </div>
     </div>
+
+    {% endif %}
 
     {% if puzzle.puzzleImage is not null %}
         <div class="mb-3">

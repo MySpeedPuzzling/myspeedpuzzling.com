@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\ProposesPuzzleNames;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -74,12 +76,39 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
         self::assertFalse($this->query->hasPendingForPuzzle(PuzzleFixture::PUZZLE_1000_05));
     }
 
-    public function testAPendingChangeOfMoreThanTheNamesOrAMergeBlocksANewProposal(): void
+    public function testAPendingMergeRequestLocksEveryField(): void
     {
-        // A change request proposing an EAN (PuzzleReportFixture), a merge request
-        self::assertTrue($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_500_01));
-        self::assertTrue($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_500_02));
-        self::assertFalse($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_1000_05));
+        // A merge request (PuzzleReportFixture)
+        self::assertTrue($this->query->locks(PuzzleFixture::PUZZLE_500_01)->locksEveryField());
+        self::assertTrue($this->query->locks(PuzzleFixture::PUZZLE_500_02)->locksEveryField());
+        self::assertFalse($this->query->locks(PuzzleFixture::PUZZLE_1000_05)->locksAnyField());
+    }
+
+    public function testAPendingChangeRequestLocksTheFieldsItChangesOnly(): void
+    {
+        $puzzle = self::getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_05);
+
+        // Filed like the form: the whole record, only the EAN differs
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: Uuid::uuid7()->toString(),
+            puzzleId: PuzzleFixture::PUZZLE_1000_05,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            proposedName: $puzzle->name,
+            proposedBrand: $puzzle->manufacturer?->id->toString(),
+            proposedPiecesCount: $puzzle->piecesCount,
+            proposedEans: EanList::fromStored('4005555011897'),
+            proposedBrandCodes: $puzzle->brandCodes(),
+            proposedPhoto: null,
+            originalAlternativeNames: $puzzle->alternativeNames(),
+            originalNameLanguage: $puzzle->nameLanguage,
+        ));
+
+        $locks = $this->query->locks(PuzzleFixture::PUZZLE_1000_05);
+
+        self::assertSame([PuzzleProposalField::Ean], $locks->lockedAmong(PuzzleProposalField::cases()));
+        self::assertSame('4005555011897', $locks->waitingFor(PuzzleProposalField::Ean)?->proposedValue);
+        self::assertTrue($locks->locksAnyField());
+        self::assertFalse($locks->locksEveryField());
     }
 
     public function testPendingChangesOfTheNamesOnlyBlockNothing(): void
@@ -108,6 +137,6 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
 
         self::assertCount(3, $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_02));
         self::assertTrue($this->query->hasPendingForPuzzle(PuzzleFixture::PUZZLE_1000_02), 'The puzzle page still says a proposal waits');
-        self::assertFalse($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_1000_02));
+        self::assertFalse($this->query->locks(PuzzleFixture::PUZZLE_1000_02)->locksAnyField());
     }
 }

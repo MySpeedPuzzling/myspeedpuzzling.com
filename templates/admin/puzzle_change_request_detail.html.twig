@@ -75,6 +75,35 @@
                 </div>
             {% endif %}
 
+            {% if pending and request.changedSinceProposed() is not empty %}
+                {# Another proposal or an edit changed a field this one changes - approving replaces that newer value #}
+                <div class="alert alert-warning small text-break" data-role="changed-since-proposed">
+                    <strong>Changed since this was proposed:</strong> {{ request.changedSinceProposed()|join(', ') }}.
+                    The puzzle has another value there now than when the player proposed theirs ("When proposed" below) -
+                    approving the proposed value replaces it. Keep current where the newer value is right.
+                </div>
+            {% endif %}
+
+            {% if pending and (other_pending_proposals|default([])) is not empty %}
+                {# Several proposals may wait at once, each changing other fields - approving this one keeps the rest #}
+                <div class="alert alert-info small text-break" data-role="other-pending-proposals">
+                    <strong>Also waiting for this puzzle:</strong>
+                    <ul class="mb-1">
+                        {% for proposal in other_pending_proposals %}
+                            <li>
+                                {% if proposal.type == 'change_request' %}
+                                    <a href="{{ path('admin_puzzle_change_request_detail', {id: proposal.id}) }}">{{ proposal.summary ?: 'Change request' }}</a>
+                                {% else %}
+                                    <a href="{{ path('admin_puzzle_merge_request_detail', {id: proposal.id}) }}">{{ proposal.summary }}</a>
+                                {% endif %}
+                                <span class="text-muted">· {{ proposal.submittedAt|ago }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    Approving this one changes only the fields it proposes (and what you edit) - the others stay as the puzzle has them now.
+                </div>
+            {% endif %}
+
             {% if pending %}
                 {{ include('admin/_puzzle_change_request_review.html.twig') }}
             {% else %}

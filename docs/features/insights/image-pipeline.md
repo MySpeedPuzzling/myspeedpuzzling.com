@@ -493,8 +493,8 @@ uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-ban
   the fallback for a picture without a `crop_trust` row. A new crop model version earns its auto band anew (below). Each proposal is a change request with the image, `source:
   image_pipeline`, `tags: ["artwork_crop"]`, `confidence`, `modelVersion`, `sourceImageFingerprint` (the JPEG as plain base64). Refusals are
   skipped, never retried: `409` with `code` `already_proposed` (any status - a rejected crop is remembered),
-  `image_changed` (the picture changed - the next artwork run proposes the new one), `pending_proposal` (the puzzle has
-  another pending request); `404` = the picture is hidden now; `422 errors.image` = the server's photo rule refused the
+  `image_changed` (the picture changed - the next artwork run proposes the new one), `pending_proposal` (another picture or a merge request
+  of the puzzle waits - a pending EAN, pieces or names proposal never holds up a crop, `fields` names what waits); `404` = the picture is hidden now; `422 errors.image` = the server's photo rule refused the
   image (a pipeline bug - counted as failed). Start small (50 a day).
 - **Review** (`/image-crop-review`, daily): moderators decide in the before/after grid. Auto-approval is **earned**:
   nothing below ~300 human decisions; then the lowest confidence band whose human precision has a **Wilson lower

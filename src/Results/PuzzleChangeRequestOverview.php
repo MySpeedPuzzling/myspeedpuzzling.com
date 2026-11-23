@@ -11,6 +11,10 @@ use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
+use SpeedPuzzling\Web\Value\PuzzleProposalChanges;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
@@ -214,9 +218,33 @@ readonly final class PuzzleChangeRequestOverview
         return PuzzleImageFingerprint::of($this->puzzleImage) !== $this->sourceImageFingerprint;
     }
 
+    /**
+     * Which fields it really changes (PuzzleProposalChanges) - the rest of its snapshot is the puzzle as it was.
+     */
+    public function proposedChanges(): PuzzleProposalChanges
+    {
+        return new PuzzleProposalChanges(
+            proposedName: $this->proposedName,
+            originalName: $this->originalName ?? '',
+            proposedManufacturerId: $this->proposedManufacturerId,
+            originalManufacturerId: $this->originalManufacturerId,
+            proposedPiecesCount: $this->proposedPiecesCount,
+            originalPiecesCount: $this->originalPiecesCount ?? 0,
+            proposedEan: $this->proposedEan,
+            originalEan: $this->originalEan,
+            proposedIdentificationNumber: $this->proposedIdentificationNumber,
+            originalIdentificationNumber: $this->originalIdentificationNumber,
+            proposedImage: $this->proposedImage,
+            proposedAlternativeNames: $this->proposedAlternativeNames,
+            originalAlternativeNames: $this->originalAlternativeNames,
+            proposedNameLanguage: $this->proposedNameLanguage,
+            originalNameLanguage: $this->originalNameLanguage,
+        );
+    }
+
     public function hasNameChange(): bool
     {
-        return $this->proposedName !== null && $this->proposedName !== $this->originalName;
+        return $this->proposedChanges()->changes(PuzzleProposalField::Name);
     }
 
     /**
@@ -306,7 +334,7 @@ readonly final class PuzzleChangeRequestOverview
 
     public function hasManufacturerChange(): bool
     {
-        return $this->proposedManufacturerId !== null && $this->proposedManufacturerId !== $this->originalManufacturerId;
+        return $this->proposedChanges()->changes(PuzzleProposalField::Manufacturer);
     }
 
     /**
@@ -327,17 +355,17 @@ readonly final class PuzzleChangeRequestOverview
 
     public function hasPiecesCountChange(): bool
     {
-        return $this->proposedPiecesCount !== null && $this->proposedPiecesCount !== $this->originalPiecesCount;
+        return $this->proposedChanges()->changes(PuzzleProposalField::PiecesCount);
     }
 
     public function hasEanChange(): bool
     {
-        return $this->proposedEan !== null && $this->proposedEan !== $this->originalEan;
+        return $this->proposedChanges()->changes(PuzzleProposalField::Ean);
     }
 
     public function hasIdentificationNumberChange(): bool
     {
-        return $this->proposedIdentificationNumber !== null && $this->proposedIdentificationNumber !== $this->originalIdentificationNumber;
+        return $this->proposedChanges()->changes(PuzzleProposalField::IdentificationNumber);
     }
 
     public function hasImageChange(): bool
@@ -379,5 +407,29 @@ readonly final class PuzzleChangeRequestOverview
             || $this->hasEanChange()
             || $this->hasIdentificationNumberChange()
             || $this->hasImageChange();
+    }
+
+    /**
+     * The fields this proposal changes that the puzzle has another value of now than when it was proposed - another
+     * proposal or an edit changed them since. Approving with the proposed value replaces that newer value, so the
+     * review says so (one pending proposal per field keeps this from happening for new ones - GetPendingPuzzleProposals).
+     * The admin pages are English.
+     *
+     * @return list<string>
+     */
+    public function changedSinceProposed(): array
+    {
+        $changed = [
+            'Main title' => $this->hasNameChange() && $this->originalName !== null && $this->puzzleName !== $this->originalName,
+            'Brand' => $this->hasManufacturerChange() && $this->puzzleManufacturerId !== $this->originalManufacturerId,
+            'Pieces' => $this->hasPiecesCountChange() && $this->puzzlePiecesCount !== $this->originalPiecesCount,
+            'EAN' => $this->hasEanChange() && EanList::fromStored($this->puzzleEan)->equals(EanList::fromStored($this->originalEan)) === false,
+            'Brand code' => $this->hasIdentificationNumberChange()
+                && BrandCodeList::fromStored($this->puzzleIdentificationNumber)->equals(BrandCodeList::fromStored($this->originalIdentificationNumber)) === false,
+            // A hidden picture is not shown, so not compared
+            'Image' => $this->hasImageChange() && $this->puzzleImage !== null && $this->puzzleImage !== $this->originalImage,
+        ];
+
+        return array_keys(array_filter($changed));
     }
 }

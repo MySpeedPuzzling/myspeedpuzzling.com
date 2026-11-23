@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\ImagePipelineProposalRules;
 use SpeedPuzzling\Web\Services\InternalApi\ProposedPuzzleImageInput;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -140,24 +141,34 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             throw new BadRequestHttpException(sprintf('"alternativeNames" can hold at most %d names.', PuzzleNames::FORM_MAX_NAMES));
         }
 
-        $otherChanges = $proposesImage
-            || $manufacturerId !== $puzzle->manufacturerId
-            || $piecesCount !== $puzzle->piecesCount
-            || $eans->toStored() !== EanList::fromStored($puzzle->ean)->toStored()
-            || $brandCodes->toStored() !== BrandCodeList::fromStored($puzzle->identificationNumber)->toStored();
+        $changedFields = array_map(PuzzleProposalField::from(...), array_keys(array_filter([
+            PuzzleProposalField::Manufacturer->value => $manufacturerId !== $puzzle->manufacturerId,
+            PuzzleProposalField::PiecesCount->value => $piecesCount !== $puzzle->piecesCount,
+            PuzzleProposalField::Ean->value => $eans->toStored() !== EanList::fromStored($puzzle->ean)->toStored(),
+            PuzzleProposalField::IdentificationNumber->value => $brandCodes->toStored() !== BrandCodeList::fromStored($puzzle->identificationNumber)->toStored(),
+            PuzzleProposalField::Image->value => $proposesImage,
+        ])));
+        $otherChanges = $changedFields !== [];
 
         if ($name === $puzzle->name && $namesChanged === false && $otherChanges === false) {
             throw new BadRequestHttpException('Nothing to change - every given field equals the puzzle as it is.');
         }
 
-        // Like the web form: one open proposal per puzzle - names only are filed regardless, they apply as a diff
-        // (GetPendingPuzzleProposals). Answered without an exception, so a caller filing in bulk does not turn a known
-        // conflict into a logged error.
-        if ($otherChanges && $this->getPendingPuzzleProposals->blocksNewProposal($puzzleId)) {
+        // Like the web form: a field another pending change request changes waits for its review, every field while a
+        // merge request is pending (GetPendingPuzzleProposals::locks()) - names only are filed regardless, they apply as
+        // a diff. Answered without an exception, so a caller filing in bulk does not turn a known conflict into a logged
+        // error.
+        $refusedFields = $this->getPendingPuzzleProposals->locks($puzzleId)->lockedAmong($changedFields);
+
+        if ($refusedFields !== []) {
             return new JsonResponse(
                 [
-                    'error' => 'The puzzle already has a pending change request (of more than its names) or merge request.',
+                    'error' => sprintf(
+                        'The puzzle has a pending change request of the same field (%s) or a pending merge request.',
+                        implode(', ', array_map(static fn (PuzzleProposalField $field): string => $field->value, $refusedFields)),
+                    ),
                     'code' => 'pending_proposal',
+                    'fields' => array_map(static fn (PuzzleProposalField $field): string => $field->value, $refusedFields),
                 ],
                 Response::HTTP_CONFLICT,
             );

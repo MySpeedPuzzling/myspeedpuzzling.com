@@ -1,0 +1,31 @@
+{#
+    A field of "Suggest a change" that another pending proposal changes (GetPendingPuzzleProposals::locks()): shown,
+    not editable, with what waits for review. The puzzle's value goes along in hidden inputs, so the field is sent
+    unchanged (the controller refuses a change of a locked field anyway).
+
+    Required: label (translated), current (shown value), waiting (PendingFieldProposal or null - a merge request waits),
+              waiting_shown (the proposed value as shown, '' when there is none to show), puzzle_id, in_modal,
+              hidden_inputs - list of {name, value}
+#}
+<div class="mb-3" data-locked-field>
+    <div class="form-label">{{ label }}</div>
+    {# No name - only the hidden inputs below are sent #}
+    <input type="text" class="form-control" value="{{ current is not empty ? current : '–' }}" disabled aria-label="{{ label }}">
+
+    <div class="form-text">
+        <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
+        {% if waiting is not null %}
+            {{ 'puzzle_report.locked.waiting'|trans({'%value%': waiting_shown}) }}
+        {% else %}
+            {{ 'puzzle_report.locked.merge_pending'|trans }}
+        {% endif %}
+        <a href="{{ path('puzzle_pending_proposals', {puzzleId: puzzle_id}) }}"
+           class="ms-1"
+           data-turbo-frame="{{ in_modal ? 'modal-frame' : '_top' }}">
+            {{- 'puzzle_report.locked.show_pending'|trans -}}
+        </a>
+    </div>
+    {% for input in hidden_inputs %}
+        <input type="hidden" name="{{ input.name }}" value="{{ input.value }}">
+    {% endfor %}
+</div>

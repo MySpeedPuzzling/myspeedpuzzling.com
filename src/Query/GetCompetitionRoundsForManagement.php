@@ -42,6 +42,7 @@ SELECT
     cr.slug,
     cr.unboxed,
     COUNT(crp.id) AS puzzle_count,
+    COUNT(crp.id) FILTER (WHERE crp.unboxed) AS unboxed_puzzle_count,
     STRING_AGG(DISTINCT crp.reveal_mode, ',' ORDER BY crp.reveal_mode) FILTER (WHERE crp.hide_until_round_starts) AS secret_reveal_modes
 FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
@@ -79,6 +80,7 @@ SQL;
              *     secret_reveal_modes: null|string,
              *     slug: null|string,
              *     unboxed: bool,
+             *     unboxed_puzzle_count: int|string,
              * } $row
              */
 
@@ -104,6 +106,7 @@ SQL;
                 secretRevealModes: $row['secret_reveal_modes'] !== null ? explode(',', $row['secret_reveal_modes']) : [],
                 slug: $row['slug'],
                 unboxed: $row['unboxed'],
+                unboxedPuzzleCount: (int) $row['unboxed_puzzle_count'],
             );
         }, $data, array_keys($data));
     }

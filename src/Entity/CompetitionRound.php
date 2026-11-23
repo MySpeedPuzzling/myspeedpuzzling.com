@@ -304,12 +304,31 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
-     * Whether the round's box pictures are still kept back because the round is unboxed - until its results are first
-     * published (RoundPuzzleReveal::sqlImageHidden() is the SQL twin).
+     * Whether the round's box pictures (all of them, or those of its unboxed puzzles) are still kept back because the round
+     * or one of its puzzles is unboxed - until its results are first published (RoundPuzzleReveal::sqlImageHidden() is the
+     * SQL twin). A published round never loads its puzzles here.
      */
     public function keepsPicturesUnboxed(): bool
     {
-        return $this->unboxed && $this->resultsFirstPublishedAt === null;
+        return $this->resultsFirstPublishedAt === null && $this->hasUnboxedPuzzles();
+    }
+
+    /**
+     * The round switch, or at least one of its puzzles unboxed on its own (spws-unboxed-per-puzzle.md)
+     */
+    public function hasUnboxedPuzzles(): bool
+    {
+        if ($this->unboxed) {
+            return true;
+        }
+
+        foreach ($this->roundPuzzles as $roundPuzzle) {
+            if ($roundPuzzle->unboxed) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function changeTableNumbersUsage(bool $off): void

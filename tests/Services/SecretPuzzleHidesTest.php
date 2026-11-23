@@ -67,6 +67,31 @@ final class SecretPuzzleHidesTest extends WebTestCase
         self::assertSame([$reveal, $publishedAt], $this->hides($puzzleId), 'a later publish changes nothing');
     }
 
+    /**
+     * spws-unboxed-per-puzzle.md: the puzzle unboxed on its own (the round switch off) is kept the same way
+     */
+    public function testAnUnboxedPuzzleKeepsThePictureUntilTheRoundsFirstPublish(): void
+    {
+        self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        $reveal = self::automaticRevealOf(self::ROUND)->format('Y-m-d H:i:s');
+        $database = self::getContainer()->get(Connection::class);
+        $roundPuzzleId = $database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :round AND puzzle_id = :puzzle', ['round' => self::ROUND, 'puzzle' => $puzzleId]);
+        assert(is_string($roundPuzzleId));
+
+        $this->dispatch(new ChangeRoundUnboxed(self::COMPETITION, self::ROUND, false, [$roundPuzzleId]));
+        self::assertSame([$reveal, self::NEVER], $this->hides($puzzleId), 'unboxed puzzle: the picture waits for the publish');
+
+        $this->dispatch(new ChangeRoundUnboxed(self::COMPETITION, self::ROUND, false, []));
+        self::assertSame([$reveal, $reveal], $this->hides($puzzleId), 'boxed again: the reveal');
+
+        $this->dispatch(new ChangeRoundUnboxed(self::COMPETITION, self::ROUND, false, [$roundPuzzleId]));
+        $this->moveClockTo(self::automaticRevealOf(self::ROUND)->modify('+5 minutes'));
+        $publishedAt = $this->now()->format('Y-m-d H:i:s');
+        $this->dispatch(new PublishRoundResults(self::COMPETITION, self::ROUND));
+        self::assertSame([$reveal, $publishedAt], $this->hides($puzzleId), 'first publish: the picture comes out');
+    }
+
     public function testAPublishBeforeTheRevealKeepsThePictureUntilTheReveal(): void
     {
         self::createClient();

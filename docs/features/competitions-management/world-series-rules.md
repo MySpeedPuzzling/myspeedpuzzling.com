@@ -543,6 +543,8 @@ seating page itself runs no new statement) and the copy has no Undo toast.
 ## 7. Unboxed rounds
 
 > **As built (W2, 2026-11-17):** see [round-formats.md](round-formats.md) "Unboxed rounds" - as designed here + W2-a.
+> **Per puzzle (2026-11-24):** [spws-unboxed-per-puzzle.md](spws-unboxed-per-puzzle.md) - SPWS Teams "Challenges 3 + 4"
+> unboxes only Challenge 4.
 > Deviations: the switch lives on the round puzzles page and the hub card only shows "· Unboxed" (no per-round checkbox
 > on the card); the marketplace picker applies the whole `sqlImageHidden()` rule (secret image-only included - it only
 > hides more); the results import's event card is organiser-only and stays as it was.

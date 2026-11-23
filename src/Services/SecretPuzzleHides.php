@@ -249,10 +249,10 @@ readonly final class SecretPuzzleHides
                 default => $row->revealsAt() ?? $neverRevealed,
             };
 
-            // An unboxed round (world-series-rules.md §7) keeps the picture back until its results are first published:
+            // An unboxed round or puzzle (world-series-rules.md §7, spws-unboxed-per-puzzle.md) keeps the picture back until its results are first published:
             // never yet before it, then the later of the reveal and that publish - the name follows the reveal alone
             $pictureRevealsAt = $revealsAt;
-            if ($row->round->unboxed) {
+            if ($row->isUnboxed()) {
                 $firstPublishedAt = $row->round->resultsFirstPublishedAt;
                 $pictureRevealsAt = $firstPublishedAt === null ? $neverRevealed : max($revealsAt, $firstPublishedAt);
             }

@@ -19,9 +19,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * round hides everywhere would keep its picture hidden for good. After the publish's commit (asynchronous, like the
  * notification of the same event) this re-syncs them once more, under the round's lock.
  *
- * A round that is not unboxed pays nothing: the round comes from the entity manager the notification handler of the
- * same event loads it into (one find, the identity map), and nothing else is read. An unboxed published round pays one
- * cheap check, and the lock only while one of its pictures is still kept back for good.
+ * The round comes from the entity manager the notification handler of the same event loads it into (one find, the
+ * identity map); a published round pays one cheap check (its round switch or a puzzle's own flag, a secret puzzle kept
+ * back for good - spws-unboxed-per-puzzle.md), and the lock only while one of its pictures is still kept back for good.
  */
 #[AsMessageHandler]
 readonly final class ResyncUnboxedRoundPicturesWhenPublished
@@ -44,14 +44,16 @@ readonly final class ResyncUnboxedRoundPicturesWhenPublished
             return;
         }
 
-        if ($round->unboxed === false || $round->resultsFirstPublishedAt === null) {
+        if ($round->resultsFirstPublishedAt === null) {
             return;
         }
 
+        // The round's switch or a puzzle's own (spws-unboxed-per-puzzle.md) - in the one statement, no entity load
         $keptForGood = $this->database->fetchOne(
             'SELECT 1 FROM competition_round_puzzle crp'
+            . ' INNER JOIN competition_round cr ON cr.id = crp.round_id'
             . ' INNER JOIN puzzle p ON p.id = crp.puzzle_id'
-            . ' WHERE crp.round_id = :roundId AND crp.hide_until_round_starts AND crp.hides_everywhere'
+            . ' WHERE crp.round_id = :roundId AND (cr.unboxed OR crp.unboxed) AND crp.hide_until_round_starts AND crp.hides_everywhere'
             . ' AND p.hide_image_until = :never LIMIT 1',
             ['roundId' => $roundId, 'never' => CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED],
         );

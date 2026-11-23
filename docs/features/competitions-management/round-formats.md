@@ -209,6 +209,13 @@ time runs out we count missing pieces to show how many pieces were placed".
 
 Design: [world-series-rules.md](world-series-rules.md) §7 + review amendments W2-a/b (binding).
 
+> **Per puzzle (SPWS 1:1 demo, 2026-11-24):** [spws-unboxed-per-puzzle.md](spws-unboxed-per-puzzle.md) - a puzzle may be
+> unboxed on its own (`competition_round_puzzle.unboxed`, one challenge of a back-to-back block); effective = the round's
+> switch OR the row's flag, the moment stays the round's first publish. The rule below reads `(cr.unboxed OR
+> crp.unboxed)` wherever it read `cr.unboxed`; the round puzzles page offers "No / Every puzzle / Only some puzzles";
+> `ChangeRoundUnboxed` takes an optional list `unboxedRoundPuzzleIds`; "Add to my profile" of an unboxed challenge opens
+> with the add form's "Solved without looking at the box image" ticked.
+
 - **Model:** `competition_round.unboxed` (boolean, default false - every round before W2 and every new round).
   `CompetitionRound::changeUnboxed()`; `keepsPicturesUnboxed()` = `unboxed && results_first_published_at IS NULL`.
   Meaning: no box picture of **any** of the round's puzzles - secret or not - on the event's pages, screens and phones

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\CompetitionToolkit;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundPuzzleNotFound;
 use SpeedPuzzling\Web\Message\ChangeRoundUnboxed;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
@@ -18,8 +19,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The "Unboxed" switch on the round's puzzles page (docs/features/competitions-management/world-series-rules.md §7):
- * `unboxed=1` on, anything else off. Only for whom COMPETITION_TOOLKIT_MANAGE grants. Always back to the puzzles page
+ * The "Unboxed" choice on the round's puzzles page (docs/features/competitions-management/world-series-rules.md §7,
+ * spws-unboxed-per-puzzle.md): `unboxed=1` every puzzle of the round, `unboxed=some` only the ticked
+ * `unboxed_puzzles[]` (round puzzle ids), anything else none. Only for whom COMPETITION_TOOLKIT_MANAGE grants. Always back to the puzzles page
  * (a full-page POST never answers 200).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
@@ -61,14 +63,36 @@ final class ChangeRoundUnboxedController extends AbstractController
             return $back;
         }
 
-        $unboxed = $request->request->getString('unboxed') === '1';
+        // `unboxed`: 1 = every puzzle of the round, `some` = only the ticked `unboxed_puzzles[]`, anything else = boxed
+        $choice = $request->request->getString('unboxed');
+        $unboxed = $choice === '1';
+        $roundPuzzleIds = [];
 
-        $this->messageBus->dispatch(new ChangeRoundUnboxed($competitionId, $roundId, $unboxed));
+        if ($choice === 'some') {
+            /** @var array<mixed> $ticked */
+            $ticked = $request->request->all('unboxed_puzzles');
+            $roundPuzzleIds = array_values(array_unique(array_filter($ticked, is_string(...))));
+        }
+
+        try {
+            $this->messageBus->dispatch(new ChangeRoundUnboxed($competitionId, $roundId, $unboxed, $roundPuzzleIds));
+        } catch (CompetitionRoundPuzzleNotFound) {
+            // A puzzle removed from the round meanwhile (another tab) - nothing was written (an HTTP exception comes
+            // unwrapped - UnwrapHttpExceptionMiddleware)
+            $this->addFlash('danger', $this->translator->trans('competition.round_puzzles.unboxed.puzzle_gone'));
+
+            return $back;
+        }
 
         // Open judge pages and the event's displays read the round's puzzles again (after the commit)
         $this->officialResultsLiveUpdates->puzzlesRevealed($roundId);
 
-        $this->addFlash('success', $this->translator->trans($unboxed ? 'competition.round_puzzles.unboxed.saved_on' : 'competition.round_puzzles.unboxed.saved_off'));
+        $message = match (true) {
+            $unboxed => 'competition.round_puzzles.unboxed.saved_on',
+            $roundPuzzleIds !== [] => 'competition.round_puzzles.unboxed.saved_some',
+            default => 'competition.round_puzzles.unboxed.saved_off',
+        };
+        $this->addFlash('success', $this->translator->trans($message, ['%count%' => count($roundPuzzleIds)]));
 
         return $back;
     }

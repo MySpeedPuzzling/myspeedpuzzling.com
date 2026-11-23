@@ -43,6 +43,13 @@ class CompetitionRoundPuzzle implements EntityWithEvents
     #[Column(length: RoundPuzzleLabel::MAX_LENGTH, nullable: true)]
     public null|string $label = null;
 
+    // "Unboxed" for this puzzle only (SPWS: one challenge of a back-to-back block - docs/features/competitions-management/
+    // spws-unboxed-per-puzzle.md): its box picture is not shown until the round's results are first published, like every
+    // puzzle of a round with CompetitionRound::$unboxed on. Read through isUnboxed(); changed only through changeUnboxed().
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => false])]
+    public bool $unboxed = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -209,6 +216,24 @@ class CompetitionRoundPuzzle implements EntityWithEvents
 
         $this->position = $position;
         $this->label = RoundPuzzleLabel::normalise($label);
+    }
+
+    /**
+     * Whether the puzzle is unboxed - the round's switch (every puzzle of it) or this puzzle's own flag. The picture's
+     * moment is the round's first publish (CompetitionRound::keepsPicturesUnboxed()).
+     */
+    public function isUnboxed(): bool
+    {
+        return $this->round->unboxed || $this->unboxed;
+    }
+
+    /**
+     * The organiser's per-puzzle "Unboxed" (ChangeRoundUnboxedHandler, under the round's lock) - re-sync the puzzle's
+     * site-wide hide afterwards (SecretPuzzleHides).
+     */
+    public function changeUnboxed(bool $unboxed): void
+    {
+        $this->unboxed = $unboxed;
     }
 
     /**

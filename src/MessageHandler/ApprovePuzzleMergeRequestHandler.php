@@ -412,7 +412,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'lentPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
             'lentPuzzleTransfers' => [],
             'soldSwappedItems' => [],
-            'competitionRoundPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'competitionRoundPuzzles' => ['moved' => [], 'droppedAsDuplicate' => [], 'unboxedSet' => []],
             'conversations' => [],
             'stopwatches' => [],
             'changeRequests' => [],
@@ -572,8 +572,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
 
                 if ($survivorRow instanceof CompetitionRoundPuzzle) {
                     // An unboxed challenge stays unboxed on the row that is kept (spws-unboxed-per-puzzle.md)
-                    if ($roundPuzzle->unboxed) {
+                    if ($roundPuzzle->unboxed && $survivorRow->unboxed === false) {
                         $survivorRow->changeUnboxed(true);
+                        // RevertPuzzleMergeRequestHandler switches it off again
+                        $inventory['competitionRoundPuzzles']['unboxedSet'][] = $survivorRow->id->toString();
                     }
 
                     $this->entityManager->remove($roundPuzzle);

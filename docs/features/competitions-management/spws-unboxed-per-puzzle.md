@@ -97,7 +97,7 @@ expressions; goldens (`RoundResultsStateGoldenTest`, `OfficialRoundResultsGolden
 ## Review amendments (independent review 2026-11-24 - binding)
 - R1 (merge): `ApprovePuzzleMergeRequestHandler` drops a merged puzzle's row when the survivor is already in that round -
   an unboxed dropped row makes the kept row unboxed (`changeUnboxed(true)`); a moved row keeps its flag. A merge revert
-  leaves the kept row's flag on (docs/TODO.md).
+  switches it off again (recorded in the merge inventory as `competitionRoundPuzzles.unboxedSet`).
 - R2 (leftover flag): the "Only some puzzles" choice is shown whenever a row is flagged, also on a round that has one
   puzzle now, so a leftover flag can always be seen and cleared.
 - R3 (hub card): a count, not labels - "· Unboxed: 1 puzzle" (`COUNT(...) FILTER (WHERE crp.unboxed)`, +0 statements);

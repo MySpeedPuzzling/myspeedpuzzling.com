@@ -8,7 +8,6 @@ that would otherwise be forgotten. Newest section on top.
 
 - [ ] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch
       is copied) - say so on the duplicate form next to the format-reset notice.
-- [ ] A reverted puzzle merge leaves the kept row's per-puzzle "Unboxed" on when the merge set it from a dropped row.
 - [ ] The event page's note under an unboxed puzzle says "Picture revealed when the round starts" (`event_rounds.picture_hidden`,
       also for W2 whole-round unboxed) - say "after the results are published" (needs a flag on `VisibleRoundPuzzle`).
 - [ ] Internal API has no unboxed field (round or puzzle) - add `unboxed` / `unboxedRoundPuzzleIds` to the round

@@ -22,7 +22,8 @@ readonly final class ChangeRoundUnboxed implements SerializedByLock
         public string $competitionId,
         public string $roundId,
         public bool $unboxed,
-        // Exactly these round puzzles of the round are unboxed on their own, the others not; null = their flags stay
+        // Exactly these round puzzles of the round are unboxed on their own, the others not; null = their flags stay (the
+        // round puzzles page always sends its list - the whole state of the form)
         /** @var null|list<string> */
         public null|array $unboxedRoundPuzzleIds = null,
     ) {

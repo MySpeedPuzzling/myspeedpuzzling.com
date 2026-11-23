@@ -21,10 +21,9 @@ readonly final class IsRoundPuzzleUnboxed
     public function of(string $roundId, string $puzzleId): bool
     {
         $unboxed = $this->database->fetchOne(
-            'SELECT cr.unboxed OR crp.unboxed FROM competition_round_puzzle crp'
-            . ' INNER JOIN competition_round cr ON cr.id = crp.round_id'
-            . ' WHERE crp.round_id = :roundId AND crp.puzzle_id = :puzzleId'
-            . ' ORDER BY crp.unboxed DESC LIMIT 1',
+            'SELECT cr.unboxed OR COALESCE(BOOL_OR(crp.unboxed), false) FROM competition_round cr'
+            . ' LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id AND crp.puzzle_id = :puzzleId'
+            . ' WHERE cr.id = :roundId GROUP BY cr.id',
             ['roundId' => $roundId, 'puzzleId' => $puzzleId],
         );
 

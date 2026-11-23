@@ -72,7 +72,7 @@
             {% set unboxed_choice = round.unboxed ? '1' : (unboxed_some ? 'some' : '0') %}
             <form method="post" action="{{ path('change_round_unboxed', {roundId: round.id}) }}" class="mb-3 col-xl-9 px-0" data-round-unboxed="{{ round.unboxed ? 'on' : (unboxed_some ? 'some' : 'off') }}"
                 {#- Asks only when a picture held back now would come out: the whole round off, or an unboxed puzzle unticked #}
-                {%- if round.keepsPicturesUnboxed %} onsubmit="var keeps = this.unboxed.value === '1' || ({{ round.unboxed ? 'false' : 'true' }} &amp;&amp; this.unboxed.value === 'some' &amp;&amp; !Array.prototype.some.call(this.querySelectorAll('[data-was-unboxed]'), function (box) { return !box.checked; })); return keeps || confirm('{{ 'competition.round_puzzles.unboxed.confirm_off'|trans|e('js') }}')"{% endif %}>
+                {%- if round.keepsPicturesUnboxed %} onsubmit="var held = this.querySelectorAll('{{ round.unboxed ? 'input[name^=unboxed_puzzles]' : '[data-was-unboxed]' }}'); var keeps = this.unboxed.value === '1' || (this.unboxed.value === 'some' &amp;&amp; !Array.prototype.some.call(held, function (box) { return !box.checked; })); return keeps || confirm('{{ 'competition.round_puzzles.unboxed.confirm_off'|trans|e('js') }}')"{% endif %}>
                 <input type="hidden" name="_token" value="{{ csrf_token('change_round_unboxed_' ~ round.id) }}">
                 <fieldset class="mb-1">
                     <legend class="form-label fw-medium fs-base mb-1">{{ 'competition.round_puzzles.unboxed.label'|trans }}</legend>

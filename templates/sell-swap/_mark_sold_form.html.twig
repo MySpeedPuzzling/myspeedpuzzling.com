@@ -54,7 +54,7 @@
             {{ 'forms.cancel'|trans }}
         </button>
     {% else %}
-        <a href="{{ path('sell_swap_list', {playerId: logged_user.profile.playerId}) }}" class="btn btn-secondary">
+        <a href="{{ path('sell_swap_list_detail', {playerId: logged_user.profile.playerId}) }}" class="btn btn-secondary">
             {{ 'forms.cancel'|trans }}
         </a>
     {% endif %}

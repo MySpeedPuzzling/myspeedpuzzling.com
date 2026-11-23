@@ -52,7 +52,7 @@ final class MarkAsSoldToPlayerController extends AbstractController
             // The listing was already sold, swapped or removed elsewhere.
             $this->addFlash('warning', $this->translator->trans('sell_swap_list.listing_unavailable'));
 
-            return $this->redirectToRoute('sell_swap_list', ['playerId' => $loggedPlayer->playerId]);
+            return $this->redirectToRoute('sell_swap_list_detail', ['playerId' => $loggedPlayer->playerId]);
         }
 
         $this->addFlash('success', $this->translator->trans('sell_swap_list.mark_sold.success'));
@@ -62,6 +62,6 @@ final class MarkAsSoldToPlayerController extends AbstractController
             return $this->redirect($referer);
         }
 
-        return $this->redirectToRoute('sell_swap_list', ['playerId' => $loggedPlayer->playerId]);
+        return $this->redirectToRoute('sell_swap_list_detail', ['playerId' => $loggedPlayer->playerId]);
     }
 }

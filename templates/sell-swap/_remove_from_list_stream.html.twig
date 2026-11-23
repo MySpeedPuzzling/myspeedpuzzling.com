@@ -22,7 +22,7 @@
 {% if remaining_count == 0 %}
 <turbo-stream action="update" target="sellswap-list-container">
     <template>
-        {{ include('sell-swap/_empty_state.html.twig') }}
+        {{ include('sell-swap/_empty_state.html.twig', {isOwnProfile: true}) }}
     </template>
 </turbo-stream>
 {% endif %}

@@ -163,6 +163,6 @@ final class RemoveReservationController extends AbstractController
             return $this->redirect($referer);
         }
 
-        return $this->redirectToRoute('sell_swap_list', ['playerId' => $loggedPlayer->playerId]);
+        return $this->redirectToRoute('sell_swap_list_detail', ['playerId' => $loggedPlayer->playerId]);
     }
 }

@@ -86,6 +86,7 @@ readonly final class ApprovePuzzleHandler
             image: $message->uploadedImage !== null ? PuzzleImageChoice::Upload : PuzzleImageChoice::Keep,
             uploadedImage: $message->uploadedImage,
             recordVersion: $message->recordVersion,
+            eanAbsent: $message->eanAbsent,
         ));
         $name = $puzzle->name;
 

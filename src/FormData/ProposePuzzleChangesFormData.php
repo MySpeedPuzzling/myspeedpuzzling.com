@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleRecord;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Image;
@@ -67,6 +68,14 @@ final class ProposePuzzleChangesFormData
     public function validateEan(ExecutionContextInterface $context): void
     {
         $this->validateCodes($context);
+
+        // "The box has no barcode" is offered only while the puzzle has no EAN - a puzzle with one is no such box
+        if ($this->eanAbsent && $this->eanList()->isEmpty() && EanList::fromStored($this->currentEan)->isEmpty() === false) {
+            $context->buildViolation('puzzle_report.form.ean_absent_with_ean')
+                ->setTranslationDomain('messages')
+                ->atPath('eanAbsent')
+                ->addViolation();
+        }
     }
 
     /**

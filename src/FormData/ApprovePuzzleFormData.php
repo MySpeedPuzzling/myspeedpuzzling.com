@@ -63,6 +63,7 @@ final class ApprovePuzzleFormData
         $data->recordVersion = $puzzle->recordVersion();
         $data->piecesCount = $puzzle->piecesCount;
         $data->loadCodes($puzzle->ean, $puzzle->identificationNumber, currentEan: $puzzle->ean);
+        $data->eanAbsent = $puzzle->eanAbsent;
         $data->currentManufacturerId = $puzzle->manufacturerId;
         $data->newBrand = $puzzle->manufacturerId !== null && $puzzle->manufacturerApproved === false;
         // A new brand: the likeliest existing one is ready for a merge or move; otherwise the puzzle's own brand

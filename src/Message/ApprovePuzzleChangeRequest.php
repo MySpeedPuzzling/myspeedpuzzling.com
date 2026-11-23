@@ -18,7 +18,8 @@ readonly final class ApprovePuzzleChangeRequest implements SerializedByLock
     /**
      * @param list<string> $selectedFields Proposed fields applied as proposed, the rest of the puzzle stays as it
      *                                     is (internal API): name, nameLanguage, alternativeNames, manufacturer,
-     *                                     piecesCount, ean, identificationNumber, image. Not used when $reviewed is given.
+     *                                     piecesCount, ean, identificationNumber, image, eanAbsent
+     *                                     (PuzzleProposalField). Not used when $reviewed is given.
      */
     public function __construct(
         public string $changeRequestId,

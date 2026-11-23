@@ -40,7 +40,7 @@ readonly final class PuzzleRecordUpdater
     /**
      * @param null|string $proposedImage A change request's proposed image - what PuzzleImageChoice::Proposed uses
      *
-     * @return array{before: array<string, null|string|int|list<array{name: string, language: null|string}>>, after: array<string, null|string|int|list<array{name: string, language: null|string}>>}
+     * @return array{before: array<string, null|string|int|bool|list<array{name: string, language: null|string}>>, after: array<string, null|string|int|bool|list<array{name: string, language: null|string}>>}
      *
      * @throws PuzzleChangedMeanwhile The record changed after the form was loaded
      * @throws InvalidPuzzleValues
@@ -88,6 +88,10 @@ readonly final class PuzzleRecordUpdater
             throw new InvalidPuzzleValues('No picture to restore.');
         }
 
+        if ($values->eanAbsent === true && $values->eans->isEmpty() === false) {
+            throw new InvalidPuzzleValues('Leave the EAN empty for a box without a barcode.');
+        }
+
         // Only a growing list can break the cap - a merge may have left more names, editing or removing one must work
         $values->alternativeNames->assertFormLimits(loadedCount: $puzzle->alternativeNames()->count());
 
@@ -100,6 +104,11 @@ readonly final class PuzzleRecordUpdater
         $puzzle->manufacturer = $manufacturer;
         $puzzle->piecesCount = $values->piecesCount;
         $puzzle->updateProductIdentifiers($values->eans, $values->brandCodes);
+
+        // After the codes: an EAN stored there has cleared it already, and only a puzzle without one is confirmed
+        if ($values->eanAbsent !== null) {
+            $puzzle->confirmEanAbsent($values->eanAbsent, $this->clock->now());
+        }
 
         // After the fields above: the image's file name is built from the final brand, name and pieces
         if ($values->image === PuzzleImageChoice::Proposed) {
@@ -124,7 +133,7 @@ readonly final class PuzzleRecordUpdater
      * The record as the decision log keeps it - the shape the puzzle's history reads back (PuzzleHistoryChange).
      * Snapshots older than the names list hold a single `alternativeName` string instead of the last two.
      *
-     * @return array<string, null|string|int|list<array{name: string, language: null|string}>>
+     * @return array<string, null|string|int|bool|list<array{name: string, language: null|string}>>
      */
     public static function snapshot(Puzzle $puzzle): array
     {
@@ -138,6 +147,7 @@ readonly final class PuzzleRecordUpdater
             'ean' => $puzzle->ean,
             'identificationNumber' => $puzzle->identificationNumber,
             'image' => $puzzle->image,
+            'eanAbsent' => $puzzle->isEanAbsent(),
         ];
     }
 }

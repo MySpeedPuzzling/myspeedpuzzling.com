@@ -34,6 +34,8 @@ readonly final class PuzzleRecord
         public null|string $addedByCode,
         public null|DateTimeImmutable $hideUntil,
         public null|DateTimeImmutable $hideImageUntil,
+        // "No barcode on the box" confirmed (Puzzle::$eanAbsentConfirmedAt)
+        public bool $eanAbsent = false,
     ) {
     }
 
@@ -68,6 +70,7 @@ readonly final class PuzzleRecord
             addedByCode: is_string($row['added_by_code']) ? $row['added_by_code'] : null,
             hideUntil: is_string($row['hide_until']) ? new DateTimeImmutable($row['hide_until']) : null,
             hideImageUntil: is_string($row['hide_image_until']) ? new DateTimeImmutable($row['hide_image_until']) : null,
+            eanAbsent: ($row['ean_absent'] ?? false) === true,
         );
     }
 
@@ -85,6 +88,7 @@ readonly final class PuzzleRecord
             ean: $this->ean,
             identificationNumber: $this->identificationNumber,
             image: $this->image,
+            eanAbsent: $this->eanAbsent,
         );
     }
 }

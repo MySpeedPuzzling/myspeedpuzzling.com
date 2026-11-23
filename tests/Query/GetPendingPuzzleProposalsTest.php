@@ -105,7 +105,8 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
 
         $locks = $this->query->locks(PuzzleFixture::PUZZLE_1000_05);
 
-        self::assertSame([PuzzleProposalField::Ean], $locks->lockedAmong(PuzzleProposalField::cases()));
+        // "No barcode on the box" says the opposite of a proposed EAN - locked together (PuzzleProposalField::lockedTogether())
+        self::assertSame([PuzzleProposalField::Ean, PuzzleProposalField::EanAbsent], $locks->lockedAmong(PuzzleProposalField::cases()));
         self::assertSame('4005555011897', $locks->waitingFor(PuzzleProposalField::Ean)?->proposedValue);
         self::assertTrue($locks->locksAnyField());
         self::assertFalse($locks->locksEveryField());

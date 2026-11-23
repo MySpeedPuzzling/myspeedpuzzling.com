@@ -122,6 +122,7 @@ final class ProposeChangesController extends AbstractController
                 PuzzleProposalField::Ean->value => $formData->eanList()->toStored() !== EanList::fromStored($puzzle->puzzleEan)->toStored(),
                 PuzzleProposalField::IdentificationNumber->value => $formData->brandCodeList()->toStored() !== BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->toStored(),
                 PuzzleProposalField::Image->value => $formData->photo !== null,
+                PuzzleProposalField::EanAbsent->value => $formData->eanAbsent && $record->eanAbsent === false,
             ]));
             $changedFields = array_map(PuzzleProposalField::from(...), $changedFields);
             $otherChanges = $changedFields !== [];
@@ -218,6 +219,7 @@ final class ProposeChangesController extends AbstractController
             originalNameLanguage: $record->nameLanguage,
             proposedAlternativeNames: $namesChanged ? $formData->names->toPuzzleNames() : null,
             proposedNameLanguage: $formData->names->nameLanguage,
+            proposedEanAbsent: $formData->eanAbsent,
         ));
 
         $this->formPhotoStash->forget($restoredPhotos, $playerId);

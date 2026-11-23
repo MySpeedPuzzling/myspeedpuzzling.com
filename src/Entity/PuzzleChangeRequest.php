@@ -190,6 +190,15 @@ class PuzzleChangeRequest
         #[Column(length: 16, nullable: true)]
         public null|string $sourceImageFingerprint = null,
         null|UploadedImageMetadata $proposedImageUploadMetadata = null,
+        // "The box has no barcode (EAN)" - true = proposed, null = not part of the proposal (never proposed false: an
+        // EAN proposed clears it). Proposed only for a puzzle without an EAN (PuzzleProposalField::EanAbsent)
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|bool $proposedEanAbsent = null,
+        // Whether the puzzle was confirmed as having no barcode when proposed
+        #[Immutable]
+        #[Column(options: ['default' => false])]
+        public bool $originalEanAbsent = false,
     ) {
         $this->proposedImageUploadMetadata = $proposedImage !== null ? $proposedImageUploadMetadata?->toArray() : null;
     }
@@ -299,6 +308,8 @@ class PuzzleChangeRequest
             originalAlternativeNames: $this->originalAlternativeNames !== null ? PuzzleNames::fromArray($this->originalAlternativeNames) : null,
             proposedNameLanguage: $this->proposedNameLanguage,
             originalNameLanguage: $this->originalNameLanguage,
+            proposedEanAbsent: $this->proposedEanAbsent,
+            originalEanAbsent: $this->originalEanAbsent,
         );
     }
 
@@ -339,6 +350,10 @@ class PuzzleChangeRequest
             return false;
         }
 
+        if ($changes->changes(PuzzleProposalField::EanAbsent) && $puzzle->isEanAbsent() === false) {
+            return false;
+        }
+
         if ($changes->changes(PuzzleProposalField::IdentificationNumber) && BrandCodeList::fromStored($this->proposedIdentificationNumber)->equals($puzzle->brandCodes()) === false) {
             return false;
         }
@@ -367,7 +382,8 @@ class PuzzleChangeRequest
             || $this->proposedEan !== null
             || $this->proposedIdentificationNumber !== null
             || $this->proposedImage !== null
-            || $this->proposedAlternativeNames !== null;
+            || $this->proposedAlternativeNames !== null
+            || $this->proposedEanAbsent === true;
     }
 
     /**

@@ -19,6 +19,8 @@ readonly final class PuzzleHistoryChange
         'manufacturer' => 'Brand',
         'piecesCount' => 'Pieces',
         'ean' => 'EAN',
+        // Recorded since 2026-11 (PuzzleRecordUpdater::snapshot()) - older snapshots leave it out
+        'eanAbsent' => 'No barcode on the box',
         'identificationNumber' => 'Brand code',
         'image' => 'Image',
     ];
@@ -100,6 +102,10 @@ readonly final class PuzzleHistoryChange
      */
     private static function value(string $field, array $snapshot): null|string
     {
+        if ($field === 'eanAbsent') {
+            return ($snapshot['eanAbsent'] ?? false) === true ? 'Yes' : null;
+        }
+
         if ($field !== 'alternativeNames') {
             return self::text($snapshot[$field] ?? null);
         }

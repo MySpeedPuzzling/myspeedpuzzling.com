@@ -22,6 +22,7 @@ readonly final class GetPuzzleRecord
     puzzle.pieces_count,
     puzzle.ean,
     puzzle.identification_number,
+    puzzle.ean_absent_confirmed_at IS NOT NULL AS ean_absent,
     puzzle.image,
     puzzle.approved,
     puzzle.added_at,

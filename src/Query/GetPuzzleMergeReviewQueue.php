@@ -175,6 +175,7 @@ SELECT
     p.pieces_count,
     p.ean,
     p.identification_number,
+    p.ean_absent_confirmed_at IS NOT NULL AS ean_absent,
     p.image,
     p.approved,
     p.added_at,

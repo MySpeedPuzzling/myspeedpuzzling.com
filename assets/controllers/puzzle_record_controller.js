@@ -185,7 +185,14 @@ export default class extends Controller {
             return this.hasUpload(field) ? 'upload' : this.checkedImage(field);
         }
 
-        return (this.inputOf(field).value || '').trim();
+        const input = this.inputOf(field);
+
+        // A checkbox ("no barcode on the box"): '1' ticked, '' not - like its data-current / data-proposed
+        if (input.type === 'checkbox') {
+            return input.checked ? '1' : '';
+        }
+
+        return (input.value || '').trim();
     }
 
     currentOf(field) {
@@ -225,6 +232,11 @@ export default class extends Controller {
         }
 
         const input = this.inputOf(field);
+
+        if (input.type === 'checkbox') {
+            input.checked = value === '1';
+            return;
+        }
 
         // The brand select is a TomSelect - set it through TomSelect so its control shows the value too
         if (input.tomselect) {

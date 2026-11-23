@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -33,14 +34,22 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class ApprovePuzzleChangeRequestController extends AbstractController
 {
-    private const array FIELDS = ['name', 'nameLanguage', 'alternativeNames', 'manufacturer', 'piecesCount', 'ean', 'identificationNumber', 'image'];
-
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly GetPuzzleChangeRequests $getPuzzleChangeRequests,
         #[Autowire(env: 'INTERNAL_API_REVIEWER_PLAYER_ID')]
         private readonly string $reviewerPlayerId,
     ) {
+    }
+
+    /**
+     * The `selectedFields` names - every proposable field (PuzzleProposalField)
+     *
+     * @return list<string>
+     */
+    private static function fields(): array
+    {
+        return array_map(static fn (PuzzleProposalField $field): string => $field->value, PuzzleProposalField::cases());
     }
 
     #[Route(
@@ -63,15 +72,15 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
         if (is_array($selectedFields) === false || array_is_list($selectedFields) === false) {
             throw new BadRequestHttpException(sprintf(
                 '"selectedFields" is required: a list of fields to apply (%s), [] to apply nothing.',
-                implode(', ', self::FIELDS),
+                implode(', ', self::fields()),
             ));
         }
 
         foreach ($selectedFields as $field) {
-            if (in_array($field, self::FIELDS, true) === false) {
+            if (in_array($field, self::fields(), true) === false) {
                 throw new BadRequestHttpException(sprintf(
                     '"selectedFields" may contain only: %s.',
-                    implode(', ', self::FIELDS),
+                    implode(', ', self::fields()),
                 ));
             }
         }

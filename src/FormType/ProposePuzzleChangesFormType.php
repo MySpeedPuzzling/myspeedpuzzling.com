@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\ProposePuzzleChangesFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -71,6 +72,12 @@ final class ProposePuzzleChangesFormType extends AbstractType
             ])
             ->add('brandCodes', CodeListType::class, [
                 'entry_options' => ['attr' => ['placeholder' => 'puzzle_report.form.identification_number_placeholder']],
+            ])
+            // Shown only while the puzzle has no EAN (templates/puzzle-report/_propose_changes_form.html.twig)
+            ->add('eanAbsent', CheckboxType::class, [
+                'label' => 'puzzle_report.form.ean_absent',
+                'help' => 'puzzle_report.form.ean_absent_help',
+                'required' => false,
             ])
             ->add('photo', FileType::class, [
                 'label' => 'puzzle_report.form.photo',

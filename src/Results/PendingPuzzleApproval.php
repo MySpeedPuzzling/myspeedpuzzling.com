@@ -35,6 +35,8 @@ readonly final class PendingPuzzleApproval
         public int $solvedTimes,
         public bool $hasSameEanPuzzle,
         public bool $inPendingMergeRequest,
+        // "No barcode on the box" confirmed (Puzzle::$eanAbsentConfirmedAt)
+        public bool $eanAbsent = false,
     ) {
     }
 
@@ -65,6 +67,7 @@ readonly final class PendingPuzzleApproval
          *     solved_times: int|string,
          *     has_same_ean_puzzle: bool,
          *     in_pending_merge_request: bool,
+         *     ean_absent?: bool,
          * } $row
          */
         return new self(
@@ -88,6 +91,7 @@ readonly final class PendingPuzzleApproval
             solvedTimes: (int) $row['solved_times'],
             hasSameEanPuzzle: $row['has_same_ean_puzzle'],
             inPendingMergeRequest: $row['in_pending_merge_request'],
+            eanAbsent: ($row['ean_absent'] ?? false) === true,
         );
     }
 
@@ -105,6 +109,7 @@ readonly final class PendingPuzzleApproval
             ean: $this->ean,
             identificationNumber: $this->identificationNumber,
             image: $this->image,
+            eanAbsent: $this->eanAbsent,
         );
     }
 }

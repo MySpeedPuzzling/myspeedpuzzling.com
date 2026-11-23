@@ -90,6 +90,10 @@ readonly final class PuzzleChangeRequestOverview
         public null|string $modelVersion = null,
         // The puzzle's picture the proposal was made from (PuzzleImageFingerprint) - null for a player's
         public null|string $sourceImageFingerprint = null,
+        // "No barcode on the box": the puzzle now, as proposed (true, or null = not proposed), the puzzle when proposed
+        public bool $puzzleEanAbsent = false,
+        public null|bool $proposedEanAbsent = null,
+        public bool $originalEanAbsent = false,
     ) {
     }
 
@@ -144,6 +148,7 @@ readonly final class PuzzleChangeRequestOverview
                 ean: $puzzleEan,
                 identificationNumber: $puzzleIdentificationNumber,
                 image: is_string($row['puzzle_record_image'] ?? null) ? $row['puzzle_record_image'] : null,
+                eanAbsent: ($row['puzzle_ean_absent'] ?? false) === true,
             ),
             puzzleManufacturerId: $puzzleManufacturerId,
             puzzleEan: $puzzleEan,
@@ -183,6 +188,9 @@ readonly final class PuzzleChangeRequestOverview
             confidence: is_numeric($row['confidence'] ?? null) ? (float) $row['confidence'] : null,
             modelVersion: is_string($row['model_version'] ?? null) ? $row['model_version'] : null,
             sourceImageFingerprint: is_string($row['source_image_fingerprint'] ?? null) ? $row['source_image_fingerprint'] : null,
+            puzzleEanAbsent: ($row['puzzle_ean_absent'] ?? false) === true,
+            proposedEanAbsent: is_bool($row['proposed_ean_absent'] ?? null) ? $row['proposed_ean_absent'] : null,
+            originalEanAbsent: ($row['original_ean_absent'] ?? false) === true,
         );
     }
 
@@ -239,6 +247,8 @@ readonly final class PuzzleChangeRequestOverview
             originalAlternativeNames: $this->originalAlternativeNames,
             proposedNameLanguage: $this->proposedNameLanguage,
             originalNameLanguage: $this->originalNameLanguage,
+            proposedEanAbsent: $this->proposedEanAbsent,
+            originalEanAbsent: $this->originalEanAbsent,
         );
     }
 
@@ -368,6 +378,11 @@ readonly final class PuzzleChangeRequestOverview
         return $this->proposedChanges()->changes(PuzzleProposalField::IdentificationNumber);
     }
 
+    public function hasEanAbsentChange(): bool
+    {
+        return $this->proposedChanges()->changes(PuzzleProposalField::EanAbsent);
+    }
+
     public function hasImageChange(): bool
     {
         return $this->proposedImage !== null;
@@ -386,6 +401,7 @@ readonly final class PuzzleChangeRequestOverview
             'Brand' => $this->hasManufacturerChange() || $this->proposesCreatedManufacturer(),
             'Pieces' => $this->hasPiecesCountChange(),
             'EAN' => $this->hasEanChange(),
+            'No barcode on the box' => $this->hasEanAbsentChange(),
             'Brand code' => $this->hasIdentificationNumberChange(),
         ]));
     }
@@ -405,6 +421,7 @@ readonly final class PuzzleChangeRequestOverview
             || $this->hasManufacturerChange()
             || $this->hasPiecesCountChange()
             || $this->hasEanChange()
+            || $this->hasEanAbsentChange()
             || $this->hasIdentificationNumberChange()
             || $this->hasImageChange();
     }
@@ -424,6 +441,8 @@ readonly final class PuzzleChangeRequestOverview
             'Brand' => $this->hasManufacturerChange() && $this->puzzleManufacturerId !== $this->originalManufacturerId,
             'Pieces' => $this->hasPiecesCountChange() && $this->puzzlePiecesCount !== $this->originalPiecesCount,
             'EAN' => $this->hasEanChange() && EanList::fromStored($this->puzzleEan)->equals(EanList::fromStored($this->originalEan)) === false,
+            // An EAN came meanwhile - the box has a barcode after all, approving it is refused
+            'No barcode on the box' => $this->hasEanAbsentChange() && EanList::fromStored($this->puzzleEan)->isEmpty() === false,
             'Brand code' => $this->hasIdentificationNumberChange()
                 && BrandCodeList::fromStored($this->puzzleIdentificationNumber)->equals(BrandCodeList::fromStored($this->originalIdentificationNumber)) === false,
             // A hidden picture is not shown, so not compared

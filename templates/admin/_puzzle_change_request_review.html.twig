@@ -29,6 +29,13 @@
         original: puzzle_eans(request.originalEan), originalDiffers: puzzle_eans(request.originalEan) != puzzle_eans(request.puzzleEan),
     },
     {
+        label: 'No barcode on the box', widget: form.eanAbsent, help: 'Only for a box that carries no barcode at all (some competition and small-maker puzzles, older prints) - leave the EAN empty. An EAN added later clears it.',
+        proposed: request.hasEanAbsentChange(),
+        current: request.puzzleEanAbsent ? 'Yes' : 'No', currentValue: request.puzzleEanAbsent ? '1' : '',
+        proposedShown: 'Yes', proposedValue: '1',
+        original: request.originalEanAbsent ? 'Yes' : 'No', originalDiffers: request.originalEanAbsent != request.puzzleEanAbsent,
+    },
+    {
         label: 'Brand code', widget: form.brandCodes, codes: true, help: null,
         proposed: request.hasIdentificationNumberChange(),
         current: puzzle_brand_codes(request.puzzleIdentificationNumber), currentValue: puzzle_brand_codes(request.puzzleIdentificationNumber),

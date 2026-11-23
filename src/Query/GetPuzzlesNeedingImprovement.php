@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Value\ImprovementNeed;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 
 /**
- * Approved, visible puzzles players can help complete (docs/features/puzzles-needing-improvement.md): without an EAN,
+ * Approved, visible puzzles players can help complete (docs/features/puzzles-needing-improvement.md): without an EAN
+ * (unless a moderator confirmed the box has no barcode at all),
  * or with a picture the image pipeline's `crop_trust` analysis marks as needing a better one (`resolution` set), and -
  * for admins and community moderators only - a picture that is not the puzzle's picture at all (`notThePicture`). An
  * analysis counts only while it describes the puzzle's current picture (its fingerprint). The most solved first: those
@@ -36,7 +37,8 @@ puzzle.approved = true
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now)
 SQL;
 
-    private const string EAN_MISSING = "(puzzle.ean IS NULL OR puzzle.ean = '')";
+    // A box confirmed to carry no barcode at all (Puzzle::$eanAbsentConfirmedAt) misses nothing
+    private const string EAN_MISSING = "((puzzle.ean IS NULL OR puzzle.ean = '') AND puzzle.ean_absent_confirmed_at IS NULL)";
 
     // The marks of a crop_trust payload (%s = the analysis' alias). `resolution` is null or a list of reasons
     // (low_resolution_artwork, small_original); `->` gives the JSON null as a jsonb value, so the type is what tells
@@ -65,6 +67,7 @@ SQL;
     public function page(ImprovementFilter $filter, int $limit, int $offset): array
     {
         [$from, $where, $parameters] = $this->filtered($filter, withBrand: true);
+        $eanMissing = self::EAN_MISSING;
         $analysis = $this->analysisOf('page.puzzle_id', 'page.puzzle_image', 'page_analysis');
         $imageNeedsImprovement = sprintf('COALESCE(' . self::MARK_RESOLUTION . ', false)', 'page_analysis', 'page_analysis');
         $wrongPicture = $filter->viewerModerates
@@ -89,8 +92,11 @@ SELECT
         SELECT 1 FROM puzzle_change_request
         WHERE puzzle_change_request.puzzle_id = page.puzzle_id
             AND puzzle_change_request.status = 'pending'
-            AND puzzle_change_request.proposed_ean IS NOT NULL
-            AND puzzle_change_request.proposed_ean <> ''
+            AND (
+                (puzzle_change_request.proposed_ean IS NOT NULL AND puzzle_change_request.proposed_ean <> '')
+                -- "The box has no barcode" waits for its review just the same
+                OR puzzle_change_request.proposed_ean_absent = true
+            )
     ) AS ean_proposed,
     EXISTS (
         SELECT 1 FROM puzzle_change_request
@@ -106,7 +112,7 @@ FROM (
         puzzle.pieces_count,
         puzzle.manufacturer_id,
         COALESCE(puzzle_statistics.solved_times_count, 0) AS solved_times_count,
-        (puzzle.ean IS NULL OR puzzle.ean = '') AS ean_missing
+        {$eanMissing} AS ean_missing
     {$from}
     LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
     WHERE {$where}

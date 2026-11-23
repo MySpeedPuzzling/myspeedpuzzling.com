@@ -928,6 +928,7 @@
   "language_not_set": "idioma no indicado"
 "puzzle_detail":
   "details": "Detalles"
+  "no_barcode_on_box": "La caja no tiene código de barras"
   "more_actions": "Más acciones"
   "improvement_hint":
     "lead": "Ayuda a mejorar este puzzle:"
@@ -3307,6 +3308,7 @@ badges:
     "show_pending": "Ver qué está esperando"
     "new_photo": "una foto nueva"
     "no_codes": "ninguno"
+    "ean_absent": "la caja no tiene código de barras"
   "form":
     "brand": "Marca"
     "brand_help": "¿No está en la lista o está mal escrita? Escribe el nombre correcto de la marca para añadirla."
@@ -3318,6 +3320,11 @@ badges:
     "ean": "EAN / Código de barras"
     "ean_help": "El número del código de barras en la caja del puzzle (normalmente 13 dígitos)."
     "ean_placeholder": "ej., 4005556123456"
+    "ean_absent": "La caja no tiene código de barras (EAN)"
+    "ean_absent_help": "Márcalo solo si no hay ningún código de barras en la caja. Un moderador lo confirma."
+    "ean_absent_with_ean": "Una caja sin código de barras no tiene EAN: quita el EAN o desmarca «La caja no tiene código de barras»."
+    "ean_absent_confirmed": "La caja no tiene código de barras"
+    "ean_absent_confirmed_help": "Confirmado: esta caja no tiene código de barras. Una edición más nueva puede tenerlo; si la tuya lo tiene, añádelo arriba."
     "identification_number": "Código de marca"
     "identification_number_help": "El código de producto de la marca (ej. 19432 para puzzles Ravensburger)."
     "identification_number_placeholder": "ej., 19432"

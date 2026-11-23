@@ -33,6 +33,8 @@ readonly final class PuzzleMergeReviewCandidate
         public int $collectionItemsCount,
         public int $wishListItemsCount,
         public int $sellSwapItemsCount,
+        // "No barcode on the box" confirmed (Puzzle::$eanAbsentConfirmedAt)
+        public bool $eanAbsent = false,
     ) {
     }
 
@@ -67,6 +69,7 @@ readonly final class PuzzleMergeReviewCandidate
             collectionItemsCount: self::toCount($row['collection_items_count']),
             wishListItemsCount: self::toCount($row['wish_list_items_count']),
             sellSwapItemsCount: self::toCount($row['sell_swap_items_count']),
+            eanAbsent: ($row['ean_absent'] ?? false) === true,
         );
     }
 
@@ -85,6 +88,7 @@ readonly final class PuzzleMergeReviewCandidate
             ean: $this->ean,
             identificationNumber: $this->identificationNumber,
             image: $this->image,
+            eanAbsent: $this->eanAbsent,
         );
     }
 

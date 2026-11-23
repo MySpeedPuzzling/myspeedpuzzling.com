@@ -25,12 +25,33 @@ readonly final class PendingProposalLocks
 
     public function isLocked(PuzzleProposalField $field): bool
     {
-        return $field->locksWhilePending() && ($this->mergeRequestPending || isset($this->waiting[$field->value]));
+        if ($field->locksWhilePending() === false) {
+            return false;
+        }
+
+        return $this->mergeRequestPending || $this->waitingFor($field) !== null;
     }
 
+    /**
+     * The pending proposal of the field - or of a field locked together with it (PuzzleProposalField::lockedTogether()).
+     */
     public function waitingFor(PuzzleProposalField $field): null|PendingFieldProposal
     {
-        return $this->waiting[$field->value] ?? null;
+        foreach ($field->lockedTogether() as $together) {
+            if (isset($this->waiting[$together->value])) {
+                return $this->waiting[$together->value];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The pending proposal waiting for the field is "the box has no barcode" (shown instead of a proposed value).
+     */
+    public function waitingForEanAbsent(): bool
+    {
+        return isset($this->waiting[PuzzleProposalField::EanAbsent->value]);
     }
 
     /**

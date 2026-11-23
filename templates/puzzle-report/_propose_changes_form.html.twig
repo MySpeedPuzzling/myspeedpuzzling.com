@@ -64,17 +64,24 @@
             {% set hidden_inputs = hidden_inputs|merge([{name: propose_form.eans.vars.full_name ~ '[' ~ loop.index0 ~ ']', value: code}]) %}
         {% endfor %}
         {% set proposed_codes = waiting is not null ? puzzle_eans(waiting.proposedValue) : [] %}
+        {# The EAN and "the box has no barcode" lock together (PuzzleProposalField::lockedTogether()) #}
         {{ include('puzzle-report/_locked_field.html.twig', locked_common|merge({
             label: 'puzzle_report.form.ean'|trans,
-            current: puzzle_eans(puzzle.puzzleEan)|join(', '),
+            current: puzzle.puzzleEanAbsent ? 'puzzle_report.form.ean_absent_confirmed'|trans : puzzle_eans(puzzle.puzzleEan)|join(', '),
             waiting: waiting,
-            waiting_shown: proposed_codes is not empty ? proposed_codes|join(', ') : 'puzzle_report.locked.no_codes'|trans,
+            waiting_shown: locks.waitingForEanAbsent() ? 'puzzle_report.locked.ean_absent'|trans : (proposed_codes is not empty ? proposed_codes|join(', ') : 'puzzle_report.locked.no_codes'|trans),
             hidden_inputs: hidden_inputs,
         }), with_context = false) }}
         {% do propose_form.eans.setRendered %}
+        {% do propose_form.eanAbsent.setRendered %}
     {% else %}
+    {# "The box has no barcode (EAN)" - only while the puzzle has none and is not confirmed so: ticked, the EAN inputs are
+       hidden and disabled, so nothing is sent with it (ean_absent_controller.js) #}
+    {% set offers_ean_absent = puzzle.puzzleEan is empty and not puzzle.puzzleEanAbsent %}
+    <div {% if offers_ean_absent %}data-controller="ean-absent"{% endif %}>
     {# The scan button next to the first EAN input: a scanned code is added to the list (ean_scan_fill_controller.js) #}
     <div data-controller="barcode-scanner ean-scan-fill"
+         {% if offers_ean_absent %}data-ean-absent-target="codes"{% endif %}
          data-action="barcode-scanner:scanned->ean-scan-fill#fill hide.bs.tab@document->barcode-scanner#stopScanning">
         {% set first_ean = propose_form.eans.children|first %}
         {% set first_ean_input %}
@@ -99,6 +106,22 @@
         }, with_context = false) }}
 
         {{ include('_barcode_scanner_panel.html.twig') }}
+    </div>
+    {% if offers_ean_absent %}
+        <div class="mb-3">
+            {{ form_row(propose_form.eanAbsent, {attr: {
+                'data-ean-absent-target': 'checkbox',
+                'data-action': 'ean-absent#toggle',
+            }}) }}
+        </div>
+    {% else %}
+        {% if puzzle.puzzleEanAbsent %}
+            <p class="form-text mt-n2 mb-3">
+                <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'puzzle_report.form.ean_absent_confirmed_help'|trans }}
+            </p>
+        {% endif %}
+        {% do propose_form.eanAbsent.setRendered %}
+    {% endif %}
     </div>
     {% endif %}
 

@@ -181,6 +181,7 @@
             {% set approve_fields = [
                 {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
                 {label: 'EAN', widget: form.eans, codes: true, help: 'One per edition or region.', current: puzzle_eans(puzzle.ean), currentValue: puzzle_eans(puzzle.ean)},
+                {label: 'No barcode on the box', widget: form.eanAbsent, help: 'Only for a box that carries no barcode at all (some competition and small-maker puzzles, older prints) - leave the EAN empty. An EAN added later clears it.', current: puzzle.eanAbsent ? 'Yes' : 'No', currentValue: puzzle.eanAbsent ? '1' : ''},
                 {label: 'Brand code', widget: form.brandCodes, codes: true, help: null, current: puzzle_brand_codes(puzzle.identificationNumber), currentValue: puzzle_brand_codes(puzzle.identificationNumber)},
             ]|map(field => field|merge({proposed: false, proposedShown: null, proposedValue: null, original: null, originalDiffers: false})) %}
 

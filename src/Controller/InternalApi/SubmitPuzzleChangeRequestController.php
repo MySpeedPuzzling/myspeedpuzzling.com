@@ -36,6 +36,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * list as it should end up) and the main title's language (`nameLanguage`) are proposed together and
  * applied as a diff when approved (docs/features/puzzle-names/README.md).
  *
+ * `eanAbsent: true` proposes "the box has no barcode" for a puzzle without an EAN (PuzzleProposalField::EanAbsent).
+ *
  * `image` (base64) proposes a new picture - checked and stored like the web form's photo (ProposedPuzzleImageInput).
  * `source: "image_pipeline"` files the image pipeline's proposal (docs/features/insights/README.md "Artwork crops") with
  * `tags`, `confidence`, `modelVersion` and `sourceImageFingerprint` (ImagePipelineProposalRules: one proposal per
@@ -116,6 +118,17 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             throw new BadRequestHttpException('"manufacturerId" must be an id.');
         }
 
+        // "The box has no barcode (EAN)" - only for a puzzle left without an EAN
+        $eanAbsent = $body['eanAbsent'] ?? false;
+
+        if (is_bool($eanAbsent) === false) {
+            throw new BadRequestHttpException('"eanAbsent" must be true or false.');
+        }
+
+        if ($eanAbsent && $eans->isEmpty() === false) {
+            throw new BadRequestHttpException('"eanAbsent": true is for a puzzle without an EAN - leave "ean" out (a puzzle without one) or send [].');
+        }
+
         if ($eans->fitsColumn() === false || $brandCodes->fitsColumn() === false) {
             throw new BadRequestHttpException('"ean" and "identificationNumber" can hold at most 255 characters each, written as a list.');
         }
@@ -147,6 +160,7 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             PuzzleProposalField::Ean->value => $eans->toStored() !== EanList::fromStored($puzzle->ean)->toStored(),
             PuzzleProposalField::IdentificationNumber->value => $brandCodes->toStored() !== BrandCodeList::fromStored($puzzle->identificationNumber)->toStored(),
             PuzzleProposalField::Image->value => $proposesImage,
+            PuzzleProposalField::EanAbsent->value => $eanAbsent && $puzzle->eanAbsent === false,
         ])));
         $otherChanges = $changedFields !== [];
 
@@ -198,6 +212,7 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
                 confidence: $metadata['confidence'],
                 modelVersion: $metadata['modelVersion'],
                 sourceImageFingerprint: $metadata['sourceImageFingerprint'],
+                proposedEanAbsent: $eanAbsent,
             ));
         } finally {
             ProposedPuzzleImageInput::remove($image);

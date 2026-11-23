@@ -63,6 +63,7 @@ final class PuzzleRecordFormData
         $data->manufacturerId = $puzzle->manufacturerId;
         $data->piecesCount = $puzzle->piecesCount;
         $data->loadCodes($puzzle->ean, $puzzle->identificationNumber, currentEan: $puzzle->ean);
+        $data->eanAbsent = $puzzle->eanAbsent;
 
         return $data;
     }
@@ -90,6 +91,7 @@ final class PuzzleRecordFormData
             currentEan: $request->puzzleEan,
         );
         $data->image = $request->hasImageChange() ? PuzzleImageChoice::Proposed : PuzzleImageChoice::Keep;
+        $data->eanAbsent = $request->hasEanAbsentChange() || $request->puzzleEanAbsent;
 
         return $data;
     }
@@ -112,6 +114,7 @@ final class PuzzleRecordFormData
             image: $this->puzzlePhoto !== null ? PuzzleImageChoice::Upload : $this->image,
             uploadedImage: $this->puzzlePhoto,
             recordVersion: $this->recordVersion,
+            eanAbsent: $this->eanAbsent,
         );
     }
 

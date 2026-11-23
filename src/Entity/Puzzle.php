@@ -68,6 +68,13 @@ class Puzzle
     #[Column(nullable: true)]
     public null|string $ean = null;
 
+    // A moderator confirmed the box carries no barcode at all (World Series puzzles, small makers, older prints) - set
+    // and cleared with confirmEanAbsent(); any EAN stored clears it (updateProductIdentifiers()). Null = not confirmed,
+    // the puzzle may just lack its EAN in the catalogue. Who confirmed it is in puzzle_moderation_decision
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $eanAbsentConfirmedAt = null;
+
     /**
      * What the picture's file carried when it was uploaded, UploadedImageMetadata::toArray() - read it as
      * imageUploadMetadata(). Null when not known: pictures stored before it was recorded (2026-10), an unreadable file,
@@ -147,6 +154,32 @@ class Puzzle
     public function brandCodes(): BrandCodeList
     {
         return BrandCodeList::fromStored($this->identificationNumber);
+    }
+
+    public function isEanAbsent(): bool
+    {
+        return $this->eanAbsentConfirmedAt !== null;
+    }
+
+    /**
+     * Whether the box carries no barcode at all - confirmed by a moderator (a proposal approved, a direct edit). Only
+     * a puzzle without an EAN can be confirmed; a confirmation already given keeps its date.
+     *
+     * @throws InvalidPuzzleValues The puzzle has an EAN - a box with a barcode
+     */
+    public function confirmEanAbsent(bool $absent, DateTimeImmutable $now): void
+    {
+        if ($absent === false) {
+            $this->eanAbsentConfirmedAt = null;
+
+            return;
+        }
+
+        if ($this->eans()->isEmpty() === false) {
+            throw new InvalidPuzzleValues('A puzzle with an EAN cannot be marked as having no barcode on the box.');
+        }
+
+        $this->eanAbsentConfirmedAt ??= $now;
     }
 
     public function imageUploadMetadata(): null|UploadedImageMetadata
@@ -279,6 +312,11 @@ class Puzzle
     {
         if ($this->eans()->equals($eans) === false) {
             $this->ean = $eans->toStored();
+        }
+
+        // A barcode found on the box (a newer print, a scan, a proposal, an edit): "no barcode on the box" is over
+        if ($this->eans()->isEmpty() === false) {
+            $this->eanAbsentConfirmedAt = null;
         }
 
         if ($this->brandCodes()->equals($brandCodes) === false) {

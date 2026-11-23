@@ -1270,6 +1270,7 @@ competition_referees:
   "language_not_set": "jazyk neuveden"
 "puzzle_detail":
   "details": "Podrobnosti"
+  "no_barcode_on_box": "Krabice nemá čárový kód"
   "more_actions": "Další akce"
   "improvement_hint":
     "lead": "Pomozte vylepšit toto puzzle:"
@@ -3381,6 +3382,7 @@ recap_progress:
     "show_pending": "Zobrazit, co čeká"
     "new_photo": "nová fotka"
     "no_codes": "žádný"
+    "ean_absent": "krabice nemá čárový kód"
   "form":
     "brand": "Značka"
     "brand_help": "Není v seznamu, nebo je napsaná s chybou? Napište správný název značky a přidejte ji."
@@ -3392,6 +3394,11 @@ recap_progress:
     "ean": "EAN / Čárový kód"
     "ean_help": "Číslo čárového kódu na krabici puzzle (obvykle 13 číslic)."
     "ean_placeholder": "např. 4005556123456"
+    "ean_absent": "Krabice nemá čárový kód (EAN)"
+    "ean_absent_help": "Zaškrtněte jen tehdy, když na krabici čárový kód nikde není. Potvrdí to moderátor."
+    "ean_absent_with_ean": "Krabice bez čárového kódu nemá EAN - odstraňte EAN, nebo zrušte zaškrtnutí „Krabice nemá čárový kód“."
+    "ean_absent_confirmed": "Krabice nemá čárový kód"
+    "ean_absent_confirmed_help": "Potvrzeno: tato krabice nemá čárový kód. Novější vydání ho mít může - pokud ho ta vaše má, doplňte ho výše."
     "identification_number": "Kód značky"
     "identification_number_help": "Kód produktu značky (např. 19432 pro puzzle Ravensburger)."
     "identification_number_placeholder": "např. 19432"

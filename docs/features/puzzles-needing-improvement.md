@@ -11,7 +11,7 @@ every badge that applies:
 
 | Badge | When | Who sees it |
 |---|---|---|
-| EAN missing | `puzzle.ean` empty | everybody |
+| EAN missing | `puzzle.ean` empty and the box not confirmed to have no barcode (`ean_absent_confirmed_at IS NULL`, docs/features/puzzle-approvals.md "No barcode on the box") | everybody |
 | Image needs improvement | the puzzle's current `crop_trust` analysis has `resolution` set (`low_resolution_artwork` / `small_original`) | everybody |
 | Wrong picture | the current `crop_trust` analysis has `notThePicture = true` | admins + community moderators only (`PUZZLE_MODERATION_ACCESS`) - other viewers never get these rows nor the badge |
 
@@ -21,7 +21,10 @@ every badge that applies:
   (a new picture makes it stale until the pipeline looks again). `pictureKind` and `cropNeedsLook` are ignored on
   purpose. Production, 2026-11-23: 5,443 puzzles with a `resolution` mark (2,538 of the strong ones also lack an EAN),
   171 with `notThePicture`.
-- A pending change request proposing an EAN turns "EAN missing" into "EAN suggested, waiting for review"; one proposing
+- A puzzle whose box a moderator confirmed has no barcode at all (World Series puzzles, small makers, older prints) is
+  never "EAN missing" - not in the list, no badge, no hint. An EAN stored later clears the confirmation.
+- A pending change request proposing an EAN - or "the box has no barcode" - turns "EAN missing" into "EAN suggested,
+  waiting for review"; one proposing
   a photo does the same for the image badges ("Image suggested, waiting for review").
 - The most solved first (people scan and search those most), then the id. 48 a page (`CataloguePagination`, `?page=`).
 
@@ -58,7 +61,8 @@ target is not on the page does nothing, so other pages are unaffected. One parti
 ## Puzzle page hint
 
 Signed-in players see under the puzzle page's action buttons "Help improve this puzzle: EAN missing · better image
-wanted → Suggest a change" (only the parts that apply; "wrong picture" only for moderators). One statement
+wanted → Suggest a change" (only the parts that apply; "wrong picture" only for moderators; never "EAN missing" for a box
+confirmed to have no barcode). One statement
 (`GetPuzzlesNeedingImprovement::hintForPuzzle()`, primary-key lookups) for signed-in viewers only - pinned in
 `PuzzleDetailQueryBudgetTest`. Guests and crawlers get nothing.
 

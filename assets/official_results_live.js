@@ -6,6 +6,7 @@
  */
 
 import { formatResultTime } from './official_results_time.js';
+import { continues as continuesLabel, key as labelKey } from './table_labels.js';
 
 // Letters NFD does not take apart
 const SPECIAL_LETTERS = { ß: 'ss', ł: 'l', đ: 'd', ð: 'd', ø: 'o', æ: 'ae', œ: 'oe', þ: 'th', ı: 'i' };
@@ -114,7 +115,7 @@ export function describeResult(result, piecesCount, texts) {
 /**
  * The search index of a round's entries - built once per state change, searched on every key stroke.
  */
-export function buildSearchIndex(entries) {
+export function buildSearchIndex(entries, labels = null) {
     return entries.map((entry) => {
         const members = Array.isArray(entry.members) ? entry.members : [];
         const names = [entry.name, entry.displayName, entry.playerName, ...members.map((member) => member.name), ...members.map((member) => member.playerName)]
@@ -127,6 +128,8 @@ export function buildSearchIndex(entries) {
         return {
             entry,
             table: typeof entry.tableNumber === 'number' ? entry.tableNumber : null,
+            // The table's label key on a round with table labels (table_labels.js) - typed labels match it
+            labelKey: labels !== null && typeof entry.tableNumber === 'number' ? labels.keyOf(entry.tableNumber) : null,
             display: foldText(entry.displayName ?? entry.name ?? ''),
             haystack,
             words: haystack.split(/[^\p{L}\p{N}]+/u).filter((word) => word !== ''),
@@ -159,7 +162,7 @@ function byTableThenName(a, b) {
  *
  * @returns {{exactTable: object|null, matches: object[]}} entries, best first
  */
-export function searchEntries(index, query, { tableNumbersOff = false, limit = 30 } = {}) {
+export function searchEntries(index, query, { tableNumbersOff = false, limit = 30, labels = null } = {}) {
     const text = String(query ?? '').trim();
 
     if (text === '') {
@@ -183,7 +186,25 @@ export function searchEntries(index, query, { tableNumbersOff = false, limit = 3
     const scored = [];
     let exactTable = null;
 
-    if (/^\d+$/.test(text) && !tableNumbersOff) {
+    if (labels !== null && !tableNumbersOff) {
+        // A round with table labels (table-labels-and-plates.md): the typed text's folded key against each table's -
+        // only when it has a digit or names a label exactly (a name starting with "A" never lists the A tables)
+        const typedKey = labelKey(text);
+        const asLabel = typedKey !== '' && (/\d/.test(text) || index.some((item) => item.labelKey === typedKey));
+
+        for (const item of asLabel ? index : []) {
+            if (item.labelKey === null) {
+                continue;
+            }
+
+            if (item.labelKey === typedKey) {
+                exactTable = exactTable ?? item.entry;
+                scored.push({ item, score: 0 });
+            } else if (continuesLabel(typedKey, item.labelKey)) {
+                scored.push({ item, score: 1 });
+            }
+        }
+    } else if (/^\d+$/.test(text) && !tableNumbersOff) {
         const number = parseInt(text, 10);
 
         for (const item of index) {
@@ -239,8 +260,12 @@ export function entryForEnter(found) {
  * table 3, `1` waits for `1x`, `12` opens 12, `2` waits, `20` opens. Deterministic, no timer. Null otherwise (names,
  * `#codes`, table numbers off, nobody or two entries at that table).
  */
-export function uniqueTable(index, query, { tableNumbersOff = false } = {}) {
+export function uniqueTable(index, query, { tableNumbersOff = false, labels = null } = {}) {
     const text = String(query ?? '').trim();
+
+    if (labels !== null && !tableNumbersOff) {
+        return uniqueLabel(index, text);
+    }
 
     if (tableNumbersOff || !/^[1-9]\d*$/.test(text)) {
         return null;
@@ -261,6 +286,39 @@ export function uniqueTable(index, query, { tableNumbersOff = false } = {}) {
 
             found = item.entry;
         } else if (String(item.table).startsWith(text)) {
+            return null;
+        }
+    }
+
+    return found;
+}
+
+/**
+ * uniqueTable() on a round with table labels: the typed text's key is exactly one entry's table label and no other
+ * entry's label continues it (table_labels.js continues()) - `a1l` opens A1 L, `a1` waits while A10… or A1-1/A1-2 are
+ * seated. Text without a digit never opens (names).
+ */
+function uniqueLabel(index, text) {
+    const typedKey = labelKey(text);
+
+    if (typedKey === '' || !/\d/.test(text)) {
+        return null;
+    }
+
+    let found = null;
+
+    for (const item of index) {
+        if (item.labelKey === null) {
+            continue;
+        }
+
+        if (item.labelKey === typedKey) {
+            if (found !== null) {
+                return null;
+            }
+
+            found = item.entry;
+        } else if (continuesLabel(typedKey, item.labelKey)) {
             return null;
         }
     }

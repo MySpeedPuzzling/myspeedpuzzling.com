@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\TableLabels;
 
 /**
  * One round of an event as the official results tools need it (GetRoundResultsOverview): when it runs, its stopwatch,
@@ -56,6 +57,8 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         public int $stopwatchRevealMissed = 0,
         /** @var list<RoundDivision> the divisions the round uses (shared-puzzles-and-divisions.md D2) - the JSON's `divisions`, absent while none */
         public array $divisions = [],
+        // The names of the round's table numbers (table-labels-and-plates.md) - the JSON's `tableLabels`, absent while null
+        public null|TableLabels $tableLabels = null,
     ) {
     }
 
@@ -118,6 +121,11 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         // Only on a round that uses divisions - every other answer is unchanged (RoundResultsStateGoldenTest)
         if ($this->divisions !== []) {
             $json['divisions'] = $this->divisions;
+        }
+
+        // Only on a round with table labels - every other answer is unchanged (RoundResultsStateGoldenTest)
+        if ($this->tableLabels !== null) {
+            $json['tableLabels'] = $this->tableLabels->labels;
         }
 
         return $json;

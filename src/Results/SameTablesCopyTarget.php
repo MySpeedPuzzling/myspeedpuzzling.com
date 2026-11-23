@@ -22,7 +22,17 @@ readonly final class SameTablesCopyTarget implements \JsonSerializable
         public string $hash,
         /** @var array<string, int> entry ref => table */
         public array $tables,
+        // How many tables the target's label list names (table-labels-and-plates.md), null = plain numbers
+        public null|int $labelCount = null,
     ) {
+    }
+
+    /**
+     * A labelled target takes only the numbers its list names.
+     */
+    public function exceedsLabels(): bool
+    {
+        return $this->labelCount !== null && $this->highestTable() > $this->labelCount;
     }
 
     public function highestTable(): int

@@ -676,7 +676,12 @@ readonly final class RecordRoundResultsHandler
         if ($change->field === RoundResultField::TableNumber) {
             $tableNumber = self::tableNumber($change->to);
 
-            return $tableNumber !== null && ($tableNumber < 1 || $tableNumber > self::MAX_TABLE_NUMBER) ? 'invalid_table_number' : null;
+            if ($tableNumber !== null && ($tableNumber < 1 || $tableNumber > self::MAX_TABLE_NUMBER)) {
+                return 'invalid_table_number';
+            }
+
+            // A round with table labels takes only the numbers its list names (table-labels-and-plates.md)
+            return $tableNumber !== null && $round->tableLabels()?->names($tableNumber) === false ? 'no_label' : null;
         }
 
         if ($change->field !== RoundResultField::Result) {

@@ -75,6 +75,7 @@ readonly final class SameTablesCopy
                 changes: $changes,
                 hash: self::hash($entries),
                 tables: $plan['tables'],
+                labelCount: $round->tableLabels?->count(),
             );
         }
 

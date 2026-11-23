@@ -56,6 +56,7 @@ readonly final class AssignTableNumbersHandler
         $numbers = array_map(static fn (CompetitionParticipantRound|CompetitionTeam $entry): null|int => $entry->tableNumber, $entries);
         $listed = [];
         $problems = [];
+        $labels = $round->tableLabels();
 
         foreach ($message->assignments as $assignment) {
             $ref = RoundEntryRef::tryFromString($assignment['entry'])?->toString();
@@ -77,6 +78,13 @@ readonly final class AssignTableNumbersHandler
 
             if ($number !== null && ($number < 1 || $number > RecordRoundResultsHandler::MAX_TABLE_NUMBER)) {
                 $problems[] = ['entry' => $ref, 'reason' => 'invalid_table_number'];
+
+                continue;
+            }
+
+            // A round with table labels takes only the numbers its list names (table-labels-and-plates.md)
+            if ($number !== null && $labels !== null && $labels->names($number) === false) {
+                $problems[] = ['entry' => $ref, 'reason' => 'no_label'];
 
                 continue;
             }

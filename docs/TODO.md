@@ -419,8 +419,10 @@ Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a loc
 
 ## Puzzles needing improvement (`docs/features/puzzles-needing-improvement.md`, 2026-10-21)
 
-- [ ] Add puzzles whose picture needs replacing (own badge, same row + "Suggest a change"), not by priority yet -
+- [x] Add puzzles whose picture needs replacing (own badge, same row + "Suggest a change"), not by priority yet -
       promised to Laëtitia for the week of 2026-10-26 (mail #351, follow-up F164: tell her when it is live)
+      Built in PR `improvement-page-images` (2026-11-23): `crop_trust` `resolution` badge for everybody, wrong picture
+      for moderators - mail her once it is live
 
 ## MSP Rating history (`docs/features/msp-rating-history.md`, 2026-10-20)
 
@@ -900,8 +902,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       Promised to Kotte (MSP #397, follow-up F190).
 - [ ] Support multipack puzzles (one box holding several puzzles, see docs/features/wasgij-and-multipacks.md) -
       Rozebeest asked for it from a Trefl multipack puzzle page. Promised to Rozebeest (MSP #411, follow-up F197).
-- [ ] Puzzles needing improvement page: also list puzzles whose image needs improvement (from the image pipeline data),
+- [x] Puzzles needing improvement page: also list puzzles whose image needs improvement (from the image pipeline data),
       next to the missing-EAN ones. Promised to Vroni (MSP #426, follow-up F206).
+      Built in PR `improvement-page-images` (2026-11-23) with her other wishes (phone layout, "In my collection" filter,
+      hint on the puzzle page) - mail her once it is live.
 - [x] API v1: add the owner's time zone (player.timezone, IANA id, null when unknown) to GET /api/v1/me
       (CurrentUserResponse, scope profile:read); update docs/features/player-timezone.md, which says API v1 never sees
       it. Promised to Greg (MSP #439, follow-up F214). Shipped 2026-11-22 (0397b35de), delivery mail MSP #441.

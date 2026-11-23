@@ -351,6 +351,14 @@ final class PuzzleAddController extends AbstractController
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $addTimeForm, $userProfile->playerId);
         $addTimeForm->handleRequest($request);
+
+        // A refused submit opens in the mode it was sent in - else the switch showed Speed puzzling over a form sent as
+        // "Puzzle to collection", its error (e.g. no collection chosen) hidden with the collection section (player
+        // report 2026-11-12)
+        if ($addTimeForm->isSubmitted()) {
+            $initialMode = $data->mode->value;
+        }
+
         $this->formPhotoStash->reportLost($addTimeForm, $restoredPhotos);
         // What the browser read from each photo before it shrank it (docs/features/upload-image-metadata.md)
         $browserPhotoMetadata = $this->formPhotoStash->browserMetadata($request, $restoredPhotos, $userProfile->playerId);

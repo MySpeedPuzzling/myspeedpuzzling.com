@@ -460,6 +460,87 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertSame(1, $database->fetchOne("SELECT COUNT(*) FROM puzzle WHERE name = 'Mistyped Pieces Puzzle'"));
     }
 
+    /**
+     * Player report 2026-11-12: a new puzzle typed in Speed puzzling without a time is refused (422); switching to
+     * "Puzzle to collection" and saving again must add it to the collection - and the re-rendered form must open in the
+     * mode that was sent, never jump back to Speed puzzling.
+     */
+    public function testANewPuzzleRefusedForAMissingTimeCanBeAddedToTheCollectionInstead(): void
+    {
+        $browser = self::createClient();
+        // The kept box photo lives in the in-memory storage of this kernel
+        $browser->disableReboot();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+        $timesBefore = $this->countPlayerTimes($database);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $newPuzzleId];
+
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzle'] = 'Forgotten Mode Puzzle';
+        $submission['puzzlePiecesCount'] = '500';
+        $submission['timeHours'] = '';
+        $submission['timeMinutes'] = '';
+        $submission['timeSeconds'] = '';
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertFalse($database->fetchOne('SELECT 1 FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]), 'nothing is saved');
+        self::assertSame('speed_puzzling', $crawler->filter('input[name="form-mode"][checked]')->attr('value'));
+        // The box photo travels on as a token, the browser sends no file again
+        $photoToken = $crawler->filter('input[name="photo_stash[puzzlePhoto]"]')->attr('value');
+        self::assertNotNull($photoToken);
+
+        $submission['_token'] = (string) $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value');
+        $submission['mode'] = 'collection';
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids, 'photo_stash' => ['puzzlePhoto' => $photoToken]]);
+
+        $this->assertResponseRedirects();
+        self::assertSame('Forgotten Mode Puzzle', $database->fetchOne('SELECT name FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+        self::assertSame($timesBefore, $this->countPlayerTimes($database), 'no result saved');
+    }
+
+    /**
+     * The rest of that report: a member with collections of their own picks none, so the collection submit is refused
+     * too - its form must open in "Puzzle to collection", where the missing collection's error shows, not in Speed
+     * puzzling, which hid the error with the collection section and looked like nothing happened.
+     */
+    public function testARefusedCollectionSubmitOpensInTheCollectionMode(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $crawler->filter('input[name="new_puzzle_id"]')->attr('value')];
+
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzle'] = PuzzleFixture::PUZZLE_1000_05;
+        $submission['timeMinutes'] = '';
+        $submission['timeSeconds'] = '';
+        $submission['collection'] = '';
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame('speed_puzzling', $crawler->filter('input[name="form-mode"][checked]')->attr('value'));
+
+        $submission['mode'] = 'collection';
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame('collection', $crawler->filter('input[name="form-mode"][checked]')->attr('value'));
+        self::assertSame('collection', $crawler->filter('[data-controller="puzzle-add-form"]')->attr('data-puzzle-add-form-mode-value'));
+        self::assertSame('collection', $crawler->filter('select[name="puzzle_add_form[mode]"] option[selected]')->attr('value'));
+        self::assertCount(1, $crawler->filter('#puzzle_add_form_collection_error1'));
+    }
+
     public function testInvalidEanOfANewPuzzleIsRefusedKeepingThePhotoWithAClearButton(): void
     {
         $browser = self::createClient();

@@ -1271,6 +1271,11 @@ competition_referees:
 "puzzle_detail":
   "details": "Podrobnosti"
   "more_actions": "Další akce"
+  "improvement_hint":
+    "lead": "Pomozte vylepšit toto puzzle:"
+    "ean_missing": "chybí EAN"
+    "better_image": "hodil by se lepší obrázek"
+    "wrong_picture": "špatný obrázek"
   "moderation":
     "heading": "Moderování"
     "edit": "Upravit puzzle"
@@ -11404,16 +11409,31 @@ puzzles_needing_improvement:
     meta:
         title: "Puzzle k vylepšení - pomozte doplnit databázi puzzle"
     intro: "U těchto puzzle nám v databázi něco chybí. Pokud některé máte doma nebo je uvidíte v obchodě, můžete údaje doplnit."
-    how_it_works: "Zatím seznam ukazuje puzzle bez EAN - třináctimístného čísla pod čárovým kódem na krabici. Klikněte na „Navrhnout změnu“, napište EAN (nebo přidejte fotku krabice) a moderátor ho zkontroluje. Za každou schválenou změnu získáte karmu."
+    how_it_works: "Seznam ukazuje puzzle bez EAN - třináctimístného čísla pod čárovým kódem na krabici - a puzzle, jejichž obrázek je příliš malý nebo rozmazaný. Klikněte na „Navrhnout změnu“, napište EAN nebo přidejte ostrou fotku přední strany krabice a moderátor to zkontroluje. Za každou schválenou změnu získáte karmu."
     karma_link: "Co je karma?"
     brand_filter: "Značka"
     all_brands: "Všechny značky"
     apply_filter: "Zobrazit"
-    count: "%total% puzzle bez EAN"
+    missing_filter: "Co chybí"
+    missing:
+        all: "Cokoliv"
+        ean: "EAN"
+        image: "Lepší obrázek"
+        wrong_picture: "Špatný obrázek"
+    in_my_collection: "V mé sbírce"
+    count:
+        all: "%total% puzzle k vylepšení"
+        ean: "%total% puzzle bez EAN"
+        image: "%total% puzzle s horším obrázkem"
+        wrong_picture: "%total% puzzle se špatným obrázkem"
     empty: "Tady není co vylepšovat - děkujeme!"
     badge:
         ean_missing: "Chybí EAN"
         proposed: "Navrženo, čeká na kontrolu"
+        ean_proposed: "EAN navržen, čeká na kontrolu"
+        image_needs_improvement: "Obrázek k vylepšení"
+        image_proposed: "Obrázek navržen, čeká na kontrolu"
+        wrong_picture: "Špatný obrázek"
 
 partner_finder:
     # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line

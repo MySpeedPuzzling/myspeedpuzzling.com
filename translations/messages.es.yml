@@ -929,6 +929,11 @@
 "puzzle_detail":
   "details": "Detalles"
   "more_actions": "Más acciones"
+  "improvement_hint":
+    "lead": "Ayuda a mejorar este puzzle:"
+    "ean_missing": "falta el EAN"
+    "better_image": "se busca una imagen mejor"
+    "wrong_picture": "imagen incorrecta"
   "moderation":
     "heading": "Moderación"
     "edit": "Editar puzzle"
@@ -11402,16 +11407,31 @@ puzzles_needing_improvement:
     meta:
         title: "Puzzles por mejorar - ayuda a completar la base de datos de puzzles"
     intro: "A estos puzzles les falta algo en nuestra base de datos. Si tienes alguno en casa o lo ves en una tienda, puedes completarlo."
-    how_it_works: "Por ahora la lista muestra puzzles sin EAN, el número de 13 dígitos bajo el código de barras de la caja. Haz clic en «Sugerir un cambio», escribe el EAN (o añade una foto de la caja) y un moderador lo revisará. Cada cambio aprobado te da karma."
+    how_it_works: "La lista muestra puzzles sin EAN (el número de 13 dígitos bajo el código de barras de la caja) y puzzles cuya imagen es demasiado pequeña o borrosa. Haz clic en «Sugerir un cambio», escribe el EAN o añade una foto nítida del frente de la caja y un moderador lo revisará. Cada cambio aprobado te da karma."
     karma_link: "¿Qué es el karma?"
     brand_filter: "Marca"
     all_brands: "Todas las marcas"
     apply_filter: "Mostrar"
-    count: "{1}%total% puzzle sin EAN|[0,Inf[%total% puzzles sin EAN"
+    missing_filter: "Qué falta"
+    missing:
+        all: "Cualquier cosa"
+        ean: "EAN"
+        image: "Mejor imagen"
+        wrong_picture: "Imagen incorrecta"
+    in_my_collection: "En mi colección"
+    count:
+        all: "{1}%total% puzzle por mejorar|[0,Inf[%total% puzzles por mejorar"
+        ean: "{1}%total% puzzle sin EAN|[0,Inf[%total% puzzles sin EAN"
+        image: "{1}%total% puzzle que necesita una imagen mejor|[0,Inf[%total% puzzles que necesitan una imagen mejor"
+        wrong_picture: "{1}%total% puzzle con una imagen incorrecta|[0,Inf[%total% puzzles con una imagen incorrecta"
     empty: "No hay nada que mejorar aquí. ¡Gracias!"
     badge:
         ean_missing: "Falta el EAN"
         proposed: "Sugerido, pendiente de revisión"
+        ean_proposed: "EAN sugerido, pendiente de revisión"
+        image_needs_improvement: "La imagen se puede mejorar"
+        image_proposed: "Imagen sugerida, pendiente de revisión"
+        wrong_picture: "Imagen incorrecta"
 
 partner_finder:
     # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line

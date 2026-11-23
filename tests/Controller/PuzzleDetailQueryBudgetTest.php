@@ -31,11 +31,12 @@ final class PuzzleDetailQueryBudgetTest extends WebTestCase
         yield 'puzzle used at events, guest' => [PuzzleFixture::PUZZLE_500_01, null, 13];
         // + the signed-in overhead, the viewer's statuses and collections, and since the XP launch the XP estimate's
         // count of the viewer's solves of this puzzle (the repeat discount; its opt-out rides on the profile row)
-        yield 'puzzle used at events, player' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR, 19];
+        // + since 2026-11-23 the "Help improve this puzzle" hint (one primary-key lookup, signed-in viewers only)
+        yield 'puzzle used at events, player' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR, 20];
         // + the member's insights (difficulty tiers, prediction)
-        yield 'puzzle used at events, member' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_STRIPE, 23];
+        yield 'puzzle used at events, member' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_STRIPE, 24];
         yield 'puzzle used nowhere, guest' => [PuzzleFixture::PUZZLE_4000, null, 13];
-        yield 'puzzle used nowhere, player' => [PuzzleFixture::PUZZLE_4000, PlayerFixture::PLAYER_REGULAR, 19];
+        yield 'puzzle used nowhere, player' => [PuzzleFixture::PUZZLE_4000, PlayerFixture::PLAYER_REGULAR, 20];
     }
 
     #[DataProvider('providePages')]

@@ -229,6 +229,8 @@ final class ProposeChangesController extends AbstractController
                 'puzzle_id' => $puzzleId,
                 'message' => $this->translator->trans('puzzle_report.flash.changes_submitted'),
                 'mark_improvement_row' => true,
+                'proposed_ean' => $formData->eanList()->isEmpty() === false,
+                'proposed_image' => $formData->photo !== null,
             ]);
         }
 

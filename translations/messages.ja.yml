@@ -1552,6 +1552,7 @@ competition_referees:
   "language_not_set": "言語未設定"
 "puzzle_detail":
   "details": "詳細"
+  "no_barcode_on_box": "箱にバーコードなし"
   "more_actions": "その他の操作"
   "improvement_hint":
     "lead": "このパズルの改善にご協力ください："
@@ -3296,6 +3297,7 @@ badges:
     "show_pending": "審査待ちの内容を見る"
     "new_photo": "新しい写真"
     "no_codes": "なし"
+    "ean_absent": "箱にバーコードなし"
   "form":
     "brand": "ブランド"
     "brand_help": "一覧にない、または綴りが間違っている場合は、正しいブランド名を入力して追加してください。"
@@ -3307,6 +3309,11 @@ badges:
     "ean": "EAN / バーコード"
     "ean_help": "パズルボックスのバーコード番号（通常13桁）。"
     "ean_placeholder": "例：4005556123456"
+    "ean_absent": "箱にバーコード（EAN）がない"
+    "ean_absent_help": "箱のどこにもバーコードがない場合のみチェックしてください。モデレーターが確認します。"
+    "ean_absent_with_ean": "バーコードのない箱には EAN がありません。EAN を削除するか、「箱にバーコード（EAN）がない」のチェックを外してください。"
+    "ean_absent_confirmed": "箱にバーコードなし"
+    "ean_absent_confirmed_help": "確認済み：この箱にはバーコードがありません。新しい版にはある場合があります。お持ちの箱にあれば上に追加してください。"
     "identification_number": "ブランドコード"
     "identification_number_help": "ブランドの製品コード（例：Ravensburgerパズルの19432）。"
     "identification_number_placeholder": "例：19432"

@@ -148,6 +148,34 @@ proposable field is a new case there + a line in `PuzzleProposalChanges`).
 - Existing pending requests (filed under the one-at-a-time rule) need no migration: they never overlap, and their
   snapshots are read through the same rule.
 
+### No barcode on the box
+
+Some boxes carry no barcode at all (World Series competition puzzles, Alejandro's puzzles, Elena Essex, older Sunshine
+Puzzles 99 pcs - newer prints of some do have one); they used to sit in "EAN missing" forever. Since 2026-11-23 it is a
+proposable field like any other (`PuzzleProposalField::EanAbsent`, `selectedFields` name `eanAbsent`):
+
+- **Stored on the puzzle** as `puzzle.ean_absent_confirmed_at` (nullable timestamp - when a moderator confirmed it; who
+  did is in the decision log). Set and cleared only by `Puzzle::confirmEanAbsent()` (refused while the puzzle has an
+  EAN); **any EAN stored clears it** - in `Puzzle::updateProductIdentifiers()`, the one way codes change, so every path
+  (an approved EAN proposal, a moderator's edit or approval, the scanner's `LinkEanToPuzzle`, a merge, the internal API)
+  does it without knowing.
+- **Proposed** in "Suggest a change" by the checkbox "The box has no barcode (EAN)" under the EAN inputs - offered only
+  while the puzzle has no EAN and is not confirmed yet; ticked, the EAN inputs are hidden and disabled
+  (`ean_absent_controller.js`), and the form refuses an EAN with it (422, `puzzle_report.form.ean_absent_with_ean`). A
+  confirmed puzzle shows "Confirmed: this box has no barcode" and keeps the EAN inputs for a newer print. Internal API:
+  `"eanAbsent": true`. Stored as `puzzle_change_request.proposed_ean_absent` (true / null) + `original_ean_absent`.
+- **Locked together with the EAN** (`PuzzleProposalField::lockedTogether()`): they say the opposite of each other, so a
+  pending proposal of either keeps both from being proposed; the locked EAN shows "Waiting for review: no barcode on the
+  box".
+- **Approved** by an admin or a community moderator: the review has a "No barcode on the box" card next to the EAN
+  (prefilled per "current state + this proposal's changes"), the internal API applies it when `eanAbsent` is selected.
+  Approving it on a puzzle that got an EAN meanwhile is refused (`InvalidPuzzleValues`, named in "Changed since
+  proposed"). Moderators set or clear it directly in the edit and the approval queue too (`PuzzleRecordValues::$eanAbsent`,
+  null = keep). The record snapshot of the decision log holds `eanAbsent`, the history shows "No barcode on the box".
+  `PuzzleRecordVersion` includes it only while set, so no version of an unflagged puzzle changed.
+- **Shown** on the puzzle page's details as "No barcode on the box" where the EAN would be; "Puzzles needing improvement"
+  never lists such a puzzle as "EAN missing" (docs/features/puzzles-needing-improvement.md). Not in API v1.
+
 ### Filters - who filed it, and tags
 
 The queue filters by `?source=player|internal_api|image_pipeline` (`puzzle_change_request.source`, a row from before the

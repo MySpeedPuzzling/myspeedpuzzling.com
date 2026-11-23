@@ -212,6 +212,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
             image: $reviewed->image,
             uploadedImage: $reviewed->uploadedImage,
             recordVersion: $reviewed->recordVersion,
+            eanAbsent: $reviewed->eanAbsent,
         );
     }
 
@@ -268,6 +269,8 @@ readonly final class ApprovePuzzleChangeRequestHandler
                 ? PuzzleImageChoice::Proposed
                 : PuzzleImageChoice::Keep,
             recordVersion: $message->recordVersion,
+            // "No barcode on the box" - refused when the puzzle has an EAN by now (PuzzleRecordUpdater)
+            eanAbsent: $applied(PuzzleProposalField::EanAbsent) ? true : null,
         );
     }
 }

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -105,6 +106,11 @@ final class PuzzleRecordFormType extends AbstractType
                 'numeric' => true,
             ])
             ->add('brandCodes', CodeListType::class)
+            // "The box has no barcode (EAN)" - its own card next to the EAN (admin/_puzzle_record_fields.html.twig)
+            ->add('eanAbsent', CheckboxType::class, [
+                'required' => false,
+                'label' => 'The box has no barcode - checked and confirmed',
+            ])
             ->add('puzzlePhoto', FileType::class, [
                 'required' => false,
                 'constraints' => [PuzzleBoxPhoto::constraint()],

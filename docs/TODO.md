@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## No barcode on the box (`docs/features/puzzle-approvals.md` "No barcode on the box", 2026-11-23)
+
+- [ ] A merge keeps the survivor's confirmation only - a merged puzzle's "no barcode" is not carried over (any EAN of
+      either clears it anyway). Carry it in `ApprovePuzzleMergeRequestHandler` + its revert if moderators ask.
+- [ ] API v1 does not expose it (`PuzzleResponse` / `PuzzleDetailResponse` have `ean` only) - add a camelCase
+      `eanAbsent` there if an app wants to stop asking players to scan such boxes.
+- [ ] The scanner's audit change request (`LinkEanToPuzzleHandler`) records `originalEanAbsent = false` even when the
+      scan cleared a confirmation - the history line shows the EAN only.
+- [ ] Ask Vroni (or the moderators) for the list of known boxes without a barcode and confirm them in one go
+      (internal API `eanAbsent: true` + approve), instead of waiting for players' proposals.
+
 ## Embeddable standing (`docs/features/competitions-management/standings.md` "Embeddable standing", real events L3, 2026-11-18)
 
 - [ ] Browser walk: the embed in an `<iframe>` on another origin (a local HTML file / codepen), light + `?theme=dark`, phone width, a publish while it is open (the signal → refetch → "Updated at")

@@ -35,6 +35,8 @@ readonly final class PuzzleOverview
         public null|DateTimeImmutable $hideUntil = null,
         /** The main title's language when it is not English (only GetPuzzleOverview::byId loads it - the puzzle page H1) */
         public null|string $nameLanguage = null,
+        /** A moderator confirmed the box has no barcode (only GetPuzzleOverview::byId loads it, hidden with the codes) */
+        public bool $puzzleEanAbsent = false,
     ) {
     }
 
@@ -63,6 +65,7 @@ readonly final class PuzzleOverview
      *     hide_image_until: null|string,
      *     hide_until?: null|string,
      *     name_language?: null|string,
+     *     puzzle_ean_absent?: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row, DateTimeImmutable $now): self
@@ -97,6 +100,7 @@ readonly final class PuzzleOverview
             manufacturerSlug: $row['manufacturer_slug'] ?? null,
             hideUntil: $hideUntil !== null ? new DateTimeImmutable($hideUntil) : null,
             nameLanguage: $row['name_language'] ?? null,
+            puzzleEanAbsent: $codesHidden === false && ($row['puzzle_ean_absent'] ?? false),
         );
     }
 }

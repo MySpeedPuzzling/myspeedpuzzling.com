@@ -9,6 +9,7 @@ use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -36,6 +37,12 @@ readonly final class SubmitPuzzleChangeRequestHandler
     public function __invoke(SubmitPuzzleChangeRequest $message): void
     {
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+        // A box without a barcode has no EAN to propose - the forms refuse both at once already
+        if ($message->proposedEanAbsent && $message->proposedEans->isEmpty() === false) {
+            throw new InvalidPuzzleValues('An EAN and "the box has no barcode" cannot be proposed together.');
+        }
+
         $reporter = $this->playerRepository->get($message->reporterId);
         $now = $this->clock->now();
 
@@ -115,6 +122,9 @@ readonly final class SubmitPuzzleChangeRequestHandler
             modelVersion: $message->modelVersion,
             sourceImageFingerprint: $message->sourceImageFingerprint,
             proposedImageUploadMetadata: $proposedImageUploadMetadata,
+            // Stored only when it is news - a puzzle confirmed so already has nothing to approve
+            proposedEanAbsent: $message->proposedEanAbsent && $puzzle->isEanAbsent() === false ? true : null,
+            originalEanAbsent: $puzzle->isEanAbsent(),
         );
 
         $this->entityManager->persist($changeRequest);

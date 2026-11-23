@@ -1719,6 +1719,7 @@ puzzle_name_display:
 
 puzzle_detail:
     details: "Details"
+    no_barcode_on_box: "No barcode on the box"
     more_actions: "More actions"
     improvement_hint:
         lead: "Help improve this puzzle:"
@@ -3851,6 +3852,7 @@ puzzle_report:
         show_pending: "See what is waiting"
         new_photo: "a new photo"
         no_codes: "none"
+        ean_absent: "no barcode on the box"
     form:
         brand: "Brand"
         brand_help: "Not in the list, or misspelled? Type the brand's correct name to add it."
@@ -3860,6 +3862,11 @@ puzzle_report:
         ean: "EAN / Barcode"
         ean_help: "The barcode number on the puzzle box (usually 13 digits)."
         ean_placeholder: "e.g., 4005556123456"
+        ean_absent: "The box has no barcode (EAN)"
+        ean_absent_help: "Tick only when there is no barcode anywhere on the box. A moderator confirms it."
+        ean_absent_with_ean: "A box without a barcode has no EAN - remove the EAN or untick \"The box has no barcode\"."
+        ean_absent_confirmed: "No barcode on the box"
+        ean_absent_confirmed_help: "Confirmed: this box has no barcode. A newer print may have one - if yours does, add it above."
         identification_number: "Brand code"
         identification_number_help: "The brand's product code (e.g., 19432 for Ravensburger puzzles)."
         identification_number_placeholder: "e.g., 19432"

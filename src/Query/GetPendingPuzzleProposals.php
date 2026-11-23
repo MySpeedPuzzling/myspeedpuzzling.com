@@ -98,14 +98,16 @@ SELECT
     pcr.original_ean,
     pcr.proposed_identification_number,
     pcr.original_identification_number,
-    pcr.proposed_image
+    pcr.proposed_image,
+    pcr.proposed_ean_absent,
+    pcr.original_ean_absent
 FROM puzzle_change_request pcr
 LEFT JOIN manufacturer proposed_manufacturer ON proposed_manufacturer.id = pcr.proposed_manufacturer_id
 WHERE pcr.puzzle_id = :puzzleId AND pcr.status = 'pending'
 ORDER BY pcr.submitted_at, pcr.id
 SQL;
 
-        /** @var list<array{id: string, proposed_name: null|string, original_name: string, proposed_manufacturer_id: null|string, original_manufacturer_id: null|string, proposed_manufacturer_name: null|string, proposed_pieces_count: null|int, original_pieces_count: int, proposed_ean: null|string, original_ean: null|string, proposed_identification_number: null|string, original_identification_number: null|string, proposed_image: null|string}> $rows */
+        /** @var list<array{id: string, proposed_name: null|string, original_name: string, proposed_manufacturer_id: null|string, original_manufacturer_id: null|string, proposed_manufacturer_name: null|string, proposed_pieces_count: null|int, original_pieces_count: int, proposed_ean: null|string, original_ean: null|string, proposed_identification_number: null|string, original_identification_number: null|string, proposed_image: null|string, proposed_ean_absent: null|bool, original_ean_absent: bool}> $rows */
         $rows = $this->database->fetchAllAssociative($query, ['puzzleId' => $puzzleId]);
 
         $waiting = [];
@@ -128,6 +130,8 @@ SQL;
                 originalAlternativeNames: null,
                 proposedNameLanguage: null,
                 originalNameLanguage: null,
+                proposedEanAbsent: $row['proposed_ean_absent'],
+                originalEanAbsent: $row['original_ean_absent'],
             );
 
             foreach ($changes->lockedFields() as $field) {
@@ -170,7 +174,8 @@ SELECT
         CASE WHEN pcr.proposed_pieces_count IS NOT NULL AND pcr.proposed_pieces_count IS DISTINCT FROM pcr.original_pieces_count THEN 'Pieces' END,
         CASE WHEN pcr.proposed_ean IS NOT NULL AND pcr.proposed_ean IS DISTINCT FROM pcr.original_ean THEN 'EAN' END,
         CASE WHEN pcr.proposed_identification_number IS NOT NULL AND pcr.proposed_identification_number IS DISTINCT FROM pcr.original_identification_number THEN 'Brand Code' END,
-        CASE WHEN pcr.proposed_image IS NOT NULL THEN 'Image' END
+        CASE WHEN pcr.proposed_image IS NOT NULL THEN 'Image' END,
+        CASE WHEN pcr.proposed_ean_absent = true AND pcr.original_ean_absent = false THEN 'No barcode on the box' END
     ) as summary,
     NULL as reported_duplicate_puzzle_ids
 FROM puzzle_change_request pcr

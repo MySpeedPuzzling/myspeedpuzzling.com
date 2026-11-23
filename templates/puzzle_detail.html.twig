@@ -423,7 +423,7 @@
             {% endif %}
 
             {# Like the EAN: a secret puzzle's product number would give it away while its image is embargoed #}
-            {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan) %}
+            {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan or puzzle.puzzleEanAbsent) %}
             {# "Also known as": guests (and crawlers) get it in "About this puzzle" at the bottom, once #}
             {% set has_other_names = not show_seo_sections and not puzzle.puzzleAlternativeNames.isEmpty() %}
             {# "Used at" rounds: guests (and crawlers) get every line in "About this puzzle", signed-in players here - the
@@ -463,6 +463,10 @@
                             {% for ean in puzzle_eans(puzzle.puzzleEan) %}
                                 <div><small class="text-muted"><i class="bi-upc-scan" aria-hidden="true"></i> {{ ean }}</small></div>
                             {% endfor %}
+                            {# A moderator confirmed it - where the EAN would be #}
+                            {% if puzzle.puzzleEanAbsent %}
+                                <div><small class="text-muted"><i class="bi-upc-scan" aria-hidden="true"></i> {{ 'puzzle_detail.no_barcode_on_box'|trans }}</small></div>
+                            {% endif %}
                         {% endif %}
                         {% if tags %}
                             <p class="mb-0 mt-1">

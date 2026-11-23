@@ -113,7 +113,9 @@ number, photo).
 | `POST` | `/internal-api/puzzle-change-requests/{id}/approve` | Approve the proposal, applying only the fields you list |
 
 File body: `puzzleId` (required) and any of `name`, `nameLanguage`, `alternativeNames`, `manufacturerId`, `piecesCount`,
-`ean`, `identificationNumber`. **A field left out keeps the puzzle's current value**, so the review shows only what the
+`ean`, `identificationNumber`, `eanAbsent` (`true` = "the box has no barcode", for a puzzle that ends up without an
+EAN - `400` together with an EAN, or for a puzzle with one unless `"ean": []`; docs/features/puzzle-approvals.md "No
+barcode on the box"). **A field left out keeps the puzzle's current value**, so the review shows only what the
 proposal changes. `ean` and `identificationNumber` are each the whole list of codes as it should end up: a JSON list,
 one code per entry (`"ean": ["4005556147090", "4005555001997"]`, `[]` removes every code), or - as before the lists -
 one string with the codes comma-separated (a blank string counts as left out; a list of blank entries only is a
@@ -201,7 +203,9 @@ already answers `409` and nothing changes (no second decision, no second notific
 request take the same per-puzzle lock (`SerializedByLock`), so they never both pass. An unknown id is a `404`.
 
 Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `nameLanguage`, `alternativeNames`,
-`manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, like ticking them in the admin review. A selected
+`manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, `eanAbsent` (the values of
+`PuzzleProposalField`), like ticking them in the admin review. `eanAbsent` on a puzzle that has an EAN by now is a
+`422`. A selected
 field the request does not change (its proposed value equals its original - a request stores the whole record as it
 was) keeps the puzzle's value now, so selecting every field never reverts what another proposal changed meanwhile; `[]`
 approves without touching the puzzle (a proposal something else already satisfied, e.g. a brand fix a brand merge made).

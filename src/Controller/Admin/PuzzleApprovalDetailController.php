@@ -114,6 +114,7 @@ final class PuzzleApprovalDetailController extends AbstractController
                     uploadedImage: $data->puzzlePhoto,
                     note: $data->note,
                     recordVersion: $data->recordVersion,
+                    eanAbsent: $data->eanAbsent,
                 ));
 
                 $this->formPhotoStash->forget($restoredPhotos, $player->playerId);

@@ -1253,6 +1253,7 @@ competition_referees:
   "language_not_set": "langue non précisée"
 "puzzle_detail":
   "details": "Détails"
+  "no_barcode_on_box": "Pas de code-barres sur la boîte"
   "more_actions": "Plus d’actions"
   "improvement_hint":
     "lead": "Aidez à améliorer ce puzzle :"
@@ -3373,6 +3374,7 @@ competition_referees:
     "show_pending": "Voir ce qui attend"
     "new_photo": "une nouvelle photo"
     "no_codes": "aucun"
+    "ean_absent": "pas de code-barres sur la boîte"
   "form":
     "brand": "Marque"
     "brand_help": "Absente de la liste ou mal orthographiée ? Saisissez le nom correct de la marque pour l'ajouter."
@@ -3384,6 +3386,11 @@ competition_referees:
     "ean": "EAN / Code-barres"
     "ean_help": "Le numéro du code-barres sur la boîte du puzzle (généralement 13 chiffres)."
     "ean_placeholder": "ex., 4005556123456"
+    "ean_absent": "La boîte n'a pas de code-barres (EAN)"
+    "ean_absent_help": "Cochez seulement s'il n'y a aucun code-barres sur la boîte. Un modérateur le confirme."
+    "ean_absent_with_ean": "Une boîte sans code-barres n'a pas d'EAN : retirez l'EAN ou décochez « La boîte n'a pas de code-barres »."
+    "ean_absent_confirmed": "Pas de code-barres sur la boîte"
+    "ean_absent_confirmed_help": "Confirmé : cette boîte n'a pas de code-barres. Une édition plus récente peut en avoir un ; si la vôtre en a un, ajoutez-le ci-dessus."
     "identification_number": "Code de marque"
     "identification_number_help": "Le code produit de la marque (ex. 19432 pour les puzzles Ravensburger)."
     "identification_number_placeholder": "ex., 19432"

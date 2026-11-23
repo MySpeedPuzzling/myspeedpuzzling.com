@@ -31,6 +31,8 @@ readonly final class PuzzleProposalChanges
         public null|PuzzleNames $originalAlternativeNames,
         public null|string $proposedNameLanguage,
         public null|string $originalNameLanguage,
+        public null|bool $proposedEanAbsent = null,
+        public bool $originalEanAbsent = false,
     ) {
     }
 
@@ -53,6 +55,7 @@ readonly final class PuzzleProposalChanges
             PuzzleProposalField::IdentificationNumber => $this->proposedIdentificationNumber !== null
                 && BrandCodeList::fromStored($this->proposedIdentificationNumber)->equals(BrandCodeList::fromStored($this->originalIdentificationNumber)) === false,
             PuzzleProposalField::Image => $this->proposedImage !== null,
+            PuzzleProposalField::EanAbsent => $this->proposedEanAbsent === true && $this->originalEanAbsent === false,
         };
     }
 

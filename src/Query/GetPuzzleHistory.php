@@ -158,6 +158,8 @@ SELECT
     cr.proposed_image,
     cr.proposed_alternative_names,
     cr.proposed_name_language,
+    cr.proposed_ean_absent,
+    cr.original_ean_absent,
     cr.original_name,
     cr.original_manufacturer_id,
     original_manufacturer.name AS original_manufacturer_name,
@@ -498,6 +500,8 @@ SELECT
     cr.proposed_image,
     cr.proposed_alternative_names,
     cr.proposed_name_language,
+    cr.proposed_ean_absent,
+    cr.original_ean_absent,
     cr.original_name,
     cr.original_manufacturer_id,
     original_manufacturer.name AS original_manufacturer_name,
@@ -613,6 +617,10 @@ SQL;
                     );
                 }
             }
+        }
+
+        if (($row['proposed_ean_absent'] ?? null) === true && ($row['original_ean_absent'] ?? false) !== true) {
+            $proposal[] = new PuzzleHistoryChange(PuzzleHistoryChange::label('eanAbsent'), null, 'Yes');
         }
 
         // The proposed file is moved away when used - shown as words, not as a picture that may be gone

@@ -32,6 +32,8 @@ readonly final class PuzzleRecordValues
         // its originals archive copy) and its ratio, null when it could not be read
         public null|string $restoredImage = null,
         public null|float $restoredImageRatio = null,
+        // "The box has no barcode" (Puzzle::confirmEanAbsent()) - null keeps it as it is; any EAN clears it anyway
+        public null|bool $eanAbsent = null,
     ) {
     }
 }

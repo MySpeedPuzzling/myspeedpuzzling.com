@@ -4682,6 +4682,10 @@ components:
             - type: array
               items:
                 type: string
+        eanAbsent:
+          type: boolean
+          default: false
+          description: true = "the box has no barcode" (a moderator confirms it on approval). Only for a puzzle that ends up without an EAN - 400 together with an EAN.
         nameLanguage:
           type: [string, "null"]
           description: BCP 47 language of the main title when the box has no English title (`cs`, `pt-BR`); null = English or not known.
@@ -4739,7 +4743,7 @@ components:
           description: Fields to apply to the puzzle; [] applies nothing. Required on purpose - never implied.
           items:
             type: string
-            enum: [name, nameLanguage, alternativeNames, manufacturer, piecesCount, ean, identificationNumber, image]
+            enum: [name, nameLanguage, alternativeNames, manufacturer, piecesCount, ean, identificationNumber, image, eanAbsent]
         decisionNote:
           type: [string, "null"]
           maxLength: 500

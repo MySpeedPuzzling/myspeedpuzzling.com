@@ -37,6 +37,9 @@ trait PuzzleCodesFields
     #[All([new Length(max: 50)])]
     public array $brandCodes = [];
 
+    // "The box has no barcode (EAN)" (Puzzle::$eanAbsentConfirmedAt) - never together with an EAN
+    public bool $eanAbsent = false;
+
     public function eanList(): EanList
     {
         return EanList::fromInputs($this->eans);
@@ -61,5 +64,12 @@ trait PuzzleCodesFields
     {
         EanList::addInputViolations($context, 'eans', $this->eans, $this->currentEan);
         BrandCodeList::addViolations($context, 'brandCodes', $this->brandCodes);
+
+        if ($this->eanAbsent && $this->eanList()->isEmpty() === false) {
+            $context->buildViolation('puzzle_report.form.ean_absent_with_ean')
+                ->setTranslationDomain('messages')
+                ->atPath('eanAbsent')
+                ->addViolation();
+        }
     }
 }

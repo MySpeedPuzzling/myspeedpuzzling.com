@@ -37,6 +37,8 @@ readonly final class ApprovePuzzle implements SerializedByLock
         public null|string $note = null,
         // The record the form was loaded with (PuzzleRecordVersion) - null checks nothing
         public null|string $recordVersion = null,
+        // "The box has no barcode (EAN)" - null keeps it as it is
+        public null|bool $eanAbsent = null,
     ) {
     }
 

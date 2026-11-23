@@ -50,6 +50,8 @@ readonly final class SubmitPuzzleChangeRequest implements SerializedByLock
         // The puzzle's picture the proposal was made from (PuzzleImageFingerprint) - a puzzle with another one now
         // refuses it (PuzzleImageChangedMeanwhile)
         public null|string $sourceImageFingerprint = null,
+        // "The box has no barcode (EAN)" - only together with no EAN proposed (PuzzleProposalField::EanAbsent)
+        public bool $proposedEanAbsent = false,
     ) {
     }
 

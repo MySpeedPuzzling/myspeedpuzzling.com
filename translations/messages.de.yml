@@ -1219,6 +1219,7 @@ competition_referees:
   "language_not_set": "Sprache nicht angegeben"
 "puzzle_detail":
   "details": "Details"
+  "no_barcode_on_box": "Kein Strichcode auf der Schachtel"
   "more_actions": "Weitere Aktionen"
   "improvement_hint":
     "lead": "Hilf, dieses Puzzle zu verbessern:"
@@ -3306,6 +3307,7 @@ badges:
     "show_pending": "Ansehen, was wartet"
     "new_photo": "ein neues Foto"
     "no_codes": "keiner"
+    "ean_absent": "kein Strichcode auf der Schachtel"
   "form":
     "brand": "Marke"
     "brand_help": "Nicht in der Liste oder falsch geschrieben? Gib den richtigen Namen der Marke ein, um sie hinzuzufügen."
@@ -3317,6 +3319,11 @@ badges:
     "ean": "EAN / Barcode"
     "ean_help": "Die Barcode-Nummer auf der Puzzle-Schachtel (normalerweise 13 Ziffern)."
     "ean_placeholder": "z.B. 4005556123456"
+    "ean_absent": "Die Schachtel hat keinen Strichcode (EAN)"
+    "ean_absent_help": "Nur ankreuzen, wenn nirgends auf der Schachtel ein Strichcode ist. Ein Moderator bestätigt es."
+    "ean_absent_with_ean": "Eine Schachtel ohne Strichcode hat keine EAN - entferne die EAN oder nimm das Häkchen bei „Die Schachtel hat keinen Strichcode“ heraus."
+    "ean_absent_confirmed": "Kein Strichcode auf der Schachtel"
+    "ean_absent_confirmed_help": "Bestätigt: Diese Schachtel hat keinen Strichcode. Eine neuere Auflage kann einen haben - wenn deine einen hat, trage ihn oben ein."
     "identification_number": "Markencode"
     "identification_number_help": "Der Produktcode der Marke (z.B. 19432 für Ravensburger-Puzzles)."
     "identification_number_placeholder": "z.B. 19432"

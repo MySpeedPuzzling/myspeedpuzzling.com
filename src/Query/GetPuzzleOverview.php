@@ -48,6 +48,7 @@ SELECT
     manufacturer.slug AS manufacturer_slug,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
+    puzzle.ean_absent_confirmed_at IS NOT NULL AS puzzle_ean_absent,
     COALESCE(puzzle_statistics.solved_times_count, 0) AS solved_times,
     puzzle_statistics.average_time_solo,
     puzzle_statistics.fastest_time_solo,
@@ -86,6 +87,7 @@ SQL;
          *     puzzle_identification_number: null|string,
          *     hide_image_until: null|string,
          *     hide_until: null|string,
+         *     puzzle_ean_absent: bool,
          * } $row
          */
         $row = $this->database

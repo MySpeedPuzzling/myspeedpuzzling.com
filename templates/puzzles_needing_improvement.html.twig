@@ -18,57 +18,84 @@
         <a href="{{ path('karma_explainer') }}">{{ 'puzzles_needing_improvement.karma_link'|trans }}</a>
     </p>
 
-    <form method="get" class="mb-3 d-flex flex-wrap align-items-center gap-2" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
-        <label class="form-label mb-0" for="improvement-brand">{{ 'puzzles_needing_improvement.brand_filter'|trans }}</label>
-        {# Tom Select: type to search, brand logos, the brands with the most puzzles missing an EAN first (the query's order) #}
-        <div class="flex-grow-1" style="min-width: 0; max-width: 28rem;">
-            <select class="form-select" id="improvement-brand" name="brand" data-controller="tomselect-sync" data-placeholder="{{ 'puzzles_needing_improvement.all_brands'|trans }}">
-                <option value="">{{ 'puzzles_needing_improvement.all_brands'|trans }}</option>
-                {% for brand in brands %}
-                    <option value="{{ brand.manufacturerId }}" {% if brand.manufacturerId == brand_id %}selected{% endif %}{% if brand.manufacturerLogo is not null %} data-data="{{ {logo: brand.manufacturerLogo|thumbnail('puzzle_small')}|json_encode|e('html_attr') }}"{% endif %}>{{ brand.manufacturerName }} ({{ brand.puzzlesCount|plain_number }})</option>
+    <form method="get" class="mb-3 d-flex flex-wrap align-items-center column-gap-3 row-gap-2" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
+        <div class="d-flex align-items-center gap-2">
+            <label class="form-label mb-0 text-nowrap" for="improvement-missing">{{ 'puzzles_needing_improvement.missing_filter'|trans }}</label>
+            <select class="form-select" id="improvement-missing" name="missing">
+                {% for option in needs %}
+                    <option value="{{ option.value }}" {% if option == need %}selected{% endif %}>{{ ('puzzles_needing_improvement.missing.' ~ (option.value ?: 'all')|replace({'-': '_'}))|trans }}</option>
                 {% endfor %}
             </select>
         </div>
+
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 0; max-width: 28rem;">
+            <label class="form-label mb-0" for="improvement-brand">{{ 'puzzles_needing_improvement.brand_filter'|trans }}</label>
+            {# Tom Select: type to search, brand logos, the brands with the most puzzles needing it first (the query's order) #}
+            <div class="flex-grow-1" style="min-width: 0;">
+                <select class="form-select" id="improvement-brand" name="brand" data-controller="tomselect-sync" data-placeholder="{{ 'puzzles_needing_improvement.all_brands'|trans }}">
+                    <option value="">{{ 'puzzles_needing_improvement.all_brands'|trans }}</option>
+                    {% for brand in brands %}
+                        <option value="{{ brand.manufacturerId }}" {% if brand.manufacturerId == brand_id %}selected{% endif %}{% if brand.manufacturerLogo is not null %} data-data="{{ {logo: brand.manufacturerLogo|thumbnail('puzzle_small')}|json_encode|e('html_attr') }}"{% endif %}>{{ brand.manufacturerName }} ({{ brand.puzzlesCount|plain_number }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if logged_user.profile is not null %}
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="improvement-collection" name="collection" value="1" {% if in_collection %}checked{% endif %}>
+                <label class="form-check-label" for="improvement-collection">{{ 'puzzles_needing_improvement.in_my_collection'|trans }}</label>
+            </div>
+        {% endif %}
+
         <button type="submit" class="btn btn-outline-secondary" data-auto-submit-target="fallback">{{ 'puzzles_needing_improvement.apply_filter'|trans }}</button>
     </form>
 
-    <p class="fs-sm mb-2">{{ 'puzzles_needing_improvement.count'|trans({'%count%': total, '%total%': total|plain_number}) }}</p>
+    <p class="fs-sm mb-2">{{ ('puzzles_needing_improvement.count.' ~ (need.value ?: 'all')|replace({'-': '_'}))|trans({'%count%': total, '%total%': total|plain_number}) }}</p>
 
     {% if puzzles is empty %}
         <p class="text-muted">{{ 'puzzles_needing_improvement.empty'|trans }}</p>
     {% else %}
         <ul class="list-group mb-3">
             {% for puzzle in puzzles %}
-                <li class="list-group-item d-flex align-items-center gap-3 px-2 py-2">
+                <li class="list-group-item d-flex align-items-start gap-2 gap-sm-3 px-2 py-2">
                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="flex-shrink-0">
                         {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: puzzle.puzzleName, position: loop.index, ratio: null}) }}
                     </a>
 
                     <div class="flex-grow-1 min-w-0">
-                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="fw-semibold d-block text-truncate">{{ puzzle.puzzleName }}</a>
+                        {# Two lines of the name instead of one cut short - phones left "Curious Ca…" before #}
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="fw-semibold" style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;">{{ puzzle.puzzleName }}</a>
                         <small class="text-muted d-block">
                             {{ include('_pieces_brand.html.twig', {pieces: puzzle.piecesCount, brand: puzzle.manufacturerName ?? ''}) }}
                             {% if puzzle.solvedTimesCount > 0 %}· {{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimesCount}) }}{% endif %}
                         </small>
-                        <span class="badge bg-warning text-dark rounded-pill mt-1">{{ 'puzzles_needing_improvement.badge.ean_missing'|trans }}</span>
+                        {# Every badge of the row; the proposal form's answer turns the ones it covers into "suggested"
+                           (puzzle-report/_stream.html.twig, mark_improvement_row) #}
+                        <div class="d-flex flex-wrap gap-1 mt-1" id="improvement-badges-{{ puzzle.puzzleId }}">
+                            {% if puzzle.eanMissing %}
+                                {{ include('puzzle-report/_improvement_badge.html.twig', {puzzle_id: puzzle.puzzleId, need: 'ean', proposed: puzzle.eanProposed}, with_context = false) }}
+                            {% endif %}
+                            {% if puzzle.wrongPicture %}
+                                {{ include('puzzle-report/_improvement_badge.html.twig', {puzzle_id: puzzle.puzzleId, need: 'wrong_picture', proposed: puzzle.imageProposed}, with_context = false) }}
+                            {% elseif puzzle.imageNeedsImprovement %}
+                                {{ include('puzzle-report/_improvement_badge.html.twig', {puzzle_id: puzzle.puzzleId, need: 'image', proposed: puzzle.imageProposed}, with_context = false) }}
+                            {% endif %}
+                            <span class="d-none" id="improvement-proposed-{{ puzzle.puzzleId }}"></span>
+                        </div>
                     </div>
 
-                    {# Replaced by the proposal form's answer once a change is suggested (puzzle-report/_stream.html.twig) #}
-                    {# max-width: the "waiting for review" badge wraps instead of squeezing the name column on phones #}
-                    <div class="flex-shrink-0 text-end" style="max-width: 9rem;" id="improvement-action-{{ puzzle.puzzleId }}">
-                        {% if puzzle.eanProposed %}
-                            {{ include('puzzle-report/_improvement_proposed.html.twig') }}
-                        {% else %}
-                            <a class="btn btn-sm btn-outline-primary"
-                               href="{{ path('puzzle_suggest_change', {puzzleId: puzzle.puzzleId}) }}"
-                               rel="nofollow"
-                               {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
-                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
-                                <span class="d-none d-sm-inline ms-1">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</span>
-                                <span class="visually-hidden d-sm-none">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</span>
-                            </a>
-                        {% endif %}
-                    </div>
+                    {# Always there - with a suggestion already waiting, the form shows it (pending proposals) #}
+                    <a class="btn btn-sm btn-outline-primary flex-shrink-0"
+                       id="improvement-action-{{ puzzle.puzzleId }}"
+                       href="{{ path('puzzle_suggest_change', {puzzleId: puzzle.puzzleId}) }}"
+                       rel="nofollow"
+                       title="{{ 'puzzle_report.dropdown.suggest_change'|trans }}"
+                       {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
+                        <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                        <span class="d-none d-lg-inline ms-1">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</span>
+                        <span class="visually-hidden d-lg-none">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</span>
+                    </a>
                 </li>
             {% endfor %}
         </ul>
@@ -78,6 +105,6 @@
         pagination: pagination,
         route: 'puzzles_needing_improvement',
         page_route: 'puzzles_needing_improvement',
-        route_params: brand_id is not null ? {brand: brand_id} : {},
+        route_params: route_params,
     }) }}
 {% endblock %}

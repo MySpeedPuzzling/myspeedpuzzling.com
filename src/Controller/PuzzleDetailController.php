@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRedirect;
 use SpeedPuzzling\Web\Query\GetPuzzleSummary;
+use SpeedPuzzling\Web\Query\GetPuzzlesNeedingImprovement;
+use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Query\GetRelatedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
@@ -50,6 +52,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private CatalogueStatsProvider $catalogueStatsProvider,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
+        readonly private GetPuzzlesNeedingImprovement $getPuzzlesNeedingImprovement,
     ) {
     }
 
@@ -125,6 +128,16 @@ final class PuzzleDetailController extends AbstractController
         // Crawlers come signed out, so they see exactly what a guest sees
         $showSeoSections = $user === null;
 
+        // "Help improve this puzzle" for signed-in players (docs/features/puzzles-needing-improvement.md) - one
+        // primary-key lookup; the wrong-picture mark only for admins and community moderators
+        $improvementHint = null;
+        if ($loggedPlayer !== null) {
+            $improvementHint = $this->getPuzzlesNeedingImprovement->hintForPuzzle(
+                $puzzleId,
+                $this->isGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS),
+            );
+        }
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzle_statuses' => $puzzleStatuses,
@@ -144,6 +157,7 @@ final class PuzzleDetailController extends AbstractController
             'related' => $showSeoSections ? $this->getRelatedPuzzles->forPuzzleCached($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId) : null,
             'puzzle_summary' => $this->getPuzzleSummary->forPuzzle($puzzleId),
             'catalogue_links' => PuzzleCatalogueLinks::forPuzzle($puzzle, $brandHub),
+            'improvement_hint' => $improvementHint,
         ]);
     }
 }

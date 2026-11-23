@@ -6,7 +6,10 @@
     - puzzle_id: The puzzle ID
     - message: Toast message
     - mark_improvement_row (optional): a change was suggested - marks the puzzle's row on "Puzzles needing
-      improvement"; nothing happens on pages without that row
+      improvement" (the badges of puzzle-report/_improvement_badge.html.twig); a replace whose target is not on the
+      page does nothing, so other pages are unaffected
+    - proposed_ean, proposed_image (optional bools): what the suggestion contains - its EAN / image badge turns into
+      "suggested, waiting for review"; a suggestion with neither adds the general "Suggested, waiting for review"
 #}
 
 {{ include('_modal_close_stream.html.twig') }}
@@ -14,7 +17,13 @@
 {{ include('_toast_stream.html.twig', {message: message}) }}
 
 {% if mark_improvement_row|default(false) %}
-    <turbo-stream action="update" target="improvement-action-{{ puzzle_id }}">
-        <template>{{ include('puzzle-report/_improvement_proposed.html.twig') }}</template>
-    </turbo-stream>
+    {% set marked_needs = [] %}
+    {% if proposed_ean|default(false) %}{% set marked_needs = marked_needs|merge(['ean']) %}{% endif %}
+    {% if proposed_image|default(false) %}{% set marked_needs = marked_needs|merge(['image', 'wrong_picture']) %}{% endif %}
+    {% if marked_needs is empty %}{% set marked_needs = ['proposed'] %}{% endif %}
+    {% for need in marked_needs %}
+        <turbo-stream action="replace" target="improvement-{{ need|replace({'_': '-'}) }}-{{ puzzle_id }}">
+            <template>{{ include('puzzle-report/_improvement_badge.html.twig', {puzzle_id: puzzle_id, need: need, proposed: true}, with_context = false) }}</template>
+        </turbo-stream>
+    {% endfor %}
 {% endif %}

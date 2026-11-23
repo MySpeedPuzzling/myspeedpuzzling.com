@@ -1553,6 +1553,11 @@ competition_referees:
 "puzzle_detail":
   "details": "詳細"
   "more_actions": "その他の操作"
+  "improvement_hint":
+    "lead": "このパズルの改善にご協力ください："
+    "ean_missing": "EAN なし"
+    "better_image": "より良い画像を募集中"
+    "wrong_picture": "画像が間違っています"
   "moderation":
     "heading": "モデレーション"
     "edit": "パズルを編集"
@@ -11385,16 +11390,31 @@ puzzles_needing_improvement:
     meta:
         title: "改善が必要なパズル - パズルデータベースの充実にご協力ください"
     intro: "これらのパズルはデータベースの情報が不足しています。お手元にある場合やお店で見かけた場合は、情報を追加できます。"
-    how_it_works: "現在は EAN（箱のバーコードの下にある13桁の番号）がないパズルを表示しています。「変更を提案」をクリックして EAN を入力（または箱の写真を追加）すると、モデレーターが確認します。承認された変更ごとにカルマがもらえます。"
+    how_it_works: "EAN（箱のバーコードの下にある13桁の番号）がないパズルと、画像が小さすぎる・ぼやけているパズルを表示しています。「変更を提案」をクリックして EAN を入力するか、箱の表面のはっきりした写真を追加すると、モデレーターが確認します。承認された変更ごとにカルマがもらえます。"
     karma_link: "カルマとは？"
     brand_filter: "ブランド"
     all_brands: "すべてのブランド"
     apply_filter: "表示"
-    count: "EAN のないパズル %total% 件"
+    missing_filter: "不足している情報"
+    missing:
+        all: "すべて"
+        ean: "EAN"
+        image: "より良い画像"
+        wrong_picture: "間違った画像"
+    in_my_collection: "自分のコレクション"
+    count:
+        all: "改善が必要なパズル %total% 件"
+        ean: "EAN のないパズル %total% 件"
+        image: "より良い画像が必要なパズル %total% 件"
+        wrong_picture: "画像が間違っているパズル %total% 件"
     empty: "改善が必要なパズルはありません。ありがとうございます！"
     badge:
         ean_missing: "EAN なし"
         proposed: "提案済み・確認待ち"
+        ean_proposed: "EAN 提案済み・確認待ち"
+        image_needs_improvement: "画像の改善が必要"
+        image_proposed: "画像提案済み・確認待ち"
+        wrong_picture: "間違った画像"
 
 partner_finder:
     # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line

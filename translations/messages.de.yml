@@ -1220,6 +1220,11 @@ competition_referees:
 "puzzle_detail":
   "details": "Details"
   "more_actions": "Weitere Aktionen"
+  "improvement_hint":
+    "lead": "Hilf, dieses Puzzle zu verbessern:"
+    "ean_missing": "EAN fehlt"
+    "better_image": "besseres Bild gesucht"
+    "wrong_picture": "falsches Bild"
   "moderation":
     "heading": "Moderation"
     "edit": "Puzzle bearbeiten"
@@ -11395,16 +11400,31 @@ puzzles_needing_improvement:
     meta:
         title: "Puzzles, die Verbesserung brauchen - hilf mit, die Puzzle-Datenbank zu vervollständigen"
     intro: "Bei diesen Puzzles fehlt uns etwas in der Datenbank. Wenn du eines davon zu Hause hast oder im Laden siehst, kannst du es ergänzen."
-    how_it_works: "Vorerst zeigt die Liste Puzzles ohne EAN - die 13-stellige Nummer unter dem Strichcode auf der Schachtel. Klicke auf „Änderung vorschlagen“, gib die EAN ein (oder füge ein Foto der Schachtel hinzu) und ein Moderator prüft sie. Jede genehmigte Änderung bringt dir Karma."
+    how_it_works: "Die Liste zeigt Puzzles ohne EAN - die 13-stellige Nummer unter dem Strichcode auf der Schachtel - und Puzzles, deren Bild zu klein oder unscharf ist. Klicke auf „Änderung vorschlagen“, gib die EAN ein oder füge ein scharfes Foto der Schachtelvorderseite hinzu, und ein Moderator prüft es. Jede genehmigte Änderung bringt dir Karma."
     karma_link: "Was ist Karma?"
     brand_filter: "Marke"
     all_brands: "Alle Marken"
     apply_filter: "Anzeigen"
-    count: "{1}%total% Puzzle ohne EAN|[0,Inf[%total% Puzzles ohne EAN"
+    missing_filter: "Was fehlt"
+    missing:
+        all: "Alles"
+        ean: "EAN"
+        image: "Besseres Bild"
+        wrong_picture: "Falsches Bild"
+    in_my_collection: "In meiner Sammlung"
+    count:
+        all: "{1}%total% Puzzle, das Verbesserung braucht|[0,Inf[%total% Puzzles, die Verbesserung brauchen"
+        ean: "{1}%total% Puzzle ohne EAN|[0,Inf[%total% Puzzles ohne EAN"
+        image: "{1}%total% Puzzle, das ein besseres Bild braucht|[0,Inf[%total% Puzzles, die ein besseres Bild brauchen"
+        wrong_picture: "{1}%total% Puzzle mit falschem Bild|[0,Inf[%total% Puzzles mit falschem Bild"
     empty: "Hier gibt es nichts zu verbessern - danke!"
     badge:
         ean_missing: "EAN fehlt"
         proposed: "Vorgeschlagen, wird geprüft"
+        ean_proposed: "EAN vorgeschlagen, wird geprüft"
+        image_needs_improvement: "Bild verbesserungswürdig"
+        image_proposed: "Bild vorgeschlagen, wird geprüft"
+        wrong_picture: "Falsches Bild"
 
 partner_finder:
     # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line

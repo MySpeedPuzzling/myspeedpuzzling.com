@@ -393,6 +393,23 @@
                 {{ include('puzzle/_detail_actions_menu.html.twig') }}
             </div>
 
+            {# Signed-in players: what this puzzle misses in the database (docs/features/puzzles-needing-improvement.md) #}
+            {% if improvement_hint|default(null) is not null and not improvement_hint.isEmpty() %}
+                {% set improvement_parts = [] %}
+                {% if improvement_hint.eanMissing %}{% set improvement_parts = improvement_parts|merge(['puzzle_detail.improvement_hint.ean_missing'|trans]) %}{% endif %}
+                {% if improvement_hint.wrongPicture %}
+                    {% set improvement_parts = improvement_parts|merge(['puzzle_detail.improvement_hint.wrong_picture'|trans]) %}
+                {% elseif improvement_hint.imageNeedsImprovement %}
+                    {% set improvement_parts = improvement_parts|merge(['puzzle_detail.improvement_hint.better_image'|trans]) %}
+                {% endif %}
+                <p class="fs-sm text-muted mt-2 mb-0" id="puzzle-improvement-hint" data-nosnippet>
+                    <i class="bi bi-lightbulb me-1" aria-hidden="true"></i>{{ 'puzzle_detail.improvement_hint.lead'|trans }}
+                    {{ improvement_parts|join(' · ') }}
+                    <span aria-hidden="true">→</span>
+                    <a href="{{ path('puzzle_suggest_change', {puzzleId: puzzle.puzzleId}) }}" rel="nofollow" data-turbo-frame="modal-frame">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</a>
+                </p>
+            {% endif %}
+
             {# Moderators and admins change the puzzle straight away and see who changed what (admin pages) #}
             {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
                 <div class="d-flex flex-wrap gap-2 mt-2" data-nosnippet>

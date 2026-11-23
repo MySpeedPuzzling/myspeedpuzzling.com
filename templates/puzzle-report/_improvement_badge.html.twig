@@ -1,0 +1,28 @@
+{#
+    One badge of a "Puzzles needing improvement" row (docs/features/puzzles-needing-improvement.md). The id lets the
+    proposal form's answer (puzzle-report/_stream.html.twig, mark_improvement_row) replace it once a change is suggested.
+
+    Inputs:
+      - puzzle_id
+      - need: 'ean' | 'image' | 'wrong_picture' | 'proposed' (a suggestion that changes neither the EAN nor the image)
+      - proposed (bool): a suggestion for this need waits for a moderator
+#}
+{% set proposed = proposed|default(false) or need == 'proposed' %}
+{% if proposed %}
+    <span class="badge bg-success rounded-3 text-wrap text-start lh-sm" id="improvement-{{ need|replace({'_': '-'}) }}-{{ puzzle_id }}">
+        <i class="bi bi-check2 me-1" aria-hidden="true"></i>
+        {%- if need == 'ean' -%}
+            {{ 'puzzles_needing_improvement.badge.ean_proposed'|trans }}
+        {%- elseif need == 'image' or need == 'wrong_picture' -%}
+            {{ 'puzzles_needing_improvement.badge.image_proposed'|trans }}
+        {%- else -%}
+            {{ 'puzzles_needing_improvement.badge.proposed'|trans }}
+        {%- endif -%}
+    </span>
+{% elseif need == 'ean' %}
+    <span class="badge bg-warning text-dark rounded-3 text-wrap text-start lh-sm" id="improvement-ean-{{ puzzle_id }}"><i class="bi bi-upc me-1" aria-hidden="true"></i>{{ 'puzzles_needing_improvement.badge.ean_missing'|trans }}</span>
+{% elseif need == 'image' %}
+    <span class="badge bg-info text-dark rounded-3 text-wrap text-start lh-sm" id="improvement-image-{{ puzzle_id }}"><i class="bi bi-image me-1" aria-hidden="true"></i>{{ 'puzzles_needing_improvement.badge.image_needs_improvement'|trans }}</span>
+{% elseif need == 'wrong_picture' %}
+    <span class="badge bg-danger rounded-3 text-wrap text-start lh-sm" id="improvement-wrong-picture-{{ puzzle_id }}"><i class="bi bi-exclamation-octagon me-1" aria-hidden="true"></i>{{ 'puzzles_needing_improvement.badge.wrong_picture'|trans }}</span>
+{% endif %}

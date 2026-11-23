@@ -49,6 +49,9 @@ readonly final class CompetitorPageRound implements \JsonSerializable
         public bool $signInToPropose = false,
         // Reliability hardening T2: the signed right to send heartbeats for the own entry (CompetitorHeartbeatToken)
         public null|string $heartbeatToken = null,
+        // The table's name on a round with table labels (table-labels-and-plates.md) - the JSON's `tableLabel`, absent
+        // while null
+        public null|string $tableLabel = null,
     ) {
     }
 
@@ -69,6 +72,7 @@ readonly final class CompetitorPageRound implements \JsonSerializable
             'startsAtMs' => RoundClock::milliseconds($this->startsAt->instant),
             'minutesLimit' => $this->minutesLimit,
             'tableNumber' => $this->tableNumber,
+            ...($this->tableLabel !== null ? ['tableLabel' => $this->tableLabel] : []),
             'current' => $this->current,
             'topic' => $this->topic(),
             'stopwatch' => $this->stopwatch,

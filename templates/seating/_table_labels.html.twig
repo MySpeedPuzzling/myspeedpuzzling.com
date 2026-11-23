@@ -1,0 +1,131 @@
+{# "Table names" (docs/features/competitions-management/table-labels-and-plates.md): an optional list naming the round's
+   table numbers - a hall plan like A1, A2 … or two places per table (A1 L / A1 R). Collapsed; closed = nothing changes.
+   Variables: round, overview, rounds (overviews of the event), entries, csrf_token_id #}
+{% set current = overview.tableLabels %}
+{% set same_kind = rounds|filter(other => other.roundId != round.id.toString and other.category == overview.category and not other.tableNumbersOff) %}
+<details class="card mb-4 seating-labels" data-seating-labels {{ app.request.query.has('labels') ? 'open' }}>
+    <summary class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2">
+        <i class="bi bi-grid-3x3 me-1" aria-hidden="true"></i>
+        <span class="fw-semibold">{{ 'seating.labels.title'|trans }}</span>
+        <span class="text-body-secondary small">
+            {% if current is null %}
+                {{ 'seating.labels.summary_numbers'|trans }}
+            {% else %}
+                {{ 'seating.labels.summary'|trans({'%count%': current.count, '%first%': current.labelOf(1), '%last%': current.labelOf(current.count)}) }}
+            {% endif %}
+        </span>
+    </summary>
+    <div class="card-body"
+         data-controller="table-labels-editor"
+         data-table-labels-editor-url-value="{{ path('official_results_table_labels', {roundId: round.id}) }}"
+         data-table-labels-editor-csrf-token-value="{{ csrf_token(csrf_token_id) }}"
+         data-table-labels-editor-round-id-value="{{ round.id }}"
+         data-table-labels-editor-rounds-value="{{ rounds|json_encode }}"
+         data-table-labels-editor-entries-value="{{ entries|map(entry => {tableNumber: entry.tableNumber, displayName: entry.displayName})|json_encode }}"
+         data-table-labels-editor-texts-value="{{ {
+             preview: 'seating.labels.preview'|trans,
+             preview_none: 'seating.labels.preview_none'|trans,
+             too_few: 'seating.labels.too_few_warning'|trans,
+             renamed: 'seating.labels.renamed'|trans,
+             remove_confirm: 'seating.labels.remove_confirm'|trans,
+             saving: 'seating.status.saving'|trans,
+             saved: 'seating.status.saved'|trans,
+             failed: 'seating.status.failed'|trans,
+             offline: 'seating.status.offline'|trans,
+             sign_in: 'seating.status.sign_in'|trans,
+             reason_empty_list: 'seating.labels.reason.empty_list'|trans,
+             reason_too_many: 'seating.labels.reason.too_many'|trans,
+             reason_empty: 'seating.labels.reason.empty'|trans,
+             reason_too_long: 'seating.labels.reason.too_long'|trans,
+             reason_characters: 'seating.labels.reason.characters'|trans,
+             reason_duplicate: 'seating.labels.reason.duplicate'|trans,
+             reason_letters: 'seating.labels.reason.letters'|trans,
+             reason_numbers: 'seating.labels.reason.numbers'|trans,
+             reason_seats: 'seating.labels.reason.seats'|trans,
+             reason_seat_style: 'seating.labels.reason.seat_style'|trans,
+         }|json_encode }}"
+    >
+        <p class="text-body-secondary small">{{ 'seating.labels.intro'|trans }}</p>
+
+        <form class="seating-labels-generator" novalidate data-action="submit->table-labels-editor#fill">
+            <h3 class="h6">{{ 'seating.labels.generator'|trans }}</h3>
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="labels-letters-{{ round.id }}">{{ 'seating.labels.letters'|trans }}</label>
+                    <input type="text" class="form-control" id="labels-letters-{{ round.id }}" value="A-H" autocomplete="off" autocapitalize="characters" data-table-labels-editor-target="letters">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="labels-numbers-{{ round.id }}">{{ 'seating.labels.numbers'|trans }}</label>
+                    <input type="text" class="form-control" id="labels-numbers-{{ round.id }}" value="1-22" autocomplete="off" inputmode="text" data-table-labels-editor-target="numbers">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="labels-seats-{{ round.id }}">{{ 'seating.labels.seats'|trans }}</label>
+                    <select class="form-select" id="labels-seats-{{ round.id }}" data-table-labels-editor-target="seats">
+                        {% for seats in 1..4 %}<option value="{{ seats }}">{{ seats }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1" for="labels-style-{{ round.id }}">{{ 'seating.labels.seat_style'|trans }}</label>
+                    <select class="form-select" id="labels-style-{{ round.id }}" data-table-labels-editor-target="seatStyle">
+                        <option value="side">{{ 'seating.labels.style_side'|trans }}</option>
+                        <option value="letter">{{ 'seating.labels.style_letter'|trans }}</option>
+                        <option value="dash">{{ 'seating.labels.style_dash'|trans }}</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small mb-1" for="labels-order-{{ round.id }}">{{ 'seating.labels.order'|trans }}</label>
+                    <select class="form-select" id="labels-order-{{ round.id }}" data-table-labels-editor-target="order">
+                        <option value="letters">{{ 'seating.labels.order_letters'|trans }}</option>
+                        <option value="numbers">{{ 'seating.labels.order_numbers'|trans }}</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label small mb-1" for="labels-skip-{{ round.id }}">{{ 'seating.labels.skip'|trans }}</label>
+                    <input type="text" class="form-control" id="labels-skip-{{ round.id }}" placeholder="{{ 'seating.labels.skip_placeholder'|trans }}" autocomplete="off" autocapitalize="characters" data-table-labels-editor-target="skip">
+                </div>
+                <div class="col-12 col-md-6">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-magic me-1" aria-hidden="true"></i>{{ 'seating.labels.fill'|trans }}
+                    </button>
+                </div>
+            </div>
+            <p class="form-text small mb-0">{{ 'seating.labels.seat_hint'|trans }}</p>
+        </form>
+
+        <form class="mt-3" novalidate data-action="submit->table-labels-editor#save">
+            <label class="form-label fw-semibold" for="labels-list-{{ round.id }}">{{ 'seating.labels.list'|trans }}</label>
+            <textarea class="form-control font-monospace seating-labels-list" id="labels-list-{{ round.id }}" rows="6" spellcheck="false" autocapitalize="characters" data-table-labels-editor-target="list" data-action="input->table-labels-editor#update" aria-describedby="labels-preview-{{ round.id }}"></textarea>
+            <p class="form-text" id="labels-preview-{{ round.id }}" data-table-labels-editor-target="preview" aria-live="polite"></p>
+            <ul class="small text-danger mb-2" data-table-labels-editor-target="problems" role="alert" hidden></ul>
+            <div class="alert alert-warning small py-2" data-table-labels-editor-target="warning" role="status" hidden></div>
+
+            {% if same_kind|length > 0 %}
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6 fw-semibold mb-1">{{ 'seating.labels.use_for'|trans }}</legend>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="labels-round-self-{{ round.id }}" checked disabled>
+                        <label class="form-check-label" for="labels-round-self-{{ round.id }}">{{ round.name }}</label>
+                    </div>
+                    {% for other in same_kind %}
+                        {% set other_current = other.tableLabels ? other.tableLabels.labels : null %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="labels-round-{{ other.roundId }}" value="{{ other.roundId }}" data-table-labels-editor-target="round" {{ other_current == (current ? current.labels : null) ? 'checked' }}>
+                            <label class="form-check-label" for="labels-round-{{ other.roundId }}">{{ other.name }}</label>
+                        </div>
+                    {% endfor %}
+                    <p class="form-text small mb-0">{{ 'seating.labels.use_for_hint'|trans }}</p>
+                </fieldset>
+            {% endif %}
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="submit" class="btn btn-primary" data-table-labels-editor-target="save" disabled>
+                    <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'seating.labels.save'|trans }}
+                </button>
+                {% if current is not null %}
+                    <button type="button" class="btn btn-outline-secondary" data-action="table-labels-editor#removeLabels">{{ 'seating.labels.remove'|trans }}</button>
+                {% endif %}
+                <span class="small text-body-secondary" data-table-labels-editor-target="status" role="status" aria-live="polite"></span>
+            </div>
+        </form>
+    </div>
+</details>

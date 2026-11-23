@@ -325,11 +325,24 @@ export function finishedText(props, results, texts) {
     return typeof total === 'number' ? `${finished} / ${total} ${texts.finished ?? ''}`.trim() : `${finished}`;
 }
 
+/**
+ * A row's table as shown: its label on a labelled round (`tableLabel`, table-labels-and-plates.md - only sent when the
+ * round's list names the table), else the number; null for none. Always set as text, never as HTML.
+ */
+export function tableText(row) {
+    if (typeof row?.tableLabel === 'string' && row.tableLabel !== '') {
+        return row.tableLabel;
+    }
+
+    return typeof row?.tableNumber === 'number' ? String(row.tableNumber) : null;
+}
+
 export function tickerText(row, texts) {
     const parts = [];
+    const table = tableText(row);
 
-    if (typeof row.tableNumber === 'number') {
-        parts.push((texts.table ?? '%number%').split('%number%').join(String(row.tableNumber)));
+    if (table !== null) {
+        parts.push((texts.table ?? '%number%').split('%number%').join(table));
     }
 
     parts.push(row.name ?? '');
@@ -1252,7 +1265,7 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
             }
 
             if (entry.cells.table) {
-                set('table', entry.cells.table, typeof row.tableNumber === 'number' ? String(row.tableNumber) : '');
+                set('table', entry.cells.table, tableText(row) ?? '');
             }
 
             const background = index % 2 === 1 ? safeColor(rowStyle.altBackground) ?? safeColor(rowStyle.background) : safeColor(rowStyle.background);
@@ -1634,8 +1647,9 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         view.refs.members.style.display = members === '' ? 'none' : '';
 
         const detail = [];
-        if (shows('table') && typeof row.tableNumber === 'number') {
-            detail.push((texts.table ?? '%number%').split('%number%').join(String(row.tableNumber)));
+        const table = shows('table') ? tableText(row) : null;
+        if (table !== null) {
+            detail.push((texts.table ?? '%number%').split('%number%').join(table));
         }
         if (shows('result')) {
             const result = resultText(row, texts);

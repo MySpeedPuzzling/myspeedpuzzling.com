@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import {
-    bracketColumns, bracketEntrantText, bracketPath, createRenderer, formatDuration, qrPath, resultsFor, safeImageUrl, statusText, timerText,
+    bracketColumns, bracketEntrantText, bracketPath, createRenderer, formatDuration, qrPath, resultsFor, safeImageUrl, statusText, tableText, timerText,
 } from '../assets/displays/render.js';
 
 const require = createRequire(import.meta.url);
@@ -436,7 +436,7 @@ function evilBracket() {
 }
 
 function evilState(standingIds = []) {
-    const evilRow = { key: EVIL, rank: 1, name: EVIL, members: [EVIL], countries: [EVIL, 'cz" onload="x', 'CZ', 'cz'], resultSeconds: EVIL, piecesPlaced: EVIL, didNotFinish: false, tableNumber: EVIL, enteredAtMs: EVIL };
+    const evilRow = { key: EVIL, rank: 1, name: EVIL, members: [EVIL], countries: [EVIL, 'cz" onload="x', 'CZ', 'cz'], resultSeconds: EVIL, piecesPlaced: EVIL, didNotFinish: false, tableNumber: EVIL, tableLabel: EVIL, enteredAtMs: EVIL };
 
     return baseState({
         locale: EVIL,
@@ -800,6 +800,28 @@ check('spotlight chosen: the name always, the result and rank only as the source
     // Cleared: nothing at all
     renderer.render(baseState({ control: { message: null, spotlight: null } }), START);
     equal(published.style.visibility, 'hidden', 'no panel');
+});
+
+check('table labels: a labelled row shows its label (leaderboard, ticker, spotlight), an unlabelled one its number', () => {
+    const elements = [
+        element('tl000001', 'leaderboard', { source: 'live', columns: ['rank', 'name', 'table'] }),
+        element('tl000002', 'ticker', { source: 'live' }),
+        element('tl000003', 'spotlight', { pick: 'chosen', show: ['name', 'table'] }),
+    ];
+    const labelled = { ...SPOT_ROW, key: 'kl', rank: 1, name: 'Ada Label', tableNumber: 7, tableLabel: 'A1-1' };
+    const plain = { ...SPOT_ROW, key: 'kp', rank: 2, name: 'Bo Plain', tableNumber: 40 };
+    const evil = { ...SPOT_ROW, key: 'ke', rank: 3, name: 'Cy Evil', tableNumber: 8, tableLabel: EVIL };
+    const { node, root } = render(elements, baseState({
+        results: { published: false, finished: null, total: null, top: [labelled, plain, evil], latest: [labelled] },
+        control: { message: null, spotlight: labelled },
+    }));
+    equal([...node('tl000001').querySelectorAll('.msp-el__cell--table')].map((cell) => cell.textContent), ['A1-1', '40', EVIL], 'leaderboard table cells');
+    equal(text(node('tl000002')), 'Table A1-1 · Ada Label · 1:02:05', 'ticker');
+    equal(node('tl000003').querySelector('.msp-spotlight__detail').textContent, 'Table A1-1', 'spotlight');
+    equal(tableText({ tableNumber: 5, tableLabel: '' }), '5', 'an empty label is no label');
+    equal(tableText({ tableNumber: null }), null, 'no table');
+    const problem = injected(root);
+    assert(problem === null, problem);
 });
 
 check('spotlight latest finisher: the newest result, whenUnpublished before publishing, own text without one', () => {

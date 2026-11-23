@@ -75,7 +75,7 @@
                 <tbody>
                     {% for entry in by_table %}
                         <tr>
-                            <td class="table-number">{{ entry.tableNumber ?? '–' }}</td>
+                            <td class="table-number">{{ entry.tableNumber|table_name(table_labels) ?? '–' }}</td>
                             <td>
                                 {{ entry.displayName }}
                                 {% if entry.kind == 'team' and entry.name is not null and entry.members|length > 0 %}
@@ -110,7 +110,7 @@
                                 <span class="with">{{ 'seating.print.with'|trans({'%names%': row.partners|join(', ')}) }}</span>
                             {% endif %}
                         </span>
-                        <span class="table{% if row.tableNumber is null %} missing{% endif %}">{{ row.tableNumber ?? '–' }}</span>
+                        <span class="table{% if row.tableNumber is null %} missing{% endif %}">{{ row.tableNumber|table_name(table_labels) ?? '–' }}</span>
                     </div>
                 {% endfor %}
             </div>

@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use SpeedPuzzling\Web\Value\TableLabels;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -225,6 +226,7 @@ SELECT
     cr.table_numbers_off,
     cr.puzzle_format,
     cr.puzzles_to_solve,
+    cr.table_labels,
     puzzles.pieces_count,
     {$roundDivisions} AS divisions
 FROM competition_round cr
@@ -254,7 +256,7 @@ SQL,
 
         $rounds = [];
         foreach ($rows as $schedulePosition => $row) {
-            /** @var array{id: string, name: string, category: string, team_size: null|int, starts_at: string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, pieces_count: null|int, divisions: null|string} $row */
+            /** @var array{id: string, name: string, category: string, team_size: null|int, starts_at: string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, table_labels: null|string, pieces_count: null|int, divisions: null|string} $row */
             $roundId = strtolower($row['id']);
             $startsAt = new DateTimeImmutable($row['starts_at']);
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
@@ -286,6 +288,7 @@ SQL,
                 ],
                 puzzleFormat: $puzzleFormats[$roundId] ?? null,
                 divisions: RoundDivision::listFromJson($row['divisions']),
+                tableLabels: TableLabels::fromStored($row['table_labels']),
             );
         }
 

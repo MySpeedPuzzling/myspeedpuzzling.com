@@ -601,4 +601,64 @@ export default function (test) {
         assert.ok(model.people().length > list.length, 'the event has more people than the round');
         view.destroy();
     });
+
+    test('table labels: a labelled round shows its labels in the table column, the editor and the cards; a label typed is its number, an unknown one refused', async () => {
+        const state = smallState();
+        state.rounds = state.rounds.map((r) => (r.id === ROUND_TEAMS ? { ...r, tableLabels: ['A1 L', 'A1 R', 'B1 L', '12'] } : r));
+        state.teams = state.teams.map((t) => (t.id === 't-edge' ? { ...t, table: 4 } : (t.id === 't-flat' ? { ...t, table: 1 } : t)));
+        const { view, log, root } = await mount('team', { state, roundId: ROUND_TEAMS });
+        assert.equal(view.results.tableCell('team:t-flat', 1).text, 'A1 L');
+        assert.equal(view.results.tableCell('team:t-edge', 4).text, '12');
+        assert.equal(view.editValue('t-flat', 'table'), 'A1 L');
+        // Rows by table number: table 1 (A1 L) before table 4 ("12")
+        assert.deepEqual(view.grid.rows.slice(0, 2), ['t-flat', 't-edge']);
+        // The grid shows the labels (escaped text, organiser input)
+        await tick();
+        const shown = [...root.querySelectorAll('.sheet-col-table')].map((cell) => cell.textContent.trim());
+        assert.ok(shown.includes('A1 L') && shown.includes('12'), JSON.stringify(shown));
+
+        // "b1l" = B1 L = table 3
+        view.captureSeen('t-flat', 'table');
+        view.commit('t-flat', 'table', { text: 'b1l', option: null }, {});
+        assert.deepEqual(log.acted.at(-1).results, [{ roundId: ROUND_TEAMS, ref: 'team:t-flat', field: 'table_number', from: 1, to: 3 }]);
+
+        // "3" is no label here (table 3 is "B1 L"): refused in words, nothing sent
+        const acted = log.acted.length;
+        view.captureSeen('t-edge', 'table');
+        assert.match(view.commit('t-edge', 'table', { text: '3', option: null }, {}).error, /table_unknown_label \{"table":"3"\}/);
+        assert.match(view.commit('t-edge', 'table', { text: 'Z9', option: null }, {}).error, /table_unknown_label \{"table":"Z9"\}/);
+        assert.equal(log.acted.length, acted);
+
+        // "12" is the label of table 4 - the team's own table: nothing to change
+        assert.equal(view.commit('t-edge', 'table', { text: '12', option: null }, {}), undefined);
+        assert.equal(log.acted.length, acted);
+
+        // A taken table names its holder by label, Swap sends numbers
+        view.captureSeen('t-edge', 'table');
+        assert.match(view.commit('t-edge', 'table', { text: 'b1 l', option: null }, {}).error, /table_taken \{"table":"B1 L"/);
+        view.commit('t-edge', 'table', { text: 'B1 L', option: { value: 'swap' } }, {});
+        await tick();
+        assert.deepEqual(log.tables.at(-1), [{ entry: 'team:t-edge', from: 4, number: 3 }, { entry: 'team:t-flat', from: 3, number: 4 }]);
+        view.destroy();
+
+        const cards = await mount('cards', { state, roundId: ROUND_TEAMS, phone: true });
+        assert.match(cards.root.textContent, /label_table \{"table":"12"\}/);
+        cards.view.destroy();
+    });
+
+    test('table labels: an entry seated beyond a labelled list shows its number and keeps it when the editor is left as it was', async () => {
+        const state = smallState();
+        state.rounds = state.rounds.map((r) => (r.id === ROUND_SOLO ? { ...r, tableLabels: ['A1', 'A2'] } : r));
+        state.places = state.places.map((p) => (p.id === 'e-kim-solo' ? { ...p, table: 7 } : (p.id === 'e-pat-solo' ? { ...p, table: 2 } : p)));
+        const { view, log } = await mount('solo', { state, roundId: ROUND_SOLO });
+        assert.equal(view.editValue('p-kim', 'table'), '7');
+        assert.equal(view.editValue('p-pat', 'table'), 'A2');
+        view.editStart('p-kim', 'table');
+        assert.equal(view.commit('p-kim', 'table', { text: '7', option: null }, {}), undefined);
+        assert.equal(log.acted.length, 0);
+        view.editStart('p-kim', 'table');
+        view.commit('p-kim', 'table', { text: 'a1', option: null }, {});
+        assert.deepEqual(log.acted.at(-1).results, [{ roundId: ROUND_SOLO, ref: 'participant_round:e-kim-solo', field: 'table_number', from: 7, to: 1 }]);
+        view.destroy();
+    });
 }

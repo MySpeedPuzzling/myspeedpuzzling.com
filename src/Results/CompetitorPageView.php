@@ -50,6 +50,23 @@ readonly final class CompetitorPageView implements \JsonSerializable
         return $this->kind === CompetitionTagKind::Table ? (int) $this->tagId : null;
     }
 
+    /**
+     * A table page's title: the table's name in the current round (table-labels-and-plates.md), else in the first
+     * round that names it, else the number.
+     */
+    public function tableName(): null|string
+    {
+        $number = $this->tableNumber();
+
+        if ($number === null) {
+            return null;
+        }
+
+        $named = $this->currentRound()?->tableLabel ?? array_find($this->rounds, static fn (CompetitorPageRound $round): bool => $round->tableLabel !== null)?->tableLabel;
+
+        return $named ?? (string) $number;
+    }
+
     public function currentRound(): null|CompetitorPageRound
     {
         foreach ($this->rounds as $round) {

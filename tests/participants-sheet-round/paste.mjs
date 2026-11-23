@@ -27,7 +27,7 @@ import {
     undecidedChoices,
     undecidedSoloChoices,
 } from '../../assets/participants_sheet/round_paste.js';
-import { roundEntries } from '../../assets/participants_sheet/round/round_common.js';
+import { roundEntries, roundTableLookup } from '../../assets/participants_sheet/round/round_common.js';
 import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, ids, person, place, smallState, team } from '../participants-sheet-core/fixture.mjs';
 
 const HEADER_WORDS = headerWordSet(['Table', 'Pair name', 'Member 1', 'Member 2', 'Result', 'team, name, member, partner, player, result, time']);
@@ -592,5 +592,27 @@ export default function (test) {
         assert.deepEqual(newTeamsOfResults(m, ROUND_TEAMS, plan, { ticks: { r3: false } }), { teams: null, results: [] });
         // Without createTeams the name is listed as unknown
         assert.equal(planResultsPaste(m, ROUND_TEAMS, entries, [['Bats', '1:00:00']], { mode: 'names' }).lines[0].reason, 'unknown_entry');
+    });
+
+    test('table labels: on a labelled round the first column is read as labels ("12" = label 12), an unknown label is no table', () => {
+        const state = smallState();
+        state.rounds = state.rounds.map((r) => (r.id === ROUND_SOLO ? { ...r, tableLabels: ['A1-1', 'A1-2', '12', 'B1-1'] } : r));
+        state.places = state.places.map((p) => (p.id === 'e-kim-solo' ? { ...p, table: 1 } : (p.id === 'e-pat-solo' ? { ...p, table: 3 } : p)));
+        const m = new SheetModel(state, { now: () => 0 });
+        const entries = roundEntries(m, ROUND_SOLO, null);
+        const labels = roundTableLookup(m.round(ROUND_SOLO));
+
+        const byLabel = planResultsPaste(m, ROUND_SOLO, entries, [['a1 1', '1:23:45'], ['12', 'DNS']], { mode: 'names', labels });
+        assert.equal(byLabel.byTable, true);
+        assert.deepEqual(byLabel.changes.map((change) => [change.ref, change.to]), [['participant_round:e-kim-solo', { seconds: 5025 }], ['participant_round:e-pat-solo', { didNotStart: true }]]);
+
+        // "1" and "3" are no labels of the round (table numbers 1 and 3 are A1-1 and 12 here): not read as tables
+        const numbers = planResultsPaste(m, ROUND_SOLO, entries, [['1', '1:23:45'], ['3', 'DNS']], { mode: 'names', labels });
+        assert.equal(numbers.byTable, false);
+        assert.deepEqual(numbers.changes, []);
+
+        // One unknown label (Z9) or a label nobody sits at (A1-2): the column is not a table column
+        assert.equal(planResultsPaste(m, ROUND_SOLO, entries, [['A1-1', '1:23:45'], ['Z9', 'DNS']], { mode: 'names', labels }).byTable, false);
+        assert.equal(planResultsPaste(m, ROUND_SOLO, entries, [['A1-1', '1:23:45'], ['A1-2', 'DNS']], { mode: 'names', labels }).byTable, false);
     });
 }

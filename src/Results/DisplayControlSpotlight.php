@@ -14,14 +14,22 @@ readonly final class DisplayControlSpotlight implements \JsonSerializable
         public string $entryRef,
         public null|string $name,
         public null|int $table,
+        // The table's name on a labelled round (table-labels-and-plates.md A4) - the JSON key only when set
+        public null|string $tableLabel = null,
     ) {
     }
 
     /**
-     * @return array{entryRef: string, name: null|string, table: null|int}
+     * @return array{entryRef: string, name: null|string, table: null|int, tableLabel?: string}
      */
     public function jsonSerialize(): array
     {
-        return ['entryRef' => $this->entryRef, 'name' => $this->name, 'table' => $this->table];
+        $json = ['entryRef' => $this->entryRef, 'name' => $this->name, 'table' => $this->table];
+
+        if ($this->tableLabel !== null) {
+            $json['tableLabel'] = $this->tableLabel;
+        }
+
+        return $json;
     }
 }

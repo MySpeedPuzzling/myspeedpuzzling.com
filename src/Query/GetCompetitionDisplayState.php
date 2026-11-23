@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundPuzzleFormat;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use SpeedPuzzling\Web\Value\TableLabels;
 
 /**
  * What a competition display shows now, found by its token (docs/features/competitions-management/toolkit/
@@ -71,7 +72,7 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * Three statements (display + event, rounds, visible puzzles), a fourth for the results entries only when the design
  * shows results that may be shown now.
  *
- * @phpstan-type Round array{id: string, name: string, slug: null|string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable, spotlight_ref: null|string}
+ * @phpstan-type Round array{id: string, name: string, slug: null|string, category: string, starts_at: DateTimeImmutable, minutes_limit: null|int, timezone: null|string, badge_bg: string, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, results_published_at: null|DateTimeImmutable, spotlight_ref: null|string, table_labels?: null|TableLabels}
  * @phpstan-type Display array{id: string, competition_id: string, token: string, kind: string, locale: string, design: array<string, mixed>, design_version: int, follow_mode: string, pinned_round_id: null|string, follow_round_ids: null|list<string>, uses_results: bool, uses_live_results: bool, competition_name: string, competition_slug: null|string, competition_logo: null|string, location: null|string, location_country_code: null|string, date_from: null|string, date_to: null|string, series_logo: null|string, series_name: null|string, series_slug: null|string, series_country_code: null|string, organization_logo: null|string, control_message: null|string}
  */
 readonly final class GetCompetitionDisplayState
@@ -341,6 +342,7 @@ SELECT
     cr.stopwatch_started_at,
     cr.stopwatch_stopped_at,
     cr.results_published_at,
+    cr.table_labels::text AS table_labels,
     sp.entry_ref AS spotlight_ref
 FROM competition_round cr
 LEFT JOIN competition_round_spotlight sp ON sp.round_id = cr.id
@@ -353,7 +355,7 @@ SQL,
         $rounds = [];
 
         foreach ($rows as $position => $row) {
-            /** @var array{id: string, name: string, slug: null|string, category: string, starts_at: string, minutes_limit: null|int|string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, spotlight_ref: null|string} $row */
+            /** @var array{id: string, name: string, slug: null|string, category: string, starts_at: string, minutes_limit: null|int|string, timezone: null|string, badge_background_color: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, table_labels: null|string, spotlight_ref: null|string} $row */
             $rounds[] = [
                 'id' => strtolower($row['id']),
                 'name' => $row['name'],
@@ -368,6 +370,8 @@ SQL,
                 'stopwatch_stopped_at' => self::date($row['stopwatch_stopped_at']),
                 'results_published_at' => self::date($row['results_published_at']),
                 'spotlight_ref' => $row['spotlight_ref'],
+                // The names of its table numbers (table-labels-and-plates.md) - rows carry `tableLabel` only when set
+                'table_labels' => TableLabels::fromStored($row['table_labels']),
             ];
         }
 
@@ -505,6 +509,7 @@ SQL,
             : $this->teams($round['id'], $withDivisions, $withPuzzles);
         $results = array_map(static fn (array $entry): RoundEntryResult => $entry['result'], $entries);
         $ranks = OfficialResultsRanking::rank($results);
+        $labels = $round['table_labels'] ?? null;
 
         $rows = [];
         $total = 0;
@@ -519,14 +524,14 @@ SQL,
             $rank = $ranks[$index];
 
             if ($chosenRef !== null && $entry['ref']->toString() === $chosenRef) {
-                $spotlight = self::spotlightRow($entry, $rank, $allowed('spotlight'), $token);
+                $spotlight = self::spotlightRow($entry, $rank, $allowed('spotlight'), $token, $labels);
             }
 
             if ($rank === null) {
                 continue;
             }
 
-            $rows[$index] = self::row($entry, $rank, $token);
+            $rows[$index] = self::row($entry, $rank, $token, $labels);
         }
 
         if (!$anyResults) {
@@ -551,7 +556,7 @@ SQL,
             $viewRows = [];
 
             foreach ($allowedViews as $elementId => $view) {
-                $chosen = $this->viewRows($view, $facts, $entries, $results, $rows, $token, $slots);
+                $chosen = $this->viewRows($view, $facts, $entries, $results, $rows, $token, $slots, $labels);
                 $viewRows[$elementId] = $view['type'] === 'ticker' ? self::newest($chosen, $view['rows']) : self::best($chosen, $view['rows']);
             }
         }
@@ -588,7 +593,7 @@ SQL,
      * @param list<RoundPuzzleSlot> $slots
      * @return array<int, DisplayResultRow>
      */
-    private function viewRows(array $view, array $facts, array $entries, array $results, array $rows, string $token, array $slots): array
+    private function viewRows(array $view, array $facts, array $entries, array $results, array $rows, string $token, array $slots, null|TableLabels $labels): array
     {
         $slot = null;
 
@@ -630,7 +635,7 @@ SQL,
 
             foreach (ChallengeRanking::rank($ownSeconds) as $index => $place) {
                 if ($place !== null) {
-                    $chosen[$index] = self::row($entries[$index], $place, $token, ownSeconds: $ownSeconds[$index]);
+                    $chosen[$index] = self::row($entries[$index], $place, $token, $labels, ownSeconds: $ownSeconds[$index]);
                 }
             }
 
@@ -648,7 +653,7 @@ SQL,
                 $place = $divisionRanks[$index];
 
                 if ($entry['division_id'] === $view['division'] && $place !== null && !$entry['result']->didNotStart) {
-                    $chosen[$index] = self::row($entry, $place, $token);
+                    $chosen[$index] = self::row($entry, $place, $token, $labels);
                 }
             }
 
@@ -694,7 +699,7 @@ SQL,
      * @param array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles} $entry
      * @param null|int $ownSeconds a challenge's own time - shown instead of the round's result
      */
-    private static function row(array $entry, int $rank, string $token, null|int $ownSeconds = null): DisplayResultRow
+    private static function row(array $entry, int $rank, string $token, null|TableLabels $labels, null|int $ownSeconds = null): DisplayResultRow
     {
         return new DisplayResultRow(
             // Opaque per display (keyed by its token): stable for DOM diffing, says nothing about the entry
@@ -708,6 +713,7 @@ SQL,
             didNotFinish: $ownSeconds !== null ? false : $entry['result']->isUnfinished(),
             tableNumber: $entry['table_number'],
             enteredAtMs: $entry['entered_at'] !== null ? RoundClock::milliseconds($entry['entered_at']) : null,
+            tableLabel: self::tableLabel($labels, $entry['table_number']),
         );
     }
 
@@ -716,7 +722,7 @@ SQL,
      *
      * @param array{ref: RoundEntryRef, name: string, members: list<string>, countries: list<string>, result: RoundEntryResult, table_number: null|int, entered_at: null|DateTimeImmutable, division_id: null|string, puzzles: null|RoundEntryPuzzles} $entry
      */
-    private static function spotlightRow(array $entry, null|int $rank, bool $resultShown, string $token): DisplayResultRow
+    private static function spotlightRow(array $entry, null|int $rank, bool $resultShown, string $token, null|TableLabels $labels): DisplayResultRow
     {
         return new DisplayResultRow(
             key: substr(hash_hmac('sha256', $entry['ref']->toString(), $token), 0, 16),
@@ -729,7 +735,17 @@ SQL,
             didNotFinish: $resultShown && $entry['result']->isUnfinished(),
             tableNumber: $entry['table_number'],
             enteredAtMs: $resultShown && $entry['entered_at'] !== null ? RoundClock::milliseconds($entry['entered_at']) : null,
+            tableLabel: self::tableLabel($labels, $entry['table_number']),
         );
+    }
+
+    /**
+     * The label of an entry's table on a labelled round - null on a plain-numbers round and for a number the list does
+     * not name (the display then shows the number, and the row's JSON has no `tableLabel`).
+     */
+    private static function tableLabel(null|TableLabels $labels, null|int $number): null|string
+    {
+        return $labels !== null && $number !== null && $labels->names($number) ? $labels->labelOf($number) : null;
     }
 
     /**

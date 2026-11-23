@@ -74,7 +74,28 @@
         .tent-table strong { font-size: 40pt; color: #111; }
         .tent-table.only { font-size: 26pt; }
         .tent-table.only strong { display: block; font-size: 130pt; line-height: 0.95; }
+        .tent-table.only strong.len-5 { font-size: 90pt; }
+        .tent-table.only strong.len-8 { font-size: 64pt; }
+        .tag-table.only strong.len-5 { font-size: 40pt; }
         .tent-scan { font-size: 12pt; color: #444; }
+
+        /* Name plates with time boxes (table-labels-and-plates.md): the face toward the judge carries a box per
+           challenge - the time by pen, and the pieces missing */
+        .tent-face.with-boxes { flex-direction: column; align-items: stretch; gap: 4mm; padding: 6mm 10mm 5mm; }
+        .tent-main { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; gap: 8mm; }
+        .tent-face.with-boxes .tent-name { font-size: 34pt; }
+        .tent-face.with-boxes .tent-name.long { font-size: 26pt; }
+        .tent-face.with-boxes .tent-table strong { font-size: 34pt; }
+        .tent-face.with-boxes .tent-qr { flex-basis: 44mm; }
+        .tent-face.with-boxes .tent-qr svg { width: 44mm; height: 44mm; }
+        .time-boxes { flex: 0 0 auto; display: grid; grid-template-columns: repeat(var(--boxes-per-row, 5), minmax(0, 1fr)); gap: 2.5mm; }
+        .time-box { border: 0.4mm solid #222; border-radius: 2mm; padding: 1.6mm 2.5mm 2mm; display: flex; flex-direction: column; gap: 1.5mm; min-width: 0; break-inside: avoid; }
+        .time-box-label { font-size: 10pt; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .time-box-fields { display: flex; align-items: flex-end; gap: 2.5mm; }
+        .time-box-field { display: flex; flex-direction: column; gap: 0.5mm; font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: 0.03em; }
+        .time-box-field.time { flex: 1 1 auto; }
+        .time-box-field.missing { flex: 0 0 15mm; }
+        .time-box-line { height: 9mm; border-bottom: 0.3mm solid #444; }
         .tent-qr { flex: 0 0 60mm; }
         .tent-qr svg { display: block; width: 60mm; height: 60mm; }
 
@@ -139,11 +160,19 @@
         {% elseif kind == 'tables' %}
             <label>
                 {{ 'name_tags.toolkit.tables_from'|trans }}
-                <input type="number" name="from" min="1" max="9999" value="{{ tables_from }}" onchange="this.form.submit()">
+                {% if table_labels is not null %}
+                    <input type="text" name="from" maxlength="12" size="6" value="{{ tables_from|table_name(table_labels) }}" onchange="this.form.submit()">
+                {% else %}
+                    <input type="number" name="from" min="1" max="9999" value="{{ tables_from }}" onchange="this.form.submit()">
+                {% endif %}
             </label>
             <label>
                 {{ 'name_tags.toolkit.tables_to'|trans }}
-                <input type="number" name="to" min="1" max="9999" value="{{ tables_to }}" onchange="this.form.submit()">
+                {% if table_labels is not null %}
+                    <input type="text" name="to" maxlength="12" size="6" value="{{ tables_to|table_name(table_labels) }}" onchange="this.form.submit()">
+                {% else %}
+                    <input type="number" name="to" min="1" max="9999" value="{{ tables_to }}" onchange="this.form.submit()">
+                {% endif %}
             </label>
         {% elseif uses_table_numbers %}
             <label>
@@ -158,6 +187,22 @@
             <label class="inline">
                 <span><input type="checkbox" name="waitlist" value="1" {{ with_waitlist ? 'checked' }} onchange="this.form.submit()"> {{ 'name_tags.waitlist'|trans({'%count%': waitlisted_count}) }}</span>
             </label>
+        {% endif %}
+        {% if boxes_offered %}
+            <label>
+                {{ 'name_tags.plates.boxes'|trans }}
+                <select name="boxes" onchange="this.form.submit()" data-tag-boxes>
+                    <option value="">{{ 'name_tags.plates.none'|trans }}</option>
+                    {% for option in boxes_options %}
+                        <option value="{{ option.value }}" {{ boxes_value == option.value ? 'selected' }}>{{ option.label != '' ? option.label : 'name_tags.plates.category'|trans({'%category%': ('competition.round.category.' ~ option.category)|trans}) }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            {% if boxes_value != '' %}
+                <label class="inline">
+                    <span><input type="hidden" name="missing" value="0"><input type="checkbox" name="missing" value="1" {{ boxes_missing ? 'checked' }} onchange="this.form.submit()" data-tag-missing> {{ 'name_tags.plates.missing_field'|trans }}</span>
+                </label>
+            {% endif %}
         {% endif %}
         {% if flags_offered %}
             <label class="inline">
@@ -191,6 +236,15 @@
         {% elseif kind == 'lineups' %}
             <p class="hint" data-first-round-note>{{ 'name_tags.toolkit.lineups_first_round_note'|trans }}</p>
         {% endif %}
+    {% endif %}
+    {% if boxes != [] %}
+        <p class="hint" data-plates-hint>{{ 'name_tags.plates.hint'|trans({'%round%': round.name}) }}</p>
+        {% if boxes_several_tables > 0 %}
+            <p class="warning" data-plates-several-tables>{{ 'name_tags.plates.several_tables'|trans({'%count%': boxes_several_tables}) }}</p>
+        {% endif %}
+    {% endif %}
+    {% if kind == 'tables' and table_labels is not null %}
+        <p class="hint" data-table-names-hint>{{ 'name_tags.plates.table_names_hint'|trans({'%round%': round.name}) }}</p>
     {% endif %}
     {% if kind == 'tables' %}
         <p class="hint" data-tables-used>
@@ -230,14 +284,17 @@
             {% for item in tags %}
                 <div class="tent" data-tag>
                     {% for face in ['upper', 'lower'] %}
-                        <div class="tent-face {{ face }}">
+                        {% set with_boxes = face == 'lower' and boxes != [] and not item.table %}
+                        <div class="tent-face {{ face }}{{ with_boxes ? ' with-boxes' }}">
+                            {% if with_boxes %}<div class="tent-main">{% endif %}
                             <div class="tent-text">
                                 <div class="tent-event">
                                     {% if competition.logo %}<img src="{{ competition.logo|thumbnail('puzzle_small') }}" alt="">{% endif %}
                                     <span>{{ competition.name }}{% if round is not null and not item.table %} · {{ round.name }}{% endif %}</span>
                                 </div>
                                 {% if item.table %}
-                                    <div class="tent-table only">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                                    {% set table_name = item.table_label ?? item.table_number %}
+                                    <div class="tent-table only">{{ 'name_tags.table'|trans }} <strong{% if table_name|length >= 8 %} class="len-8"{% elseif table_name|length >= 5 %} class="len-5"{% endif %}>{{ table_name }}</strong></div>
                                     {% if competitor_pages %}<div class="tent-scan">{{ 'name_tags.toolkit.scan_table'|trans }}</div>{% endif %}
                                 {% else %}
                                     {% if item.heading is not null %}
@@ -245,11 +302,27 @@
                                     {% endif %}
                                     {{ _self.members(item, flags) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
                                     {% if item.table_number is not null %}
-                                        <div class="tent-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                                        <div class="tent-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_label ?? item.table_number }}</strong></div>
                                     {% endif %}
                                 {% endif %}
                             </div>
                             <div class="tent-qr" data-qr-url="{{ item.qr_url }}">{{ item.qr|raw }}</div>
+                            {% if with_boxes %}
+                                </div>
+                                <div class="time-boxes" style="--boxes-per-row: {{ boxes|length > 6 ? (boxes|length / 2)|round(0, 'ceil') : boxes|length }}" data-time-boxes>
+                                    {% for box in boxes %}
+                                        <div class="time-box">
+                                            <div class="time-box-label">{{ box }}</div>
+                                            <div class="time-box-fields">
+                                                <div class="time-box-field time"><div class="time-box-line"></div>{{ 'name_tags.plates.time'|trans }}</div>
+                                                {% if boxes_missing %}
+                                                    <div class="time-box-field missing"><div class="time-box-line"></div>{{ 'name_tags.plates.missing'|trans }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
@@ -275,7 +348,7 @@
                     <div class="tag-text">
                         <div class="tag-event">{{ competition.name }}{% if round is not null and not item.table %} · {{ round.name }}{% endif %}</div>
                         {% if item.table %}
-                            <div class="tag-table only">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                            <div class="tag-table only">{{ 'name_tags.table'|trans }} <strong{% if (item.table_label ?? item.table_number)|length >= 5 %} class="len-5"{% endif %}>{{ item.table_label ?? item.table_number }}</strong></div>
                             {% if competitor_pages %}<div class="tag-scan">{{ 'name_tags.toolkit.scan_table'|trans }}</div>{% endif %}
                         {% else %}
                             {% if item.heading is not null %}
@@ -283,7 +356,7 @@
                             {% endif %}
                             {{ _self.members(item, flags) }}{{ item.division is not null ? include('live_results/_tag_division.html.twig', {division: item.division}) : '' }}
                             {% if item.table_number is not null %}
-                                <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_number }}</strong></div>
+                                <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ item.table_label ?? item.table_number }}</strong></div>
                             {% endif %}
                         {% endif %}
                     </div>

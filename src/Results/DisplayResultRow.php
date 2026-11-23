@@ -27,6 +27,8 @@ readonly final class DisplayResultRow implements \JsonSerializable
         public bool $didNotFinish,
         public null|int $tableNumber,
         public null|int $enteredAtMs,
+        // The name of the table number on a labelled round (table-labels-and-plates.md) - the JSON key only when set
+        public null|string $tableLabel = null,
     ) {
     }
 
@@ -35,7 +37,7 @@ readonly final class DisplayResultRow implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        $json = [
             'key' => $this->key,
             'rank' => $this->rank,
             'name' => $this->name,
@@ -47,5 +49,11 @@ readonly final class DisplayResultRow implements \JsonSerializable
             'tableNumber' => $this->tableNumber,
             'enteredAtMs' => $this->enteredAtMs,
         ];
+
+        if ($this->tableLabel !== null) {
+            $json['tableLabel'] = $this->tableLabel;
+        }
+
+        return $json;
     }
 }

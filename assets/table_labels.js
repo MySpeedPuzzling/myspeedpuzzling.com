@@ -314,12 +314,40 @@ export function generate({ letters = '', numbers = '', seats = 1, seatStyle = 'd
 }
 
 /**
+ * What saving a new list (null = plain numbers) does to a round's seated entries (the editor's warning): `renamed` =
+ * the entries whose table reads differently afterwards (`{name, from, to}`, in table order), `highest` = the highest
+ * table number somebody sits at - a list shorter than that is refused.
+ */
+export function labelChanges(entries, oldList, newList) {
+    const before = tableLabels(oldList);
+    const after = tableLabels(newList);
+    const renamed = [];
+    let highest = 0;
+
+    for (const entry of [...(entries ?? [])].sort((a, b) => (a.tableNumber ?? 0) - (b.tableNumber ?? 0))) {
+        if (!Number.isInteger(entry.tableNumber)) {
+            continue;
+        }
+
+        highest = Math.max(highest, entry.tableNumber);
+        const from = tableText(before, entry.tableNumber);
+        const to = tableText(after, entry.tableNumber);
+
+        if (from !== to) {
+            renamed.push({ name: entry.displayName ?? entry.name ?? '', from, to });
+        }
+    }
+
+    return { renamed, highest };
+}
+
+/**
  * "My tables" on a labelled round (judge page, live_entry_my_tables.js): `A, B` = every label starting with segment A /
  * B (a whole column), `C3` = the labels of table C3 (C3-1, C3-2) or C3 itself, `A1-1..A5-2` (also ` to ` or an en/em
  * dash) = a range in list order. → `{ranges: [[from, to], …]}` over the table numbers (merged, sorted) or `{error:
- * 'syntax'|'unknown', token}`.
+ * 'syntax'|'unknown', token}`. `lenient`: a token naming nothing in this round names nothing (another round's text).
  */
-export function labelRanges(text, lookup) {
+export function labelRanges(text, lookup, { lenient = false } = {}) {
     const source = String(text ?? '').trim();
 
     if (source === '' || lookup === null) {
@@ -339,6 +367,10 @@ export function labelRanges(text, lookup) {
         const range = token.split('..');
 
         if (range.length > 2 || range.some((part) => key(part) === '')) {
+            if (lenient) {
+                continue;
+            }
+
             return { error: 'syntax', token };
         }
 
@@ -347,6 +379,10 @@ export function labelRanges(text, lookup) {
             const to = lookup.numberOf(range[1]);
 
             if (from === null || to === null) {
+                if (lenient) {
+                    continue;
+                }
+
                 return { error: 'unknown', token: from === null ? range[0].trim() : range[1].trim() };
             }
 
@@ -369,7 +405,7 @@ export function labelRanges(text, lookup) {
             }
         });
 
-        if (!found) {
+        if (!found && !lenient) {
             return { error: 'unknown', token };
         }
     }

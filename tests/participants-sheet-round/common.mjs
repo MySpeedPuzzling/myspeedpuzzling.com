@@ -9,6 +9,8 @@ import {
     newPersonLine,
     qualifiedCount,
     rankOrder,
+    roundTableLookup,
+    roundTableText,
     storedResultsColumns,
     takeTeamOutAction,
     keepOrder,
@@ -287,5 +289,43 @@ export default function (test) {
         });
         assert.equal(newPersonLine(texts, { key: 'us', name: 'US', close: [], suspicious: 'country', tick: false }).note, 'paste_new_person_note · paste_looks_like_country');
         assert.equal(newPersonLine(texts, { key: 'zed', name: 'Zed', close: [], suspicious: null, tick: true }).tick.checked, true);
+    });
+
+    test('table labels: labels name the tables in the O1 label and "same name as", rows still sort by the number, a plain round stays numbers', () => {
+        const state = smallState();
+        state.rounds = state.rounds.map((r) => (r.id === ROUND_PAIRS ? { ...r, tableLabels: ['B2 R', 'A1 L', 'A1 R'] } : r));
+        state.teams = state.teams.map((t) => (t.id === 't-corners2' ? { ...t, name: 'Corners', table: 1 } : t));
+        const m = model(state);
+        assert.equal(teamLabelText(m, 't-corners', texts), 'Corners · label_table:A1 L · Kim Example, Pat Sample');
+        assert.equal(teamLabelText(m, 't-corners', texts, { members: false, table: 3 }), 'Corners · label_table:A1 R');
+        // A number beyond the list shows as the number
+        assert.equal(teamLabelText(m, 't-corners', texts, { members: false, table: 9 }), 'Corners · label_table:9');
+        assert.match(sizeInfo(m, 't-corners2', texts).sameAs, /size_same_name_table:A1 L/);
+        // Table 1 ("B2 R") before table 2 ("A1 L") - the list's order, not the labels' alphabet
+        assert.deepEqual(sortedTeamIds(m, ROUND_PAIRS, nameCollator('en')).slice(0, 2), ['t-corners2', 't-corners']);
+        assert.equal(roundTableText(m, ROUND_PAIRS, 2), 'A1 L');
+        assert.equal(roundTableText(m, ROUND_PAIRS, null), '');
+        assert.equal(roundTableText(m, ROUND_SOLO, 2), '2');
+        assert.equal(roundTableLookup(m.round(ROUND_SOLO)), null);
+        // One lookup per list
+        assert.equal(roundTableLookup(m.round(ROUND_PAIRS)), roundTableLookup(m.round(ROUND_PAIRS)));
+    });
+
+    test('table labels: the live round overview brings a list and takes it away; a plain round stays as it was', () => {
+        const m = model();
+        const emitted = [];
+        m.subscribe((delta) => emitted.push(delta));
+        const overview = { id: ROUND_PAIRS, tableNumbersOff: false, resultsPublished: false, started: false, piecesCount: 500 };
+        m.updateRound(overview);
+        assert.equal(emitted.length, 0);
+        assert.equal('tableLabels' in m.round(ROUND_PAIRS), false);
+
+        m.updateRound({ ...overview, tableLabels: ['A1', 'A2'] });
+        assert.equal(emitted.length, 1);
+        assert.equal(roundTableText(m, ROUND_PAIRS, 2), 'A2');
+
+        m.updateRound(overview);
+        assert.equal(emitted.length, 2);
+        assert.equal(roundTableText(m, ROUND_PAIRS, 2), '2');
     });
 }

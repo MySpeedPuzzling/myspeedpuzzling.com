@@ -36,6 +36,7 @@ use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use SpeedPuzzling\Web\Value\TableLabels;
 use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
 
 /**
@@ -66,7 +67,7 @@ use SpeedPuzzling\Web\Value\UnfinishedPiecesCount;
  * "This is me" (participant-linking.md §6.4, R9): a signed-in viewer who is not on the page's person or line-up gets
  * the header's people nobody is linked to - from the entries statement (+0). Never for a guest, a table or an entry tag.
  *
- * @phpstan-type RoundRow array{id: string, name: string, category: RoundCategory, starts_at: DateTimeImmutable, zone: string, zone_assumed: bool, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, published: bool, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int}
+ * @phpstan-type RoundRow array{id: string, name: string, category: RoundCategory, starts_at: DateTimeImmutable, zone: string, zone_assumed: bool, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|DateTimeImmutable, stopwatch_stopped_at: null|DateTimeImmutable, published: bool, table_numbers_off: bool, table_labels: null|TableLabels, puzzle_format: string, puzzles_to_solve: null|int}
  * @phpstan-type EntryRow array{kind: string, id: string, round_id: null|string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, puzzles: null|RoundEntryPuzzles, team_name: null|string, entrants: list<PublishedRoundEntrant>, unlinked: list<ParticipantClaimCandidate>}
  */
 readonly final class GetCompetitorPage
@@ -274,6 +275,8 @@ readonly final class GetCompetitorPage
             startsAt: new EventTime($round['starts_at'], $round['zone'], $round['zone_assumed']),
             minutesLimit: $round['minutes_limit'],
             tableNumber: $round['table_numbers_off'] ? null : $row['table_number'],
+            // The table's name on a round with table labels (table-labels-and-plates.md); a table page names its table
+            tableLabel: $round['table_numbers_off'] || $row['table_number'] === null ? null : $round['table_labels']?->labelOf($row['table_number']),
             current: $current,
             stopwatch: new RoundStopwatchState(
                 roundId: $round['id'],
@@ -425,6 +428,7 @@ SELECT
     cr.stopwatch_stopped_at,
     cr.results_published_at IS NOT NULL AS published,
     cr.table_numbers_off,
+    cr.table_labels,
     cr.puzzle_format,
     cr.puzzles_to_solve
 FROM competition c
@@ -445,7 +449,7 @@ SQL,
         $rounds = [];
 
         foreach ($rows as $row) {
-            /** @var array{round_id: null|string, round_name: string, category: string, starts_at: string, timezone: null|string, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, published: bool, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, location_country_code: null|string, series_country_code: null|string} $row */
+            /** @var array{round_id: null|string, round_name: string, category: string, starts_at: string, timezone: null|string, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, published: bool, table_numbers_off: bool, table_labels: null|string, puzzle_format: string, puzzles_to_solve: null|int, location_country_code: null|string, series_country_code: null|string} $row */
             if ($row['round_id'] === null) {
                 continue;
             }
@@ -464,6 +468,7 @@ SQL,
                 'stopwatch_stopped_at' => $row['stopwatch_stopped_at'] !== null ? new DateTimeImmutable($row['stopwatch_stopped_at']) : null,
                 'published' => $row['published'],
                 'table_numbers_off' => $row['table_numbers_off'],
+                'table_labels' => TableLabels::fromStored($row['table_labels']),
                 'puzzle_format' => $row['puzzle_format'],
                 'puzzles_to_solve' => $row['puzzles_to_solve'],
             ];

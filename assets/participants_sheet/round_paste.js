@@ -1087,11 +1087,13 @@ function codeOf(text) {
  * @param {Array<object>} entries round/round_common.js roundEntries() - only these can get a result
  * @param {string[][]} block
  * @param {{mode: 'names'|'positional', targets?: Array<string|{skip: string}|null>, parse?: object, tables?: boolean,
- *          createTeams?: boolean}} options `tables` = the round uses table numbers; `createTeams` = unknown names may
- *          become new pairs/teams (a round of team names only - BR16)
+ *          createTeams?: boolean, labels?: object|null}} options `tables` = the round uses table numbers; `createTeams` =
+ *          unknown names may become new pairs/teams (a round of team names only - BR16); `labels` = the round's table
+ *          labels lookup (assets/table_labels.js tableLabels(), null = plain numbers): the first column is read as
+ *          labels then ("A1-1 ⇥ 1:23:45", "12" = label 12)
  * @returns {{lines: Array<object>, changes: Array<object>, counts: object, header: object|null, byTable: boolean}}
  */
-export function planResultsPaste(model, roundId, entries, block, { mode, targets = [], parse = {}, tables = true, createTeams = false, headerWords = new Set() }) {
+export function planResultsPaste(model, roundId, entries, block, { mode, targets = [], parse = {}, tables = true, createTeams = false, headerWords = new Set(), labels = null }) {
     const byRef = new Map(entries.filter((entry) => entry.ref !== null).map((entry) => [entry.ref, entry]));
     const byKey = new Map();
     const byCode = new Map();
@@ -1117,9 +1119,13 @@ export function planResultsPaste(model, roundId, entries, block, { mode, targets
 
     const team = model.round(roundId)?.category !== 'solo';
     const firsts = mode === 'names' ? block.map((row) => trimCell(row[0] ?? '')).filter((value) => value !== '') : [];
-    const numbers = firsts.filter((value) => /^\d{1,4}$/.test(value));
+    // A labelled round (table-labels-and-plates.md): a first cell is a table when it is one of the round's labels
+    const tableOf = labels === null || labels === undefined
+        ? (value) => (/^\d{1,4}$/.test(value) ? Number(value) : null)
+        : (value) => labels.numberOf(value);
+    const numbers = firsts.map(tableOf).filter((value) => value !== null);
     // `12 ⇥ 1:23:45`: only when every number of the column is a table of this round (an id column never is)
-    const tableMode = tables && numbers.length > 0 && numbers.length === firsts.length && numbers.every((value) => byTable.has(Number(value)));
+    const tableMode = tables && numbers.length > 0 && numbers.length === firsts.length && numbers.every((value) => byTable.has(value));
     const lines = [];
     let header = null;
 
@@ -1159,7 +1165,7 @@ export function planResultsPaste(model, roundId, entries, block, { mode, targets
 
             refs = [target];
         } else if (tableMode) {
-            refs = [...new Set(byTable.get(Number(name)) ?? [])];
+            refs = [...new Set(byTable.get(tableOf(name)) ?? [])];
         } else if (codeOf(name) !== null) {
             refs = [...new Set(byCode.get(codeOf(name)) ?? [])];
 

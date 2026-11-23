@@ -46,14 +46,17 @@ SQL;
 
         $soloDivision = EntryDivisionLabel::sql('cpr.division_id', 'cr.id');
         $teamDivision = EntryDivisionLabel::sql('ct.division_id', 'cr.id');
+        $soloLabel = TableLabelSql::label('cr', 'cpr.table_number');
+        $teamLabel = TableLabelSql::label('cr', 'ct.table_number');
 
-        /** @var list<array{id: string, team_name: null|string, table_number: null|int, members: string, division: null|string}> $rows */
+        /** @var list<array{id: string, team_name: null|string, table_number: null|int, table_label: null|string, members: string, division: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
     cpr.id,
     NULL AS team_name,
     CASE WHEN cr.table_numbers_off THEN NULL ELSE cpr.table_number END AS table_number,
+    CASE WHEN cr.table_numbers_off THEN NULL ELSE {$soloLabel} END AS table_label,
     json_build_array({$member})::text AS members,
     {$soloDivision} AS division
 FROM competition_participant_round cpr
@@ -67,6 +70,7 @@ SELECT
     ct.id,
     ct.name AS team_name,
     CASE WHEN cr.table_numbers_off THEN NULL ELSE ct.table_number END AS table_number,
+    CASE WHEN cr.table_numbers_off THEN NULL ELSE {$teamLabel} END AS table_label,
     (COALESCE(json_agg({$member} ORDER BY LOWER(cp.name), cp.id) FILTER (WHERE cp.id IS NOT NULL), '[]'::json))::text AS members,
     {$teamDivision} AS division
 FROM competition_team ct
@@ -91,6 +95,7 @@ SQL,
                 members: array_map(CompetitionTagMember::fromRow(...), $members),
                 tableNumber: $row['table_number'],
                 division: $row['division'],
+                tableLabel: $row['table_label'],
             );
         }, $rows);
 

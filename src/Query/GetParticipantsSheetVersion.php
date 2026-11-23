@@ -107,6 +107,14 @@ SELECT encode(sha256(convert_to(concat_ws(E'\n',
             WHERE cr.competition_id = :competitionId
                 AND ct.division_id IS NOT NULL
         ) divisions
+    ),
+    -- Table labels (table-labels-and-plates.md, A10): each labelled round's list - NULL (left out by concat_ws) for an
+    -- event without them, so its version stays what it was
+    (
+        SELECT '#t' || string_agg(json_build_array(cr.id, cr.table_labels)::text, E'\n' ORDER BY cr.id)
+        FROM competition_round cr
+        WHERE cr.competition_id = :competitionId
+            AND cr.table_labels IS NOT NULL
     )
 ), 'UTF8')), 'hex')
 SQL;

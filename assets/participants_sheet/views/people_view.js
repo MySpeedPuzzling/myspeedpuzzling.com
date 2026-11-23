@@ -57,7 +57,7 @@ import {
 } from '../sheet_changes.js';
 import { readBoolean, trimCell } from '../tsv.js';
 import { foldSearchText } from '../../search_fold.js';
-import { nameKey, parsePlace } from '../sheet_model.js';
+import { nameKey, parsePlace, roundTableText } from '../sheet_model.js';
 import {
     HINT_CLOSE,
     INTO_ALREADY,
@@ -3834,7 +3834,8 @@ export function teamLabelText(model, teamId, t, say) {
     const parts = [label.name ?? t('team_no_name')];
 
     if (label.table !== null && label.table !== undefined) {
-        parts.push(say('team_table', { table: label.table }));
+        // The team's round names its table (table-labels-and-plates.md) - the number on a round of plain numbers
+        parts.push(say('team_table', { table: roundTableText(model, model.team(teamId)?.roundId ?? null, label.table) }));
     }
 
     if (label.members.length > 0) {

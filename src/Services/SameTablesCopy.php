@@ -42,7 +42,8 @@ readonly final class SameTablesCopy
                 continue;
             }
 
-            if ($source !== null && $round->category === $source->category && $round->tableNumbersOff === false) {
+            // A number is the same place only in rounds with the same table names (table-labels-and-plates.md A1)
+            if ($source !== null && $round->category === $source->category && $round->tableNumbersOff === false && $round->tableLabels?->labels === $source->tableLabels?->labels) {
                 $later[] = $round;
             }
         }

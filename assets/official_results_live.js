@@ -396,13 +396,13 @@ export function entriesWithWaitingTables(entries, outboxItems) {
  *
  * @returns {{typed: boolean, rows: {entry: object, exact: boolean, result: {value: *, item: object|null}, sync: string}[]}}
  */
-export function findRows(index, query, outboxItems, { tableNumbersOff = false, entries = [], roundId = null } = {}) {
+export function findRows(index, query, outboxItems, { tableNumbersOff = false, entries = [], roundId = null, labels = null } = {}) {
     const byEntry = outboxByEntry(outboxItems);
     const typed = String(query ?? '').trim() !== '';
     let picked;
 
     if (typed) {
-        const found = searchEntries(index, query, { tableNumbersOff });
+        const found = searchEntries(index, query, { tableNumbersOff, labels });
         picked = found.matches.map((entry) => ({ entry, exact: entry === found.exactTable }));
     } else {
         const ofRound = roundId === null ? outboxItems : outboxItems.filter((item) => item.roundId === roundId);

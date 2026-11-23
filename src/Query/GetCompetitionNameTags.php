@@ -43,6 +43,8 @@ readonly final class GetCompetitionNameTags
 
         $soloDivision = EntryDivisionLabel::sql('cpr.division_id', 'cr.id');
         $teamDivision = EntryDivisionLabel::sql('ct.division_id', 'cr.id');
+        $soloLabel = TableLabelSql::label('cr', 'cpr.table_number');
+        $teamLabel = TableLabelSql::label('cr', 'ct.table_number');
 
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -54,6 +56,7 @@ SELECT
     CASE WHEN p.is_private THEN NULL ELSE p.country END AS profile_country,
     cp.registration_status = 'waitlisted' AS waitlisted,
     entry.table_number,
+    entry.table_label,
     entry.round_name,
     entry.division
 FROM competition_participant cp
@@ -67,6 +70,11 @@ LEFT JOIN LATERAL (
             WHEN cr.category = 'solo' THEN cpr.table_number
             ELSE ct.table_number
         END AS table_number,
+        CASE
+            WHEN cr.table_numbers_off THEN NULL
+            WHEN cr.category = 'solo' THEN {$soloLabel}
+            ELSE {$teamLabel}
+        END AS table_label,
         CASE WHEN cr.category = 'solo' THEN {$soloDivision} ELSE {$teamDivision} END AS division
     FROM competition_participant_round cpr
     INNER JOIN competition_round cr ON cr.id = cpr.round_id
@@ -85,7 +93,7 @@ SQL,
         );
 
         return array_map(static function (array $row): CompetitionNameTag {
-            /** @var array{id: string, name: string, country: null|string, player_code: null|string, profile_country: null|string, waitlisted: null|bool, table_number: null|int, round_name: null|string, division: null|string} $row */
+            /** @var array{id: string, name: string, country: null|string, player_code: null|string, profile_country: null|string, waitlisted: null|bool, table_number: null|int, table_label: null|string, round_name: null|string, division: null|string} $row */
             return new CompetitionNameTag(
                 participantId: $row['id'],
                 name: $row['name'],
@@ -96,6 +104,7 @@ SQL,
                 waitlisted: $row['waitlisted'] === true,
                 division: $row['division'],
                 profileCountry: $row['profile_country'],
+                tableLabel: $row['table_label'],
             );
         }, $rows);
     }

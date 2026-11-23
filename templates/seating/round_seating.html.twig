@@ -75,6 +75,8 @@
                 keepMine: 'seating.list.keep_mine'|trans,
                 takeTheirs: 'seating.list.take_theirs'|trans,
                 invalidNumber: 'seating.list.invalid_number'|trans,
+                unknownLabel: 'seating.labels.unknown'|trans,
+                labelsTooFew: 'seating.labels.too_few_toast'|trans,
                 leaveUnsaved: 'seating.list.leave_unsaved'|trans,
                 statusSaving: 'seating.status.saving'|trans,
                 statusSaved: 'seating.status.saved'|trans,
@@ -133,7 +135,8 @@
             {% set has_later_rounds = false %}
             {% set past_this_round = false %}
             {% for other in rounds %}
-                {% if past_this_round and other.category == round.category.value and not other.tableNumbersOff %}
+                {# … and has the same table names (a number is the same place only then - table-labels-and-plates.md A1) #}
+                {% if past_this_round and other.category == round.category.value and not other.tableNumbersOff and (other.tableLabels ? other.tableLabels.labels : null) == (overview.tableLabels ? overview.tableLabels.labels : null) %}
                     {% set has_later_rounds = true %}
                 {% endif %}
                 {% if other.roundId == round.id.toString %}
@@ -235,6 +238,8 @@
                         <span class="seating-status small ms-sm-auto" data-round-seating-target="status" role="status" aria-live="polite"></span>
                     </div>
 
+                    {{ include('seating/_table_labels.html.twig') }}
+
                     {# Auto-assign: a proposal first, applied as one write #}
                     <section class="card shadow-sm mb-4" id="seating-auto-{{ round.id }}" data-round-seating-target="autoPanel" hidden aria-labelledby="seating-auto-title-{{ round.id }}">
                         <div class="card-body">
@@ -285,7 +290,12 @@
                                         </div>
                                     </fieldset>
                                     <label class="form-label fw-semibold" for="seating-first-{{ round.id }}">{{ 'seating.auto.first_table'|trans }}</label>
-                                    <input type="number" class="form-control seating-first-input" id="seating-first-{{ round.id }}" inputmode="numeric" min="1" max="9999" value="{{ first_table }}" data-round-seating-target="firstInput" data-action="change->round-seating#optionsChanged">
+                                    {% if overview.tableLabels is not null %}
+                                        {# A round with table names: the first table is a name ("A1 L") #}
+                                        <input type="text" class="form-control seating-first-input" id="seating-first-{{ round.id }}" maxlength="12" autocomplete="off" autocapitalize="characters" value="{{ overview.tableLabels.labelOf(first_table) }}" data-round-seating-target="firstInput" data-action="change->round-seating#optionsChanged">
+                                    {% else %}
+                                        <input type="number" class="form-control seating-first-input" id="seating-first-{{ round.id }}" inputmode="numeric" min="1" max="9999" value="{{ first_table }}" data-round-seating-target="firstInput" data-action="change->round-seating#optionsChanged">
+                                    {% endif %}
                                 </div>
                             </div>
 

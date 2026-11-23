@@ -67,6 +67,7 @@ import {
     teamLabelText,
     teamOptions,
     teamShortLabel,
+    tableLabelsKey,
     usesTables,
     whereInRound,
 } from '../round/round_common.js';
@@ -233,7 +234,7 @@ export class TeamRoundView {
     columnsKey() {
         const round = this.model.round(this.roundId);
 
-        return [this.wantedMemberCount(), usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null, divisionsKey(this.model, this.roundId)].join('|');
+        return [this.wantedMemberCount(), usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null, divisionsKey(this.model, this.roundId), ...tableLabelsKey(round)].join('|');
     }
 
     /** Columns changed (member count, results shown, the round's table usage): a new grid, the same cell focused. */
@@ -833,7 +834,7 @@ export class TeamRoundView {
         if (col === 'table') {
             const entry = this.entryOf(row);
 
-            return entry?.table === null || entry?.table === undefined ? '' : String(entry.table);
+            return this.results.tableText(entry?.table);
         }
 
         if (col === 'result') {
@@ -2244,6 +2245,7 @@ export class TeamRoundView {
             // A round of team names only (or none yet): unknown names may become its pairs/teams (BR16)
             createTeams: this.model.isNamesOnly(this.roundId) || this.model.teamsOf(this.roundId).length === 0,
             headerWords: this.headerWords(),
+            labels: this.results.tableLookup(),
         });
         await previewResults(this, plan, entries);
     }

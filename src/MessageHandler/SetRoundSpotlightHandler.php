@@ -83,6 +83,11 @@ readonly final class SetRoundSpotlightHandler
             $spotlight->spotlight($ref, $actor, $now);
         }
 
-        return new DisplayControlSpotlight($ref->toString(), DisplayControlEntries::name($entry), $entry->tableNumber);
+        return new DisplayControlSpotlight(
+            $ref->toString(),
+            DisplayControlEntries::name($entry),
+            $entry->tableNumber,
+            DisplayControlEntries::tableLabel($round->tableLabels(), $entry->tableNumber),
+        );
     }
 }

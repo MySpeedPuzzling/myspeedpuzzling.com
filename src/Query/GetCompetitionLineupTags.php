@@ -38,8 +38,9 @@ readonly final class GetCompetitionLineupTags
     public function ofCompetition(string $competitionId, null|string $roundId, string $sort): CompetitionLineupTags
     {
         $division = EntryDivisionLabel::sql('ct.division_id', 'cr.id');
+        $label = TableLabelSql::label('cr', 'ct.table_number');
 
-        /** @var list<array{team_id: string, team_name: null|string, round_id: string, round_name: string, category: string, starts_at: string, table_number: null|int, members: string, division: null|string}> $rows */
+        /** @var list<array{team_id: string, team_name: null|string, round_id: string, round_name: string, category: string, starts_at: string, table_number: null|int, table_label: null|string, members: string, division: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -50,6 +51,7 @@ SELECT
     cr.category,
     cr.starts_at,
     CASE WHEN cr.table_numbers_off THEN NULL ELSE ct.table_number END AS table_number,
+    CASE WHEN cr.table_numbers_off THEN NULL ELSE {$label} END AS table_label,
     json_agg(json_build_object(
         'id', cp.id,
         'name', cp.name,
@@ -70,7 +72,7 @@ SQL,
             ['competitionId' => $competitionId],
         );
 
-        /** @var array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int, division: null|string}>}> $lineups */
+        /** @var array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int, tableLabel: null|string, division: null|string}>}> $lineups */
         $lineups = [];
 
         foreach ($rows as $row) {
@@ -88,6 +90,7 @@ SQL,
                 'category' => $row['category'],
                 'startsAt' => $row['starts_at'],
                 'tableNumber' => $row['table_number'],
+                'tableLabel' => $row['table_label'],
                 'division' => $row['division'],
             ];
         }
@@ -119,6 +122,7 @@ SQL,
                 roundName: $printedRound['name'],
                 roundNames: array_map(static fn (array $round): string => $round['name'], $lineup['rounds']),
                 division: $printedRound['division'],
+                tableLabel: $printedRound['tableLabel'],
             );
         }
 
@@ -138,7 +142,7 @@ SQL,
      * A line-up changed when one of its people plays in another line-up of the same category in a round that starts
      * after one of the line-up's rounds - reported once per old and new line-up, at the first such round.
      *
-     * @param array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int, division: null|string}>}> $lineups
+     * @param array<string, array{teamName: null|string, members: list<CompetitionTagMember>, rounds: list<array{id: string, name: string, category: string, startsAt: string, tableNumber: null|int, tableLabel: null|string, division: null|string}>}> $lineups
      * @return list<CompetitionLineupChange>
      */
     private static function changes(array $lineups): array

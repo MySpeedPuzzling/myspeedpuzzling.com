@@ -466,7 +466,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
                 flag(row.members[0].country, name);
             }
 
-            el('span', 'as-row__table', item, row.table === null ? '' : t('table', { number: row.table }));
+            el('span', 'as-row__table', item, row.table === null ? '' : t('table', { number: row.tableLabel ?? row.table }));
 
             const solves = el('span', 'as-row__solves', item);
 
@@ -758,7 +758,7 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         }
 
         if (row.table !== null) {
-            el('span', 'as-entrant__table', head, t('table', { number: row.table }));
+            el('span', 'as-entrant__table', head, t('table', { number: row.tableLabel ?? row.table }));
         }
 
         const compared = model.view.compare.includes(row.key);

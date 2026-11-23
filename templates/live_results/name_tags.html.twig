@@ -100,7 +100,7 @@
                             </div>
                         {% endif %}
                         {% if tag.tableNumber is not null %}
-                            <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ tag.tableNumber }}</strong></div>
+                            <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ tag.tableLabel ?? tag.tableNumber }}</strong></div>
                         {% endif %}
                     </div>
                     <div class="tag-qr">{{ item.qr|raw }}</div>

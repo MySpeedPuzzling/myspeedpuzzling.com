@@ -216,6 +216,9 @@ readonly final class DuplicateCompetitionHandler
             $roundCopy->changeUnboxed(true);
         }
 
+        // The hall's table names (table-labels-and-plates.md) are setup like the round's settings - never who sits where
+        $roundCopy->changeTableLabels($round->tableLabels());
+
         return $roundCopy;
     }
 

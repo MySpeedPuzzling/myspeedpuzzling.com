@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results\ParticipantsSheet;
 
 use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\RoundPuzzleFormatView;
+use SpeedPuzzling\Web\Value\TableLabels;
 use DateTimeImmutable;
 
 /**
@@ -41,11 +42,13 @@ readonly final class ParticipantsSheetRound implements \JsonSerializable
         // A `pick` round's format (competition toolkit A4) - the JSON's `puzzleFormat`, absent while null
         public null|RoundPuzzleFormatView $puzzleFormat = null,
         public array $divisions = [],
+        // The names of the round's table numbers (table-labels-and-plates.md) - the JSON's `tableLabels`, absent while null
+        public null|TableLabels $tableLabels = null,
     ) {
     }
 
     /**
-     * @return array{id: string, name: string, category: string, teamSize: null|int, startsAt: string, timezone: string, started: bool, color: string, textColor: string, tableNumbersOff: bool, piecesCount: null|int, resultsPublished: bool, urls: array{liveEntry: string, resultsDesk: string, seating: null|string, edit: string}, puzzleFormat?: RoundPuzzleFormatView, divisions?: list<RoundDivision>}
+     * @return array{id: string, name: string, category: string, teamSize: null|int, startsAt: string, timezone: string, started: bool, color: string, textColor: string, tableNumbersOff: bool, piecesCount: null|int, resultsPublished: bool, urls: array{liveEntry: string, resultsDesk: string, seating: null|string, edit: string}, puzzleFormat?: RoundPuzzleFormatView, divisions?: list<RoundDivision>, tableLabels?: list<string>}
      */
     public function jsonSerialize(): array
     {
@@ -65,6 +68,7 @@ readonly final class ParticipantsSheetRound implements \JsonSerializable
             'urls' => $this->urls,
             ...($this->puzzleFormat !== null ? ['puzzleFormat' => $this->puzzleFormat] : []),
             ...($this->divisions !== [] ? ['divisions' => $this->divisions] : []),
+            ...($this->tableLabels !== null ? ['tableLabels' => $this->tableLabels->labels] : []),
         ];
     }
 }

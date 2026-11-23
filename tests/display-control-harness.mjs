@@ -69,6 +69,27 @@ check('spotlight filter: digits = tables starting with them, else names and memb
     equal(refs('nobody'), [], 'none');
 });
 
+check('spotlight on a labelled round: the label instead of the number, found by its folded key, sorted by number', () => {
+    const LABELLED = [
+        { ref: 'participant_round:5', table: 3, tableLabel: 'A2-1', name: 'Cleo Late', members: [], finishedAtMs: null },
+        { ref: 'participant_round:6', table: 1, tableLabel: 'A1-1', name: 'Dan Early', members: [], finishedAtMs: null },
+        { ref: 'participant_round:7', table: 2, tableLabel: 'A1 L', name: 'Eva Ahoj', members: [], finishedAtMs: null },
+        { ref: 'participant_round:8', table: 40, name: 'Finn Beyond', members: [], finishedAtMs: null },
+        { ref: 'team:10', table: 4, tableLabel: '12', name: 'Twelve', members: ['Gus A1'], finishedAtMs: null },
+    ];
+    const refs = (query) => filterEntries(sortEntries(LABELLED), query).map((entry) => entry.ref);
+    equal(entryLabel(LABELLED[0]), 'A2-1 · Cleo Late', 'the label');
+    equal(entryLabel(LABELLED[3]), '40 · Finn Beyond', 'a table beyond the list keeps its number');
+    equal(entryLabel({ ...LABELLED[0], tableLabel: '' }), '3 · Cleo Late', 'an empty label is no label');
+    equal(sortEntries(LABELLED).map((entry) => entry.ref), ['participant_round:6', 'participant_round:7', 'participant_round:5', 'team:10', 'participant_round:8'], 'by number');
+    equal(refs('a1'), ['participant_round:6', 'participant_round:7', 'team:10'], 'A1-1, A1 L + a member named "Gus A1"');
+    equal(refs('a1 1'), ['participant_round:6'], 'A1-1 typed with a space');
+    equal(refs('A1L'), ['participant_round:7'], 'A1 L typed without one');
+    equal(refs('1'), ['team:10'], 'digits find a label starting with them, not the hidden numbers 1, 2, 3');
+    equal(refs('4'), ['participant_round:8'], 'an unlabelled chip keeps the number rule');
+    equal(refs('cleo'), ['participant_round:5'], 'names as before');
+});
+
 check('spotlight "Just finished": the newest results first, at most 6', () => {
     equal(JUST_FINISHED, 6, 'six');
     equal(justFinished(ENTRIES).map((entry) => entry.ref), ['team:9', 'participant_round:4', 'participant_round:3', 'participant_round:2'], 'newest first, no result left out');

@@ -223,7 +223,9 @@ readonly final class SeatingProposer
     {
         return array_values(array_filter(
             self::earlierRounds($rounds, $target),
-            static fn (RoundResultsOverview $round): bool => $round->tableNumbersOff === false && $round->entriesWithTableNumber > 0,
+            // A number is the same place only in rounds with the same table names (table-labels-and-plates.md A1)
+            static fn (RoundResultsOverview $round): bool => $round->tableNumbersOff === false && $round->entriesWithTableNumber > 0
+                && $round->tableLabels?->labels === $target->tableLabels?->labels,
         ));
     }
 

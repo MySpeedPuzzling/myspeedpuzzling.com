@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\TableLabels;
 
 /**
  * One round of a publicly visible event as the analytics studio reads it (GetAnalyticsStudioRound,
@@ -41,6 +42,8 @@ readonly final class AnalyticsStudioRound
         // nothing while the pages are off - the competitor page rule); off = an unpublished round shows no results
         public bool $liveResults,
         public array $eventRounds,
+        // The names of the round's table numbers (table-labels-and-plates.md) - entrants carry `tableLabel` only when set
+        public null|TableLabels $tableLabels = null,
     ) {
     }
 

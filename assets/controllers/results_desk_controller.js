@@ -18,6 +18,7 @@ import { chooseTranslation } from '../translation_choice.js';
 import { deskEntryFromQuery, deskRecordChips, editorOutcome, editorRows, ownTimesLine, pickFormat, puzzleOptions, recordText } from '../official_results_desk_puzzles.js';
 import { convertTyped, MISSING, PLACED, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
+import { tableLabels, tableText } from '../table_labels.js';
 
 const RESULT = 'result';
 const TABLE = 'table_number';
@@ -352,12 +353,37 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * The round's table labels (table-labels-and-plates.md) as a lookup, null on a round with plain numbers.
+     */
+    tableLabels() {
+        const list = this.round?.tableLabels ?? null;
+
+        if (this.tableLabelsList !== list) {
+            this.tableLabelsList = list;
+            this.tableLabelsLookup = tableLabels(list);
+        }
+
+        return this.tableLabelsLookup ?? null;
+    }
+
+    tableName(number) {
+        return tableText(this.tableLabels(), number);
+    }
+
     matchesSearch(entry, query) {
         if (query === '') {
             return true;
         }
 
         if (/^\d+$/.test(query) && String(entry.tableNumber ?? '') === query) {
+            return true;
+        }
+
+        // A round with table labels: the label typed ("a1 l" finds A1 L)
+        const labels = this.tableLabels();
+
+        if (labels !== null && Number.isInteger(entry.tableNumber) && labels.numberOf(query) === entry.tableNumber) {
             return true;
         }
 
@@ -471,7 +497,7 @@ export default class extends Controller {
 
         if (usesTables) {
             cells.push(`<td class="text-nowrap">
-                <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none results-desk-cell" data-action="results-desk#editTable" data-ref="${ref}" data-focus-key="table:${ref}" aria-label="${escapeHtml(this.t('edit_table_label', { name }))}">${entry.tableNumber !== null && entry.tableNumber !== undefined ? escapeHtml(String(entry.tableNumber)) : '<span class="text-body-secondary">—</span>'}</button>
+                <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none results-desk-cell" data-action="results-desk#editTable" data-ref="${ref}" data-focus-key="table:${ref}" aria-label="${escapeHtml(this.t('edit_table_label', { name }))}">${entry.tableNumber !== null && entry.tableNumber !== undefined ? escapeHtml(this.tableName(entry.tableNumber)) : '<span class="text-body-secondary">—</span>'}</button>
                 ${this.cellState(entry, TABLE)}
             </td>`);
         }
@@ -650,7 +676,7 @@ export default class extends Controller {
 
             if (holder !== null) {
                 return `<div class="small text-danger mt-1" role="alert">
-                    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>${escapeHtml(this.t('table_taken_by', { number: cell.to, name: holder.displayName ?? '' }))}
+                    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>${escapeHtml(this.t('table_taken_by', { number: this.tableName(cell.to), name: holder.displayName ?? '' }))}
                     <span class="d-inline-flex gap-1 ms-1">
                         <button type="button" class="btn btn-sm btn-outline-primary py-0" data-action="results-desk#swapTables" data-ref="${ref}" data-holder="${escapeHtml(holder.ref)}">${escapeHtml(this.t('swap_tables'))}</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary py-0" data-action="results-desk#discardCell" data-ref="${ref}" data-field="${fieldAttr}">${escapeHtml(this.t('discard'))}</button>
@@ -695,7 +721,7 @@ export default class extends Controller {
         }
 
         if (field === TABLE) {
-            return value === null ? this.t('no_table') : String(value);
+            return value === null ? this.t('no_table') : this.tableName(value);
         }
 
         if (field === PUZZLES) {
@@ -1217,7 +1243,7 @@ export default class extends Controller {
 
         return `<form class="results-desk-editor" data-editor="table" novalidate data-action="submit->results-desk#saveEditor keydown->results-desk#editorKeydown">
             <div class="d-flex flex-wrap gap-1 align-items-center">
-                <input type="text" class="form-control form-control-sm results-desk-input results-desk-input-table" data-editor-input inputmode="numeric" autocomplete="off" value="${shown === null ? '' : escapeHtml(String(shown))}" aria-label="${escapeHtml(this.t('editor_table'))}" aria-describedby="results-desk-preview" data-action="input->results-desk#editorPreview">
+                <input type="text" class="form-control form-control-sm results-desk-input results-desk-input-table" data-editor-input ${this.tableLabels() !== null ? 'inputmode="text" autocapitalize="characters"' : 'inputmode="numeric"'} autocomplete="off" value="${shown === null ? '' : escapeHtml(this.tableName(shown))}" aria-label="${escapeHtml(this.t('editor_table'))}" aria-describedby="results-desk-preview" data-action="input->results-desk#editorPreview">
                 <button type="submit" class="btn btn-sm btn-primary" data-editor-save>${escapeHtml(this.t('save'))}</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#cancelEditor">${escapeHtml(this.t('cancel'))}</button>
             </div>
@@ -1254,6 +1280,15 @@ export default class extends Controller {
         if (form.dataset.editor === 'table') {
             if (text === '') {
                 return { value: null, preview: this.t('preview_no_table') };
+            }
+
+            const labels = this.tableLabels();
+
+            // A round with table labels takes a label of its list ("A1 L") - table-labels-and-plates.md
+            if (labels !== null) {
+                const number = labels.numberOf(text);
+
+                return number === null ? { error: this.t('error_table_label', { table: text }) } : { value: number, preview: labels.labelOf(number) };
             }
 
             if (!/^\d{1,4}$/.test(text) || Number(text) < 1) {

@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleProposalChanges;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
 use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
@@ -277,23 +279,39 @@ class PuzzleChangeRequest
     }
 
     /**
-     * Whether its puzzle has every value it proposes already. Errs on "something left": a proposed image is a new file,
-     * a brand it created is no brand of any puzzle yet, and other names count as applied only when applying them
-     * changes nothing - a moderator decides anything less clear.
+     * Which fields it really changes - its proposed value differs from its own original (PuzzleProposalChanges).
+     */
+    public function proposedChanges(): PuzzleProposalChanges
+    {
+        return new PuzzleProposalChanges(
+            proposedName: $this->proposedName,
+            originalName: $this->originalName,
+            proposedManufacturerId: $this->proposedManufacturer?->id->toString(),
+            originalManufacturerId: $this->originalManufacturerId?->toString(),
+            proposedPiecesCount: $this->proposedPiecesCount,
+            originalPiecesCount: $this->originalPiecesCount,
+            proposedEan: $this->proposedEan,
+            originalEan: $this->originalEan,
+            proposedIdentificationNumber: $this->proposedIdentificationNumber,
+            originalIdentificationNumber: $this->originalIdentificationNumber,
+            proposedImage: $this->proposedImage,
+            proposedAlternativeNames: $this->proposedAlternativeNames !== null ? PuzzleNames::fromArray($this->proposedAlternativeNames) : null,
+            originalAlternativeNames: $this->originalAlternativeNames !== null ? PuzzleNames::fromArray($this->originalAlternativeNames) : null,
+            proposedNameLanguage: $this->proposedNameLanguage,
+            originalNameLanguage: $this->originalNameLanguage,
+        );
+    }
+
+    /**
+     * Whether its puzzle has every value it proposes already - the fields it changes only (PuzzleProposalChanges): the
+     * rest of its snapshot is the puzzle as it was, and may differ from the puzzle now because another proposal changed
+     * it since. Errs on "something left": a proposed image is a new file, a brand it created is no brand of any puzzle
+     * yet, and other names count as applied only when applying them changes nothing - a moderator decides anything
+     * less clear.
      */
     public function nothingLeftToApply(): bool
     {
         if ($this->hasProposedChanges() === false || $this->proposedImage !== null) {
-            return false;
-        }
-
-        $puzzle = $this->puzzle;
-
-        if ($this->proposedName !== null && $this->proposedName !== $puzzle->name) {
-            return false;
-        }
-
-        if ($this->proposedManufacturer !== null && $this->proposedManufacturer->id->equals($puzzle->manufacturer?->id) === false) {
             return false;
         }
 
@@ -302,15 +320,26 @@ class PuzzleChangeRequest
             return false;
         }
 
-        if ($this->proposedPiecesCount !== null && $this->proposedPiecesCount !== $puzzle->piecesCount) {
+        $puzzle = $this->puzzle;
+        $changes = $this->proposedChanges();
+
+        if ($changes->changes(PuzzleProposalField::Name) && $this->proposedName !== $puzzle->name) {
             return false;
         }
 
-        if ($this->proposedEan !== null && EanList::fromStored($this->proposedEan)->equals($puzzle->eans()) === false) {
+        if ($changes->changes(PuzzleProposalField::Manufacturer) && $this->proposedManufacturer?->id->equals($puzzle->manufacturer?->id) !== true) {
             return false;
         }
 
-        if ($this->proposedIdentificationNumber !== null && BrandCodeList::fromStored($this->proposedIdentificationNumber)->equals($puzzle->brandCodes()) === false) {
+        if ($changes->changes(PuzzleProposalField::PiecesCount) && $this->proposedPiecesCount !== $puzzle->piecesCount) {
+            return false;
+        }
+
+        if ($changes->changes(PuzzleProposalField::Ean) && EanList::fromStored($this->proposedEan)->equals($puzzle->eans()) === false) {
+            return false;
+        }
+
+        if ($changes->changes(PuzzleProposalField::IdentificationNumber) && BrandCodeList::fromStored($this->proposedIdentificationNumber)->equals($puzzle->brandCodes()) === false) {
             return false;
         }
 
@@ -322,7 +351,7 @@ class PuzzleChangeRequest
             }
 
             // The main title's language is part of the proposal only when it differs from the one it was filed with
-            if ($this->proposedNameLanguage !== $this->originalNameLanguage && $this->proposedNameLanguage !== $puzzle->nameLanguage) {
+            if ($changes->changes(PuzzleProposalField::NameLanguage) && $this->proposedNameLanguage !== $puzzle->nameLanguage) {
                 return false;
             }
         }

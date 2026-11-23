@@ -8,15 +8,20 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MergePuzzleInfo;
+use SpeedPuzzling\Web\Results\PendingFieldProposal;
+use SpeedPuzzling\Web\Results\PendingProposalLocks;
 use SpeedPuzzling\Web\Results\PendingPuzzleProposal;
+use SpeedPuzzling\Web\Value\PuzzleProposalChanges;
+use SpeedPuzzling\Web\Value\PuzzleProposalField;
 use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 /**
- * The proposals waiting for a moderator on a puzzle. One at a time (blocksNewProposal()): a pending merge request or a
- * pending change request that changes more than the names keeps another such proposal - a "Suggest a change" that
- * does, a duplicate report, the internal API's - from being filed. A change request of the names only (main title,
- * its language, other names - a "Suggest a change" touching nothing else) counts in neither
- * direction: it applies as a diff, so several may wait at once, next to a full proposal or a merge request.
+ * The proposals waiting for a moderator on a puzzle. Several change requests may wait at once as long as they change
+ * different fields (locks()): a field a pending change request changes is locked for every other proposal - the
+ * "Suggest a change" form, the internal API's - until a moderator decides it; a pending merge request locks every
+ * field. The names (main title, its language, other names) never lock: they apply as a diff, so several proposals of
+ * them may wait next to each other, next to a full proposal or a merge request. A duplicate report waits while any
+ * field is locked (PendingProposalLocks::locksAnyField()).
  */
 readonly final class GetPendingPuzzleProposals
 {
@@ -55,27 +60,17 @@ SQL;
     }
 
     /**
-     * Whether a new proposal changing more than the names has to wait: a pending merge request about the puzzle, or a
-     * pending change request of it changing anything else than the names (the rule above). Not asked for a proposal
-     * of the names only.
+     * What a new proposal may not change now: every field a pending change request changes (PuzzleProposalChanges -
+     * its proposed value differs from its original; names never lock), every field while a merge request about the
+     * puzzle is pending.
      */
-    public function blocksNewProposal(string $puzzleId): bool
+    public function locks(string $puzzleId): PendingProposalLocks
     {
         // A merge request involving a secret competition puzzle is in no queue until the reveal - it must not block
         // proposals on a public puzzle meanwhile (forever, with a manual reveal)
         $noSecretPuzzle = GetPuzzleMergeRequests::sqlNoSecretPuzzle();
-        $query = <<<SQL
+        $mergeQuery = <<<SQL
 SELECT EXISTS (
-    SELECT 1 FROM puzzle_change_request
-    WHERE puzzle_id = :puzzleId AND status = 'pending'
-      AND (
-        (proposed_manufacturer_id IS NOT NULL AND proposed_manufacturer_id IS DISTINCT FROM original_manufacturer_id)
-        OR (proposed_pieces_count IS NOT NULL AND proposed_pieces_count IS DISTINCT FROM original_pieces_count)
-        OR (proposed_ean IS NOT NULL AND proposed_ean IS DISTINCT FROM original_ean)
-        OR (proposed_identification_number IS NOT NULL AND proposed_identification_number IS DISTINCT FROM original_identification_number)
-        OR proposed_image IS NOT NULL
-      )
-    UNION ALL
     SELECT 1 FROM puzzle_merge_request pmr
     WHERE pmr.status = 'pending'
       AND (pmr.source_puzzle_id = :puzzleId OR pmr.reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
@@ -83,13 +78,74 @@ SELECT EXISTS (
 ) as blocks
 SQL;
 
-        $result = $this->database->fetchOne($query, [
+        $mergeRequestPending = $this->database->fetchOne($mergeQuery, [
             'puzzleId' => $puzzleId,
             'puzzleIdJson' => json_encode([$puzzleId]),
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ]);
+        ]) === true;
 
-        return $result === true;
+        $query = <<<SQL
+SELECT
+    pcr.id,
+    pcr.proposed_name,
+    pcr.original_name,
+    pcr.proposed_manufacturer_id,
+    pcr.original_manufacturer_id,
+    proposed_manufacturer.name AS proposed_manufacturer_name,
+    pcr.proposed_pieces_count,
+    pcr.original_pieces_count,
+    pcr.proposed_ean,
+    pcr.original_ean,
+    pcr.proposed_identification_number,
+    pcr.original_identification_number,
+    pcr.proposed_image
+FROM puzzle_change_request pcr
+LEFT JOIN manufacturer proposed_manufacturer ON proposed_manufacturer.id = pcr.proposed_manufacturer_id
+WHERE pcr.puzzle_id = :puzzleId AND pcr.status = 'pending'
+ORDER BY pcr.submitted_at, pcr.id
+SQL;
+
+        /** @var list<array{id: string, proposed_name: null|string, original_name: string, proposed_manufacturer_id: null|string, original_manufacturer_id: null|string, proposed_manufacturer_name: null|string, proposed_pieces_count: null|int, original_pieces_count: int, proposed_ean: null|string, original_ean: null|string, proposed_identification_number: null|string, original_identification_number: null|string, proposed_image: null|string}> $rows */
+        $rows = $this->database->fetchAllAssociative($query, ['puzzleId' => $puzzleId]);
+
+        $waiting = [];
+
+        foreach ($rows as $row) {
+            // The names never lock - they are left out
+            $changes = new PuzzleProposalChanges(
+                proposedName: null,
+                originalName: $row['original_name'],
+                proposedManufacturerId: $row['proposed_manufacturer_id'],
+                originalManufacturerId: $row['original_manufacturer_id'],
+                proposedPiecesCount: $row['proposed_pieces_count'],
+                originalPiecesCount: $row['original_pieces_count'],
+                proposedEan: $row['proposed_ean'],
+                originalEan: $row['original_ean'],
+                proposedIdentificationNumber: $row['proposed_identification_number'],
+                originalIdentificationNumber: $row['original_identification_number'],
+                proposedImage: $row['proposed_image'],
+                proposedAlternativeNames: null,
+                originalAlternativeNames: null,
+                proposedNameLanguage: null,
+                originalNameLanguage: null,
+            );
+
+            foreach ($changes->lockedFields() as $field) {
+                $waiting[$field->value] ??= new PendingFieldProposal(
+                    changeRequestId: $row['id'],
+                    proposedValue: match ($field) {
+                        PuzzleProposalField::Manufacturer => $row['proposed_manufacturer_name'],
+                        PuzzleProposalField::PiecesCount => $row['proposed_pieces_count'] !== null ? (string) $row['proposed_pieces_count'] : null,
+                        PuzzleProposalField::Ean => $row['proposed_ean'],
+                        PuzzleProposalField::IdentificationNumber => $row['proposed_identification_number'],
+                        PuzzleProposalField::Image => $row['proposed_image'],
+                        default => null,
+                    },
+                );
+            }
+        }
+
+        return new PendingProposalLocks($mergeRequestPending, $waiting);
     }
 
     /**
@@ -107,13 +163,13 @@ SELECT
     reporter.name as reporter_name,
     reporter.code as reporter_code,
     CONCAT_WS(', ',
-        CASE WHEN pcr.proposed_name IS NOT NULL AND pcr.proposed_name != pcr.original_name THEN 'Name' END,
+        CASE WHEN pcr.proposed_name IS NOT NULL AND pcr.proposed_name IS DISTINCT FROM pcr.original_name THEN 'Name' END,
         CASE WHEN pcr.proposed_alternative_names IS NOT NULL AND pcr.proposed_name_language IS DISTINCT FROM pcr.original_name_language THEN 'Name language' END,
         CASE WHEN pcr.proposed_alternative_names IS NOT NULL AND pcr.proposed_alternative_names IS DISTINCT FROM pcr.original_alternative_names THEN 'Other names' END,
-        CASE WHEN pcr.proposed_manufacturer_id IS NOT NULL AND pcr.proposed_manufacturer_id != pcr.original_manufacturer_id THEN 'Manufacturer' END,
-        CASE WHEN pcr.proposed_pieces_count IS NOT NULL AND pcr.proposed_pieces_count != pcr.original_pieces_count THEN 'Pieces' END,
-        CASE WHEN pcr.proposed_ean IS NOT NULL AND pcr.proposed_ean != pcr.original_ean THEN 'EAN' END,
-        CASE WHEN pcr.proposed_identification_number IS NOT NULL AND pcr.proposed_identification_number != pcr.original_identification_number THEN 'Brand Code' END,
+        CASE WHEN pcr.proposed_manufacturer_id IS NOT NULL AND pcr.proposed_manufacturer_id IS DISTINCT FROM pcr.original_manufacturer_id THEN 'Manufacturer' END,
+        CASE WHEN pcr.proposed_pieces_count IS NOT NULL AND pcr.proposed_pieces_count IS DISTINCT FROM pcr.original_pieces_count THEN 'Pieces' END,
+        CASE WHEN pcr.proposed_ean IS NOT NULL AND pcr.proposed_ean IS DISTINCT FROM pcr.original_ean THEN 'EAN' END,
+        CASE WHEN pcr.proposed_identification_number IS NOT NULL AND pcr.proposed_identification_number IS DISTINCT FROM pcr.original_identification_number THEN 'Brand Code' END,
         CASE WHEN pcr.proposed_image IS NOT NULL THEN 'Image' END
     ) as summary,
     NULL as reported_duplicate_puzzle_ids

@@ -3368,8 +3368,14 @@ recap_progress:
     "no_changes": "Nebyly provedeny žádné změny. Před odesláním prosím upravte alespoň jedno pole."
     "no_valid_duplicates": "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
     "pending_proposal_exists": "Návrh pro toto puzzle již čeká na kontrolu."
-    "pending_proposal_exists_names_only": "Pro toto puzzle už čeká jiný návrh na kontrolu. Dokud o něm nebude rozhodnuto, lze navrhovat jen názvy - vraťte ostatní změny, nebo to zkuste později."
+    "pending_proposal_fields": "Jiný návrh pro %fields% už čeká na kontrolu, takže vaše změna tam odeslána nebyla. Pole ukazuje, co má puzzle teď - odešlete formulář znovu a navrhnete zbytek."
     "validation_error": "Opravte prosím chyby a zkuste to znovu."
+  "locked":
+    "waiting": "Čeká na kontrolu: %value%"
+    "merge_pending": "Nahlášení duplikátu tohoto puzzle čeká na kontrolu."
+    "show_pending": "Zobrazit, co čeká"
+    "new_photo": "nová fotka"
+    "no_codes": "žádný"
   "form":
     "brand": "Značka"
     "brand_help": "Není v seznamu, nebo je napsaná s chybou? Napište správný název značky a přidejte ji."

@@ -3294,8 +3294,14 @@ badges:
     "no_changes": "No se realizaron cambios. Por favor modifica al menos un campo antes de enviar."
     "no_valid_duplicates": "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
     "pending_proposal_exists": "Ya existe una propuesta pendiente de revisión para este puzzle."
-    "pending_proposal_exists_names_only": "Ya hay otra propuesta para este puzzle esperando revisión. Hasta que se decida, solo se pueden sugerir nombres: deshaz los demás cambios o vuelve más tarde."
+    "pending_proposal_fields": "Otra sugerencia para %fields% está esperando revisión, así que tu cambio ahí no se envió. El campo muestra lo que tiene el puzzle ahora: envía el formulario de nuevo para sugerir el resto."
     "validation_error": "Por favor corrige los errores e intenta de nuevo."
+  "locked":
+    "waiting": "Esperando revisión: %value%"
+    "merge_pending": "Un aviso de duplicado de este puzzle está esperando revisión."
+    "show_pending": "Ver qué está esperando"
+    "new_photo": "una foto nueva"
+    "no_codes": "ninguno"
   "form":
     "brand": "Marca"
     "brand_help": "¿No está en la lista o está mal escrita? Escribe el nombre correcto de la marca para añadirla."

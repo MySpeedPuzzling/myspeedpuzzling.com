@@ -388,11 +388,12 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (`newPuzzleExtra` targets of `time_form_autocomplete_controller.js`); rows left under an existing puzzle are ignored
   and never block a save. The stopwatch's save page is the same form, so it has the link too; the competition-round form
   and multiscan keep one name.
-- **Phase 3 review - one proposal at a time, names aside:** a pending merge request or change request of more than the
-  names holds up another such proposal ("Suggest a change", "Report duplicate", the internal API's 409); a change request
-  of the names only (main title, its language, other names - nothing else differs) counts in neither direction, so
-  several may wait at once next to a full one (`GetPendingPuzzleProposals::blocksNewProposal()`; the puzzle page's
-  "pending" badge still shows every one). A "Suggest a change" opened before a full proposal was filed still files names.
+- **Phase 3 review - one proposal per field, names aside** (one proposal at a time until 2026-11-23): a pending change
+  request locks the fields it changes for other proposals, a pending merge request every field ("Suggest a change",
+  the internal API's 409, "Report duplicate" while anything is locked); the names (main title, its language, other
+  names) never lock, so several names proposals may wait at once next to full ones (`GetPendingPuzzleProposals::locks()`,
+  docs/features/puzzle-approvals.md "Several proposals at once"; the puzzle page's "pending" badge still shows every
+  one). A "Suggest a change" opened before another proposal was filed still files names.
 - **Phase 4 - no free-text note on filings:** neither change requests nor merge requests have a reporter comment, so
   the filings carry none; moderators judge from what the review screens show (the names diff with languages, the
   merge review's names editor with the reported languages and its "not English" warning, the shared codes). The

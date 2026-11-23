@@ -70,8 +70,10 @@ final class ReportDuplicatePuzzleController extends AbstractController
         $reportForm = $this->createForm(ReportDuplicatePuzzleFormType::class, new ReportDuplicatePuzzleFormData());
         $reportForm->handleRequest($request);
 
-        // One proposal at a time - a pending names-only change request does not count (GetPendingPuzzleProposals)
-        if ($this->getPendingPuzzleProposals->blocksNewProposal($puzzleId)) {
+        // Not while a pending proposal locks a field - a pending names-only change request does not count (GetPendingPuzzleProposals)
+        $locks = $this->getPendingPuzzleProposals->locks($puzzleId);
+
+        if ($locks->locksAnyField()) {
             $reportForm->addError(new FormError($this->translator->trans('puzzle_report.flash.pending_proposal_exists')));
         }
 
@@ -111,6 +113,7 @@ final class ReportDuplicatePuzzleController extends AbstractController
             'report_form' => $reportForm,
             'puzzle_id' => $puzzleId,
             'active_tab' => 'report',
+            'locks' => $locks,
             'selected_duplicate_option' => $this->selectedDuplicateOption($reportForm->getData(), $request->getLocale()),
         ];
         $response = new Response('', Response::HTTP_UNPROCESSABLE_ENTITY);

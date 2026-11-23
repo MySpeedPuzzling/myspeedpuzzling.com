@@ -101,6 +101,45 @@ final class PuzzleChangeRequestPipelineInternalApiTest extends WebTestCase
         self::assertEqualsWithDelta(4 / 3, $changeRequest->proposedImageRatio, 0.01);
     }
 
+    public function testOnlyAWaitingPictureOrMergeRequestHoldsUpACrop(): void
+    {
+        // A player's EAN proposal waits - the crop is filed next to it
+        $ean = self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests', [
+            'puzzleId' => self::PUZZLE,
+            'ean' => '4005555011897',
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $crop = $this->propose(self::PUZZLE);
+        self::assertResponseStatusCodeSame(201);
+
+        // Another picture now waits for the first one
+        $answer = $this->propose(self::PUZZLE, ['tags' => ['other_crop']]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('pending_proposal', $answer['code']);
+        self::assertSame(['image'], $answer['fields']);
+
+        // ... and another EAN for the first EAN proposal, while the pieces are free
+        $answer = self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests', ['puzzleId' => self::PUZZLE, 'ean' => '4005555006299']);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame(['ean'], $answer['fields']);
+        self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests', ['puzzleId' => self::PUZZLE, 'piecesCount' => 1500]);
+        self::assertResponseStatusCodeSame(201);
+
+        // Approved with every field selected, the crop keeps the EAN approved before it
+        self::assertIsString($ean['changeRequestId']);
+        self::assertIsString($crop['changeRequestId']);
+        self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests/' . $ean['changeRequestId'] . '/approve', ['selectedFields' => ['name', 'manufacturer', 'piecesCount', 'ean', 'identificationNumber', 'image']]);
+        self::assertResponseIsSuccessful();
+        self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests/' . $crop['changeRequestId'] . '/approve', ['selectedFields' => ['name', 'manufacturer', 'piecesCount', 'ean', 'identificationNumber', 'image']]);
+        self::assertResponseIsSuccessful();
+
+        $this->entityManager()->clear();
+        $puzzle = self::getContainer()->get(PuzzleRepository::class)->get(self::PUZZLE);
+        self::assertSame('4005555011897', $puzzle->eans()->toStored());
+        self::assertNotSame(self::IMAGES[self::PUZZLE], $puzzle->image);
+        self::assertSame(1000, $puzzle->piecesCount, 'The waiting pieces proposal is not applied by the others');
+    }
+
     public function testThePipelineProposesAPictureOncePerTagEvenAfterARejection(): void
     {
         $first = $this->propose(self::PUZZLE);

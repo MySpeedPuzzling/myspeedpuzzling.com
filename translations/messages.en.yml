@@ -3840,6 +3840,12 @@ puzzle_report:
         not_found: "No other puzzle with EAN %ean% found. Try finding it by brand and name."
         same_puzzle: "EAN %ean% belongs to this puzzle. Scan the other one's box."
         search_failed: "The search did not work. Scan again, or find the puzzle by brand and name."
+    locked:
+        waiting: "Waiting for review: %value%"
+        merge_pending: "A duplicate report of this puzzle is waiting for review."
+        show_pending: "See what is waiting"
+        new_photo: "a new photo"
+        no_codes: "none"
     form:
         brand: "Brand"
         brand_help: "Not in the list, or misspelled? Type the brand's correct name to add it."
@@ -3881,7 +3887,7 @@ puzzle_report:
         validation_error: "Please fix the errors and try again."
         login_required: "Please log in to suggest changes."
         pending_proposal_exists: "A proposal for this puzzle is already pending review."
-        pending_proposal_exists_names_only: "Another proposal for this puzzle is waiting for review. Until it is decided, only names can be suggested - undo the other changes, or come back later."
+        pending_proposal_fields: "Another suggestion for %fields% is waiting for review, so your change there was not sent. It shows what the puzzle has now - send the form again to suggest the rest."
         no_changes: "No changes were made. Please modify at least one field before submitting."
         no_valid_duplicates: "You cannot report a puzzle as a duplicate of itself. Please select a different puzzle."
 

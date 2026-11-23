@@ -295,8 +295,9 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           description: |
-            `pending_proposal` - the puzzle already has a pending merge request or a pending change request of
-            more than its names (a proposal of the names only is never refused for this; an `image` is more);
+            `pending_proposal` - another pending change request of the puzzle changes a field this one changes, or a
+            merge request of the puzzle is pending (any field); `fields` lists the refused ones. The names never
+            conflict (an `image` is refused only while another picture waits);
             `already_proposed` - the image pipeline proposed this picture with this tag already, in any status;
             `image_changed` - `sourceImageFingerprint` is not the puzzle's picture now.
           content:
@@ -410,7 +411,9 @@ paths:
       operationId: approvePuzzleChangeRequest
       description: |
         Approves a "suggest a change" proposal, applying only the fields listed in
-        `selectedFields` - like the admin review, where unticked fields stay unchanged.
+        `selectedFields` - like the admin review, where unticked fields stay unchanged. A
+        selected field the proposal does not change (its proposed value equals its original)
+        keeps the puzzle's value now - another pending proposal may have changed it since.
         `[]` approves a proposal that is already satisfied (e.g. a brand fix a brand
         merge made) without touching the puzzle. `alternativeNames` and `nameLanguage`
         correct the proposal before it is applied (selected fields only); the other
@@ -5076,6 +5079,11 @@ components:
           description: |
             A stable word for the refusals a script branches on (never renamed): `already_proposed`,
             `image_changed`, `pending_proposal`, `original_not_archived`.
+        fields:
+          type: array
+          description: With `pending_proposal` - the fields another pending proposal holds (`selectedFields` names).
+          items:
+            type: string
         errors:
           type: object
           description: Invalid fields (field => what is wrong) - only for a request with invalid fields.

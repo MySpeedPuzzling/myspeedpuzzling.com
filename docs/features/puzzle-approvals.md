@@ -101,7 +101,7 @@ shared with the direct edit below.
 - An optional **note for the history** goes into the decision log.
 
 `ApprovePuzzleChangeRequest` carries the reviewer's values as `PuzzleRecordValues`; the internal API still sends
-`selectedFields` (those fields as proposed, the rest unchanged), which the handler turns into the same values. Both
+`selectedFields` (those fields as proposed where the request changes them, the rest unchanged), which the handler turns into the same values. Both
 are saved by `PuzzleRecordUpdater` - **the one place that writes a puzzle's record** for an approval and a direct edit:
 first the record version the form was loaded with is compared with the puzzle (`PuzzleRecordVersion` - a hidden field
 on the edit and approval forms; a save over a record somebody changed meanwhile is refused with
@@ -109,6 +109,44 @@ on the edit and approval forms; a save over a record somebody changed meanwhile 
 (`InvalidPuzzleValues`, 422), then applied, and it returns the `before` / `after` snapshots the decision log keeps (+ the
 image choice, + `selectedFields` from the internal API). Every message changing a puzzle's record is
 `SerializedByLock` on `puzzle-<id>` (`PuzzleRecordVersion::lockKey()`), so two saves never check at the same moment.
+
+### Several proposals at once - one per field
+
+Since 2026-11-23 several change requests of one puzzle may wait at once, **as long as they change different fields**
+(before, one change request of more than the names held up every other proposal - a pipeline crop kept a player's EAN
+out). The fields are listed in one place, `Value\PuzzleProposalField` (the internal API's `selectedFields` names; a new
+proposable field is a new case there + a line in `PuzzleProposalChanges`).
+
+- **What a request changes** (`Value\PuzzleProposalChanges`, from `PuzzleChangeRequest::proposedChanges()` /
+  `PuzzleChangeRequestOverview::proposedChanges()`): a field whose proposed value differs from the request's own
+  original - the codes compared as lists (`EanList` / `BrandCodeList`), the image whenever one is proposed, the names
+  by their diff. A request stores a whole snapshot (name, brand, pieces always; older ones the codes too), so a stored
+  value alone never means "proposed".
+- **Field lock** (`GetPendingPuzzleProposals::locks()` → `PendingProposalLocks`): a field a pending change request
+  changes is locked for every other proposal until a moderator decides it; a pending merge request locks every field.
+  The names (main title, its language, other names) never lock - they apply as a diff. "Suggest a change" shows a
+  locked field read-only with "Waiting for review: <proposed value>" and a link to the waiting proposals
+  (`puzzle-report/_locked_field.html.twig`; the puzzle's value goes along in hidden inputs); the pending proposals are
+  shown instead of the form only when every field is locked (or a merge request waits). A submit changing a field locked
+  since the form was opened is refused with `puzzle_report.flash.pending_proposal_fields` (422): everything else typed is
+  kept (the photo through `FormPhotoStash`), the locked field comes back as the puzzle has it, so sending again files
+  the rest. The internal API answers `409 pending_proposal` with the refused `fields`. A duplicate report keeps its rule:
+  refused while any field is locked (`PendingProposalLocks::locksAnyField()`).
+- **Approval applies only this request's changes.** The internal API path (`selectedFields`): a selected field the
+  request does not change keeps the puzzle's value now (`ApprovePuzzleChangeRequestHandler::proposedValues()`), so
+  "approve every field" never writes a snapshot back. The admin review: the form starts from the puzzle as it is now
+  with only this request's changes on it (`PuzzleRecordFormData::fromChangeRequest()`), so untouched fields carry the
+  current values, and the record version refuses a save over a puzzle changed after the page was rendered - a
+  moderator's own edit of any field still wins. The review lists the other waiting proposals of the puzzle.
+- **Changed since proposed:** a field this request changes that the puzzle has another value of now than when it was
+  filed (another proposal or an edit got there first - with the lock only possible for data from before it, a merge
+  moving requests onto a survivor, or a direct edit) is named above the review form
+  (`PuzzleChangeRequestOverview::changedSinceProposed()`) next to the per-field "When proposed" line, never overwritten
+  silently by a default.
+- **Already done** (`PuzzleChangeRequest::nothingLeftToApply()`) looks at the changed fields only - another request's
+  approval no longer keeps a request open through its stale snapshot.
+- Existing pending requests (filed under the one-at-a-time rule) need no migration: they never overlap, and their
+  snapshots are read through the same rule.
 
 ### Filters - who filed it, and tags
 
@@ -232,7 +270,7 @@ queues). Jan, 2026-10-07: a one-time cleanup is no solution - it happens again.
   nothing** - nobody judged the report, and what it asked for happened. Not "rejected" (that tells the reporter they
   were wrong), not "approved" (that claims a review that never happened).
 - Before this, a stuck merge request had no buttons at all ("All reported puzzles have been deleted"), and kept
-  blocking new suggestions for its remaining puzzle (`GetPendingPuzzleProposals::blocksNewProposal()`).
+  blocking new suggestions for its remaining puzzle (`GetPendingPuzzleProposals::locks()` - a merge request locks every field).
 
 **Change requests move with a merge.** A merge says the two records were the same puzzle, so every change request of a
 merged puzzle - pending or decided - moves onto the survivor (`PuzzleChangeRequest::puzzleMergedInto()`, ids in the

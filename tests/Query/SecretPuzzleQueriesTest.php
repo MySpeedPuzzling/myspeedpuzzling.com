@@ -277,7 +277,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $roundPuzzleId = $this->addSecretPuzzle('Reported Secret', ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
         $secretId = $this->roundPuzzle($roundPuzzleId)->puzzle->id->toString();
         $proposals = self::getContainer()->get(\SpeedPuzzling\Web\Query\GetPendingPuzzleProposals::class);
-        self::assertFalse($proposals->blocksNewProposal(PuzzleFixture::PUZZLE_500_05));
+        self::assertFalse($proposals->locks(PuzzleFixture::PUZZLE_500_05)->locksAnyField());
 
         // A player with the secret id reports it as a DUPLICATE of a public puzzle: refused, unseen
         try {
@@ -307,7 +307,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $this->mergeRequestFiledEarlier(PuzzleFixture::PUZZLE_500_05, $secretId);
         self::assertSame([], $proposals->forPuzzle(PuzzleFixture::PUZZLE_500_05));
         self::assertFalse($proposals->hasPendingForPuzzle(PuzzleFixture::PUZZLE_500_05));
-        self::assertFalse($proposals->blocksNewProposal(PuzzleFixture::PUZZLE_500_05));
+        self::assertFalse($proposals->locks(PuzzleFixture::PUZZLE_500_05)->locksAnyField());
     }
 
     private function mergeRequestFiledEarlier(string $sourcePuzzleId, string $duplicateId): string

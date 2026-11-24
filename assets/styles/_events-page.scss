@@ -45,6 +45,11 @@
     align-items: center;
     justify-content: flex-end;
     gap: .5rem .75rem;
+
+    // "My organizations" opens over the sticky toolbar (z-index $zindex-sticky - 10), still under the site header
+    .dropdown-menu {
+        z-index: $zindex-sticky - 5;
+    }
 }
 
 .ev-guide-link {

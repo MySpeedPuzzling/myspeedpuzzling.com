@@ -2023,7 +2023,9 @@ div[data-countdown-target] {
     background-size: contain;
 }
 
-header {
+// The site header only: on any other <header> the filter makes a stacking context that traps its dropdowns under
+// later content (the events page "My organizations" menu went under the sticky toolbar and the cards)
+header.sticky-top {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }

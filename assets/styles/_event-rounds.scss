@@ -62,6 +62,8 @@
 .ev-round {
     display: grid;
     grid-template-columns: 56px minmax(0, 1fr);
+    // The date leaf keeps its own height (like on the events page), not the whole round's
+    align-items: start;
     gap: .75rem;
     padding: .875rem 0;
     border-bottom: 1px solid $ev-line;

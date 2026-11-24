@@ -5215,6 +5215,7 @@ name_tags:
     boxes: "タイム記入欄"
     none: "なし"
     category: "ラウンド：%category%"
+    this_round: "このラウンドのみ：%round%"
     missing_field: "「欠けたピース」欄を付ける"
     hint: "%round% の参加者ごとに1枚、テーブルと、審判がペンでタイムを書くチャレンジごとの記入欄付き（審判側の面）。"
     several_tables: "%count% 人が後のラウンドで別のテーブルに座ります。名札には最初のラウンドのテーブルが表示されます。"

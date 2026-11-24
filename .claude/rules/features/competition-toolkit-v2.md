@@ -119,7 +119,7 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   number beyond a list (`no_label`); same tables / copy only between rounds with equal lists; duplicate copies them.
   Judge: label keys open without Enter (`uniqueLabel()` in `official_results_live.js`; letters for the places = no
   separator), text keyboard, My tables read labels (`labelRanges()`, `storableText()`); bundle budget 240.5 KB. Tag reads
-  carry the label in SQL (`TableLabelSql`). **Plates**: tents `?boxes=standing:<id>|solo|duo|team` (+ `?missing=0`) =
+  carry the label in SQL (`TableLabelSql`). **Plates**: tents `?boxes=standing:<id>|solo|duo|team` (+ `?missing=0`; with `?round=` also `round` = that round's box only) =
   a box per challenge on the judge's face (block K = N: per puzzle label; K < N: K numbered; else the round's name;
   labels only), the championship's first round printed (`GetTagPlateChallenges`). Tests `TableLabelsTest`,
   `SetRoundTableLabelsHandlerTest`, `TableLabelsControllerTest`, `CompetitionTagsPrintTest`, `DisplayTableLabelsTest`,

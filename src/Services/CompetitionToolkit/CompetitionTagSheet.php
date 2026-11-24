@@ -88,7 +88,7 @@ readonly final class CompetitionTagSheet
         // Name plates with time boxes (table-labels-and-plates.md): offered on table tents of people, line-ups and
         // entries - `?boxes=standing:<id>` or a category's rounds; without a round chosen the championship's first round
         // is the printed one (its entrants, its tables)
-        $plates = $this->plates($request, $competitionId, $rounds, $kind, $layout);
+        $plates = $this->plates($request, $competitionId, $rounds, $kind, $layout, $round);
 
         if ($round === null && $plates['rounds'] !== []) {
             $round = $plates['rounds'][0];
@@ -285,12 +285,13 @@ readonly final class CompetitionTagSheet
      * schedule - a standing's rounds of this event, or a category's rounds no advancement step feeds - and a box per
      * challenge: a back-to-back block (pick K ≥ 2 of K) one per puzzle by its label, a pick K < N round K numbered boxes,
      * a one-puzzle round with a label of its own that no other round uses one box with that label ("Challenge 5"), any
-     * other round one box with its name. Labels only - never a puzzle's name.
+     * other round one box with its name. Labels only - never a puzzle's name. With a round chosen also `round` = only
+     * that round's box(es) - an event whose contests have different entrants (St. Paul Winter Carnival).
      *
      * @param list<RoundResultsOverview> $rounds
      * @return array{offered: bool, options: list<array{value: string, label: string, category: string}>, value: string, rounds: list<RoundResultsOverview>, boxes: list<string>, missing: bool, severalTables: int}
      */
-    private function plates(Request $request, string $competitionId, array $rounds, CompetitionTagPrintKind $kind, CompetitionTagPrintLayout $layout): array
+    private function plates(Request $request, string $competitionId, array $rounds, CompetitionTagPrintKind $kind, CompetitionTagPrintLayout $layout, null|RoundResultsOverview $round): array
     {
         $none = ['offered' => false, 'options' => [], 'value' => '', 'rounds' => [], 'boxes' => [], 'missing' => true, 'severalTables' => 0];
 
@@ -318,6 +319,10 @@ readonly final class CompetitionTagSheet
             if ($categoryRounds !== []) {
                 $choices[$category] = ['label' => null, 'category' => $category, 'rounds' => $categoryRounds];
             }
+        }
+
+        if ($round !== null) {
+            $choices['round'] = ['label' => null, 'category' => $round->category, 'rounds' => [$round]];
         }
 
         $value = $request->query->getString('boxes');

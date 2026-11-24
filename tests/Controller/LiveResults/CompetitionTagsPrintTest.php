@@ -488,6 +488,24 @@ final class CompetitionTagsPrintTest extends WebTestCase
         $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tents&boxes=duo&missing=0');
         self::assertCount(0, $page->filter('.time-box-field.missing'));
         self::assertCount(2, $page->filter('.tent')->first()->filter('.time-box'));
+
+        // No round chosen: no "only this round" choice
+        $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tents');
+        self::assertCount(0, $page->filter('[data-tag-boxes] option[value="round"]'));
+    }
+
+    public function testPlatesCarryOnlyTheChosenRoundsBoxWhenAsked(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+
+        // A contest of its own (different entrants per round - St. Paul Winter Carnival): one box, the printed round's
+        $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tents&round=' . OfficialResultsFixture::ROUND_PAIRS . '&boxes=round');
+        self::assertResponseIsSuccessful();
+        self::assertSame('Only this round: Pairs', trim($page->filter('[data-tag-boxes] option[value="round"]')->text()));
+        self::assertSame('round', $page->filter('[data-tag-boxes] option[selected]')->attr('value'));
+        $tents = $page->filter('.tent');
+        self::assertGreaterThan(0, $tents->count());
+        self::assertSame(['Pairs'], $tents->first()->filter('.time-box-label')->each(static fn (Crawler $label): string => trim($label->text())));
     }
 
     /**

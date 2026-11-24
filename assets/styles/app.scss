@@ -1682,6 +1682,14 @@ canvas {
     white-space: normal;
 }
 
+// The "Back to <title>" button (_return_back_button.html.twig): a long event name wraps inside it instead of running
+// off a phone's screen (St. Paul Winter Carnival walk 2026-11-24)
+.btn:has(> .ci-arrow-left) {
+    max-width: 100%;
+    white-space: normal;
+    text-align: start;
+}
+
 // Privacy policy, terms, data deletion: a written-out URL breaks instead of widening the page on a phone
 .terms-of-service {
     overflow-wrap: break-word;

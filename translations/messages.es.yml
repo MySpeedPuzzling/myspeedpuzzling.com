@@ -5226,6 +5226,7 @@ name_tags:
     boxes: "Casillas de tiempo"
     none: "Ninguna"
     category: "Rondas: %category%"
+    this_round: "Solo esta ronda: %round%"
     missing_field: "Con casilla de «piezas que faltan»"
     hint: "Un cartel por participante de %round% con su mesa allí y una casilla por desafío para que el juez anote el tiempo a bolígrafo, en el lado que mira al juez."
     several_tables: "%count% personas se sientan en otra mesa en una ronda posterior: su cartel muestra la mesa de la primera ronda."

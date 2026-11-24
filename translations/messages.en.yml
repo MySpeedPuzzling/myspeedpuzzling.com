@@ -5789,6 +5789,7 @@ name_tags:
         boxes: "Time boxes"
         none: "None"
         category: "Rounds: %category%"
+        this_round: "Only this round: %round%"
         missing_field: "With a \"missing pieces\" field"
         hint: "A plate per entrant of %round% with their table there, and a box per challenge for the judge to write the time by pen - on the side facing the judge."
         several_tables: "%count% people sit at another table in a later round of these - their plate shows the table of the first round."

@@ -155,6 +155,9 @@ table (same all championship), name / pair or team name + members, flags, QR, an
   `entries`): **"Time boxes for: [none ▾ | <standing> … | <category> rounds]"** → `?boxes=standing:<id>` /
   `?boxes=solo|duo|team` (the URL is the memory - a bookmark/print link keeps it), and `?missing=0` to leave out the
   "missing pieces" field (default on: the SPWS penalty process - judge writes time + missing pieces).
+  With a round chosen (`?round=`) also **"Only this round: <round>"** → `?boxes=round`: the printed round's box(es)
+  only - for events whose contests have different entrants (St. Paul Winter Carnival, 2026-11-24); without `?round=`
+  the choice is not offered.
 - The championship = a standing's `round_ids` (SPWS has one standing per championship; the demo too), else every round
   of the category, by schedule. The boxes: per round in order - a pick round with K ≥ 2 (a back-to-back block) gives
   **one box per puzzle slot** labelled by its puzzle label (`RoundPuzzleLabel`: the organiser's label, e.g.

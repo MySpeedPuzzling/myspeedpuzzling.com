@@ -5225,6 +5225,7 @@ name_tags:
     boxes: "Zeitfelder"
     none: "Keine"
     category: "Runden: %category%"
+    this_round: "Nur diese Runde: %round%"
     missing_field: "Mit Feld „fehlende Teile“"
     hint: "Ein Schild pro Teilnehmer von %round% mit dessen Tisch dort und einem Feld je Challenge, in das die Schiedsrichter die Zeit mit Stift schreiben - auf der Seite zu den Schiedsrichtern."
     several_tables: "%count% Personen sitzen in einer späteren dieser Runden an einem anderen Tisch - ihr Schild zeigt den Tisch der ersten Runde."

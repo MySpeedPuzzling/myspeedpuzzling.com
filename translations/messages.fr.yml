@@ -5292,6 +5292,7 @@ name_tags:
     boxes: "Cases pour les temps"
     none: "Aucune"
     category: "Manches : %category%"
+    this_round: "Seulement cette manche : %round%"
     missing_field: "Avec une case « pièces manquantes »"
     hint: "Un chevalet par participant de %round% avec sa table, et une case par défi où le juge note le temps au stylo - sur la face tournée vers le juge."
     several_tables: "%count% personnes sont à une autre table dans une manche suivante - leur chevalet montre la table de la première manche."

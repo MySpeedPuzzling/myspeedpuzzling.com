@@ -24,7 +24,7 @@
             <h1 class="h3 mb-0 d-flex flex-wrap align-items-center">
                 <span><i class="bi bi-collection me-2"></i>{{ collection.name }}</span>
                 {% if is_default_collection %}
-                    <span class="badge bg-primary-subtle text-primary fs-xs fw-normal ms-2" data-testid="default-collection-badge">{{ 'collections.default.badge'|trans }}</span>
+                    <span class="badge bg-primary rounded-pill fs-xs fw-normal ms-2" data-testid="default-collection-badge">{{ 'collections.default.badge'|trans }}</span>
                 {% endif %}
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                     <a href="{{ collection.collectionId ? path('edit_collection', {collectionId: collection.collectionId, 'return': path('collection_detail', {collectionId: collection.collectionId}), 'return_title': collection.name}) : path('edit_system_collection', {playerId: player.playerId, 'return': path('system_collection_detail', {playerId: player.playerId}), 'return_title': collection.name}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2 text-decoration-underline">

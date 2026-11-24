@@ -3,12 +3,18 @@
     the form starts with is a highlighted chip, the default one is marked, a tap on another chip picks it in the picker
     below (the picker stays the field that is submitted - same name, same values). Members with 2+ choices only.
 
+    Renders the whole row of the collection field: its label, the chips, the picker, help and errors (a plain form_row
+    without chips for everybody else).
+
     Parameters:
+    - field: the collection field (FormView)
     - choices: label => collection id (or the system collection's marker), as the form type gets them
-    - selected: the field's value now
-    - input_id: the id of the picker's input
     - system_id: Collection::SYSTEM_ID
+    - widget_attr: attributes for the picker input (optional)
 #}
+{% set widget_attr = widget_attr|default({}) %}
+{% set selected = field.vars.value %}
+{% set input_id = field.vars.id %}
 {% set chip_limit = 5 %}
 {% if logged_user.profile is not null and logged_user.profile.activeMembership and choices|length > 1 %}
     {% set default_id = logged_user.profile.defaultCollectionId ?? system_id %}
@@ -20,6 +26,8 @@
     {% for label, id in choices %}{% if id == system_id and id != default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
     {% for label, id in choices %}{% if id != system_id and id != default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
 
+    <div class="mb-3">
+    {{ form_label(field) }}
     <div class="collection-quick-pick mb-2"
          data-controller="collection-quick-pick"
          data-collection-quick-pick-input-id-value="{{ input_id }}"
@@ -45,4 +53,12 @@
             <a href="{{ path('puzzle_library', {playerId: logged_user.profile.playerId}) }}" data-turbo-frame="_top" class="text-muted">{{ 'collections.quick_pick.change_default'|trans }}</a>
         </div>
     </div>
+    {{ form_widget(field, {attr: field.vars.attr|merge(widget_attr)}) }}
+    {{ form_help(field) }}
+    {{ form_errors(field) }}
+    </div>
+{% elseif widget_attr is empty %}
+    {{ form_row(field) }}
+{% else %}
+    {{ form_row(field, {attr: widget_attr}) }}
 {% endif %}

@@ -15313,7 +15313,7 @@ event_wizard:
         table_names_change: "Změnit na stránce rozsazení"
         table_names_set: "Názvy stolů:"
         table_names_category: "%category% %count% (%first% … %last%)"
-        table_names_refused: "Názvy stolů se nepodařilo uložit - mezitím je někdo změnil. Otevřete krok znovu."
+        table_names_refused: "Názvy stolů se nepodařilo uložit - mezitím je někdo změnil, nebo už lidé sedí u více stolů, než kolik názvů je. Otevřete krok znovu, nebo stoly pojmenujte na stránce rozsazení."
         table_seats_side: "Místa jako „A1 L / A1 R“ jsou pro 2 místa u stolu - pro víc zvolte jiný styl."
         table_seats:
             solo: "Míst u stolu - Sólo"

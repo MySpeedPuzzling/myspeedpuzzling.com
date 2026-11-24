@@ -242,7 +242,8 @@ final class EventWizardExtrasController extends AbstractController
                 $problem = $invalid->problems[0] ?? ['label' => '', 'reason' => 'empty_list'];
                 $reason = $problem['reason'];
                 $field = match ($reason) {
-                    'letters' => 'tableLetters',
+                    // A name too long or of other characters comes from the letters (the numbers are digits)
+                    'letters', 'too_long', 'characters' => 'tableLetters',
                     'numbers', 'too_many' => 'tableNumbers',
                     'seats', 'seat_style' => $seatsField,
                     default => 'tableSkip',

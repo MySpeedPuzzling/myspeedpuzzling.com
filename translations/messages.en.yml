@@ -15562,7 +15562,7 @@ event_wizard:
         table_names_change: "Change on the seating page"
         table_names_set: "Table names:"
         table_names_category: "%category% %count% (%first% … %last%)"
-        table_names_refused: "The table names could not be saved - somebody changed them meanwhile. Open the step again."
+        table_names_refused: "The table names could not be saved - somebody changed them meanwhile, or people already sit at more tables than the names cover. Open the step again, or name the tables on the seating page."
         table_seats_side: "Places like “A1 L / A1 R” are for 2 places per table - choose another style for more."
         table_seats:
             solo: "Places per table - Solo"

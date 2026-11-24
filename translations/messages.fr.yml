@@ -15306,7 +15306,7 @@ event_wizard:
         table_names_change: "Modifier sur la page de placement"
         table_names_set: "Noms des tables :"
         table_names_category: "%category% %count% (%first% … %last%)"
-        table_names_refused: "Les noms des tables n'ont pas pu être enregistrés - quelqu'un les a modifiés entre-temps. Rouvrez l'étape."
+        table_names_refused: "Les noms des tables n'ont pas pu être enregistrés - quelqu'un les a modifiés entre-temps, ou des personnes sont déjà placées à plus de tables que les noms n'en couvrent. Rouvrez l'étape ou nommez les tables sur la page de placement."
         table_seats_side: "Les places comme « A1 L / A1 R » sont pour 2 places par table - choisissez un autre style pour plus."
         table_seats:
             solo: "Places par table - Solo"

@@ -15311,7 +15311,7 @@ event_wizard:
         table_names_change: "Cambiar en la página de asientos"
         table_names_set: "Nombres de mesas:"
         table_names_category: "%category% %count% (%first% … %last%)"
-        table_names_refused: "No se pudieron guardar los nombres de las mesas: alguien los cambió mientras tanto. Vuelve a abrir el paso."
+        table_names_refused: "No se pudieron guardar los nombres de las mesas: alguien los cambió mientras tanto o ya hay personas en más mesas de las que cubren los nombres. Vuelve a abrir el paso o pon nombre a las mesas en la página de asientos."
         table_seats_side: "Los puestos como «A1 L / A1 R» son para 2 puestos por mesa: elige otro estilo para más."
         table_seats:
             solo: "Puestos por mesa - Individual"

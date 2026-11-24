@@ -15310,7 +15310,7 @@ event_wizard:
         table_names_change: "Auf der Sitzplan-Seite ändern"
         table_names_set: "Tischnamen:"
         table_names_category: "%category% %count% (%first% … %last%)"
-        table_names_refused: "Die Tischnamen konnten nicht gespeichert werden - jemand hat sie inzwischen geändert. Öffnen Sie den Schritt erneut."
+        table_names_refused: "Die Tischnamen konnten nicht gespeichert werden - jemand hat sie inzwischen geändert, oder es sitzen schon Leute an mehr Tischen, als es Namen gibt. Öffnen Sie den Schritt erneut oder benennen Sie die Tische auf der Sitzplan-Seite."
         table_seats_side: "Plätze wie „A1 L / A1 R“ gibt es nur für 2 Plätze pro Tisch - wählen Sie für mehr einen anderen Stil."
         table_seats:
             solo: "Plätze pro Tisch - Einzel"

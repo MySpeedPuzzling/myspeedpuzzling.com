@@ -15300,7 +15300,7 @@ event_wizard:
         table_names_change: "座席ページで変更"
         table_names_set: "テーブル名:"
         table_names_category: "%category% %count%（%first% … %last%）"
-        table_names_refused: "テーブル名を保存できませんでした。その間に誰かが変更しました。このステップを開き直してください。"
+        table_names_refused: "テーブル名を保存できませんでした。その間に誰かが変更したか、名前の数より多いテーブルにすでに人が座っています。このステップを開き直すか、座席ページでテーブルに名前を付けてください。"
         table_seats_side: "「A1 L / A1 R」形式は 1 テーブル 2 席用です。それ以上の場合は別の形式を選んでください。"
         table_seats:
             solo: "1 テーブルの席数 - 個人"

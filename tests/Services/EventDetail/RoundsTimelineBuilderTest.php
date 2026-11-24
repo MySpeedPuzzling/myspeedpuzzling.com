@@ -105,6 +105,19 @@ final class RoundsTimelineBuilderTest extends TestCase
         self::assertNull($allPublished->nextRoundId);
     }
 
+    public function testARoundPublishedWhileItsTimeRunsStaysLive(): void
+    {
+        // Now = 14:00 New York: published at 13:30, its 90 minutes run until 14:30 - as before the change
+        $timeline = $this->build([
+            self::round('r1', '2026-06-10 13:00', minutes: 90, zone: 'America/New_York', resultsPublished: true),
+            self::round('r2', '2026-06-10 16:00', minutes: 60, zone: 'America/New_York'),
+        ]);
+
+        self::assertSame([RoundStatus::Live, RoundStatus::Later], self::statuses($timeline));
+        self::assertSame('r1', $timeline->nextRoundId);
+        self::assertTrue($timeline->isLive);
+    }
+
     public function testANextRoundLaterTodaySaysToday(): void
     {
         $timeline = $this->build([

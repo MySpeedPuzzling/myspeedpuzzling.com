@@ -169,13 +169,14 @@ with published results is done**, so it is never "next" or "upcoming", whatever 
   the "next one" step skips published rounds - the next **unpublished** round ahead; every round ahead published = the
   last round, as before. Running and "started within 12 hours" are unchanged, so a round published right after it ended
   still holds the hall screen. `GetCompetitorPage` hands the picker the round's published state (it passed none).
-- `EditionRoundDetail::isOverAt()` = published, or its time over counted from `startedAt()` - the event/edition timeline
-  (Past / Live / Next, the sidebar's and facts strip's "Next round", folding) reads it.
-- The round results page: a published round has taken place (`hasStarted`), so no "This round starts in …".
+- `EditionRoundDetail::isOverAt()` = its time over counted from `startedAt()`, or published while it has not begun -
+  the event/edition timeline (Past / Live / Next, the sidebar's and facts strip's "Next round", folding) reads it. A
+  round published while its time still runs stays Live, as before.
 
-Untouched events: their published rounds lie in the past, so every page reads as before (goldens unchanged); the one
-visible difference is a round published while its time still runs - it reads Past instead of Live. Not changed: the
-events agenda, the series page and "You organize" date occurrences by their schedule and have no "next round".
+Untouched events: their published rounds have begun, so every page reads as before (goldens unchanged). Not changed:
+the round results page (a published round shows its official results anyway; "Add time" keeps following the start,
+like the timeline), the events agenda, the series page and "You organize" (they date occurrences by their schedule
+and have no "next round").
 
 Left on purpose: a team whose only entries are no-shows is left out of the standing (Jan asks SPWS).
 

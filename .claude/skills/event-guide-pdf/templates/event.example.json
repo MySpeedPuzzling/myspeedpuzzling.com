@@ -1,0 +1,15 @@
+{
+  "host": "https://sandbox.myspeedpuzzling.com",
+  "sandbox_gate": true,
+  "locale": "en",
+  "slug": "example-event-demo",
+  "output": "example-guide",
+  "logo": "event-logo.png",
+  "footer": "Example Event x MySpeedPuzzling - organiser guide",
+  "accounts": {
+    "organiser": {"email": "test-user+1@myspeedpuzzling.com", "password": "sandbox"},
+    "judge": {"email": "test-user+2@myspeedpuzzling.com", "password": "sandbox"},
+    "competitor": {"email": "test-user+3@myspeedpuzzling.com", "password": "sandbox"}
+  },
+  "css": "[data-testid=\"sandbox-banner\"] { display: none !important; }"
+}

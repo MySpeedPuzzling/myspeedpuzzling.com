@@ -388,6 +388,126 @@ SQL, ['first' => $first['id'], 'next' => $block['id']]));
         }
     }
 
+    /**
+     * The St. Paul Winter Carnival 2027 demo at its full made-up size: the website's schedule in Central time, three team
+     * contests on one puzzle, divisions on Sunday's pairs and solo, plain table numbers per contest with the parallel
+     * Sunday contests in two ranges, no standing (each contest on its own). Built on a day still ahead (the test clock is
+     * weeks before DAY): OPEN #2 and Family Teams wait - no results, no stopwatch.
+     */
+    public function testBuildsTheCarnival2027DemoOnRequest(): void
+    {
+        self::bootKernel();
+        $database = self::getContainer()->get(Connection::class);
+        $this->createMadeUpPlayers(40);
+
+        $simulationData = self::getContainer()->get(GetSandboxSimulationData::class);
+        $organizer = $simulationData->playerIdByEmail('test-user+1@myspeedpuzzling.com');
+        $referee = $simulationData->playerIdByEmail('test-user+2@myspeedpuzzling.com');
+        $maintainer = PlayerFixture::PLAYER_REGULAR;
+        self::assertNotNull($organizer);
+        self::assertNotNull($referee);
+
+        $lines = [];
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line) use (&$lines): void {
+            $lines[] = $line;
+        }, SandboxDemoEventDefinitions::CARNIVAL_2027_SLUG, [$maintainer]);
+
+        self::assertSame([], array_values(array_filter($lines, static fn (string $line): bool => str_starts_with($line, 'TODO:'))));
+        $carnival = $this->competitionId(SandboxDemoEventDefinitions::CARNIVAL_2027_SLUG);
+        self::assertSame(2, $this->rowCount('SELECT COUNT(*) FROM competition_maintainer WHERE competition_id = :id AND player_id IN (:a, :b)', ['id' => $carnival, 'a' => $organizer, 'b' => $maintainer]));
+        self::assertSame(1, $this->rowCount('SELECT COUNT(*) FROM organization o JOIN competition c ON c.organization_id = o.id WHERE c.id = :id AND o.approved_at IS NOT NULL', ['id' => $carnival]));
+
+        // The website's schedule, America/Chicago (UTC-6 in winter)
+        $rounds = $database->fetchAllAssociative('SELECT name, minutes_limit, starts_at, category FROM competition_round WHERE competition_id = :id ORDER BY starts_at, name', ['id' => $carnival]);
+        self::assertSame([
+            ['500 Teams CHALLENGE', 90, '2026-12-01 15:00:00', 'team'],
+            ['1000 Teams', 180, '2026-12-01 17:15:00', 'team'],
+            ['500 Teams OPEN #1', 120, '2026-12-01 21:00:00', 'team'],
+            ['500 Pairs', 120, '2026-12-02 15:30:00', 'duo'],
+            ['500 Solo', 120, '2026-12-02 18:15:00', 'solo'],
+            ['500 Family Teams', 120, '2026-12-02 21:00:00', 'team'],
+            ['500 Teams OPEN #2', 120, '2026-12-02 21:00:00', 'team'],
+        ], array_map(static fn (array $round): array => [$round['name'], $round['minutes_limit'], $round['starts_at'], $round['category']], $rounds));
+
+        // One puzzle for CHALLENGE, OPEN #1 and OPEN #2
+        self::assertSame(1, $this->rowCount(<<<SQL
+SELECT COUNT(DISTINCT crp.puzzle_id)
+FROM competition_round_puzzle crp
+JOIN competition_round cr ON cr.id = crp.round_id
+WHERE cr.competition_id = :id AND cr.name IN ('500 Teams CHALLENGE', '500 Teams OPEN #1', '500 Teams OPEN #2')
+SQL, ['id' => $carnival]));
+
+        // Full-ish size: 920 people, the pairs and solo puzzlers are team people again
+        self::assertSame(920, $this->rowCount('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id AND deleted_at IS NULL', ['id' => $carnival]));
+        $teams = $database->fetchAllKeyValue('SELECT cr.name, COUNT(ct.id) FROM competition_round cr LEFT JOIN competition_team ct ON ct.round_id = cr.id WHERE cr.competition_id = :id AND cr.category <> \'solo\' GROUP BY cr.name', ['id' => $carnival]);
+        self::assertEquals(['500 Teams CHALLENGE' => 40, '1000 Teams' => 80, '500 Teams OPEN #1' => 60, '500 Pairs' => 60, '500 Teams OPEN #2' => 60, '500 Family Teams' => 30], $teams);
+
+        // Plain table numbers per contest; the CHALLENGE teams keep their table in the 1000; Family after OPEN #2
+        $tables = $database->fetchAllAssociative('SELECT cr.name, MIN(ct.table_number) AS first, MAX(ct.table_number) AS last, COUNT(DISTINCT ct.table_number) AS tables FROM competition_round cr JOIN competition_team ct ON ct.round_id = cr.id WHERE cr.competition_id = :id GROUP BY cr.name ORDER BY cr.name', ['id' => $carnival]);
+        self::assertSame([
+            ['1000 Teams', 1, 80, 80],
+            ['500 Family Teams', 61, 90, 30],
+            ['500 Pairs', 1, 60, 60],
+            ['500 Teams CHALLENGE', 1, 40, 40],
+            ['500 Teams OPEN #1', 1, 60, 60],
+            ['500 Teams OPEN #2', 1, 60, 60],
+        ], array_map(static fn (array $row): array => [$row['name'], $row['first'], $row['last'], $row['tables']], $tables));
+        $challenge = $this->round($carnival, '500 Teams CHALLENGE');
+        self::assertSame(40, $this->rowCount('SELECT COUNT(*) FROM competition_team a JOIN competition_team b ON b.round_id = :next AND b.name = a.name AND b.table_number = a.table_number WHERE a.round_id = :first', ['first' => $challenge['id'], 'next' => $this->round($carnival, '1000 Teams')['id']]));
+        self::assertTrue(self::rangeIs(1, 120, $database->fetchFirstColumn('SELECT table_number FROM competition_participant_round WHERE round_id = :id ORDER BY table_number', ['id' => $this->round($carnival, '500 Solo')['id']])));
+
+        // Divisions: Regular / Senior 55+ on the pairs, + Junior 15 and under on the solo
+        $solo = $this->round($carnival, '500 Solo');
+        self::assertEquals(['Junior 15 and under' => 20, 'Regular' => 80, 'Senior 55+' => 20], $database->fetchAllKeyValue('SELECT d.name, COUNT(*) FROM competition_participant_round cpr JOIN competition_division d ON d.id = cpr.division_id WHERE cpr.round_id = :id GROUP BY d.name ORDER BY d.name', ['id' => $solo['id']]));
+        self::assertEquals(['Regular' => 45, 'Senior 55+' => 15], $database->fetchAllKeyValue('SELECT d.name, COUNT(*) FROM competition_team ct JOIN competition_division d ON d.id = ct.division_id WHERE ct.round_id = :id GROUP BY d.name ORDER BY d.name', ['id' => $this->round($carnival, '500 Pairs')['id']]));
+
+        // Saturday and Sunday morning published with everybody's result, a tie, time's up with pieces placed
+        foreach (['500 Teams CHALLENGE', '1000 Teams', '500 Teams OPEN #1', '500 Pairs'] as $name) {
+            $round = $this->round($carnival, $name);
+            self::assertNotNull($round['results_published_at'], $name);
+            self::assertSame($name === '1000 Teams' ? 80 : ($name === '500 Teams CHALLENGE' ? 40 : 60), $this->teamResults($round['id']), $name);
+            self::assertGreaterThanOrEqual(1, $this->rowCount('SELECT COUNT(*) FROM (SELECT result_seconds FROM competition_team WHERE round_id = :id AND result_seconds IS NOT NULL GROUP BY result_seconds HAVING COUNT(*) >= 2) t', ['id' => $round['id']]), $name);
+            self::assertGreaterThanOrEqual(1, $this->rowCount('SELECT COUNT(*) FROM competition_team WHERE round_id = :id AND result_pieces_placed IS NOT NULL', ['id' => $round['id']]), $name);
+        }
+        self::assertNotNull($solo['results_published_at']);
+        self::assertSame(120, $this->rowCount('SELECT COUNT(*) FROM competition_participant_round WHERE round_id = :id AND (result_seconds IS NOT NULL OR result_pieces_placed IS NOT NULL OR result_did_not_start)', ['id' => $solo['id']]));
+
+        // The demo day is ahead: OPEN #2 and Family Teams wait for the organisers' own start
+        foreach (['500 Teams OPEN #2', '500 Family Teams'] as $name) {
+            self::assertSame(0, $this->teamResults($this->round($carnival, $name)['id']), $name);
+        }
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id AND stopwatch_status IS NOT NULL', ['id' => $carnival]));
+
+        // Each contest on its own: no standing; winter hall screens, a stream overlay and the divisions board
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM competition_standing WHERE competition_id = :id', ['id' => $carnival]));
+        self::assertSame(
+            ['Divisions board', 'Hall screen', 'Hall screen - Family Teams', 'Stream overlay'],
+            $database->fetchFirstColumn('SELECT name FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $carnival]),
+        );
+        // The main hall screen follows every round but Family Teams (which has its own screen) - OPEN #2 at 15:00
+        $follows = $database->fetchOne("SELECT follow_round_ids::text FROM competition_display WHERE competition_id = :id AND name = 'Hall screen'", ['id' => $carnival]);
+        self::assertIsString($follows);
+        $followed = json_decode($follows, true);
+        self::assertIsArray($followed);
+        self::assertCount(6, $followed);
+        self::assertNotContains($this->round($carnival, '500 Family Teams')['id'], $followed);
+        self::assertContains($this->round($carnival, '500 Teams OPEN #2')['id'], $followed);
+
+        // Again: nothing new, nothing changed
+        $snapshot = $this->snapshot([SandboxDemoEventDefinitions::CARNIVAL_2027_SLUG]);
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line): void {
+        }, SandboxDemoEventDefinitions::CARNIVAL_2027_SLUG, [$maintainer]);
+        self::assertSame($snapshot, $this->snapshot([SandboxDemoEventDefinitions::CARNIVAL_2027_SLUG]));
+    }
+
+    /**
+     * @param list<mixed> $numbers
+     */
+    private static function rangeIs(int $first, int $last, array $numbers): bool
+    {
+        return array_map(static fn (mixed $number): int => is_numeric($number) ? (int) $number : -1, $numbers) === range($first, $last);
+    }
+
     public function testRefusedOutsideTheSandbox(): void
     {
         self::bootKernel();

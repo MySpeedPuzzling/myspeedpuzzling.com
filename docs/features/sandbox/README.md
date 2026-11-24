@@ -121,13 +121,14 @@ see the hash; the pipe keeps it inside the box (never on disk, in a log, a termi
 
 Made-up events for showing the competition toolkit to organisers (Jan's demo ~2 Dec 2026). Invented names,
 people and results - modelled on the formats only, never on a real event's data. The first two are built by a plain
-run, the third only with `--event` (it takes the real organisers' accounts and logo, given on the box):
+run, the third and fourth only with `--event` (they take the real organisers' accounts and logo, given on the box):
 
 | Slug | Event | Zone |
 |---|---|---|
 | `speed-puzzle-world-series-demo` | "Speed Puzzle World Series - demo", Toronto: Individual (5 one-puzzle rounds, 75 min), Pairs (Challenges 1 + 2 and 3 + 4 = one round "Solve all 2 (order recorded)" each, 90 min, 500 pcs; Challenge 5 one 250-piece puzzle - wooden when the catalogue has one - 45 min, **unboxed**), Teams of 4 (two blocks of 2 × 1000 pcs, 90 min). One sum standing per championship: 5 s per missing piece, total only, finished-with-missing penalised, no-show = nothing placed (`as_zero_pieces`). Tables by name on each championship's first round (pairs 1.., teams 101.., individuals 201..), copied to the later rounds ("Use these tables in later rounds"). A hall timer screen (live top 10), an OBS overlay (live board + the v2 standings element) and a "Challenges board" pinned to Pairs - Challenges 1 + 2 (a leaderboard per challenge ranked by its own time - real events L2b). | `America/Toronto` |
 | `winter-carnival-jigsaw-demo` | "Winter Carnival Jigsaw - demo", Saint Paul MN: Saturday "500 Teams CHALLENGE" (90 min), "1000 Teams" (3 h, same teams and tables), "500 Teams OPEN #1" (2 h); Sunday "500 PAIRS" (divisions Regular / Senior 55+), "500 SOLO" (Regular / Senior 55+ / Junior under 16), "500 Teams OPEN #2" and "500 FAMILY" at the same time (15:00-17:00). CHALLENGE, OPEN #1 and OPEN #2 share one puzzle (shared puzzles S2). A "Divisions board" display pinned to 500 SOLO (a leaderboard per division with the division ranks - real events L2b). | `America/Chicago` |
 | `spws-toronto-2027-demo` | "Speed Puzzle World Series Toronto 2027 - demo" - **the confirmed SPWS format 1:1** ([spws-demo-event.md](../competitions-management/spws-demo-event.md), guide for the call: [spws-demo-guide.md](../competitions-management/toolkit/spws-demo-guide.md)): Pairs (C1 + C2 and C3 + C4 back to back, 90 min; C5 unboxed, 60 min), Teams of 4 (two blocks, 120 / 150 min; C4 unboxed on its own), Individual C1-C5 (75 min, C5 unboxed); catalogue stand-ins by brand (Speedmaster, Boardwalk, Wentworth wooden 250, Buffalo Games, Ravensburger), Teams C3 + C4 = two new secret puzzles revealed when the stopwatch starts. Hall table names A1-H22 (two places "A1 L"/"A1 R" for pairs and individuals), same tables per championship. 30 pairs, 16 teams, 40 individuals (the first 40 team people), a tie in every published round. Organization "Speed Puzzle World Series (demo)" owns it; five displays in the SPWS navy + gold (hall screen, stream overlay, championship standings, challenge board, lower third). Demo day = the Teams day: Pairs the day before published, Teams C1 + C2 running, Teams C3 + C4 and the individual days planned. | `America/Toronto` |
+| `st-paul-winter-carnival-2027-demo` | "St. Paul Winter Carnival Jigsaw Puzzle Competition 2027 - demo" (2026-11-24) - **the 2027 format as we guess it** until the organisers answer (the guesses are listed in their guide, which lives outside the repo): the website's schedule - Saturday "500 Teams CHALLENGE" 9:00 (90 min), "1000 Teams" 11:15 (3 h; the 40 CHALLENGE teams keep their tables + 40 more teams), "500 Teams OPEN #1" 15:00 (2 h); Sunday "500 Pairs" 9:30 (2 h, Regular / Senior 55+), "500 Solo" 12:15 (2 h, Regular / Senior 55+ / Junior 15 and under), "500 Teams OPEN #2" + "500 Family Teams" side by side 15:00 (2 h). CHALLENGE, OPEN #1 and OPEN #2 share one puzzle; every puzzle a PuzzleTwist stand-in. Each contest ranked on its own (no standing), divisions ranked inside the round next to the overall ranking, unfinished by pieces placed, ties share the place. Plain table numbers from 1 per contest, Family Teams 61.. (the same hall as OPEN #2). 40 / 80 / 60 / 60 / 30 teams, 60 pairs (CHALLENGE people), 120 solo (1000-only people) = 920 people. Organization "St. Paul Winter Carnival puzzle committee (demo)"; displays in a neutral winter look (no logo): "Hall screen" (current round), "Hall screen - Family Teams" (pinned), "Stream overlay", plus the "Divisions board" on 500 Solo. Demo day = the Sunday: Saturday, Pairs and Solo published; OPEN #2 and Family wait for their stopwatches (`stopwatchFromStart`, see "Two modes" below). | `America/Chicago` |
 
 `--date` is the demo day: everything of the day before is recorded and **published** (World Series: the first block
 of each championship; Carnival: Saturday), the demo day's first rounds run with some results in (a third finished, on
@@ -161,6 +162,17 @@ docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events -
 `--date` there is the **Toronto** Teams day; Teams Challenges 3 + 4 starts 15:00 Toronto that day - the secret
 puzzles are added only while that is ahead. To rebuild after a rehearsal: delete the event (admin, Delete) and run
 it again (the organization is found again and reused).
+
+The St. Paul Winter Carnival 2027 demo, on its **real Sunday** (so the organisers start OPEN #2 and Family Teams early
+themselves and Reset them - nothing is seeded there; `--maintainer` = their sandbox accounts, no logo yet):
+
+```bash
+docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events --date=2027-02-07 \
+  --event=st-paul-winter-carnival-2027-demo --maintainer=<organiser e-mail>
+```
+
+It sits next to the older made-up `winter-carnival-jigsaw-demo` (18 Nov, 2 Dec dates, old times and counts), which
+stays as it is - a re-run never moves rounds, and replacing it would mean deleting it.
 
 **Two modes of the demo day's running block** (Teams Challenges 1 + 2, `SandboxDemoRound::$stopwatchFromStart`,
 [spws-demo-ux-leftovers.md](../competitions-management/spws-demo-ux-leftovers.md) §5):

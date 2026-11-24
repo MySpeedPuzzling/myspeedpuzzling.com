@@ -18,7 +18,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * The sandbox's demo events for organisers (docs/features/sandbox/README.md "Demo events"): a World-Series-like
  * championship in Toronto and a winter-carnival-like weekend in Saint Paul, with made-up people and results; on request
- * (--event) the Speed Puzzle World Series format 1:1 (spws-demo-event.md). Sandbox
+ * (--event) the Speed Puzzle World Series format 1:1 (spws-demo-event.md) and the St. Paul Winter Carnival 2027 as we
+ * guess it (README "Demo events"). Sandbox
  * only (SANDBOX=1) - it refuses anywhere else before writing anything. Safe to run again: it completes what exists
  * and never duplicates or overwrites anything. The work is SandboxDemoEvents' - every write is a message.
  */

@@ -74,7 +74,9 @@ event (new ids/URLs) just run the full command - URLs, ids and round lines come 
    - framing: `clip` (an element), `clip_from` (from an element's top down, `max_height` tall), `full` + `max_height`,
      else the viewport; `pad`;
    - `marks`: numbered pins on elements - `{"selector": …, "contains": "text", "index": n}`; with a text, the
-     innermost element containing it wins. Prefer visible texts (UI labels) over CSS classes;
+     innermost element containing it wins. Prefer visible texts (UI labels) over CSS classes. The pin sits just left
+     of the element (6 mm on paper, whatever the shot's scale); `"pin": "r"` puts it right of the element, `"tl"` on
+     its top-left corner - use those when the element starts at the shot's left edge (a clamped pin covers its text);
    - `actions` (look-only): `{"type": "a6", "into": ".lr-find-input"}`, `{"click": {…}}`, `{"wait": ms}`;
      `settle` ms before the shot; `css` for the shot (e.g. a grey backdrop behind a transparent OBS overlay).
    Scrolling a page is unreliable - use `clip` / `clip_from` instead.
@@ -103,8 +105,9 @@ event (new ids/URLs) just run the full command - URLs, ids and round lines come 
 
 - Find elements by **UI labels** ("Publish results", "Challenge 2", "Table ") or stable attributes
   (`[data-time-boxes]`, `[data-toolkit-card=…]`), never by made-up data (a team name, a puzzle stand-in, a time).
-  Open a table the event always has (`a1`), not one whose state you liked today. A typed key opens the card only
-  when it is unique (`a1` also lists A10 …), so tap the first row after typing (see `shots.example.json`).
+  Open a table the event always has (`a1`), not one whose state you liked today. A typed table name opens the card
+  by itself after a short pause; the example still taps the first row after typing, which is harmless when the card
+  is already open (see `shots.example.json`).
 - Anything a caption says about the data ("3 pieces missing", "none of the displays has X", "Table A6") goes stale
   silently. Prefer `{{…}}` values from `facts.json`; otherwise keep the wording generic. After every refresh,
   re-read the captions next to the shots that changed, and the "How it is set up" table.

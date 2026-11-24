@@ -577,17 +577,17 @@ def figure_html(folder: str, name: str, attrs: str) -> tuple[str, str | None]:
         left, top = 100 * m['x'] / w, 100 * m['y'] / h
         bw, bh = 100 * m['w'] / w, 100 * m['h'] / h
         # Where the pin sits: 'l' (default) just left of the box, 'r' just right of it, 'tl' on its top-left corner -
-        # beside the text, so the pin never hides the words it explains.
-        gap = 100 * 14 / w
+        # beside the text, so the pin never hides the words it explains. The pin is 6 mm on paper whatever the shot's
+        # scale, so the offset is in mm (CSS), not in shot pixels; it stays inside the frame (overflow is hidden).
         mode = m.get('pin', 'l')
         if mode == 'r':
-            px, py = min(left + bw + gap, 97.0), top + bh / 2
+            px, py = f'min(calc(100% - 3.2mm), calc({left + bw:.2f}% + 3.6mm))', f'{top + bh / 2:.2f}%'
         elif mode == 'tl':
-            px, py = left, top
+            px, py = f'{left:.2f}%', f'{top:.2f}%'
         else:
-            px, py = max(left - gap, 100 * 12 / w), top + bh / 2
+            px, py = f'max(3.2mm, calc({left:.2f}% - 3.6mm))', f'{top + bh / 2:.2f}%'
         pins.append(f'<span class="mark-box" style="left:{left:.2f}%;top:{top:.2f}%;width:{bw:.2f}%;height:{bh:.2f}%"></span>'
-                    f'<span class="pin" style="left:{px:.2f}%;top:{py:.2f}%">{m["n"]}</span>')
+                    f'<span class="pin" style="left:{px};top:{py}">{m["n"]}</span>')
     cls = f'shot-frame vp-{meta["viewport"]}'
     stamp = f'?t={int(os.path.getmtime(os.path.join(folder, "shots", name + ".jpg")))}'
     frame = (f'<div class="{cls}" style="--ratio:{w}/{h}"><img src="../shots/{name}.jpg{stamp}" alt="">{"".join(pins)}</div>')

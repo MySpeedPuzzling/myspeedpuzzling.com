@@ -93,6 +93,10 @@ event (new ids/URLs) just run the full command - URLs, ids and round lines come 
    heading landed). Never write it by hand - write clear section headings and situation titles instead, they ARE the
    contents ("Real-life situations" headings are left out, the situations under them are listed). Aim for one page:
    shorten long situation titles before shrinking the type. `GUIDE_DEBUG=1` keeps the first print as `*.pass1.pdf`.
+   **Paper stays as backup** (Jan, always): phones are how results are entered, but every guide RECOMMENDS keeping a
+   paper timesheet / the time boxes on the plates for every table as disaster recovery - a dead phone, a Wi-Fi outage,
+   a disputed time. "Better safe than sorry": a clear box in the judges' chapter, a checklist line (print them), and
+   the situations that use it. Never present the toolkit as replacing paper.
    **Tone**: friendly plain English, explain why not just how, short sentences, UI labels exactly as on screen in
    `<span class="ui">`. Never internal words (round_puzzle, pick round, entry, value object, split → say "the moment
    … was recorded", reveal mode, as_zero_pieces…). Say clearly what the software does and what judges decide.

@@ -119,7 +119,10 @@ figure figcaption b { color: var(--dark); }
 .shot-frame.vp-phone { border-radius: 5mm; border: 2.2mm solid var(--dark); }
 .shot-frame.vp-display { border: 1.5mm solid #1b1f27; border-radius: 2mm; }
 .mark-box { position: absolute; border: 2px solid var(--primary); border-radius: 1.4mm; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7); }
-.pin { position: absolute; width: 6mm; height: 6mm; margin: -3mm 0 0 -3mm; border-radius: 50%; background: var(--primary); color: #fff; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 1.6px solid #fff; box-shadow: 0 0.5mm 1.2mm rgba(0, 0, 0, 0.3); }
+.pin { position: absolute; width: 6mm; height: 6mm; margin: -3mm 0 0 -3mm; border-radius: 50%; background: var(--primary); color: #fff; font-size: 8.5pt; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 1.6px solid #fff; }
+/* No box-shadow: Chrome's PDF printer rasterises a blurred shadow as a grey square behind the round pin. A thin dark ring
+   keeps the pin readable on light shots instead. */
+.pin::after { content: ''; position: absolute; inset: -2.2px; border-radius: 50%; border: 0.6px solid rgba(0, 0, 0, 0.45); }
 .shot-missing { border: 2px dashed var(--warning); border-radius: 3mm; padding: 10mm; text-align: center; color: #d9731f; font-weight: 600; }
 ol.callouts { list-style: none; padding: 0; margin: 2mm 0 0; font-size: 9pt; }
 ol.callouts li { position: relative; padding-left: 7.5mm; margin-bottom: 1.2mm; }

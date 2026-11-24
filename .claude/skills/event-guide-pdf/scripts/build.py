@@ -24,6 +24,7 @@ import html
 import http.cookiejar
 import json
 import os
+import uuid
 import re
 import shutil
 import socket
@@ -306,7 +307,8 @@ class Browser:
         s.bind(('127.0.0.1', 0))
         self.port = s.getsockname()[1]
         s.close()
-        self.name = f'event-guide-chrome-{os.getpid()}'
+        # A fresh name per browser: the shoot stage's container may still be on its way out (--rm) when render starts
+        self.name = f'event-guide-chrome-{os.getpid()}-{uuid.uuid4().hex[:6]}'
         self.base = f'http://127.0.0.1:{self.port}'
         log(f'  starting {SELENIUM_IMAGE} as {self.name} on :{self.port}')
         subprocess.run(['docker', 'run', '-d', '--rm', '--name', self.name, '-p', f'127.0.0.1:{self.port}:4444',
@@ -408,7 +410,21 @@ FIND_JS = r"""
 window.__guideFind = (spec) => {
   if (typeof spec === 'string') { spec = {selector: spec}; }
   let els = Array.from(document.querySelectorAll(spec.selector || 'body *'));
-  els = els.filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+  // Seen = a size of its own, not hidden by CSS, and no ancestor that clips it away (a collapsed "Show earlier" panel
+  // has height 0 but its children still report their boxes)
+  const seen = (e) => {
+    const r = e.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) { return false; }
+    if (e.checkVisibility && !e.checkVisibility({opacityProperty: true, visibilityProperty: true})) { return false; }
+    for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) {
+      const st = getComputedStyle(a);
+      if (st.overflow === 'visible' && st.overflowY === 'visible') { continue; }
+      const ar = a.getBoundingClientRect();
+      if (ar.height < 1 || ar.width < 1 || r.top >= ar.bottom || r.bottom <= ar.top) { return false; }
+    }
+    return true;
+  };
+  els = els.filter(seen);
   if (spec.contains) {
     const t = spec.contains;
     els = els.filter(e => (e.innerText || e.textContent || '').includes(t));

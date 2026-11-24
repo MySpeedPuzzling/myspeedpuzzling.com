@@ -701,6 +701,18 @@ body.as-body {
     display: none;
 }
 
+// A list of pairs/teams (spws-demo-ux-leftovers.md §7): "Line-up 12×" and "#3 1:00:19" keep one line - their columns
+// are wider than a solo list's (solo lists unchanged)
+.as-list--teams .as-row {
+    grid-template-columns: minmax(0, 1fr) 62px 60px 50px 40px 80px 22px;
+}
+
+.as-list--teams .as-row__solves,
+.as-list--teams .as-row .as-result {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
 .as-row__best {
     font-family: var(--as-mono);
     font-size: 12px;
@@ -1630,6 +1642,10 @@ a.as-person__name:hover {
         grid-template-columns: minmax(0, 1fr) 44px 50px 70px 22px;
     }
 
+    .as-list--teams .as-row {
+        grid-template-columns: minmax(0, 1fr) 60px 50px 80px 22px;
+    }
+
     .as-row__rating,
     .as-row__table,
     .as-row__prediction {
@@ -1799,6 +1815,10 @@ a.as-person__name:hover {
     .as-list--predictions .as-row {
         grid-template-columns: minmax(0, 1fr) 44px 54px 68px 30px;
         min-height: 40px;
+    }
+
+    .as-list--teams .as-row {
+        grid-template-columns: minmax(0, 1fr) 60px 54px 80px 30px;
     }
 
     .as-list--by-prediction .as-row__best {

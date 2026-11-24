@@ -75,7 +75,7 @@ readonly final class GetEventAttendance
         $withClaimMatch = $withClaimMatch && $publiclyVisible;
 
         if ($event->registrationManaged === false) {
-            return $this->forPlayer($event->id, $playerId, self::mayBeOnline($event), $withClaimMatch, $focusParticipantId);
+            return $this->forPlayer($event->id, $playerId, self::mayBeOnline($event), $withClaimMatch, $focusParticipantId, $event->competitorPages);
         }
 
         return $this->withRegistration($event, $playerId, $publiclyVisible, $withClaimMatch, $focusParticipantId);
@@ -92,6 +92,8 @@ readonly final class GetEventAttendance
     /**
      * @param bool $withOnlineLink an event that may be online - read the viewer's personal link too
      * @param bool $withClaimMatch the "Is this you?" card's match - the caller knows the event is publicly visible
+     * @param bool $withOwnParticipant the event has competitor pages on - read the viewer's going participant too ("Your
+     *     competitor page", spws-demo-ux-leftovers.md §1), in the same statement
      */
     public function forPlayer(
         string $competitionId,
@@ -99,6 +101,7 @@ readonly final class GetEventAttendance
         bool $withOnlineLink = false,
         bool $withClaimMatch = false,
         null|string $focusParticipantId = null,
+        bool $withOwnParticipant = false,
     ): EventAttendance {
         if ($playerId === null) {
             return EventAttendance::notGoing();
@@ -128,6 +131,22 @@ readonly final class GetEventAttendance
             }
         }
 
+        if ($withOwnParticipant) {
+            $ownGoing = CompetitionParticipantGoing::sql('own');
+            $onlineColumns .= <<<SQL
+,
+    (
+        SELECT own.id
+        FROM competition_participant own
+        WHERE own.competition_id = :competitionId
+        AND own.player_id = :playerId
+        AND {$ownGoing}
+        ORDER BY own.id
+        LIMIT 1
+    ) AS own_participant_id
+SQL;
+        }
+
         $onlineJoin = $joins !== [] ? "\nFROM (SELECT 1) AS viewer\n" . implode("\n", $joins) : '';
 
         $query = <<<SQL
@@ -150,7 +169,7 @@ SELECT
     {$this->sqlPendingRequestName()} AS pending_request_participant_name{$onlineColumns}{$onlineJoin}
 SQL;
 
-        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, pending_request_participant_name: null|string, online_participant_id?: null|string, online_token?: null|string, claim_match_count?: null|int|string, claim_participant_id?: null|string, claim_participant_name?: null|string, claim_participant_country?: null|string} $row */
+        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, pending_request_participant_name: null|string, online_participant_id?: null|string, online_token?: null|string, claim_match_count?: null|int|string, claim_participant_id?: null|string, claim_participant_name?: null|string, claim_participant_country?: null|string, own_participant_id?: null|string} $row */
         $row = $this->database
             ->executeQuery($query, $parameters)
             ->fetchAssociative();
@@ -171,6 +190,7 @@ SQL;
                     $focusParticipantId !== null,
                 )
                 : null,
+            ownParticipantId: $row['is_going'] ? self::lowerOrNull($row['own_participant_id'] ?? null) : null,
         );
     }
 
@@ -393,6 +413,9 @@ SQL;
                     $focusParticipantId !== null,
                 )
                 : null,
+            // "Your competitor page" (spws-demo-ux-leftovers.md §1): the viewer's own row - read anyway, shown only
+            // while the event has competitor pages on
+            ownParticipantId: $isGoing && $event->competitorPages ? self::lowerOrNull($row['player_participant_id']) : null,
         );
     }
 

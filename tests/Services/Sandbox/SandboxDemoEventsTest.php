@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Services\Sandbox\SandboxDemoEvents;
 use SpeedPuzzling\Web\Services\Sandbox\SandboxMode;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -163,6 +164,8 @@ SQL, ['open' => $open['id'], 'challenge' => $this->round($carnival, '500 Teams C
         self::assertSame([], array_values(array_filter($lines, static fn (string $line): bool => str_starts_with($line, 'TODO:'))));
 
         self::assertNotEmpty(array_filter($lines, static fn (string $line): bool => str_contains($line, '/en/events/' . SandboxDemoEventDefinitions::SPWS_SLUG)));
+        // The old demos start no stopwatch (stopwatchFromStart is the SPWS demo's only)
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM competition_round cr JOIN competition c ON c.id = cr.competition_id WHERE c.slug IN (:a, :b) AND cr.stopwatch_status IS NOT NULL', ['a' => SandboxDemoEventDefinitions::SPWS_SLUG, 'b' => SandboxDemoEventDefinitions::CARNIVAL_SLUG]));
 
         // Again: nothing new, nothing changed
         $snapshot = $this->snapshot();
@@ -271,9 +274,13 @@ SQL, ['first' => $first['id'], 'next' => $block['id']]));
 
         // A no-show in each published round - another pair each time, so every no-show stays ranked in the standing
         self::assertSame(3, $this->rowCount("SELECT COUNT(DISTINCT ct.name) FROM competition_team ct JOIN competition_round cr ON cr.id = ct.round_id WHERE cr.competition_id = :id AND cr.category = 'duo' AND ct.result_did_not_start", ['id' => $spws]));
-        // Teams block 1 running, individuals planned
+        // Built on a day still ahead (the test clock is weeks before DAY - like the real dates months ahead): the demo
+        // day's running block waits - no results, no stopwatch, so a stopwatch started live today blocks nothing
         self::assertNull($this->round($spws, 'Teams - Challenges 1 + 2')['results_published_at']);
-        self::assertGreaterThan(0, $this->teamResults($this->round($spws, 'Teams - Challenges 1 + 2')['id']));
+        self::assertSame(0, $this->teamResults($this->round($spws, 'Teams - Challenges 1 + 2')['id']));
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM competition_team ct JOIN competition_round cr ON cr.id = ct.round_id WHERE cr.competition_id = :id AND cr.name = :name AND ct.result_puzzles IS NOT NULL', ['id' => $spws, 'name' => 'Teams - Challenges 1 + 2']));
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM competition_round WHERE competition_id = :id AND stopwatch_status IS NOT NULL', ['id' => $spws]));
+        self::assertContains('"Teams - Challenges 1 + 2" is the demo day\'s running block - the day is ahead: no results, not started (start it yourself)', $lines);
         // The individuals are the first 40 team people - one participant each
         self::assertSame(124, $this->rowCount('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id AND deleted_at IS NULL', ['id' => $spws]));
 
@@ -295,6 +302,92 @@ SQL, ['first' => $first['id'], 'next' => $block['id']]));
         self::assertSame($snapshot, $this->snapshot([SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG]));
     }
 
+    /**
+     * Built on the call day after the running block's start (11:30 Toronto): its stopwatch is started at 10:00 - the
+     * judge's "Finished now" works at once and every seeded time lies in the clock's past. A rehearsal's stopwatch
+     * (stopped) is never touched by a re-run.
+     */
+    public function testTheRunningBlockOfTheSpwsDemoRunsFromItsStartOnTheCallDay(): void
+    {
+        self::bootKernel();
+        self::getContainer()->set(ClockInterface::class, new MockClock(new \DateTimeImmutable('2026-12-02 16:30:00', new \DateTimeZone('UTC'))));
+        $this->createMadeUpPlayers(40);
+
+        $simulationData = self::getContainer()->get(GetSandboxSimulationData::class);
+        $organizer = $simulationData->playerIdByEmail('test-user+1@myspeedpuzzling.com');
+        $referee = $simulationData->playerIdByEmail('test-user+2@myspeedpuzzling.com');
+        self::assertNotNull($organizer);
+
+        $lines = [];
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line) use (&$lines): void {
+            $lines[] = $line;
+        }, SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG);
+
+        $database = self::getContainer()->get(Connection::class);
+        $spws = $this->competitionId(SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG);
+        self::assertSame([['Teams - Challenges 1 + 2', 'running', '2026-12-02 15:00:00']], $database->fetchAllNumeric('SELECT name, stopwatch_status, stopwatch_started_at FROM competition_round WHERE competition_id = :id AND stopwatch_status IS NOT NULL', ['id' => $spws]));
+        self::assertContains('Stopwatch of "Teams - Challenges 1 + 2" started at 2026-12-02 10:00 (America/Toronto)', $lines);
+        $this->assertSeededWithinTheHour($spws);
+        // Teams 3 + 4 (15:00 Toronto) still gets its secret puzzles
+        self::assertSame([], array_values(array_filter($lines, static fn (string $line): bool => str_starts_with($line, 'TODO:'))));
+
+        // A rehearsal stopped it - a re-run leaves it so
+        $database->executeStatement("UPDATE competition_round SET stopwatch_status = 'stopped', stopwatch_stopped_at = '2026-12-02 16:20:00' WHERE competition_id = :id AND name = 'Teams - Challenges 1 + 2'", ['id' => $spws]);
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line): void {
+        }, SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG);
+        self::assertSame('stopped', $database->fetchOne("SELECT stopwatch_status FROM competition_round WHERE competition_id = :id AND name = 'Teams - Challenges 1 + 2'", ['id' => $spws]));
+    }
+
+    /**
+     * Built on the call day before the block's start (08:00 Toronto): its stopwatch is scheduled for 10:00 Toronto - it
+     * runs by itself from then on - and its results are seeded within the first hour.
+     */
+    public function testTheRunningBlockIsScheduledForItsStartEarlyOnTheCallDay(): void
+    {
+        self::bootKernel();
+        self::getContainer()->set(ClockInterface::class, new MockClock(new \DateTimeImmutable('2026-12-02 13:00:00', new \DateTimeZone('UTC'))));
+        $this->createMadeUpPlayers(40);
+
+        $simulationData = self::getContainer()->get(GetSandboxSimulationData::class);
+        $organizer = $simulationData->playerIdByEmail('test-user+1@myspeedpuzzling.com');
+        $referee = $simulationData->playerIdByEmail('test-user+2@myspeedpuzzling.com');
+        self::assertNotNull($organizer);
+
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line): void {
+        }, SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG);
+
+        $spws = $this->competitionId(SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG);
+        self::assertSame([['Teams - Challenges 1 + 2', 'scheduled', '2026-12-02 15:00:00']], self::getContainer()->get(Connection::class)->fetchAllNumeric('SELECT name, stopwatch_status, stopwatch_started_at FROM competition_round WHERE competition_id = :id AND stopwatch_status IS NOT NULL', ['id' => $spws]));
+        $this->assertSeededWithinTheHour($spws);
+    }
+
+    /**
+     * Teams - Challenges 1 + 2 is seeded only within its first hour (SandboxDemoRound::$seededWithinMinutes): some
+     * finished, some with Challenge 1 only, every time ≤ 60 min
+     */
+    private function assertSeededWithinTheHour(string $competitionId): void
+    {
+        $round = $this->round($competitionId, 'Teams - Challenges 1 + 2');
+        $rows = self::getContainer()->get(Connection::class)->fetchAllAssociative('SELECT result_seconds, result_puzzles::text AS puzzles FROM competition_team WHERE round_id = :id AND (result_seconds IS NOT NULL OR result_puzzles IS NOT NULL)', ['id' => $round['id']]);
+        $finished = array_filter($rows, static fn (array $row): bool => $row['result_seconds'] !== null);
+        self::assertNotEmpty($finished, 'somebody finished');
+        self::assertGreaterThan(count($finished), count($rows), 'somebody has Challenge 1 only');
+
+        foreach ($rows as $row) {
+            self::assertTrue($row['result_seconds'] === null || (is_int($row['result_seconds']) && $row['result_seconds'] <= 3600));
+            self::assertIsString($row['puzzles']);
+            $puzzles = json_decode($row['puzzles'], true);
+            self::assertIsArray($puzzles);
+
+            foreach ($puzzles as $item) {
+                self::assertIsArray($item);
+                $at = $item['atSeconds'] ?? 0;
+                self::assertIsInt($at);
+                self::assertLessThanOrEqual(3600, $at);
+            }
+        }
+    }
+
     public function testRefusedOutsideTheSandbox(): void
     {
         self::bootKernel();
@@ -312,6 +405,11 @@ SQL, ['first' => $first['id'], 'next' => $block['id']]));
     private function service(bool $sandbox): SandboxDemoEvents
     {
         $container = self::getContainer();
+
+        // The sandbox-only handlers it dispatches to (StartSandboxDemoRoundStopwatch) see the sandbox too
+        if ($sandbox && $container->initialized(SandboxMode::class) === false) {
+            $container->set(SandboxMode::class, new SandboxMode(true));
+        }
 
         return new SandboxDemoEvents(
             new SandboxMode($sandbox),

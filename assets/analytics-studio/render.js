@@ -406,6 +406,8 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
         const round = column ? roundSource(state, roundPredictions) : null;
         const stalled = round?.stalled === true && round.status !== 'ready';
         list.classList.toggle('as-list--predictions', column);
+        // Pairs/teams: wider line-up and result columns (spws-demo-ux-leftovers.md §7)
+        list.classList.toggle('as-list--teams', rows.some((row) => row.isTeam));
         list.classList.toggle('as-list--by-prediction', column && view.sort === 'prediction' && sorts.includes('prediction'));
         listStatus.textContent = column && round?.status !== 'ready' && round?.status !== 'none' ? t(stalled ? 'prediction.unavailable' : 'prediction.warming') : '';
         sortSelect.replaceChildren();

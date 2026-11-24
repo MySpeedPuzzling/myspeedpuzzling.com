@@ -238,6 +238,33 @@
     opacity: 0.8;
 }
 
+// A leaderboard with `nameLines` (spws-demo-ux-leftovers.md §4): a long pair/team name wraps to that many lines
+// instead of one line with an ellipsis; rank, flags and the time stay on one line beside it
+.msp-el__row--wrap .msp-el__cell--name {
+    white-space: normal;
+}
+
+// ... and a team's flags stack two by two, so four of them leave the name its room
+.msp-el__row--wrap .msp-el__cell--flag {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1em 0.12em;
+    max-width: 2.8em;
+
+    .fi {
+        margin-right: 0;
+    }
+}
+
+.msp-el__row--wrap .msp-el__name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--msp-name-lines, 2);
+    line-clamp: var(--msp-name-lines, 2);
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
 .msp-el__cell--result,
 .msp-el__cell--table {
     font-variant-numeric: tabular-nums;

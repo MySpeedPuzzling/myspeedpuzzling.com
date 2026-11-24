@@ -590,6 +590,24 @@ export function spotlightFor(props, state) {
 }
 
 /**
+ * Whether a results list of the design shows a row now - a leaderboard (`top`) or ticker (`latest`) that is not hidden,
+ * each with its own source gating and view (resultsFor() + resultRows()). What `when.results: has_rows` waits for
+ * (spws-demo-ux-leftovers.md §4): a panel's box, title and count appear with the first row its list shows. A design
+ * without such a list never has rows.
+ */
+export function hasResultRows(elements, state) {
+    return (Array.isArray(elements) ? elements : []).some((element) => {
+        if (element?.hidden === true || (element?.type !== 'leaderboard' && element?.type !== 'ticker')) {
+            return false;
+        }
+
+        const { results } = resultsFor(element.props ?? {}, state ?? {});
+
+        return results !== null && resultRows(element, results, element.type === 'leaderboard' ? 'top' : 'latest').length > 0;
+    });
+}
+
+/**
  * The visibility of an element: not hidden, shown in the phase, and its results / puzzle conditions.
  */
 export function isShown(element, context) {
@@ -606,6 +624,11 @@ export function isShown(element, context) {
     }
 
     if (element.when.results === 'not_published' && context.resultsPublished) {
+        return false;
+    }
+
+    // Only while result rows are in (spws-demo-ux-leftovers.md §4) - an empty panel stays off the camera picture
+    if (element.when.results === 'has_rows' && context.hasRows !== true) {
         return false;
     }
 
@@ -1200,9 +1223,16 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         const columns = props.columns;
         const rowStyle = props.rowStyle ?? {};
 
+        // Long names wrap to `nameLines` lines (spws-demo-ux-leftovers.md §4) - without it one line, cut with an ellipsis
+        const nameLines = Number.isInteger(props.nameLines) && props.nameLines >= 2 ? props.nameLines : null;
+
         syncRows(view, rows, () => {
-            const node = el('div', 'msp-el__row');
+            const node = el('div', nameLines !== null ? 'msp-el__row msp-el__row--wrap' : 'msp-el__row');
             const cells = {};
+
+            if (nameLines !== null) {
+                node.style.setProperty('--msp-name-lines', String(nameLines));
+            }
 
             for (const column of columns) {
                 if (column === 'members') {
@@ -1738,7 +1768,7 @@ export function createRenderer({ document, root, design, competitionId, kind }) 
         const clock = stopwatchView(state.stopwatch ?? null, nowMs);
         const resultsPublished = state.round ? state.round.resultsPublished === true : state.results?.published === true;
 
-        return { clock, phase: clock.phase, resultsPublished, puzzleRevealed: state.anyPuzzleRevealed === true };
+        return { clock, phase: clock.phase, resultsPublished, hasRows: hasResultRows(current.elements, state), puzzleRevealed: state.anyPuzzleRevealed === true };
     }
 
     function render(state, nowMs) {

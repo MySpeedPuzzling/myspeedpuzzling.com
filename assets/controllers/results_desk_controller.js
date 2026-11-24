@@ -505,7 +505,10 @@ export default class extends Controller {
         // Phone width (real events L1): the Country and Entered columns are hidden below sm / md so the result column
         // shows without a sideways scroll - the flags go next to the name, "entered by" under the result (Division: above)
         const flags = this.flagsHtml(entry.countries ?? []);
-        cells.push(`<td>${flags !== '' ? `<span class="d-sm-none float-end ms-1">${flags}</span>` : ''}${this.entrantHtml(entry)}${divisionChip !== '' ? `<div class="d-sm-none small mt-1">${divisionChip}</div>` : ''}${this.takeOutHtml(entry)}</td>`);
+        // A named pair/team lists its members with their flags already (entrantHtml()) - on a phone no second set
+        // stacked above the name (four flags of a team pushed the row wide; spws-demo-ux-leftovers.md §7)
+        const membersFlagged = entry.kind !== 'person' && entry.name !== null && (entry.members ?? []).length > 0;
+        cells.push(`<td>${flags !== '' && !membersFlagged ? `<span class="d-sm-none float-end ms-1">${flags}</span>` : ''}${this.entrantHtml(entry)}${divisionChip !== '' ? `<div class="d-sm-none small mt-1">${divisionChip}</div>` : ''}${this.takeOutHtml(entry)}</td>`);
         cells.push(`<td class="text-nowrap d-none d-sm-table-cell">${flags}</td>`);
         const entered = this.enteredHtml(this.entries.get(entry.ref));
         cells.push(`<td>

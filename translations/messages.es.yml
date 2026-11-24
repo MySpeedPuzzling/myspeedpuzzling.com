@@ -5096,6 +5096,8 @@ live_results:
     pick_k: "¿Qué %count% puzzles? Tócalos en el orden de resolución."
     missing_note: "Elección de puzzles incompleta: el resultado se guarda sin ella; añádela después (Falta el puzzle)."
     save: "Guardar puzzles"
+    save_order: "Guardar orden"
+    order_solved: "Orden de resolución"
     none: "Ningún puzzle"
     hidden: "Aún sin revelar"
     missing_filter: "Falta el puzzle (%count%)"
@@ -14155,6 +14157,10 @@ competition_toolkit:
             everywhere: "en todo MySpeedPuzzling"
             name_everywhere: "su nombre en todas partes, su imagen en este evento"
             event: "en este evento"
+        scope_unboxed:
+            everywhere: "en todo MySpeedPuzzling, su imagen cuando se publiquen los resultados"
+            name_everywhere: "su nombre en todas partes, su imagen cuando se publiquen los resultados"
+            event: "en este evento, su imagen cuando se publiquen los resultados"
         countdown_reveals: "Esta cuenta atrás revela al terminar: %puzzles%."
         countdown_reveals_nothing: "Esta cuenta atrás no revela nada (se inició sin «Revelar»): %puzzles%. Para revelarlos al inicio, cancélala e inicia de nuevo con la casilla marcada."
         still_hidden: "Aún ocultos (el cronómetro se inició sin «Revelar»): %puzzles%."
@@ -14347,6 +14353,7 @@ competition_toolkit:
             none: "Sin divisiones."
             manage: "Gestionar divisiones"
 competitor_page:
+    own_link: "Tu página de participante"
     settings:
         in_person_only: "Las páginas de participante y los códigos QR son para eventos presenciales."
         qr_mode:
@@ -14752,6 +14759,7 @@ competition_display:
             challenge_round: "Toda la ronda"
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "En un bloque de «resolver todos», ordena por el tiempo propio de ese puzzle, una vez revelado. Las demás rondas muestran toda la ronda."
+            nameLines: "Líneas por nombre"
             image:
                 source: "Imagen"
             clock:
@@ -14879,6 +14887,7 @@ competition_display:
             chroma: "Color de clave (croma)"
             any: "Siempre"
             not_published: "Aún sin publicar"
+            has_rows: "Cuando haya resultados"
             revealed: "Revelado"
             not_revealed: "Aún sin revelar"
             idle: "Sin iniciar"
@@ -15973,8 +15982,8 @@ participant_linking:
         policy_label: "Cuando alguien elige un nombre de tu lista"
         policy:
             automatic: "Automático"
-            automatic_now_approval: "Ahora: Preguntarme primero: en este evento los competidores pueden proponer sus propios tiempos."
-            automatic_now_open: "Ahora: Vincular al momento: en este evento nadie propone su propio tiempo."
+            automatic_now_approval: "En este evento funciona como «Preguntarme primero», porque aquí los competidores pueden proponer sus propios tiempos."
+            automatic_now_open: "En este evento funciona como «Vincular al momento»: aquí nadie propone su propio tiempo."
             open: "Vincular al momento"
             open_help: "Cualquier persona con sesión iniciada puede elegir un nombre de tu lista."
             approval: "Preguntarme primero"

@@ -629,7 +629,8 @@ final readonly class DisplayDesignSanitizer
             'locked' => self::boolean(self::get($input, 'locked'), false),
             'when' => [
                 'phases' => self::subset(self::get($when, 'phases'), self::PHASES, self::PHASES),
-                'results' => self::enum(self::get($when, 'results'), ['any', 'published', 'not_published'], 'any'),
+                // `has_rows`: only while the state carries result rows (spws-demo-ux-leftovers.md §4)
+                'results' => self::enum(self::get($when, 'results'), ['any', 'published', 'not_published', 'has_rows'], 'any'),
                 'puzzle' => self::enum(self::get($when, 'puzzle'), ['any', 'revealed', 'not_revealed'], 'any'),
             ],
             'style' => $this->style(self::get($input, 'style')),
@@ -766,6 +767,8 @@ final readonly class DisplayDesignSanitizer
                 ],
                 ...self::resultsSource($input),
                 ...self::resultsView($input, withChallenge: true),
+                // Optional - stored only when set (spws-demo-ux-leftovers.md §4): every other design keeps one line
+                ...self::optionalProp('nameLines', self::optionalInteger(self::get($input, 'nameLines'), 1, 3)),
             ],
             'ticker' => [
                 'rows' => self::integer(self::get($input, 'rows'), 1, 10, 5),
@@ -1125,6 +1128,16 @@ final readonly class DisplayDesignSanitizer
         }
 
         return mb_substr($value, 0, $maxLength, 'UTF-8');
+    }
+
+    /**
+     * An optional prop: the key only when it has a value (spread into the props), like schema.js's `optional: true`
+     *
+     * @return array<string, int>
+     */
+    private static function optionalProp(string $key, null|int $value): array
+    {
+        return $value === null ? [] : [$key => $value];
     }
 
     /**

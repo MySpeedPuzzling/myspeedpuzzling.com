@@ -11,8 +11,20 @@ nothing can break. How the event is built: [spws-demo-event.md](../spws-demo-eve
 - The event: **Speed Puzzle World Series Toronto 2027 - demo**, `/en/events/spws-toronto-2027-demo`.
 - It is laid out as if the call's day (`--date`) were the **Teams day** (Thursday at the real event): Pairs (yesterday) is finished and published, Teams
   Challenges 1 + 2 has some results in, Teams Challenges 3 + 4 (15:00 Toronto) and the two Individual days are still
-  to come. Times are Toronto times - on a call in the European evening it is morning in Toronto, so the organisers
-  start the stopwatches themselves (step 3) rather than wait for the schedule.
+  to come. Times are Toronto times (CET = Toronto + 6 h).
+- **Teams Challenges 1 + 2 depends on `--date`** (README "Demo events", two modes):
+  - **Built on its real dates** (`--date=2027-06-03`, the real Teams day, months ahead - the organisers try it now):
+    Pairs (2 June 2027) is recorded and published - standings, the tie, a no-show per round, missing pieces, plates -
+    and **every Teams and Individual round is waiting, without results and without a stopwatch**, Teams Challenges
+    1 + 2 included. The organisers start any round's stopwatch whenever they like (Start, or a countdown; Reset puts it
+    back) and the judges enter everything live - Finished now per challenge, Challenge 2 after Challenge 1. The pages
+    read "2 June 2027" etc.; nothing waits for that day.
+  - **Built with the call's day** (`--date` = today, Toronto): the block runs on its own clock from 10:00 Toronto
+    (16:00 CET) - scheduled for that moment by the build, or started at it when the build runs later that day. Before
+    10:00 Toronto the judge page and the screens count down to it; 10:00-12:00 it runs (limit 120 min) - **Finished now**
+    works and a team with only Challenge 1 in can be given Challenge 2. Every seeded time lies within the first hour,
+    so from 11:00 Toronto (17:00 CET) every seeded result is in the clock's past. After 12:00 it reads "Time's up"
+    until somebody stops it.
 - The URLs of this installation are printed by the build command (README "Demo events"); the list in §6 below is the
   one built on 2026-11-24.
 
@@ -46,18 +58,18 @@ see every organiser page. A second judge on the call: an organiser's phone (orga
 
 ### Judge (phone, 375 px)
 1. Sign in as the judge → the round's judge page (`/en/live-results/<round id>`), add it to the home screen.
-2. Type `a1` → A1 is at the top of the list (A10 … also match) - tap it or press Enter; a unique table opens at once
-   (`a1l` = A1 L). **Finished now** per challenge appears only while the round's stopwatch runs - Teams Challenges 1 + 2
-   is *not* started in the build, and its teams' Challenge 1 times (27-51 min) are later than a freshly started clock, so
-   a tap there is refused. Show **Finished now** on Teams Challenges 3 + 4 after its start (step 12-15 of the call) or
-   on a team without a result; on Teams Challenges 1 + 2 type the time on the clock (a block: Challenge 1's split first,
-   then Challenge 2 = the time - always the clock's time, never a challenge's own time). **Didn't finish**: tap both challenges first, then type the pieces still loose; **Pieces missing** is on the
-   Save step (one count for both challenges).
+2. Type `a1` → A1 is at the top of the list (A10 … also match) and opens after a short pause (or Enter / a tap);
+   a unique table opens at once (`a1l` = A1 L). **Finished now** per challenge appears while the round's stopwatch
+   runs (§0: once an organiser started it, or from 10:00 Toronto in a call-day build): tap Finished now for a team's Challenge 1, or Challenge
+   2 for a team with Challenge 1 in. Else type the time on the clock (a block: Challenge 1's split first, then
+   Challenge 2 = the time - always the clock's time, never a challenge's own time). **Didn't finish** on a block
+   starts with the challenges in their order ("Order solved") - type the pieces still loose on the open one;
+   **Pieces missing** is on the Save step (one count for both challenges).
 3. Airplane mode: keep entering - the phone keeps the results and sends them when back online.
 
 ### Competitor (phone)
-1. Sign in as a made-up player → the event page → **Competitors** → their own name (marked "You") - or scan the QR on
-   the plate. The event page itself has no "Your competitor page" link.
+1. Sign in as a made-up player → the event page → **Your competitor page** (in "Taking part" and next to
+   "Competitors" above the rounds) - or scan the QR on the plate.
 2. Their table, the day and clock of each round, their results and rank; with the stopwatch running,
    **Done - propose my time** → **Propose** sends their time to the judge, who confirms it on the table's card.
 
@@ -101,7 +113,9 @@ puzzles. The two places per table are named "L"/"R" until SPWS decides.
 ## 5. After a rehearsal
 
 A started stopwatch, revealed puzzles and typed results stay. To start over, Jan deletes the event (admin) and runs
-the build command again (README "Demo events").
+the build command again (README "Demo events"). A re-run never moves a round or touches a stopwatch that was started,
+stopped or scheduled - but a stopwatch **reset** during a rehearsal gets the 10:00 start of Teams Challenges 1 + 2
+again on the next run.
 
 ## 6. URLs (built on the sandbox 2026-11-24, `--date=2026-12-02`)
 
@@ -136,7 +150,7 @@ Per round (desk = organisers' results desk, judge = the phone page, stopwatch = 
 | Pairs - Challenges 1 + 2 | published | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenges-1-2 |
 | Pairs - Challenges 3 + 4 | published | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenges-3-4 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenges-3-4 |
 | Pairs - Challenge 5 | published, unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenge-5 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenge-5 |
-| Teams - Challenges 1 + 2 | results in (5 finished, 5 with Challenge 1 only), stopwatch **not started** | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-1-2 |
+| Teams - Challenges 1 + 2 | results in (this build: stopwatch not started - a rebuild runs it from 10:00 Toronto, seeds within its first hour) | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-1-2 |
 | Teams - Challenges 3 + 4 | planned: 2 secret puzzles, reveal at the stopwatch start, Challenge 4 unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-3-4 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-3-4 |
 | Individual - Challenge 1 | planned | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/individual-challenge-1 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/individual-challenge-1 |
 | Individual - Challenge 5 | planned, unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/individual-challenge-5 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/individual-challenge-5 |
@@ -148,7 +162,8 @@ Who is where (made-up players, password `sandbox`): table A1 of the teams = "Cor
 
 ## 7. Notes from the walk (2026-11-24)
 
-- **Finished now** on the judge's phone appears once the round's stopwatch runs (before that: type the time).
+- **Finished now** on the judge's phone appears once the round's stopwatch runs (before that: type the time). Since
+  the UX leftovers package Teams Challenges 1 + 2 runs from its start (§0).
 - The stream overlay's background is transparent (checked); a normal browser tab shows it on white.
 - Before the call the standings of Teams are empty ("No round of this standing has published results yet") - they
   fill when the organiser publishes Teams Challenges 1 + 2 or 3 + 4 in the simulation.

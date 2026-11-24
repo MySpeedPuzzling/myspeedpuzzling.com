@@ -32,7 +32,9 @@ export const FIELDS = ['competition_name', 'round_name', 'round_category', 'roun
 export const PHASE_COLORS = ['idle', 'scheduled', 'running', 'warning', 'times_up', 'stopped'];
 export const BACKGROUND_TYPES = ['color', 'transparent', 'image', 'chroma'];
 export const BACKGROUND_FITS = ['cover', 'contain'];
-export const WHEN_RESULTS = ['any', 'published', 'not_published'];
+// `has_rows` (spws-demo-ux-leftovers.md §4): only while the state carries result rows - a panel's box and title next to a
+// leaderboard that has none yet stay off the camera picture
+export const WHEN_RESULTS = ['any', 'published', 'not_published', 'has_rows'];
 export const WHEN_PUZZLE = ['any', 'revealed', 'not_revealed'];
 
 // [min, max, default] - percent of the canvas (2 decimals), rotate in degrees
@@ -149,6 +151,9 @@ export const PROP_SPECS = {
         // Real events L2b: one view of the round - optional, stored only when set (every other design is unchanged)
         { key: 'division', kind: 'division', optional: true },
         { key: 'challenge', kind: 'challenge', optional: true, min: 1, max: MAX_CHALLENGE },
+        // Long pair/team names wrap to this many lines instead of one with an ellipsis (spws-demo-ux-leftovers.md §4) -
+        // optional, stored only when set: every other design keeps one line
+        { key: 'nameLines', kind: 'int', optional: true, min: 1, max: 3 },
     ],
     ticker: [
         { key: 'rows', kind: 'int', min: 1, max: 10, default: 5 },
@@ -549,7 +554,7 @@ function propValue(spec, value, path, competitionId, errors) {
         case 'enum':
             return oneOf(value, spec.options, spec.default);
         case 'int':
-            return integer(value, spec.min, spec.max, spec.default);
+            return spec.optional === true ? optionalInteger(value, spec.min, spec.max) : integer(value, spec.min, spec.max, spec.default);
         case 'bool':
             return boolean(value, spec.default);
         case 'color':

@@ -5085,6 +5085,8 @@ live_results:
     pick_k: "どの%count%個のパズル？ 解いた順にタップしてください。"
     missing_note: "パズルの選択が未完了です。結果はパズルなしで保存されます。後で追加してください（パズル未入力）。"
     save: "パズルの選択を保存"
+    save_order: "順番を保存"
+    order_solved: "解いた順番"
     none: "パズルなし"
     hidden: "まだ非公開"
     missing_filter: "パズル未入力（%count%）"
@@ -14144,6 +14146,10 @@ competition_toolkit:
             everywhere: "MySpeedPuzzlingのすべての場所で"
             name_everywhere: "名前はすべての場所で、画像はこのイベントで"
             event: "このイベントで"
+        scope_unboxed:
+            everywhere: "MySpeedPuzzlingのすべての場所で、画像は結果の公開後"
+            name_everywhere: "名前はすべての場所で、画像は結果の公開後"
+            event: "このイベントで、画像は結果の公開後"
         countdown_reveals: "このカウントダウンの終了時に公開されます：%puzzles%。"
         countdown_reveals_nothing: "このカウントダウンでは何も公開されません（「公開」なしで開始されました）：%puzzles%。開始時に公開するには、カウントダウンをキャンセルし、チェックを入れて開始し直してください。"
         still_hidden: "まだ非公開です（ストップウォッチが「公開」なしで開始されました）：%puzzles%。"
@@ -14336,6 +14342,7 @@ competition_toolkit:
             none: "部門はありません。"
             manage: "部門を管理"
 competitor_page:
+    own_link: "あなたの出場者ページ"
     settings:
         in_person_only: "出場者ページとQRコードは会場開催のイベント用です。"
         qr_mode:
@@ -14741,6 +14748,7 @@ competition_display:
             challenge_round: "ラウンド全体"
             challenge_puzzle: "パズル %position%"
             challenge_help: "「すべて完成」ブロックでは、そのパズルの個別タイム順に並べます（パズル公開後）。他のラウンドはラウンド全体を表示します。"
+            nameLines: "名前の行数"
             image:
                 source: "画像"
             clock:
@@ -14868,6 +14876,7 @@ competition_display:
             chroma: "キーカラー（クロマ）"
             any: "常に"
             not_published: "まだ公開されていない"
+            has_rows: "結果が入ったら"
             revealed: "公開済み"
             not_revealed: "まだ公開されていない"
             idle: "未開始"
@@ -15962,8 +15971,8 @@ participant_linking:
         policy_label: "誰かがリストから名前を選んだとき"
         policy:
             automatic: "自動"
-            automatic_now_approval: "現在: 先に確認する – このイベントでは競技者が自分のタイムを提案できます。"
-            automatic_now_open: "現在: すぐに連携 – このイベントでは誰も自分のタイムを提案しません。"
+            automatic_now_approval: "このイベントでは「先に確認する」と同じ動作です。競技者が自分のタイムを提案できるためです。"
+            automatic_now_open: "このイベントでは「すぐに連携」と同じ動作です。誰も自分のタイムを提案しないためです。"
             open: "すぐに連携"
             open_help: "ログインしている人なら誰でもリストから名前を選べます。"
             approval: "先に確認する"

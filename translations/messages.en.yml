@@ -5662,6 +5662,8 @@ live_results:
         pick_k: "Which %count% puzzles? Tap them in solving order."
         missing_note: "Puzzle choice incomplete - the result is saved without it; add it later (Puzzle missing)."
         save: "Save puzzle choice"
+        save_order: "Save order"
+        order_solved: "Order solved"
         none: "No puzzle"
         hidden: "Not revealed yet"
         missing_filter: "Puzzle missing (%count%)"
@@ -14407,6 +14409,10 @@ competition_toolkit:
             everywhere: "everywhere on MySpeedPuzzling"
             name_everywhere: "its name everywhere, its picture on this event"
             event: "on this event"
+        scope_unboxed:
+            everywhere: "everywhere on MySpeedPuzzling, its picture once the results are published"
+            name_everywhere: "its name everywhere, its picture once the results are published"
+            event: "on this event, its picture once the results are published"
         countdown_reveals: "This countdown reveals when it ends: %puzzles%."
         countdown_reveals_nothing: "This countdown reveals nothing (it was started without “Reveal”): %puzzles%. To reveal them at the start, cancel it and start again with the box ticked."
         still_hidden: "Still hidden (the stopwatch was started without “Reveal”): %puzzles%."
@@ -14602,6 +14608,7 @@ competition_toolkit:
             none: "No divisions."
             manage: "Manage divisions"
 competitor_page:
+    own_link: "Your competitor page"
     settings:
         in_person_only: "Competitor pages and QR codes are for events in person."
         qr_mode:
@@ -15007,6 +15014,7 @@ competition_display:
             challenge_round: "The whole round"
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "On a solve-all block, ranks by that puzzle's own time - once the puzzle is revealed. Other rounds show the whole round."
+            nameLines: "Lines per name"
             image:
                 source: "Picture"
             clock:
@@ -15134,6 +15142,7 @@ competition_display:
             chroma: "Key colour (chroma)"
             any: "Always"
             not_published: "Not published yet"
+            has_rows: "When results are in"
             revealed: "Revealed"
             not_revealed: "Not revealed yet"
             idle: "Not started"
@@ -16231,8 +16240,8 @@ participant_linking:
         policy_label: "When somebody picks a name from your list"
         policy:
             automatic: "Automatic"
-            automatic_now_approval: "Now: Ask me first - competitors can propose their own times at this event."
-            automatic_now_open: "Now: Link at once - nobody proposes their own time at this event."
+            automatic_now_approval: "Works like “Ask me first” at this event, because competitors can propose their own times here."
+            automatic_now_open: "Works like “Link at once” at this event - nobody proposes their own time here."
             open: "Link at once"
             open_help: "Anybody signed in can pick a name from your list."
             approval: "Ask me first"

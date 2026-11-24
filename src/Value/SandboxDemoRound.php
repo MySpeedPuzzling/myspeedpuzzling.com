@@ -61,6 +61,12 @@ readonly final class SandboxDemoRound
         // A published round's no-show: the n-th entrant from the end by name (0 = the last). Different per round, the
         // no-show entrant has results elsewhere and stays ranked in the standing (as_zero_pieces)
         public int $noShowFromEnd = 0,
+        // A running round: its stopwatch runs from the round's scheduled start (started then, or scheduled while it lies
+        // ahead) - the judge's "Finished now" works on the demo day (spws-demo-ux-leftovers.md §5)
+        public bool $stopwatchFromStart = false,
+        // A running round: only results that lie within this many minutes of the start are seeded (finished totals,
+        // challenge 1 splits) - so from that long after the start every seeded time is in the clock's past; null = all
+        public null|int $seededWithinMinutes = null,
     ) {
         // 1 = the time's-up entrant (second to last), which the planner would silently drop
         if ($noShowFromEnd < 0 || $noShowFromEnd === 1) {

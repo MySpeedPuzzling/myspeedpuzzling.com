@@ -96,6 +96,10 @@ final class SandboxGateTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(404);
         self::assertSelectorNotExists('[data-testid="sandbox-gate"]');
+
+        // Its pages stay behind the gate (the Czech round redirect included)
+        self::assertFalse(SandboxGate::isOpenPath('/analytics-studio/018d0000-0000-0000-0000-00000000ffff'));
+        self::assertFalse(SandboxGate::isOpenPath('/en/events/x/analytics-studio/y'));
     }
 
     public function testProductionHasNoWelcomePage(): void

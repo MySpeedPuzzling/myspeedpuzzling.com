@@ -49,7 +49,9 @@ noarchive, nosnippet, noimageindex` (Traefik on every router **and** the app's `
 a `<meta name="robots" content="noindex…">` (`base.html.twig`), and `robots.txt` says `Disallow: /` (site and images).
 
 Never behind the welcome page (`SandboxGate::isOpenPath()`, the same list as lily's open router): `/api/`,
-`/oauth2/token`, `/internal-api/`, `/-/` (health, telemetry), `robots.txt`, `/sandbox/enter`; static files never reach
+`/oauth2/token`, `/internal-api/`, `/-/` (health, telemetry), `robots.txt`, `/sandbox/enter`, `/embed/` (the
+standing embed, framed by other sites), the analytics studio's cookie-less JSON (`/analytics-studio/<round>/state|
+analytics|predictions|round-predictions|entrant/<id>` - SPWS demo walk 2026-11-24); static files never reach
 the app. They are JSON or files, carry `noindex` and nothing links to them from outside. `/api/docs` (Swagger UI) is
 HTML there: noindex + robots.txt + no inbound links.
 

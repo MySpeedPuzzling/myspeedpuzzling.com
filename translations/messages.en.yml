@@ -160,6 +160,7 @@ round_results:
     not_started: "This round starts %when%. Results appear here as soon as puzzlers add their times."
     no_results: "No results yet. Did you compete in this round? Add your time and it will show up here."
     no_puzzle_yet: "The puzzle for this round has not been revealed yet."
+    no_puzzles_yet: "The puzzles of this round have not been revealed yet."
     column_result: "Result"
     unofficial_note: "Times added by puzzlers on MySpeedPuzzling, fastest first - not the official placings, and only for those who added their time."
     pieces_placed: "%placed% / %total% pcs"
@@ -14638,6 +14639,7 @@ competitor_page:
         table_unused: "No round uses this table yet."
     round:
         current: "Now"
+        next: "Next"
         running: "In progress"
         scheduled: "Starting soon"
         stopped: "Paused"
@@ -15015,6 +15017,7 @@ competition_display:
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "On a solve-all block, ranks by that puzzle's own time - once the puzzle is revealed. Other rounds show the whole round."
             nameLines: "Lines per name"
+            position: "Puzzle (1 = the first)"
             image:
                 source: "Picture"
             clock:
@@ -15143,6 +15146,7 @@ competition_display:
             any: "Always"
             not_published: "Not published yet"
             has_rows: "When results are in"
+            puzzle_label: "Puzzle label"
             revealed: "Revealed"
             not_revealed: "Not revealed yet"
             idle: "Not started"

@@ -155,6 +155,7 @@
   "not_started": "Cette manche commence %when%. Les résultats apparaîtront ici dès que les puzzleurs ajouteront leurs temps."
   "no_results": "Aucun résultat pour l'instant. Vous avez participé à cette manche ? Ajoutez votre temps et il apparaîtra ici."
   "no_puzzle_yet": "Le puzzle de cette manche n'a pas encore été dévoilé."
+  no_puzzles_yet: "Les puzzles de cette manche n'ont pas encore été dévoilés."
   "column_result": "Résultat"
   "unofficial_note": "Temps ajoutés par les puzzleurs sur MySpeedPuzzling, du plus rapide au plus lent - il ne s'agit pas du classement officiel, et seuls ceux qui ont ajouté leur temps y figurent."
   "pieces_placed": "%placed% / %total% pièces"
@@ -14378,6 +14379,7 @@ competitor_page:
         table_unused: "Aucune manche n'utilise encore cette table."
     round:
         current: "Maintenant"
+        next: "Ensuite"
         running: "En cours"
         scheduled: "Bientôt"
         stopped: "En pause"
@@ -14755,6 +14757,7 @@ competition_display:
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "Dans un bloc « tout résoudre », classe selon le temps propre de ce puzzle - une fois révélé. Les autres manches affichent toute la manche."
             nameLines: "Lignes par nom"
+            position: "Puzzle (1 = le premier)"
             image:
                 source: "Image"
             clock:
@@ -14883,6 +14886,7 @@ competition_display:
             any: "Toujours"
             not_published: "Pas encore publiés"
             has_rows: "Dès qu'il y a des résultats"
+            puzzle_label: "Libellé du puzzle"
             revealed: "Révélé"
             not_revealed: "Pas encore révélé"
             idle: "Pas démarré"

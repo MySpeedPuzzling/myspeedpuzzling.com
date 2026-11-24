@@ -146,7 +146,8 @@ final readonly class SandboxDemoDisplays
         foreach ([1, 2] as $index => $challenge) {
             $x = 3 + $index * 48;
             $elements[] = self::element(sprintf('panel%03d', $challenge), 'box', 'Challenge ' . $challenge . ' panel', [$x, 18, 46, 78], 4, ['background' => '#00000040', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::GOLD]], []);
-            $elements[] = self::element(sprintf('title%03d', $challenge), 'text', 'Challenge ' . $challenge, [$x + 1, 20, 44, 7], 5, ['fontSize' => 44, 'fontWeight' => 700, 'color' => self::GOLD, 'uppercase' => true, 'letterSpacing' => 2], ['text' => 'Challenge ' . $challenge]);
+            // The puzzle's own label ("Challenge 3" on the second block) - never a fixed text (spws-demo-ux-leftovers.md §4)
+            $elements[] = self::element(sprintf('title%03d', $challenge), 'field', 'Puzzle ' . $challenge . ' label', [$x + 1, 20, 44, 7], 5, ['fontSize' => 44, 'fontWeight' => 700, 'color' => self::GOLD, 'uppercase' => true, 'letterSpacing' => 2], ['field' => 'puzzle_label', 'position' => $challenge]);
             $elements[] = self::element(sprintf('board%03d', $challenge), 'leaderboard', 'Challenge ' . $challenge, [$x + 1.5, 28.5, 43, 66], 6, ['fontSize' => 30, 'align' => 'left'], [
                 'rows' => 10,
                 'columns' => ['rank', 'flag', 'name', 'result'],

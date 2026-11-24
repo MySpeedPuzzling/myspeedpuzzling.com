@@ -28,7 +28,8 @@ export const FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
 export const PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
 
 export const FONT_WEIGHTS = [300, 400, 500, 700, 900];
-export const FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date'];
+// `puzzle_label` (spws-demo-ux-leftovers.md §4): the label of the round's puzzle at `position` ("Challenge 3")
+export const FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date', 'puzzle_label'];
 export const PHASE_COLORS = ['idle', 'scheduled', 'running', 'warning', 'times_up', 'stopped'];
 export const BACKGROUND_TYPES = ['color', 'transparent', 'image', 'chroma'];
 export const BACKGROUND_FITS = ['cover', 'contain'];
@@ -102,6 +103,8 @@ export const PROP_SPECS = {
         { key: 'field', kind: 'enum', options: FIELDS, default: 'round_name' },
         { key: 'prefix', kind: 'text', max: 60, multiline: false, trim: false },
         { key: 'suffix', kind: 'text', max: 60, multiline: false, trim: false },
+        // `puzzle_label`'s puzzle - optional, stored only when set (every other field element is unchanged); none = 1
+        { key: 'position', kind: 'int', optional: true, min: 1, max: MAX_CHALLENGE },
     ],
     round_badge: [
         { key: 'useRoundColors', kind: 'bool', default: true },

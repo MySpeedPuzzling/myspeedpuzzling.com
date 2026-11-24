@@ -160,4 +160,10 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   (`waitsForItsDay()`). Reveal lists: `SecretRevealPreview::unboxedPuzzleIds()` → `scope_unboxed.*` (display only, hash
   unchanged). Wizard: a picked day fills the empty days below (`event_wizard_days.js`). Tests
   `LiveEntryTablePauseScriptsTest`, `EventWizardDaysScriptTest`, `OwnCompetitorPageLinkTest`, `SandboxDemoEventsTest`,
-  display harnesses.
+  display harnesses. Rehearsal fixes (doc §8): `SandboxGate` opens `/display/{token}(/state|/design)`; displays'
+  `finished` = finished results only, the live board lists finishers only until the round is over or published
+  (`roundIsOver()`); `field` value `puzzle_label` + optional `position` (state `puzzleLabels` only for such a design);
+  **an early stopwatch start beats the schedule** = `EditionRoundDetail::startedAt($now)` (timeline Live/Past/Next +
+  sidebar, round results page) - use it, never `startsAt <= now`, on those pages; studio `imageLater`; competitor badge
+  "Next" before anything began; "You took back" only while it can be tapped again; `SandboxPlaceholderBox` for the
+  demo's new secret puzzles.

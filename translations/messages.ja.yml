@@ -138,6 +138,7 @@
   "not_started": "このラウンドは%when%に始まります。パズラーがタイムを追加すると、すぐにここに結果が表示されます。"
   "no_results": "まだ結果がありません。このラウンドに出場しましたか？タイムを追加すると、ここに表示されます。"
   "no_puzzle_yet": "このラウンドのパズルはまだ公開されていません。"
+  no_puzzles_yet: "このラウンドのパズルはまだ公開されていません。"
   "column_result": "結果"
   "unofficial_note": "MySpeedPuzzlingでパズラーが追加したタイムを速い順に表示しています。公式の順位ではなく、タイムを追加した人のみが対象です。"
   "pieces_placed": "%placed% / %total% ピース"
@@ -14372,6 +14373,7 @@ competitor_page:
         table_unused: "このテーブルを使うラウンドはまだありません。"
     round:
         current: "現在"
+        next: "次"
         running: "進行中"
         scheduled: "まもなく開始"
         stopped: "一時停止"
@@ -14749,6 +14751,7 @@ competition_display:
             challenge_puzzle: "パズル %position%"
             challenge_help: "「すべて完成」ブロックでは、そのパズルの個別タイム順に並べます（パズル公開後）。他のラウンドはラウンド全体を表示します。"
             nameLines: "名前の行数"
+            position: "パズル（1 = 最初）"
             image:
                 source: "画像"
             clock:
@@ -14877,6 +14880,7 @@ competition_display:
             any: "常に"
             not_published: "まだ公開されていない"
             has_rows: "結果が入ったら"
+            puzzle_label: "パズルのラベル"
             revealed: "公開済み"
             not_revealed: "まだ公開されていない"
             idle: "未開始"

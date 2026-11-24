@@ -45,7 +45,23 @@ readonly final class EditionRoundDetail
         public RoundPuzzleFormat $puzzleFormat = RoundPuzzleFormat::Total,
         public null|int $puzzlesToSolve = null,
         public array $puzzleSlots = [],
+        // The round's stopwatch start while it has one (GetEditionRounds) - startedAt() lets an early start win
+        public null|DateTimeImmutable $stopwatchStartedAt = null,
     ) {
+    }
+
+    /**
+     * When the round began for the pages that ask "has it started / is it over": its schedule - or its stopwatch's start
+     * when the organisers started it before the schedule (a rehearsal, a demo built on the real dates months ahead -
+     * spws-demo-ux-leftovers.md §4). A stopwatch started late changes nothing: the schedule already said "started".
+     */
+    public function startedAt(DateTimeImmutable $now): DateTimeImmutable
+    {
+        if ($this->stopwatchStartedAt !== null && $this->stopwatchStartedAt <= $now && $this->stopwatchStartedAt < $this->startsAt) {
+            return $this->stopwatchStartedAt;
+        }
+
+        return $this->startsAt;
     }
 
     public function isPick(): bool

@@ -49,6 +49,9 @@ SELECT
     cr.results_published_at IS NOT NULL AS results_published,
     cr.puzzle_format,
     cr.puzzles_to_solve,
+    -- The stopwatch's first start while it has one (a reset clears it) - a round started before its schedule is
+    -- running now, not "in 8 days" (spws-demo-ux-leftovers.md §4)
+    CASE WHEN cr.stopwatch_status IS NOT NULL THEN COALESCE(cr.stopwatch_first_started_at, cr.stopwatch_started_at) END AS stopwatch_first_started_at,
     c.location_country_code,
     tz_cs.location_country_code AS series_country_code,
     -- The round's online timing has live video on - its watch page (docs/features/online-competitions/), in this
@@ -100,7 +103,7 @@ SQL;
 
         // Rounds come ordered by start, so the index is the round's position in the schedule
         return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound, $slotsByRound): EditionRoundDetail {
-            /** @var array{id: string, name: string, minutes_limit: null|int|string, starts_at: string, start_time_known: bool, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, puzzle_format: string, puzzles_to_solve: null|int|string, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
+            /** @var array{id: string, name: string, minutes_limit: null|int|string, starts_at: string, start_time_known: bool, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, puzzle_format: string, puzzles_to_solve: null|int|string, stopwatch_first_started_at: null|string, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
 
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
             $puzzleFormat = RoundPuzzleFormat::tryFrom($row['puzzle_format']) ?? RoundPuzzleFormat::Total;
@@ -127,6 +130,7 @@ SQL;
                 puzzlesToSolve: $puzzleFormat === RoundPuzzleFormat::Pick && $row['puzzles_to_solve'] !== null ? (int) $row['puzzles_to_solve'] : null,
                 // A pick round's places - what its entries' records name (competition toolkit A5 chips)
                 puzzleSlots: $puzzleFormat === RoundPuzzleFormat::Pick ? ($slotsByRound[$row['id']] ?? []) : [],
+                stopwatchStartedAt: $row['stopwatch_first_started_at'] !== null ? new DateTimeImmutable($row['stopwatch_first_started_at'], new \DateTimeZone('UTC')) : null,
             );
         }, $rounds, array_keys($rounds));
     }

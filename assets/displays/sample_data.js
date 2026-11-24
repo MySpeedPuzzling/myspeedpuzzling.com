@@ -260,5 +260,10 @@ export function previewState(base, options) {
         : [];
     state.anyPuzzleRevealed = revealed;
 
+    // A puzzle's label (`puzzle_label` fields): "A", "B" - like a round without labels of its own
+    if (elements.some((element) => element.type === 'field' && element.props?.field === 'puzzle_label')) {
+        state.puzzleLabels = { 1: 'A', 2: 'B', 3: 'C', 4: 'D' };
+    }
+
     return { state, nowMs };
 }

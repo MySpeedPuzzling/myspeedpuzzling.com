@@ -35,10 +35,17 @@ that would otherwise be forgotten. Newest section on top.
 - [x] Hub "When somebody picks a name": "Automatic" is selected while its note says "Now: Ask me first" - correct
       (automatic = ask while time proposals are on) but reads as a contradiction; say "Automatic (now: Ask me first)".
 - [ ] Standings on a phone label rounds "R1 R2 R3" (Pairs R3 = Challenge 5) with no legend.
-- [ ] Results desk at 375 px on a teams round: four flags stack above the team name and the table scrolls sideways
-      (Country column) - fold the flags into the row like the Pairs desk.
+- [x] Results desk at 375 px on a teams round: four flags stack above the team name and the table scrolls sideways
+      (Country column) - fold the flags into the row like the Pairs desk. → a named team's flags only on its members
+      line (§7); the sideways scroll that is left: below.
 - [x] Wizard start times: every day field starts empty - prefill the event's first day. → a picked day fills the empty
       rows below it (no made-up starts, creation-wizard.md; §7).
+
+- [ ] An early stopwatch start beats the schedule on the event/edition timeline and the round results page
+      (`EditionRoundDetail::startedAt()`), not yet on the events agenda (`/en/events` "Live"), the series page and
+      "You organize" - they read the schedule only (`spws-demo-ux-leftovers.md` §8.4).
+- [ ] Results desk at 375 px: the Pairs/Teams table still scrolls ~20-100 px sideways (the Qualified column and the
+      per-challenge chips) - the teams' flags no longer stack above the name.
 
 ## SPWS 1:1 demo - unboxed per puzzle + wizard (`spws-unboxed-per-puzzle.md`, `spws-wizard.md`, 2026-11-24)
 

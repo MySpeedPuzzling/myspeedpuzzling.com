@@ -960,7 +960,8 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
             img.setAttribute('loading', 'lazy');
             img.setAttribute('referrerpolicy', 'no-referrer');
         } else {
-            el('div', 'as-puzzle__image as-puzzle__image--none', puzzlePanel, t('slot.image_later'));
+            // "Picture shown later" only while it waits (unboxed); a puzzle without a picture gets the plain tile
+            el('div', 'as-puzzle__image as-puzzle__image--none', puzzlePanel, puzzle.imageLater === true ? t('slot.image_later') : '');
         }
 
         el('h2', 'as-puzzle__name', head, puzzle.name ?? '');

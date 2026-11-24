@@ -97,6 +97,17 @@ final class SandboxGateTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         self::assertSelectorNotExists('[data-testid="sandbox-gate"]');
 
+        // A display (OBS / hall screen) and its cookie-less JSON - their own answers (an unknown token), not the welcome page
+        foreach (['/display/UnknownToken1234567890', '/display/UnknownToken1234567890/state', '/display/UnknownToken1234567890/design'] as $path) {
+            $client->request('GET', $path);
+
+            self::assertResponseStatusCodeSame(404, $path);
+            self::assertSelectorNotExists('[data-testid="sandbox-gate"]');
+        }
+
+        self::assertFalse(SandboxGate::isOpenPath('/display/UnknownToken1234567890/other'));
+        self::assertFalse(SandboxGate::isOpenPath('/en/display-editor/018d0000-0000-0000-0000-00000000ffff'));
+
         // Its pages stay behind the gate (the Czech round redirect included)
         self::assertFalse(SandboxGate::isOpenPath('/analytics-studio/018d0000-0000-0000-0000-00000000ffff'));
         self::assertFalse(SandboxGate::isOpenPath('/en/events/x/analytics-studio/y'));

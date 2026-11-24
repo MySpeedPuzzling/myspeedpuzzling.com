@@ -249,6 +249,14 @@ export function fieldText(props, state) {
         case 'location':
             value = competition.location ?? '';
             break;
+        case 'puzzle_label': {
+            // The label of the round's puzzle at `position` (spws-demo-ux-leftovers.md §4) - from the state's
+            // `puzzleLabels` (sent only for a design naming one)
+            const labels = state.puzzleLabels;
+            const position = Number.isInteger(props.position) ? props.position : 1;
+            value = labels !== null && typeof labels === 'object' && typeof labels[String(position)] === 'string' ? labels[String(position)] : '';
+            break;
+        }
         case 'event_date': {
             const from = formatDate(competition.dateFrom, locale);
             const to = formatDate(competition.dateTo, locale);

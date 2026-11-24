@@ -526,7 +526,8 @@ final readonly class SandboxDemoEvents
                 brand: $secret['brand'],
                 puzzle: $secret['name'],
                 piecesCount: $round->piecesOf($position),
-                puzzlePhoto: null,
+                // A made-up box picture, so an unboxed challenge shows the difference before / after its results
+                puzzlePhoto: SandboxPlaceholderBox::upload($secret['name']),
                 eans: EanList::fromInputs([]),
                 brandCodes: BrandCodeList::fromInputs([]),
                 hideUntilRoundStarts: true,

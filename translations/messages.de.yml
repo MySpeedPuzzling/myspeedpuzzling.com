@@ -136,6 +136,7 @@
   "not_started": "Diese Runde beginnt %when%. Die Ergebnisse erscheinen hier, sobald Puzzler ihre Zeiten eintragen."
   "no_results": "Noch keine Ergebnisse. Haben Sie an dieser Runde teilgenommen? Tragen Sie Ihre Zeit ein und sie erscheint hier."
   "no_puzzle_yet": "Das Puzzle für diese Runde wurde noch nicht enthüllt."
+  no_puzzles_yet: "Die Puzzles dieser Runde wurden noch nicht enthüllt."
   "column_result": "Ergebnis"
   "unofficial_note": "Von Puzzlern auf MySpeedPuzzling eingetragene Zeiten, die schnellsten zuerst - nicht die offizielle Platzierung und nur für diejenigen, die ihre Zeit eingetragen haben."
   "pieces_placed": "%placed% / %total% Teile"
@@ -14382,6 +14383,7 @@ competitor_page:
         table_unused: "Noch keine Runde nutzt diesen Tisch."
     round:
         current: "Jetzt"
+        next: "Als Nächstes"
         running: "Läuft"
         scheduled: "Startet bald"
         stopped: "Pausiert"
@@ -14759,6 +14761,7 @@ competition_display:
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "In einem „Alle lösen“-Block nach der eigenen Zeit dieses Puzzles - sobald es enthüllt ist. Andere Runden zeigen die ganze Runde."
             nameLines: "Zeilen pro Name"
+            position: "Puzzle (1 = das erste)"
             image:
                 source: "Bild"
             clock:
@@ -14887,6 +14890,7 @@ competition_display:
             any: "Immer"
             not_published: "Noch nicht veröffentlicht"
             has_rows: "Sobald Ergebnisse da sind"
+            puzzle_label: "Puzzle-Bezeichnung"
             revealed: "Enthüllt"
             not_revealed: "Noch nicht enthüllt"
             idle: "Nicht gestartet"

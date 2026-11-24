@@ -77,7 +77,8 @@ readonly final class RoundResultsPageBuilder
         $event = $this->getCompetitionEvents->byId($competitionId);
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
         $now = $this->clock->now();
-        $hasStarted = $round->startsAt <= $now;
+        // Its stopwatch started before the schedule counts (spws-demo-ux-leftovers.md §4)
+        $hasStarted = $round->startedAt($now) <= $now;
 
         // A puzzle this round revealed may still be secret on the whole site (another round keeps it hidden longer):
         // the page leaves it out (GetEditionRounds) and nobody can log a time on it yet - say when it opens

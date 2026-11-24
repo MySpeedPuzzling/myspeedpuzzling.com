@@ -157,6 +157,7 @@ live_refresh:
   "not_started": "Toto kolo začíná %when%. Výsledky se zde objeví, jakmile puzzleři přidají své časy."
   "no_results": "Zatím žádné výsledky. Soutěžili jste v tomto kole? Přidejte svůj čas a objeví se zde."
   "no_puzzle_yet": "Puzzle pro toto kolo zatím nebylo odhaleno."
+  no_puzzles_yet: "Puzzle tohoto kola zatím nebyly odhaleny."
   "column_result": "Výsledek"
   "unofficial_note": "Časy přidané puzzlery na MySpeedPuzzling, od nejrychlejšího - nejde o oficiální pořadí a jsou zde jen ti, kteří svůj čas přidali."
   "pieces_placed": "%placed% / %total% dílků"
@@ -14385,6 +14386,7 @@ competitor_page:
         table_unused: "Tento stůl zatím žádné kolo nepoužívá."
     round:
         current: "Teď"
+        next: "Další"
         running: "Probíhá"
         scheduled: "Brzy začne"
         stopped: "Pozastaveno"
@@ -14762,6 +14764,7 @@ competition_display:
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "V bloku „vyskládat vše“ řadí podle vlastního času daného puzzle - jakmile je odhalené. Ostatní kola ukazují celé kolo."
             nameLines: "Řádků na jméno"
+            position: "Puzzle (1 = první)"
             image:
                 source: "Obrázek"
             clock:
@@ -14890,6 +14893,7 @@ competition_display:
             any: "Vždy"
             not_published: "Zatím nezveřejněno"
             has_rows: "Až budou výsledky"
+            puzzle_label: "Označení puzzle"
             revealed: "Odhaleno"
             not_revealed: "Zatím neodhaleno"
             idle: "Nespuštěno"

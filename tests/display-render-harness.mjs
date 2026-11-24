@@ -338,6 +338,20 @@ check('when results are in: a published-only list counts once published', () => 
     equal(visible(after.node('hp000001')), true, 'published');
 });
 
+check('field puzzle_label: the label of the round puzzle at its position, nothing without labels', () => {
+    const elements = [
+        element('pl000001', 'field', { field: 'puzzle_label', position: 2 }),
+        element('pl000002', 'field', { field: 'puzzle_label' }),
+        element('pl000003', 'field', { field: 'puzzle_label', position: 4 }),
+    ];
+    const shown = render(elements, baseState({ puzzleLabels: { 1: 'Challenge 3', 2: 'Challenge 4' } }));
+    equal(text(shown.node('pl000001')), 'Challenge 4', 'position 2');
+    equal(text(shown.node('pl000002')), 'Challenge 3', 'no position = the first');
+    equal(text(shown.node('pl000003')), '', 'no such puzzle');
+    const none = render(elements, baseState());
+    equal(text(none.node('pl000001')), '', 'a state without labels');
+});
+
 check('leaderboard name lines: long names wrap only on an element that asks for it', () => {
     const long = 'Hanna Longname-Fastpuzzler & Ingrid Evenlongername';
     const state = baseState({ results: { published: false, finished: 1, total: 2, top: [ROW('a', 1, long)], latest: [] } });

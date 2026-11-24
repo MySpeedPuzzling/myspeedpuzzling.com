@@ -19,16 +19,19 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Displays (demo design data): leaderboard names truncated ("Hanna…") in the overlay sidebar and the hall top 10;
       empty overlay panels (leaderboard, "Just finished") cover a quarter of the camera picture at a round's start;
       the "--:--" idle timer reads as broken glyphs; overlay boxes sit 30 px from the edge (title-safe is ~5 %).
-- [ ] Name plates: a one-puzzle round's box is labelled with the round name ("Individual - Challenge 1", "Pairs -
-      Challenge 5") while blocks use the puzzle label ("Challenge 3") - one style.
 - [ ] Stopwatch reveal list: an unboxed puzzle says "its picture on this event" although its picture waits for the
       results to be published.
 - [ ] Analytics studio row: "Line-up 0×" and "#3 1:00:19" wrap in their narrow columns; the live list shows no
       "+1 piece missing".
+- [ ] Judge: typing `a1` highlights A1 but needs a tap or Enter (A10 … also match); opening an exact label at once
+      would open A1 while the judge is still typing "a10" - an exact match could open after a short pause instead.
+- [ ] Standings: a substitute in a team splits its standing row into two line-ups, and with the no-show rule both rows
+      get penalties (`lineupsInSomeRounds()` only warns) - decide how a substitute counts before the event.
+- [ ] Hub "When somebody picks a name": "Automatic" is selected while its note says "Now: Ask me first" - correct
+      (automatic = ask while time proposals are on) but reads as a contradiction; say "Automatic (now: Ask me first)".
 - [ ] Standings on a phone label rounds "R1 R2 R3" (Pairs R3 = Challenge 5) with no legend.
 - [ ] Results desk at 375 px on a teams round: four flags stack above the team name and the table scrolls sideways
       (Country column) - fold the flags into the row like the Pairs desk.
-- [ ] Seating "Fill from a hall plan" opens with "Places per table 1" while the list holds A1 L / A1 R.
 - [ ] Wizard start times: every day field starts empty - prefill the event's first day.
 - [ ] Local dev Postgres: /dev/shm 64 MB is full (≈300 leftover test databases' stats) - any new query fails with
       "could not resize shared memory segment"; needs the scratch databases dropped or `shm_size` raised.

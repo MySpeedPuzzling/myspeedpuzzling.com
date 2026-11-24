@@ -356,6 +356,9 @@ readonly final class CompetitionTagSheet
                 for ($place = 1; $place <= $toSolve; $place++) {
                     $boxes[] = $overview->name . ' · ' . $place;
                 }
+            } elseif (count($roundLabels) === 1 && mb_strlen($roundLabels[0]) > 1) {
+                // One puzzle the organiser labelled ("Challenge 5"): the same style as a block's boxes (UX walk 2026-11-24)
+                $boxes[] = $roundLabels[0];
             } else {
                 $boxes[] = $overview->name;
             }

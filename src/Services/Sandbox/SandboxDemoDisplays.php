@@ -106,7 +106,8 @@ final readonly class SandboxDemoDisplays
             self::background(),
             self::element('logo0001', 'image', 'Logo', [3, 4, 9, 16], 2, [], ['source' => 'competition_logo', 'fit' => 'contain']),
             self::element('heading1', 'text', 'Heading', [14, 5, 60, 7], 3, ['fontSize' => 54, 'fontWeight' => 700, 'align' => 'left', 'color' => self::GOLD_LIGHT, 'uppercase' => true, 'letterSpacing' => 3], ['text' => 'Championship standings']),
-            self::element('roundnm1', 'field', 'Latest round', [14, 12.5, 60, 6], 4, ['fontSize' => 36, 'align' => 'left', 'fit' => 'shrink'], ['field' => 'round_name', 'prefix' => 'After ']),
+            // No "After <round>" line: the standing shown counts every published round of its championship, not up to the
+            // round the screen follows - its own title says how far it is ("Final - all 3 rounds"; UX walk 2026-11-24)
             self::element('panel001', 'box', 'Panel', [3, 22, 94, 74], 5, ['background' => '#00000040', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::GOLD]], []),
             self::element('standng1', 'standings', 'Standing', [5, 24, 90, 70], 6, ['fontSize' => 32, 'align' => 'left'], [
                 'standingId' => 'auto',

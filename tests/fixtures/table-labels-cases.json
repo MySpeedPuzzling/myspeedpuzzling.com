@@ -20,6 +20,7 @@
         {"list": ["A1,2"], "problems": [{"label": "A1,2", "reason": "characters"}]},
         {"list": ["-A1"], "problems": [{"label": "-A1", "reason": "characters"}]},
         {"list": ["<b>"], "problems": [{"label": "<b>", "reason": "characters"}]},
+        {"list": ["A..1"], "problems": [{"label": "A..1", "reason": "characters"}]},
         {"list": ["Č3"], "problems": [{"label": "Č3", "reason": "characters"}]},
         {"list": [], "problems": [{"label": "", "reason": "empty_list"}]}
     ],

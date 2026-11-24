@@ -1287,8 +1287,14 @@ export default class extends Controller {
         const list = this.usesTables() ? (this.round?.tableLabels ?? null) : null;
 
         if (this.tableLabelsList !== list) {
+            const before = this.tableLabelsList;
             this.tableLabelsList = list;
             this.tableLabelsLookup = tableLabels(list);
+
+            // Names that come or go with a live update: the keyboard follows (once the page has chosen one)
+            if (before !== undefined && (before === null) !== (list === null) && this.keyboard !== undefined) {
+                queueMicrotask(() => this.setKeyboard(list !== null ? 'text' : (this.prefs().keyboard ?? 'numeric')));
+            }
         }
 
         return this.tableLabelsLookup ?? null;
@@ -2675,9 +2681,13 @@ export default class extends Controller {
         // A round with table labels reads the text as labels ("A, B", "A1..A5" - table-labels-and-plates.md A9)
         const labels = this.tableLabels();
 
-        return labels === null
+        const mine = labels === null
             ? this.myTablesPref
             : { ...this.myTablesPref, ranges: labelRanges(this.myTablesPref.text, labels, { lenient: true }).ranges ?? [] };
+
+        // Text naming no table of this round (labels on a round of numbers, or the other way round): no filter here -
+        // never every entry under "other tables"
+        return mine.ranges.length === 0 ? null : mine;
     }
 
     saveMyTables(change) {
@@ -2718,7 +2728,10 @@ export default class extends Controller {
         const input = this.myTablesInputTarget;
         const labels = this.tableLabels();
         // A round with table labels: labels, label prefixes and `..` ranges, checked against this round's list
-        const parsed = labels === null ? parseTables(input.value) : { ...labelRanges(input.value, labels), text: storableText(input.value) ?? '' };
+        const stored = storableText(input.value);
+        const parsed = labels === null
+            ? parseTables(input.value)
+            : (input.value.trim() !== '' && stored === null ? { error: 'syntax' } : { ...labelRanges(input.value, labels), text: stored ?? '' });
         const invalid = parsed.error !== undefined;
 
         input.classList.toggle('is-invalid', invalid);

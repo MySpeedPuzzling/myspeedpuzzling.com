@@ -207,7 +207,7 @@ readonly final class CompetitionTagSheet
 
         $labels = $round?->tableLabels;
         $from = self::tableNumber($request->query->getString('from'), $labels) ?? 1;
-        $to = self::tableNumber($request->query->getString('to'), $labels) ?? ($used === [] ? 0 : max($used));
+        $to = self::tableNumber($request->query->getString('to'), $labels) ?? ($used === [] ? ($labels?->count() ?? 0) : max($used));
         $to = min($to, $from + self::MAX_TABLES - 1);
         $numbers = $to >= $from ? range($from, $to) : [];
 

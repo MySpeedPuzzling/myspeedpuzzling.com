@@ -8,7 +8,7 @@
 
 import { key, MAX_COUNT, MAX_LENGTH, MAX_SEATS, tableLabels, tableText } from './table_labels.js';
 
-const LABEL_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9 .\-/]*[A-Za-z0-9])?$/;
+const LABEL_PATTERN = /^[A-Za-z0-9](?:[ .\-/]?[A-Za-z0-9])*$/;
 
 export function normalise(label) {
     return String(label ?? '').replace(/\s+/gu, ' ').trim();

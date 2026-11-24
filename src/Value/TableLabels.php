@@ -20,7 +20,7 @@ readonly final class TableLabels
 {
     public const int MAX_LENGTH = 12;
     public const int MAX_COUNT = 9999;
-    private const string LABEL_PATTERN = '/^[A-Za-z0-9](?:[A-Za-z0-9 .\-\/]*[A-Za-z0-9])?$/';
+    private const string LABEL_PATTERN = '/^[A-Za-z0-9](?:[ .\-\/]?[A-Za-z0-9])*$/';
 
     /** @var array<string, int> folded key => table number */
     private array $numbers;

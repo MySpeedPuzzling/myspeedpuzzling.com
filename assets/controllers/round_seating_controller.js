@@ -372,6 +372,7 @@ export default class extends Controller {
         const list = this.round?.tableLabels ?? null;
 
         if (this.tableLabelsList !== list) {
+            this.tableLabelsPrevious = this.tableLabelsList ?? null;
             this.tableLabelsList = list;
             this.tableLabelsLookup = tableLabels(list);
         }
@@ -387,6 +388,13 @@ export default class extends Controller {
     // What a table input shows for a number: its name, '' for none
     numberText(number) {
         return number === null || number === undefined ? '' : this.tableName(number);
+    }
+
+    // A label typed while the round had names, read after they went: the number it named, else 1
+    parseLabelOrNull(text) {
+        const previous = tableLabels(this.tableLabelsPrevious ?? null);
+
+        return { number: previous?.numberOf(text) ?? null };
     }
 
     // A typed table: a label of the round's list on a labelled round, else a number 1..9999
@@ -410,6 +418,19 @@ export default class extends Controller {
 
     draw() {
         const entries = [...this.byRef.values()];
+
+        // The proposal's first table follows the round's names (they may come or go with a live update)
+        if (this.hasFirstInputTarget) {
+            const named = this.tableLabels() !== null;
+            const input = this.firstInputTarget;
+
+            if (named !== (input.type === 'text')) {
+                const first = named ? parseTableNumber(input.value) : this.parseLabelOrNull(input.value);
+                input.type = named ? 'text' : 'number';
+                input.maxLength = named ? 12 : -1;
+                input.value = named ? this.tableName(first.number ?? 1) : String(first.number ?? 1);
+            }
+        }
         const total = entries.length;
         const assigned = entries.filter((entry) => entry.tableNumber !== null).length;
         const off = this.round?.tableNumbersOff === true;
@@ -583,11 +604,16 @@ export default class extends Controller {
         row.querySelector('.seating-handle').title = this.t('drag', { '%name%': name });
 
         input.setAttribute('aria-label', this.t('tableFor', { '%name%': name }));
-        // A round with table labels takes a label ("A1 L", table-labels-and-plates.md), else digits
-        if (this.tableLabels() !== null) {
-            input.inputMode = 'text';
-            input.maxLength = 12;
+        // A round with table labels takes a label ("A1 L", table-labels-and-plates.md), else digits - both ways, the names
+        // may come or go with a live update
+        const named = this.tableLabels() !== null;
+        input.inputMode = named ? 'text' : 'numeric';
+        input.maxLength = named ? 12 : 4;
+
+        if (named) {
             input.setAttribute('autocapitalize', 'characters');
+        } else {
+            input.removeAttribute('autocapitalize');
         }
         input.placeholder = this.t('noTable');
         input.disabled = this.busy;
@@ -1348,7 +1374,14 @@ export default class extends Controller {
     }
 
     proposalApplicable() {
-        return this.proposal !== null && this.proposal.rows.length > 0 && proposalAssignments(this.proposal.rows, this.byRef).length > 0;
+        return this.proposal !== null && this.proposal.rows.length > 0 && !this.proposalPastLabels() && proposalAssignments(this.proposal.rows, this.byRef).length > 0;
+    }
+
+    // A proposal numbering past the round's table names (table-labels-and-plates.md) - shown, never applied
+    proposalPastLabels() {
+        const labels = this.tableLabels();
+
+        return labels !== null && this.proposal !== null && this.proposal.rows.some((row) => !labels.names(row.tableNumber));
     }
 
     renderProposal() {
@@ -1363,6 +1396,10 @@ export default class extends Controller {
         if (this.proposalNote !== null) {
             parts.push(this.paragraph(this.proposalNote, 'text-warning-emphasis fw-semibold mb-2'));
             this.proposalNote = null;
+        }
+
+        if (this.proposalPastLabels()) {
+            parts.push(this.paragraph(this.t('labelsTooFew', { '%count%': this.tableLabels().count }), 'text-danger fw-semibold mb-2'));
         }
 
         if (proposal.total === 0) {

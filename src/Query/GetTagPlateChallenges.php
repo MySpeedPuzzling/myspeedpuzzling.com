@@ -109,6 +109,9 @@ SQL,
             return 0;
         }
 
+        $soloLabel = TableLabelSql::label('cr', 'cpr.table_number');
+        $teamLabel = TableLabelSql::label('cr', 'ct.table_number');
+
         /** @var int|string $count */
         $count = $this->database->fetchOne(
             <<<SQL
@@ -119,7 +122,11 @@ SELECT COUNT(*) FROM (
     LEFT JOIN competition_team ct ON ct.id = cpr.team_id
     WHERE cpr.round_id IN (:roundIds)
     GROUP BY cpr.participant_id
-    HAVING COUNT(DISTINCT CASE WHEN cr.category = 'solo' THEN cpr.table_number ELSE ct.table_number END) > 1
+    -- Compared by what the plate prints: the table's name where the round has names, else the number
+    HAVING COUNT(DISTINCT CASE
+        WHEN cr.category = 'solo' THEN COALESCE({$soloLabel}, cpr.table_number::text)
+        ELSE COALESCE({$teamLabel}, ct.table_number::text)
+    END) > 1
 ) several
 SQL,
             ['roundIds' => $roundIds],

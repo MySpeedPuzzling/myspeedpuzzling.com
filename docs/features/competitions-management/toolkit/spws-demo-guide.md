@@ -48,9 +48,10 @@ see every organiser page. A second judge on the call: an organiser's phone (orga
 1. Sign in as the judge → the round's judge page (`/en/live-results/<round id>`), add it to the home screen.
 2. Type `a1` → A1 is at the top of the list (A10 … also match) - tap it or press Enter; a unique table opens at once
    (`a1l` = A1 L). **Finished now** per challenge appears only while the round's stopwatch runs - Teams Challenges 1 + 2
-   is *not* started in the build, so start its stopwatch first (no secret puzzles in it) or type the time on the clock
-   (a block: Challenge 1's split first, then Challenge 2 = the time - always the clock's time, never a challenge's own
-   time). **Didn't finish**: tap both challenges first, then type the pieces still loose; **Pieces missing** is on the
+   is *not* started in the build, and its teams' Challenge 1 times (27-51 min) are later than a freshly started clock, so
+   a tap there is refused. Show **Finished now** on Teams Challenges 3 + 4 after its start (step 12-15 of the call) or
+   on a team without a result; on Teams Challenges 1 + 2 type the time on the clock (a block: Challenge 1's split first,
+   then Challenge 2 = the time - always the clock's time, never a challenge's own time). **Didn't finish**: tap both challenges first, then type the pieces still loose; **Pieces missing** is on the
    Save step (one count for both challenges).
 3. Airplane mode: keep entering - the phone keeps the results and sends them when back online.
 

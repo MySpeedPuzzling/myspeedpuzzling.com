@@ -284,7 +284,8 @@ readonly final class CompetitionTagSheet
      * Name plates with time boxes (table-labels-and-plates.md "Name plates", A5/A6): the championship's rounds by
      * schedule - a standing's rounds of this event, or a category's rounds no advancement step feeds - and a box per
      * challenge: a back-to-back block (pick K ≥ 2 of K) one per puzzle by its label, a pick K < N round K numbered boxes,
-     * any other round one box with its name. Labels only - never a puzzle's name.
+     * a one-puzzle round with a label of its own that no other round uses one box with that label ("Challenge 5"), any
+     * other round one box with its name. Labels only - never a puzzle's name.
      *
      * @param list<RoundResultsOverview> $rounds
      * @return array{offered: bool, options: list<array{value: string, label: string, category: string}>, value: string, rounds: list<RoundResultsOverview>, boxes: list<string>, missing: bool, severalTables: int}
@@ -356,8 +357,9 @@ readonly final class CompetitionTagSheet
                 for ($place = 1; $place <= $toSolve; $place++) {
                     $boxes[] = $overview->name . ' · ' . $place;
                 }
-            } elseif (count($roundLabels) === 1 && mb_strlen($roundLabels[0]) > 1) {
-                // One puzzle the organiser labelled ("Challenge 5"): the same style as a block's boxes (UX walk 2026-11-24)
+            } elseif (count($roundLabels) === 1 && mb_strlen($roundLabels[0]) > 1 && !self::labelSharedByAnotherRound($roundLabels[0], $overview->roundId, $labels)) {
+                // One puzzle the organiser labelled ("Challenge 5"), the label no other round of the plate uses: the same
+                // style as a block's boxes (UX walk 2026-11-24)
                 $boxes[] = $roundLabels[0];
             } else {
                 $boxes[] = $overview->name;
@@ -382,6 +384,20 @@ readonly final class CompetitionTagSheet
             'country' => $flags ? $member->flagCountry() : $member->country,
             'code' => $member->playerCode,
         ], $members);
+    }
+
+    /**
+     * @param array<string, list<string>> $labels the plate's rounds' puzzle labels by round id
+     */
+    private static function labelSharedByAnotherRound(string $label, string $roundId, array $labels): bool
+    {
+        foreach ($labels as $otherRoundId => $otherLabels) {
+            if ($otherRoundId !== $roundId && in_array($label, $otherLabels, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function tableNumber(string $value, null|TableLabels $labels = null): null|int

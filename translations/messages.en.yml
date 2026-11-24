@@ -5673,7 +5673,7 @@ live_results:
         type: "Type the time"
         save: "Save time"
         toast: "%label% finished at %time%"
-        out_of_order: "Type the time on the round's clock when this puzzle was finished, not the puzzle's own time - each puzzle finishes after the one before it."
+        out_of_order: "This time is before the previous puzzle was finished - each puzzle finishes after the one before it. Typing it? Use the round's clock, not the puzzle's own time."
         pick_remaining: "Which puzzle was finished last? Tap its chip first, then save the time."
         whole_round: "This finishes the whole round - for one puzzle use its own Finished now."
     proposals:

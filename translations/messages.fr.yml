@@ -5173,7 +5173,7 @@ live_results:
     type: "Saisir le temps"
     save: "Enregistrer le temps"
     toast: "%label% terminé à %time%"
-    out_of_order: "Saisissez le temps du chronomètre de la manche où ce puzzle a été terminé, pas le temps propre du puzzle - chaque puzzle se termine après le précédent."
+    out_of_order: "Ce temps est antérieur à la fin du puzzle précédent - chaque puzzle se termine après le précédent. Vous le saisissez ? Utilisez le chronomètre de la manche, pas le temps propre du puzzle."
     pick_remaining: "Quel puzzle a été terminé en dernier ? Touchez d'abord son étiquette, puis enregistrez le temps."
     whole_round: "Ceci termine toute la manche - pour un seul puzzle, utilisez son propre « Terminé maintenant »."
   proposals:

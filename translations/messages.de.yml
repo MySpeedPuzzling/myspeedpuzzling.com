@@ -5106,7 +5106,7 @@ live_results:
     type: "Zeit eingeben"
     save: "Zeit speichern"
     toast: "%label% fertig bei %time%"
-    out_of_order: "Gib die Zeit der Rundenuhr ein, zu der dieses Puzzle fertig war, nicht die eigene Zeit des Puzzles – jedes Puzzle ist nach dem vorherigen fertig."
+    out_of_order: "Diese Zeit liegt vor dem Ende des vorherigen Puzzles – jedes Puzzle ist nach dem vorherigen fertig. Tippst du sie ein? Nimm die Zeit der Rundenuhr, nicht die eigene Zeit des Puzzles."
     pick_remaining: "Welches Puzzle wurde zuletzt fertig? Tippen Sie zuerst auf seinen Chip und speichern Sie dann die Zeit."
     whole_round: "Damit ist die ganze Runde beendet – für ein einzelnes Puzzle dessen eigenes „Gerade fertig“ verwenden."
   proposals:

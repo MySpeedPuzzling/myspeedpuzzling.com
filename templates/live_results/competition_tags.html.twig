@@ -85,7 +85,8 @@
         .tent-main { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; gap: 8mm; }
         .tent-face.with-boxes .tent-name { font-size: 34pt; }
         .tent-face.with-boxes .tent-name.long { font-size: 26pt; }
-        .tent-face.with-boxes .tent-table strong { font-size: 34pt; }
+        .tent-face.with-boxes .tent-table { font-size: 18pt; line-height: 1.1; }
+        .tent-face.with-boxes .tent-table strong { font-size: 30pt; }
         .tent-face.with-boxes .tent-qr { flex-basis: 44mm; }
         .tent-face.with-boxes .tent-qr svg { width: 44mm; height: 44mm; }
         /* The plate face keeps its half - a team of four with flags, the table and the boxes all fit; without this the
@@ -94,7 +95,7 @@
         .tent-face.with-boxes .tent-event img { max-height: 10mm; }
         .tent-face.with-boxes .tag-members { font-size: 15pt; gap: 1mm; }
         .tent-face.with-boxes .tag-members.unnamed { font-size: 24pt; }
-        .tent-face.with-boxes .tag-members:has(> .tag-member:nth-child(3)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
+        .tent .tag-members:has(> .tag-member:nth-child(3)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
         .tent-face.with-boxes .tag-member .member-code { font-size: 11pt; }
         .with-flags .tent-face.with-boxes .tag-member img { width: 10mm; height: 7.5mm; }
         .time-boxes { flex: 0 0 auto; display: grid; grid-template-columns: repeat(var(--boxes-per-row, 5), minmax(0, 1fr)); gap: 2.5mm; }

@@ -1,0 +1,71 @@
+{#
+    One-tap collection choice above a collection picker (docs/features/collections/default-collection.md): the collection
+    the form starts with is a highlighted chip, the default one is marked, a tap on another chip picks it in the picker
+    below (the picker stays the field that is submitted - same name, same values). Members with 2+ choices only.
+
+    Renders the whole row of the collection field: its label, the chips, the picker, help and errors (a plain form_row
+    without chips for everybody else).
+
+    Parameters:
+    - field: the collection field (FormView)
+    - choices: label => collection id (or the system collection's marker), as the form type gets them
+    - system_id: Collection::SYSTEM_ID
+    - widget_attr: attributes for the picker input (optional)
+#}
+{% set widget_attr = widget_attr|default({}) %}
+{% set selected = field.vars.value %}
+{% set input_id = field.vars.id %}
+{% set chip_limit = 5 %}
+{% if logged_user.profile is not null and logged_user.profile.activeMembership and choices|length > 1 %}
+    {% set default_id = logged_user.profile.defaultCollectionId ?? system_id %}
+    {% set default_id = default_id in choices ? default_id : (system_id in choices ? system_id : null) %}
+
+    {# Default first, then the system collection, then the newest own collections - pairs, a label like "2024" must stay a label #}
+    {% set ordered = [] %}
+    {% for label, id in choices %}{% if id == default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
+    {% for label, id in choices %}{% if id == system_id and id != default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
+    {% for label, id in choices %}{% if id != system_id and id != default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
+
+    {# At most chip_limit chips - the one the field holds always among them (a ?collection= preset further down the list) #}
+    {% set shown = ordered|slice(0, chip_limit) %}
+    {% if selected is not empty and selected not in shown|column('id') and selected in choices %}
+        {% set shown = ordered|slice(0, chip_limit - 1)|merge(ordered|filter(chip => chip.id == selected)) %}
+    {% endif %}
+
+    <div class="mb-3">
+    {{ form_label(field) }}
+    <div class="collection-quick-pick mb-2"
+         data-controller="collection-quick-pick"
+         data-collection-quick-pick-input-id-value="{{ input_id }}"
+         data-testid="collection-quick-pick">
+        <div class="d-flex flex-wrap gap-2" role="group" aria-label="{{ 'collections.quick_pick.label'|trans }}">
+            {% for chip in shown %}
+                {% set id = chip.id %}
+                <button type="button"
+                        class="btn btn-sm rounded-pill text-wrap text-start {{ id == selected ? 'btn-primary' : 'btn-outline-primary' }}"
+                        aria-pressed="{{ id == selected ? 'true' : 'false' }}"
+                        data-value="{{ id }}"
+                        data-collection-quick-pick-target="chip"
+                        data-action="collection-quick-pick#pick">
+                    <i class="bi bi-check2 me-1 {{ id == selected ? '' : 'd-none' }}" data-check></i>{{ chip.label }}
+                    {% if id == default_id %}
+                        <span class="badge rounded-pill bg-body text-primary border border-primary-subtle fw-normal ms-1">{{ 'collections.default.badge'|trans }}</span>
+                    {% endif %}
+                </button>
+            {% endfor %}
+        </div>
+        <div class="fs-xs text-muted mt-1">
+            {% if ordered|length > chip_limit %}{{ 'collections.quick_pick.more'|trans }} · {% endif %}
+            <a href="{{ path('puzzle_library', {playerId: logged_user.profile.playerId}) }}" data-turbo-frame="_top" class="text-muted">{{ 'collections.quick_pick.change_default'|trans }}</a>
+        </div>
+    </div>
+    {# form_row would link the help text - so does this row #}
+    {{ form_widget(field, {attr: field.vars.attr|merge(widget_attr)|merge(field.vars.help is not empty ? {'aria-describedby': input_id ~ '_help'} : {})}) }}
+    {{ form_help(field) }}
+    {{ form_errors(field) }}
+    </div>
+{% elseif widget_attr is empty %}
+    {{ form_row(field) }}
+{% else %}
+    {{ form_row(field, {attr: widget_attr}) }}
+{% endif %}

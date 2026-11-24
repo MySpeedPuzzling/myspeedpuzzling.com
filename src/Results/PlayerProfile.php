@@ -95,6 +95,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     email_undeliverable_reason?: null|string,
  *     email_unverified?: bool,
  *     timezone?: null|string,
+ *     default_collection_id?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -252,6 +253,11 @@ readonly final class PlayerProfile
          * not known. Private - GetPlayerProfile::byId() never selects it, so it reaches no public page nor API.
          */
         public null|string $timezone = null,
+        /**
+         * The signed-in player's own profile only, like the time zone: the collection the pickers preselect, null = the
+         * system collection. Read through CollectionPreselection, never trusted alone (docs/features/collections/default-collection.md)
+         */
+        public null|string $defaultCollectionId = null,
         // "Partner finder e-mails" (player.partner_finder_emails, docs/features/partner-finder.md D6)
         public bool $partnerFinderEmails = true,
         // "Borrow request e-mails" (player.borrow_request_emails, docs/features/wishlist-availability.md)
@@ -493,6 +499,7 @@ readonly final class PlayerProfile
             emailUndeliverable: $emailUndeliverable,
             emailVerificationReminder: $emailVerificationReminder,
             timezone: $row['timezone'] ?? null,
+            defaultCollectionId: $row['default_collection_id'] ?? null,
         );
     }
 

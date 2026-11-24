@@ -312,6 +312,8 @@ readonly final class PuzzleLibraryExportBuilder
             'solved_puzzles_visibility' => $player->solvedPuzzlesVisibility->value,
             'lend_borrow_list_visibility' => $player->lendBorrowListVisibility->value,
             'collection_display_mode' => $this->getCollectionDisplayMode->forPlayer($player->playerId)->value,
+            // The collection the pickers preselect, as its collection_id (docs/features/collections/default-collection.md)
+            'default_collection_id' => $player->defaultCollectionId ?? Collection::SYSTEM_ID,
             'sell_swap_description' => $settings?->description,
             'sell_swap_currency' => $currency,
             'sell_swap_shipping_info' => $settings?->shippingInfo,

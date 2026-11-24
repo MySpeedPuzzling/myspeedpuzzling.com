@@ -133,6 +133,8 @@ final class DeletePlayerHandler
         // Same anonymisation for the pairs/teams the times belong to - the member row would block the delete otherwise
         $this->puzzlingTeamMemberConversion->playerToGuest($playerId, $playerName);
         $this->scrubFavoritePlayers($playerId);
+        // Their collections go below in one statement - the managed player must not keep pointing at one
+        $player->changeDefaultCollection(null);
         $this->deletePlayerOwnedRows($playerId);
         $this->deleteUserBlocks($playerId);
         $this->deletePrivateProfileViewers($playerId);

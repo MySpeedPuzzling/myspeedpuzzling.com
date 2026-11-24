@@ -1526,6 +1526,7 @@ competition_referees:
     "title": "%name% – Profil de speed puzzleur"
     "description": "Profil speed puzzling de %name% : meilleurs temps de puzzle, classements, succès et assemblages récents sur MySpeedPuzzling."
 "flashes":
+  "puzzle_added_to_named_collection": "Puzzle ajouté à %collection%."
   "photo_upload_deferred": "Vos données sont sauvegardées ! La photo n'a pas pu être téléchargée pour le moment — elle sera téléchargée automatiquement dès que notre espace de stockage sera à nouveau disponible."
   "stopwatch_already_saved": "Ces chronomètres ont déjà été sauvegardés."
   "result_already_saved": "Ce résultat était déjà enregistré – le voici."
@@ -2454,7 +2455,7 @@ competition_referees:
         "text": "Voyez comment vous vous en sortez avec les personnes avec qui vous faites des puzzles."
       "collections":
         "title": "Vos propres collections"
-        "text": "Autant que vous voulez, avec vos temps et vos prévisions sur chaque puzzle."
+        "text": "Autant que vous voulez, l'une d'elles choisie par défaut quand vous ajoutez un puzzle, avec vos temps et prédictions sur chaque puzzle."
         "short": "Autant que vous voulez"
       "multiscan":
         "title": "Scan multiple"
@@ -2780,6 +2781,13 @@ competition_referees:
       \ de messagerie que j'ai choisi inclut également fail2ban, qui est conçu pour bloquer l'accès depuis des adresses IP suspectes—par exemple, s'il y a trop de tentatives de connexion échouées ou d'autres menaces. Je vais passer environ deux heures de plus de diagnostic—mais essentiellement, fail2ban n'était pas configuré correctement (il était laissé dans ses paramètres par défaut), et combiné avec UFW, il a d'une manière ou d'une autre mystérieusement bloqué tout le trafic sur les ports 22, 80 et 443—même si nous ne comprenons toujours pas entièrement pourquoi c'est arrivé de cette façon.</p>\n<p>Une fois que j'ai connu la cause, la correction finale n'a pas pris trop de temps—désinstaller rapidement le serveur de messagerie (y compris UFW), vider iptables, rajouter les règles de réseau Docker, \"rebondir\" tout quelques fois, déconnecter le système de secours, redémarrer tout, et… finalement, après cinq heures atroces à jurer devant l'écran, MSP était de retour à la normale…</p>\n\
       <p>J'ai sauté quelques détails inutiles—comme comment j'ai basculé DNS vers un proxy CloudFlare en cinq minutes entre temps et mis en place un worker Node.js pour afficher un message sur la panne—juste pour qu'il n'y ait pas une page blanche…</p>\n<p>Pour l'instant, je mets le travail du serveur de messagerie de côté, et je sais qu'il sera \"sur le côté\", sur un serveur séparé, loin de MSP. D'un côté, c'était intéressant de tester notre processus de \"récupération après sinistre\"—à un moment j'étais si désespéré que j'étais prêt à laisser ce serveur brûler en enfer, tout faire tourner sur un nouveau, et juste mettre à jour les enregistrements DNS… Heureusement, cela s'est avéré inutile à la fin.</p>\n<p>PS. Ça s'est vraiment cassé \"tout seul\", grâce au serveur de messagerie, après une semaine sans aucune intervention humaine… C'est quelque chose…</p>\n<p>PS2. Vous êtes courageux si vous avez lu jusqu'au bout :-).</p>\n"
 "collections":
+  "default":
+    "badge": "Par défaut"
+    "make": "Définir par défaut"
+  "quick_pick":
+    "label": "Choisir une collection"
+    "more": "Plus de collections dans la recherche ci-dessous"
+    "change_default": "Changer la collection par défaut"
   "display":
     "label": "Affichage"
     "hint": "Vos propres temps à côté de chaque puzzle de cette collection"
@@ -2853,6 +2861,8 @@ competition_referees:
     "title": "Vous n'avez pas de collections"
     "title_other": "Pas de collections publiques"
   "flash":
+    "default_changed": "Collection par défaut modifiée."
+    "puzzle_added_to": "Puzzle ajouté à %collection%."
     "comment_updated": "Le commentaire a été mis à jour avec succès."
     "created": "La collection a été créée avec succès."
     "deleted": "La collection a été supprimée avec succès."
@@ -2867,6 +2877,8 @@ competition_referees:
     "updated": "La collection a été mise à jour avec succès."
     "puzzle_moved": "Le puzzle a été déplacé dans la collection avec succès."
   "form":
+    "default": "Collection par défaut"
+    "default_help": "Présélectionnée chaque fois que vous ajoutez un puzzle à une collection. Sans collection par défaut, c'est Collection de Puzzles."
     "description": "Description"
     "name": "Nom"
     "visibility_help": "Les collections publiques sont visibles par tous les utilisateurs, les privées seulement par vous."

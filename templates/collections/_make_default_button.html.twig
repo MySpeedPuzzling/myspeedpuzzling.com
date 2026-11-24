@@ -1,0 +1,7 @@
+{# "Make default" (MakeDefaultCollectionController, docs/features/collections/default-collection.md): collection_id = a collection's id or the system collection's marker, return_path = where to come back #}
+<form method="post" action="{{ path('make_default_collection', {collectionId: collection_id, return: return_path}) }}" class="{{ form_class|default('') }}">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\MakeDefaultCollectionController::CSRF_TOKEN_ID')) }}">
+    <button type="submit" class="{{ button_class|default('dropdown-item') }}" data-testid="make-default-collection">
+        <i class="bi bi-star me-1"></i>{{ 'collections.default.make'|trans }}
+    </button>
+</form>

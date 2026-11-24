@@ -2009,6 +2009,7 @@ player_profile:
         description: "%name%'s speed puzzling profile: fastest jigsaw puzzle times, rankings, achievements and recent solves on MySpeedPuzzling."
 
 flashes:
+    puzzle_added_to_named_collection: "Puzzle added to %collection%."
     photo_upload_deferred: "Your data is saved! The photo could not be uploaded right now — it will be uploaded automatically as soon as our storage is available again."
     stopwatch_already_saved: "These stopwatches have already been saved."
     result_already_saved: "This result was already saved – here it is."
@@ -2941,7 +2942,7 @@ membership:
                 text: "See how you perform with the people you puzzle with."
             collections:
                 title: "Your own collections"
-                text: "As many as you like, with your times and predictions on every puzzle."
+                text: "As many as you like, one of them picked by default when you add a puzzle, with your times and predictions on every puzzle."
                 short: "As many as you like"
             multiscan:
                 title: "Multiscan"
@@ -3338,6 +3339,13 @@ navigation:
     home: "Home"
 
 collections:
+    default:
+        badge: "Default"
+        make: "Make default"
+    quick_pick:
+        label: "Choose a collection"
+        more: "More collections in the search below"
+        change_default: "Change default"
     display:
         label: "Display"
         hint: "Your own times next to every puzzle in this collection"
@@ -3377,10 +3385,14 @@ collections:
             message: "Do you really want to delete the collection %name%? This action is irreversible and will also delete all puzzles in this collection."
             button: "Delete Collection"
     form:
+        default: "Default collection"
+        default_help: "Preselected whenever you add a puzzle to a collection. Without a default, that is Puzzle Collection."
         name: "Name"
         description: "Description"
         visibility_help: "Public collections are visible to all users, private collections only to you."
     flash:
+        default_changed: "Default collection changed."
+        puzzle_added_to: "Puzzle added to %collection%."
         created: "Collection was successfully created."
         updated: "Collection was successfully updated."
         deleted: "Collection was successfully deleted."

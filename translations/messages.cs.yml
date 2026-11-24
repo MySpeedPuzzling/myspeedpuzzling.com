@@ -1543,6 +1543,7 @@ competition_referees:
     "title": "%name% – Profil speed puzzlera"
     "description": "Speed puzzling profil hráče %name%: nejrychlejší časy skládání puzzle, žebříčky, úspěchy a nedávná složení na MySpeedPuzzling."
 "flashes":
+  "puzzle_added_to_named_collection": "Puzzle bylo přidáno do kolekce %collection%."
   "photo_upload_deferred": "Vaše data jsou uložena! Fotku se teď nepodařilo nahrát — nahraje se automaticky, jakmile bude naše úložiště opět dostupné."
   "stopwatch_already_saved": "Tyto stopky byly již uloženy."
   "result_already_saved": "Tenhle výsledek už byl uložený – tady je."
@@ -2462,7 +2463,7 @@ recap_progress:
         "text": "Uvidíš, jak se ti daří s lidmi, se kterými skládáš."
       "collections":
         "title": "Vlastní kolekce"
-        "text": "Kolik chceš, s tvými časy a předpovědmi u každého puzzle."
+        "text": "Kolik chceš, jedna z nich předvybraná při přidávání puzzle, u každého puzzle tvé časy a odhady."
         "short": "Kolik chceš"
       "multiscan":
         "title": "Hromadné skenování"
@@ -2788,6 +2789,13 @@ recap_progress:
 "navigation":
   "home": "Domů"
 "collections":
+  "default":
+    "badge": "Výchozí"
+    "make": "Nastavit jako výchozí"
+  "quick_pick":
+    "label": "Vyber kolekci"
+    "more": "Další kolekce najdeš ve vyhledávání níže"
+    "change_default": "Změnit výchozí"
   "display":
     "label": "Zobrazení"
     "hint": "Vaše vlastní časy u každého puzzle v této kolekci"
@@ -2827,10 +2835,14 @@ recap_progress:
       "message": "Opravdu chcete smazat kolekci %name%? Tato akce je nevratná a smaže se také všechny puzzle v této kolekci."
       "button": "Smazat kolekci"
   "form":
+    "default": "Výchozí kolekce"
+    "default_help": "Předvybraná pokaždé, když přidáváš puzzle do kolekce. Bez výchozí kolekce je to Puzzle kolekce."
     "name": "Název"
     "description": "Popis"
     "visibility_help": "Veřejné kolekce jsou viditelné pro všechny uživatele, soukromé pouze pro vás."
   "flash":
+    "default_changed": "Výchozí kolekce byla změněna."
+    "puzzle_added_to": "Puzzle bylo přidáno do kolekce %collection%."
     "created": "Kolekce byla úspěšně vytvořena."
     "updated": "Kolekce byla úspěšně upravena."
     "deleted": "Kolekce byla úspěšně smazána."

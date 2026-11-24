@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\CollectionFormData;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -49,12 +50,23 @@ final class CollectionFormType extends AbstractType
                 CollectionVisibility::Public => 'form.visibility_public',
             },
         ]);
+
+        // Members only: custom collections are, so a lapsed member's default would do nothing
+        if ($options['with_default'] === true) {
+            $builder->add('isDefault', CheckboxType::class, [
+                'label' => 'collections.form.default',
+                'help' => 'collections.form.default_help',
+                'required' => false,
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => CollectionFormData::class,
+            'with_default' => false,
         ]);
+        $resolver->setAllowedTypes('with_default', 'bool');
     }
 }

@@ -103,10 +103,10 @@
                     <legend class="form-label fw-semibold fs-6 mb-1">{{ 'participant_linking.hub.policy_label'|trans }}</legend>
                     {{ form_errors(form.policy) }}
                     {% for choice in form.policy %}
-                        <div class="form-check mb-1">
+                        {# The theme's radio widget renders its own .form-check with the label (it was printed twice) #}
+                        <div class="mb-1">
                             {{ form_widget(choice, {attr: {'aria-describedby': choice.vars.id ~ '_help'}}) }}
-                            {{ form_label(choice) }}
-                            <div class="form-text mt-0" id="{{ choice.vars.id }}_help">
+                            <div class="form-text mt-0 ps-4" id="{{ choice.vars.id }}_help">
                                 {% if choice.vars.value == 'automatic' %}
                                     {{ (claim_policy.proposalsEffective ? 'participant_linking.hub.policy.automatic_now_approval' : 'participant_linking.hub.policy.automatic_now_open')|trans }}
                                 {% else %}

@@ -26,6 +26,8 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Analytics studio row: "Line-up 0×" and "#3 1:00:19" wrap in their narrow columns; the live list shows no
       "+1 piece missing".
 - [ ] Standings on a phone label rounds "R1 R2 R3" (Pairs R3 = Challenge 5) with no legend.
+- [ ] Results desk at 375 px on a teams round: four flags stack above the team name and the table scrolls sideways
+      (Country column) - fold the flags into the row like the Pairs desk.
 - [ ] Seating "Fill from a hall plan" opens with "Places per table 1" while the list holds A1 L / A1 R.
 - [ ] Wizard start times: every day field starts empty - prefill the event's first day.
 - [ ] Local dev Postgres: /dev/shm 64 MB is full (≈300 leftover test databases' stats) - any new query fails with

@@ -37,6 +37,8 @@
 
     <p class="competitor-round-meta small text-muted">
         <span data-round-category>{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+        {#- The day too: an event of several days lists rounds of different days (UX walk 2026-11-24) #}
+        <span aria-hidden="true">·</span> <span data-round-day>{{ date(round.startsAt.instant, round.startsAt.zone)|events_date('MMMEd') }}</span>
         <span aria-hidden="true">·</span> {{ include('event_parts/_event_time.html.twig', {time: round.startsAt, online: false}) }}
         {%- if round.minutesLimit is not null %} <span aria-hidden="true">·</span> {{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}{% endif -%}
     </p>
@@ -103,6 +105,8 @@
                             <span class="official-entry-puzzle-label">{{ chip.label }}</span>
                             {%- if chip.puzzle is not null %} <span class="official-entry-puzzle-name">{{ chip.puzzle.puzzleName }}</span>{% endif %}
                             {%- if chip.done %} <i class="bi bi-check-lg text-success" aria-hidden="true"></i>{% if chip.atSeconds is not null %} <span class="official-entry-puzzle-time">{{ chip.atSeconds|puzzlingTime }}</span>{% endif %}
+                            {#- The challenge's own time next to the clock's, as on the round page (UX walk 2026-11-24) #}
+                            {%- if chip.done and (round.puzzlesToSolve ?? 0) >= 2 and chip.duration is not null and chip.duration != chip.atSeconds %} <span class="official-entry-puzzle-own text-muted" data-competitor-chip-own="{{ chip.duration }}" title="{{ 'round_results.challenge.own_time_help'|trans }}">({{ 'round_results.challenge.own_time'|trans({'%time%': chip.duration|puzzlingTime}) }})</span>{% endif %}
                             {%- elseif chip.piecesPlaced is not null %} <span class="text-muted">{{ 'competition_toolkit.round_page.pieces_placed'|trans({'%count%': chip.piecesPlaced}) }}</span>{% endif %}
                         </li>
                     {% endfor %}

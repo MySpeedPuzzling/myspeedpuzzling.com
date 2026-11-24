@@ -5181,7 +5181,7 @@ live_results:
     type: "Zadat čas"
     save: "Uložit čas"
     toast: "%label% dokončeno v %time%"
-    out_of_order: "Tento čas neodpovídá pořadí - každé puzzle se dokončuje po tom předchozím."
+    out_of_order: "Tento čas je dřív, než bylo dokončeno předchozí puzzle - každé puzzle se dokončuje po tom předchozím. Píšete ho? Použijte čas na stopkách kola, ne vlastní čas puzzle."
     pick_remaining: "Které puzzle bylo dokončeno jako poslední? Nejdřív klepněte na jeho štítek, pak uložte čas."
     whole_round: "Tím se dokončí celé kolo - pro jedno puzzle použijte jeho vlastní „Dokončeno právě teď“."
   proposals:
@@ -15744,6 +15744,7 @@ analytics_studio:
   "stats.group_median": "Medián dvojic/týmů"
   "stats.fastest": "Nejrychlejší"
   "pick_format": "Vyberte %count% z %total%"
+  "pick_format_all": "Vyřešit všech %total%"
   "help": "Klávesové zkratky"
   "help.title": "Klávesové zkratky"
   "keys.focus_search": "Hledat"
@@ -15778,6 +15779,7 @@ finished_missing:
     judge:
         add: "Chybějící dílky"
         label: "Chybějící dílky v dokončeném puzzle"
+        label_all: "Chybějící dílky v dokončených puzzle (všechna puzzle dohromady)"
         hint: "Např. dílek chyběl už z výroby. Prázdné = puzzle je kompletní."
         field: "Chybějící dílky"
         none: "žádné chybějící dílky"

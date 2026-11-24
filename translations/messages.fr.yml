@@ -5173,7 +5173,7 @@ live_results:
     type: "Saisir le temps"
     save: "Enregistrer le temps"
     toast: "%label% terminé à %time%"
-    out_of_order: "Ce temps ne respecte pas l'ordre - chaque puzzle se termine après le précédent."
+    out_of_order: "Ce temps est antérieur à la fin du puzzle précédent - chaque puzzle se termine après le précédent. Vous le saisissez ? Utilisez le chronomètre de la manche, pas le temps propre du puzzle."
     pick_remaining: "Quel puzzle a été terminé en dernier ? Touchez d'abord son étiquette, puis enregistrez le temps."
     whole_round: "Ceci termine toute la manche - pour un seul puzzle, utilisez son propre « Terminé maintenant »."
   proposals:
@@ -15737,6 +15737,7 @@ analytics_studio:
   "stats.group_median": "Médiane duos/équipes"
   "stats.fastest": "Le plus rapide"
   "pick_format": "Choisir %count% sur %total%"
+  "pick_format_all": "Résoudre les %total%"
   "help": "Raccourcis clavier"
   "help.title": "Raccourcis clavier"
   "keys.focus_search": "Rechercher"
@@ -15771,6 +15772,7 @@ finished_missing:
     judge:
         add: "Pièces manquantes"
         label: "Pièces manquantes du puzzle terminé"
+        label_all: "Pièces manquantes des puzzles terminés (tous les puzzles ensemble)"
         hint: "Par ex. une pièce manquante d'usine. Vide = le puzzle est complet."
         field: "Pièces manquantes"
         none: "aucune pièce manquante"

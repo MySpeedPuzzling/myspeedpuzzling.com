@@ -4,6 +4,36 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## SPWS demo UX walk (`toolkit/STATUS.md` "SPWS 1:1 demo" row UX, `toolkit/spws-demo-guide.md`, 2026-11-24)
+
+- [ ] Event page: a signed-in competitor gets no "Your competitor page" link - they go through Competitors and find
+      their name (alphabetical, 350+ rows at SPWS). A link on the event page / their own rows first on the list.
+- [ ] Judge, "Didn't finish" on a block before any puzzle is tapped asks "Pieces placed" (of what?) - preselect the
+      puzzles in their order when the round solves all of them (K = N), or say "tap the puzzles first".
+- [ ] Judge + desk: an unfinished block still reads as pieces placed ("1960 / 2000 pcs"); the judge typed the pieces
+      missing (40) - show "40 missing" where the count was typed that way. Desk chips show "960 pcs" per puzzle.
+- [ ] Judge card "Which 2 puzzles? Tap them in solving order." + "Save puzzle choice" on a K = N block whose order is
+      fixed by the rules - jargon for a nervous judge; say "Order solved" and hide the choice button when K = N.
+- [ ] Live control and displays follow the earliest upcoming round when none runs - before a block starts the hall
+      screen shows the previous day's round ("Not started · 29 / 29 finished").
+- [ ] Displays (demo design data): leaderboard names truncated ("Hanna…") in the overlay sidebar and the hall top 10;
+      empty overlay panels (leaderboard, "Just finished") cover a quarter of the camera picture at a round's start;
+      the "--:--" idle timer reads as broken glyphs; overlay boxes sit 30 px from the edge (title-safe is ~5 %).
+- [ ] Stopwatch reveal list: an unboxed puzzle says "its picture on this event" although its picture waits for the
+      results to be published.
+- [ ] Analytics studio row: "Line-up 0×" and "#3 1:00:19" wrap in their narrow columns; the live list shows no
+      "+1 piece missing".
+- [ ] Judge: typing `a1` highlights A1 but needs a tap or Enter (A10 … also match); opening an exact label at once
+      would open A1 while the judge is still typing "a10" - an exact match could open after a short pause instead.
+- [ ] Standings: a substitute in a team splits its standing row into two line-ups, and with the no-show rule both rows
+      get penalties (`lineupsInSomeRounds()` only warns) - decide how a substitute counts before the event.
+- [ ] Hub "When somebody picks a name": "Automatic" is selected while its note says "Now: Ask me first" - correct
+      (automatic = ask while time proposals are on) but reads as a contradiction; say "Automatic (now: Ask me first)".
+- [ ] Standings on a phone label rounds "R1 R2 R3" (Pairs R3 = Challenge 5) with no legend.
+- [ ] Results desk at 375 px on a teams round: four flags stack above the team name and the table scrolls sideways
+      (Country column) - fold the flags into the row like the Pairs desk.
+- [ ] Wizard start times: every day field starts empty - prefill the event's first day.
+
 ## SPWS 1:1 demo - unboxed per puzzle + wizard (`spws-unboxed-per-puzzle.md`, `spws-wizard.md`, 2026-11-24)
 
 - [x] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch

@@ -5106,7 +5106,7 @@ live_results:
     type: "Zeit eingeben"
     save: "Zeit speichern"
     toast: "%label% fertig bei %time%"
-    out_of_order: "Diese Zeit passt nicht zur Reihenfolge – jedes Puzzle ist nach dem vorherigen fertig."
+    out_of_order: "Diese Zeit liegt vor dem Ende des vorherigen Puzzles – jedes Puzzle ist nach dem vorherigen fertig. Tippst du sie ein? Nimm die Zeit der Rundenuhr, nicht die eigene Zeit des Puzzles."
     pick_remaining: "Welches Puzzle wurde zuletzt fertig? Tippen Sie zuerst auf seinen Chip und speichern Sie dann die Zeit."
     whole_round: "Damit ist die ganze Runde beendet – für ein einzelnes Puzzle dessen eigenes „Gerade fertig“ verwenden."
   proposals:
@@ -15741,6 +15741,7 @@ analytics_studio:
   "stats.group_median": "Median Paare/Teams"
   "stats.fastest": "Schnellste"
   "pick_format": "%count% von %total% wählen"
+  "pick_format_all": "Alle %total% lösen"
   "help": "Tastenkürzel"
   "help.title": "Tastenkürzel"
   "keys.focus_search": "Suchen"
@@ -15775,6 +15776,7 @@ finished_missing:
     judge:
         add: "Fehlende Teile"
         label: "Fehlende Teile im fertigen Puzzle"
+        label_all: "Fehlende Teile in den fertigen Puzzles (alle Puzzles zusammen)"
         hint: "Z. B. ein ab Werk fehlendes Teil. Leer = das Puzzle ist vollständig."
         field: "Fehlende Teile"
         none: "keine fehlenden Teile"

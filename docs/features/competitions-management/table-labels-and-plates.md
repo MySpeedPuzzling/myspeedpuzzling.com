@@ -158,7 +158,9 @@ table (same all championship), name / pair or team name + members, flags, QR, an
 - The championship = a standing's `round_ids` (SPWS has one standing per championship; the demo too), else every round
   of the category, by schedule. The boxes: per round in order - a pick round with K ≥ 2 (a back-to-back block) gives
   **one box per puzzle slot** labelled by its puzzle label (`RoundPuzzleLabel`: the organiser's label, e.g.
-  "Challenge 1"; default letters print as "<round name> · A"); any other round one box with the round name. **Labels
+  "Challenge 1"; default letters print as "<round name> · A"); a one-puzzle round whose puzzle has a label of its own
+  that no other round of the plate uses one box with that label ("Challenge 5", UX walk 2026-11-24); any other round
+  one box with the round name. **Labels
   only, never puzzle names** (plates print before the reveal; `RoundPuzzlesVisibleNow` is not needed because no name
   or picture is read).
 - Which entrants and which table: unless `?round=` is given, the championship's **first round** is the printed round

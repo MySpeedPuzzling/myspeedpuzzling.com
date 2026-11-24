@@ -67,7 +67,7 @@ export const LABEL_NAMES = [
     'difficulty.challenging', 'difficulty.hard', 'difficulty.very_hard', 'difficulty.confidence',
     'stats.solvers', 'stats.times_logged', 'stats.median', 'stats.percentiles', 'stats.histogram', 'stats.first_tries',
     'stats.first_try_median', 'stats.fastest_first_try', 'stats.top', 'stats.in_round', 'stats.group', 'stats.group_median',
-    'stats.fastest', 'pick_format',
+    'stats.fastest', 'pick_format', 'pick_format_all',
     'help', 'help.title', 'keys.focus_search', 'keys.escape', 'keys.move', 'keys.open', 'keys.compare',
     'keys.clear_compare', 'keys.slot', 'keys.help',
 ];
@@ -300,7 +300,10 @@ export function createAnalyticsStudioRenderer({ document, root, labels = {}, loc
 
         const pick = state?.round?.puzzleFormat;
         format.textContent = isObject(pick) && pick.kind === 'pick' && isNumber(pick.toSolve)
-            ? t('pick_format', { count: pick.toSolve, total: slotsOf(state).length }) : '';
+            // "Solve all 2" for a back-to-back block, not "Pick 2 of 2" (UX walk 2026-11-24)
+            ? (pick.toSolve === slotsOf(state).length
+                ? t('pick_format_all', { total: pick.toSolve })
+                : t('pick_format', { count: pick.toSolve, total: slotsOf(state).length })) : '';
 
         slotsNav.replaceChildren();
 

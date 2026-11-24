@@ -50,7 +50,7 @@ readonly final class AnalyticsStudioPageBuilder
         'difficulty.challenging', 'difficulty.hard', 'difficulty.very_hard', 'difficulty.confidence',
         'stats.solvers', 'stats.times_logged', 'stats.median', 'stats.percentiles', 'stats.histogram', 'stats.first_tries',
         'stats.first_try_median', 'stats.fastest_first_try', 'stats.top', 'stats.in_round', 'stats.group', 'stats.group_median',
-        'stats.fastest', 'pick_format',
+        'stats.fastest', 'pick_format', 'pick_format_all',
         'help', 'help.title', 'keys.focus_search', 'keys.escape', 'keys.move', 'keys.open', 'keys.compare',
         'keys.clear_compare', 'keys.slot', 'keys.help',
     ];

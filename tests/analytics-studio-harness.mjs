@@ -204,6 +204,7 @@ export const ENGLISH = {
     'stats.group_median': 'Pairs/teams median',
     'stats.fastest': 'Fastest',
     pick_format: 'Pick %count% of %total%',
+    pick_format_all: 'Solve all %total%',
     help: 'Keyboard shortcuts',
     'help.title': 'Keyboard shortcuts',
     'keys.focus_search': 'Search',

@@ -33,7 +33,7 @@ readonly final class CompetitionDisplayState implements \JsonSerializable
      * @param null|array{message: null|string, spotlight: null|DisplayResultRow} $control the live control (v2 L1/L2) -
      *                                                                                 null = no shown message / spotlight
      *                                                                                 element, the key is left out then
-     * @param null|array<string, string> $puzzleLabels
+     * @param null|array<int, string> $puzzleLabels position => label (a JSON object: positions start at 1)
      * @param null|array<string, null|array<string, mixed>> $bracket element id => the bracket it shows (DisplayBracket,
      *                                                               v2 S6); null = no shown bracket element - the key is
      *                                                               left out of the answer then

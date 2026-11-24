@@ -175,6 +175,20 @@ final class CompetitionDisplayStateControllerTest extends WebTestCase
         self::assertSame(2, self::at($state, 'results.finished'));
     }
 
+    public function testPuzzleLabelsOnlyForADesignNamingOne(): void
+    {
+        $browser = self::createClient();
+
+        [$raw] = self::displayState($browser, self::createDisplay(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [['type' => 'timer']], OfficialResultsFixture::ROUND_GROUP_A));
+        self::assertStringNotContainsString('puzzleLabels', $raw);
+
+        [, $state] = self::displayState($browser, self::createDisplay(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [['type' => 'field', 'props' => ['field' => 'puzzle_label', 'position' => 1]]], OfficialResultsFixture::ROUND_GROUP_A));
+        $labels = $state['puzzleLabels'] ?? null;
+        self::assertIsArray($labels);
+        self::assertSame(['1'], array_map('strval', array_keys($labels)));
+        self::assertIsString($labels['1'] ?? $labels[1] ?? null);
+    }
+
     public function testPairRowsCarryTheirMembersAndNoIdentifiers(): void
     {
         $browser = self::createClient();

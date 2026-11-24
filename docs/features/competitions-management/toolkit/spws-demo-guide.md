@@ -162,6 +162,9 @@ Who is where (made-up players, password `sandbox`): table A1 of the teams = "Cor
 
 ## 7. Notes from the walk (2026-11-24)
 
+- Displays (hall screen, overlay, OBS) open on the sandbox without the welcome page - their live refresh works.
+- A round whose stopwatch the organisers started early counts as running on the event page ("Next round"), the round
+  results page and the competitor page - a Reset puts it back on its schedule.
 - **Finished now** on the judge's phone appears once the round's stopwatch runs (before that: type the time). Since
   the UX leftovers package Teams Challenges 1 + 2 runs from its start (§0).
 - The stream overlay's background is transparent (checked); a normal browser tab shows it on white.

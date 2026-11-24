@@ -142,7 +142,7 @@ readonly final class GetCompetitionDisplayState
             $puzzleLabels = [];
 
             foreach ($slots as $slot) {
-                $puzzleLabels[(string) $slot->position] = $slot->label;
+                $puzzleLabels[$slot->position] = $slot->label;
             }
         }
 

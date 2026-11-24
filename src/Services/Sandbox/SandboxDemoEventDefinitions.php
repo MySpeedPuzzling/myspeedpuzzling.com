@@ -11,8 +11,8 @@ use SpeedPuzzling\Web\Value\SandboxDemoRound;
 
 /**
  * The made-up events Jan demos to organisers on the sandbox (docs/features/sandbox/README.md "Demo events"): a
- * World-Series-like championship, a winter-carnival-like weekend and the Speed Puzzle World Series format 1:1
- * (spws-demo-event.md). Invented names, people and results - modelled on
+ * World-Series-like championship, a winter-carnival-like weekend, the Speed Puzzle World Series format 1:1
+ * (spws-demo-event.md) and the St. Paul Winter Carnival 2027 as we guess it. Invented names, people and results - modelled on
  * the formats only (world-series-rules.md, shared-puzzles-and-divisions.md), never on real data.
  *
  * Day 0 is the demo day (--date): the first blocks happened the day before and are published, the second blocks run
@@ -23,9 +23,11 @@ final readonly class SandboxDemoEventDefinitions
     public const string SPWS_SLUG = 'speed-puzzle-world-series-demo';
     public const string CARNIVAL_SLUG = 'winter-carnival-jigsaw-demo';
     public const string SPWS_TORONTO_SLUG = 'spws-toronto-2027-demo';
+    public const string CARNIVAL_2027_SLUG = 'st-paul-winter-carnival-2027-demo';
 
     public const string SENIOR = 'Senior 55+';
     public const string JUNIOR = 'Junior under 16';
+    public const string JUNIOR_15 = 'Junior 15 and under';
     public const string REGULAR = 'Regular';
 
     /**
@@ -46,7 +48,7 @@ final readonly class SandboxDemoEventDefinitions
      */
     public static function known(): array
     {
-        return [...self::all(), self::spwsToronto()];
+        return [...self::all(), self::spwsToronto(), self::carnival2027()];
     }
 
     /**
@@ -103,8 +105,66 @@ final readonly class SandboxDemoEventDefinitions
                 new SandboxDemoGroup('individual', 40, 1, ['i1', 'i2', 'i3', 'i4', 'i5'], reuseOf: 'teams'),
             ],
             standings: true,
-            organization: ['name' => 'Speed Puzzle World Series (demo)', 'slug' => 'speed-puzzle-world-series-demo-organization'],
+            organization: ['name' => 'Speed Puzzle World Series (demo)', 'slug' => 'speed-puzzle-world-series-demo-organization', 'short' => 'SPWS'],
             brandedDisplays: true,
+        );
+    }
+
+    /**
+     * The St. Paul Winter Carnival Jigsaw Puzzle Competition 2027 (6-7 Feb 2027, one hall, Central time) as we guess
+     * its format until the organisers answer (docs/features/sandbox/README.md "Demo events"): every contest ranked on
+     * its own (no standing), divisions ranked inside their round next to the overall ranking, the website's schedule,
+     * plain table numbers from 1 per contest (the two parallel Sunday contests in two ranges), full-ish made-up counts.
+     * The demo day is the Sunday: Saturday and Sunday morning are recorded and published, OPEN #2 and Family Teams (side
+     * by side) wait for their stopwatches - on a day still ahead (the real dates) nothing is seeded there and the
+     * organisers start them early themselves. Every puzzle is a PuzzleTwist stand-in from the catalogue.
+     */
+    public static function carnival2027(): SandboxDemoEvent
+    {
+        $published = SandboxDemoRound::PUBLISHED;
+        $running = SandboxDemoRound::RUNNING;
+        $team = RoundCategory::Team;
+        $puzzleTwist = ['PuzzleTwist'];
+
+        $rounds = [
+            // Saturday
+            new SandboxDemoRound('challenge', '500 Teams CHALLENGE', $team, -1, '09:00', 90, 500, firstTable: 1, state: $published, baseSeconds: 3900, brands: $puzzleTwist, tie: true),
+            new SandboxDemoRound('t1000', '1000 Teams', $team, -1, '11:15', 180, 1000, tablesFrom: 'challenge', state: $published, baseSeconds: 8000, brands: $puzzleTwist, tie: true),
+            new SandboxDemoRound('open1', '500 Teams OPEN #1', $team, -1, '15:00', 120, 500, sharesPuzzleOf: 'challenge', firstTable: 1, state: $published, baseSeconds: 5200, tie: true),
+            // Sunday
+            new SandboxDemoRound('pairs', '500 Pairs', RoundCategory::Duo, 0, '09:30', 120, 500, firstTable: 1, state: $published, baseSeconds: 5300, divisions: [self::REGULAR, self::SENIOR], brands: $puzzleTwist, tie: true),
+            new SandboxDemoRound('solo', '500 Solo', RoundCategory::Solo, 0, '12:15', 120, 500, firstTable: 1, state: $published, baseSeconds: 5600, divisions: [self::REGULAR, self::SENIOR, self::JUNIOR_15], brands: $puzzleTwist, tie: true),
+            new SandboxDemoRound('open2', '500 Teams OPEN #2', $team, 0, '15:00', 120, 500, sharesPuzzleOf: 'challenge', firstTable: 1, state: $running, baseSeconds: 5200, stopwatchFromStart: true, seededWithinMinutes: 60),
+            // The same hall at the same time as OPEN #2: the tables after OPEN #2's
+            new SandboxDemoRound('family', '500 Family Teams', $team, 0, '15:00', 120, 500, firstTable: 61, state: $running, baseSeconds: 5600, brands: $puzzleTwist, stopwatchFromStart: true, seededWithinMinutes: 60),
+        ];
+
+        return new SandboxDemoEvent(
+            slug: self::CARNIVAL_2027_SLUG,
+            name: 'St. Paul Winter Carnival Jigsaw Puzzle Competition 2027 - demo',
+            code: 'spwc',
+            location: 'Saint Paul, MN',
+            countryCode: 'us',
+            timezone: 'America/Chicago',
+            description: 'A demo of the St. Paul Winter Carnival puzzle competition format on the MySpeedPuzzling sandbox: Saturday team contests (CHALLENGE, 1000 pieces, OPEN #1 on the CHALLENGE puzzle), Sunday pairs and solo with divisions, then OPEN #2 and Family Teams side by side. Every participant and result is invented.',
+            rounds: $rounds,
+            groups: [
+                // The CHALLENGE teams play the 1000 too, 40 more teams come for the 1000 only
+                new SandboxDemoGroup('challenge', 40, 4, ['challenge', 't1000']),
+                new SandboxDemoGroup('thousand', 40, 4, ['t1000']),
+                new SandboxDemoGroup('open1', 60, 4, ['open1']),
+                new SandboxDemoGroup('open2', 60, 4, ['open2']),
+                new SandboxDemoGroup('family', 30, 4, ['family'], teamNames: SandboxDemoGroup::NAMES_FAMILY),
+                new SandboxDemoGroup('pairs', 60, 2, ['pairs'], reuseOf: 'challenge', teamNames: SandboxDemoGroup::NAMES_FIRST_NAMES, divisions: [self::SENIOR => 4]),
+                new SandboxDemoGroup('solo', 120, 1, ['solo'], reuseOf: 'thousand', divisions: [self::JUNIOR_15 => 6, self::SENIOR => 4]),
+            ],
+            divisions: [
+                ['name' => self::REGULAR, 'short' => 'REG'],
+                ['name' => self::SENIOR, 'short' => 'S55'],
+                ['name' => self::JUNIOR_15, 'short' => 'J15'],
+            ],
+            organization: ['name' => 'St. Paul Winter Carnival puzzle committee (demo)', 'slug' => 'st-paul-winter-carnival-demo-organization', 'short' => 'Carnival'],
+            winterDisplays: true,
         );
     }
 

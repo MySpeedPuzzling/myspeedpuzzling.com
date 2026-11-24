@@ -14,7 +14,7 @@ readonly final class SandboxDemoEvent
      * @param list<SandboxDemoRound> $rounds in their order
      * @param list<SandboxDemoGroup> $groups
      * @param list<array{name: string, short: string}> $divisions the event's divisions in their order
-     * @param null|array{name: string, slug: string} $organization
+     * @param null|array{name: string, slug: string, short?: string} $organization
      */
     public function __construct(
         public string $slug,
@@ -36,6 +36,8 @@ readonly final class SandboxDemoEvent
         public null|array $organization = null,
         // The displays in the event's own look (SandboxDemoDisplays) instead of the generic ones
         public bool $brandedDisplays = false,
+        // Hall screens in a neutral winter look (SandboxDemoDisplays::winter()) next to the generic boards - no logo
+        public bool $winterDisplays = false,
     ) {
     }
 

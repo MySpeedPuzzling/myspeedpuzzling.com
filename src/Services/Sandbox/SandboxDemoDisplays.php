@@ -10,7 +10,8 @@ use SpeedPuzzling\Web\Value\DisplayKind;
 /**
  * The displays of the SPWS demo event in the World Series' own look (docs/features/competitions-management/
  * spws-demo-event.md "Displays"): navy and gold like their logo, the logo itself through the image element's
- * `competition_logo` source. Ordinary designs - the organisers change them in the display editor. Frames are % of the
+ * `competition_logo` source; and the St. Paul Winter Carnival demo's in a neutral winter look (`winter()`).
+ * Ordinary designs - the organisers change them in the display editor. Frames are % of the
  * 1920×1080 canvas, font sizes logical px at 1080p (DisplayPresets).
  */
 final readonly class SandboxDemoDisplays
@@ -22,6 +23,12 @@ final readonly class SandboxDemoDisplays
     public const string NAVY_DARK = '#050b3a';
     public const string GOLD = '#d4af37';
     public const string GOLD_LIGHT = '#f3e3a0';
+
+    // The Carnival demo's neutral winter look (their colours are not known yet)
+    public const string WINTER_NIGHT = '#123a63';
+    public const string WINTER_DEEP = '#0a1f38';
+    public const string WINTER_FROST = '#7fc8f8';
+    public const string WINTER_ICE = '#d6ecfa';
 
     /**
      * @param array<string, string> $roundIds round key => round id
@@ -42,6 +49,94 @@ final readonly class SandboxDemoDisplays
         $displays[] = ['name' => 'SPWS lower third', 'kind' => DisplayKind::Overlay, 'pinnedRoundId' => null, 'design' => self::lowerThird()];
 
         return $displays;
+    }
+
+    /**
+     * The St. Paul Winter Carnival demo's hall screens in a neutral winter look (no logo - none given): one following
+     * the current round, one pinned to Family Teams, which runs side by side with OPEN #2 in the same hall.
+     *
+     * @param array<string, string> $roundIds round key => round id
+     * @return list<array{name: string, kind: DisplayKind, pinnedRoundId: null|string, design: array<string, mixed>}>
+     */
+    public static function winter(array $roundIds): array
+    {
+        $displays = [
+            ['name' => 'Hall screen', 'kind' => DisplayKind::Screen, 'pinnedRoundId' => null, 'design' => self::winterHallScreen()],
+        ];
+
+        if (isset($roundIds['family'])) {
+            $displays[] = ['name' => 'Hall screen - Family Teams', 'kind' => DisplayKind::Screen, 'pinnedRoundId' => $roundIds['family'], 'design' => self::winterHallScreen()];
+        }
+
+        $displays[] = ['name' => 'Stream overlay', 'kind' => DisplayKind::Overlay, 'pinnedRoundId' => null, 'design' => self::winterStreamOverlay()];
+
+        return $displays;
+    }
+
+    /**
+     * Over a camera picture (only if they stream): a timer box top right with the round, the live top 8 under it, the
+     * latest finishers bottom left, the live control's message under them. Transparent everywhere else.
+     *
+     * @return array<string, mixed>
+     */
+    private static function winterStreamOverlay(): array
+    {
+        $panel = ['background' => '#0a1f38e0', 'radius' => 18, 'border' => ['width' => 2, 'color' => self::WINTER_FROST]];
+
+        return self::design(DisplayKind::Overlay, [
+            self::element('timerbox', 'box', 'Timer box', [74, 2.5, 24.5, 15], 2, ['gradient' => ['from' => self::WINTER_NIGHT, 'to' => self::WINTER_DEEP, 'angle' => 180], 'radius' => 18, 'border' => ['width' => 3, 'color' => self::WINTER_FROST]], []),
+            self::element('roundnm1', 'field', 'Round', [75, 3.5, 22.5, 4.5], 3, ['fontSize' => 30, 'fontWeight' => 700, 'color' => self::WINTER_ICE, 'fit' => 'shrink'], ['field' => 'round_name']),
+            self::element('timer001', 'timer', 'Timer', [75, 8, 22.5, 8.5], 4, ['fontSize' => 96, 'font' => 'bebas', 'color' => '#ffffff', 'letterSpacing' => 2], [
+                'bigCountdown' => 10,
+                'warningSeconds' => 600,
+                'phaseColors' => ['warning' => self::WINTER_FROST, 'times_up' => '#fe696a'],
+            ]),
+            self::element('sidebox1', 'box', 'Board column', [74, 19.5, 24.5, 58], 5, $panel, [], self::ONCE_RESULTS_ARE_IN),
+            self::element('finished', 'finished_count', 'Finished', [75, 20.5, 22.5, 4.5], 6, ['fontSize' => 26, 'fontWeight' => 700, 'color' => self::WINTER_FROST], ['source' => 'live'], self::ONCE_RESULTS_ARE_IN),
+            self::element('leaders1', 'leaderboard', 'Top 8', [75, 26, 22.5, 50], 7, ['fontSize' => 24, 'align' => 'left'], [
+                'rows' => 8,
+                'columns' => ['rank', 'name', 'result'],
+                'source' => 'live',
+                'rowStyle' => ['background' => '#ffffff10', 'altBackground' => '#ffffff04', 'gap' => 4],
+                'nameLines' => 2,
+            ], self::ONCE_RESULTS_ARE_IN),
+            self::element('tickerbx', 'box', 'Finishers box', [1.5, 74, 40, 17.5], 8, $panel, [], self::ONCE_RESULTS_ARE_IN),
+            self::element('tickerhd', 'text', 'Finishers title', [2.5, 75, 38, 4], 9, ['fontSize' => 24, 'fontWeight' => 700, 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 2, 'align' => 'left'], ['text' => 'Just finished'], self::ONCE_RESULTS_ARE_IN),
+            self::element('ticker01', 'ticker', 'Latest finishers', [2.5, 79.5, 38, 11], 10, ['fontSize' => 22, 'align' => 'left'], ['rows' => 3, 'source' => 'live'], self::ONCE_RESULTS_ARE_IN),
+            self::element('message1', 'message', 'Message', [1.5, 93, 60, 5], 11, ['fontSize' => 26, 'align' => 'left', 'color' => self::WINTER_ICE], ['maxLines' => 1]),
+        ], self::WINTER_DEEP, self::WINTER_FROST);
+    }
+
+    /**
+     * Event and round, a huge timer, how many finished, the live top 10 with the table numbers - night blue and ice.
+     *
+     * @return array<string, mixed>
+     */
+    private static function winterHallScreen(): array
+    {
+        return self::design(DisplayKind::Screen, [
+            self::element('backgrnd', 'box', 'Background', [0, 0, 100, 100], 0, ['gradient' => ['from' => self::WINTER_NIGHT, 'to' => self::WINTER_DEEP, 'angle' => 160]], []),
+            self::element('evtname1', 'field', 'Event name', [3, 5, 56, 7], 3, ['fontSize' => 40, 'fontWeight' => 700, 'align' => 'left', 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 2, 'fit' => 'shrink'], ['field' => 'competition_name']),
+            self::element('roundnm1', 'field', 'Round', [3, 12.5, 56, 8], 4, ['fontSize' => 56, 'fontWeight' => 700, 'align' => 'left', 'fit' => 'shrink'], ['field' => 'round_name']),
+            self::element('timer001', 'timer', 'Timer', [3, 25, 56, 36], 5, ['fontSize' => 300, 'font' => 'bebas', 'color' => '#ffffff', 'letterSpacing' => 4], [
+                'bigCountdown' => 10,
+                'warningSeconds' => 600,
+                'phaseColors' => ['warning' => self::WINTER_FROST, 'times_up' => '#fe696a'],
+            ]),
+            self::element('status01', 'status', 'Status', [3, 62, 56, 7], 6, ['fontSize' => 44, 'color' => self::WINTER_ICE], []),
+            self::element('progres1', 'progress', 'Progress', [3, 72, 56, 2.5], 7, ['radius' => 12], ['trackColor' => '#ffffff22', 'barColor' => self::WINTER_FROST, 'warningColor' => '#fe696a', 'warningSeconds' => 600]),
+            self::element('finished', 'finished_count', 'Finished', [3, 80, 56, 9], 8, ['fontSize' => 56, 'fontWeight' => 700, 'color' => self::WINTER_FROST], ['source' => 'live', 'format' => 'fraction']),
+            // The board panel waits for the first result - no empty box at the start
+            self::element('boardbox', 'box', 'Board panel', [62, 4, 35.5, 92], 9, ['background' => '#ffffff10', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::WINTER_FROST]], [], self::ONCE_RESULTS_ARE_IN),
+            self::element('boardttl', 'text', 'Board title', [64, 6, 31.5, 6], 10, ['fontSize' => 36, 'fontWeight' => 700, 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 3], ['text' => 'Live top 10'], self::ONCE_RESULTS_ARE_IN),
+            self::element('leaders1', 'leaderboard', 'Top 10', [64, 13.5, 31.5, 80], 11, ['fontSize' => 32, 'align' => 'left'], [
+                'rows' => 10,
+                'columns' => ['rank', 'name', 'table', 'result'],
+                'source' => 'live',
+                'rowStyle' => ['background' => '#ffffff14', 'altBackground' => '#ffffff08', 'gap' => 6],
+                'nameLines' => 2,
+            ], self::ONCE_RESULTS_ARE_IN),
+        ], self::WINTER_DEEP, self::WINTER_FROST);
     }
 
     /**
@@ -206,15 +301,15 @@ final readonly class SandboxDemoDisplays
      * @param list<array<string, mixed>> $elements
      * @return array<string, mixed>
      */
-    private static function design(DisplayKind $kind, array $elements): array
+    private static function design(DisplayKind $kind, array $elements, string $canvas = self::NAVY_DARK, string $accent = self::GOLD): array
     {
         $design = DisplayDesign::blank($kind);
 
         if ($kind === DisplayKind::Screen) {
-            $design['canvas']['background']['color'] = self::NAVY_DARK;
+            $design['canvas']['background']['color'] = $canvas;
         }
 
-        $design['theme'] = ['font' => 'rubik', 'color' => '#ffffff', 'accent' => self::GOLD];
+        $design['theme'] = ['font' => 'rubik', 'color' => '#ffffff', 'accent' => $accent];
         $design['elements'] = $elements;
 
         return $design;

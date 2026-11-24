@@ -203,8 +203,12 @@ final readonly class SandboxDemoEvents
         }
 
         if ($event->brandedDisplays) {
-            $this->brandedDisplays($competitionId, $roundIds, $organizerPlayerId, $say);
+            $this->brandedDisplays($competitionId, SandboxDemoDisplays::all($roundIds), $organizerPlayerId, $say);
         } else {
+            if ($event->winterDisplays) {
+                $this->brandedDisplays($competitionId, SandboxDemoDisplays::winter($roundIds), $organizerPlayerId, $say);
+            }
+
             // Real events L2b: a board per challenge of the first block, a board per division of the round with the most
             $this->viewDisplays($event, $competitionId, $roundIds, $organizerPlayerId, $say);
         }
@@ -741,11 +745,34 @@ final readonly class SandboxDemoEvents
                     $name = self::teamName($group, $groupIndex, $unitIndex, array_map(static fn (int $member): string => $people[$member]['name'] ?? '', $members));
                     $base = $name;
 
-                    for ($copy = 2; isset($usedNames[$group->key][$name]); $copy++) {
+                    // Unique within each round the group enters - two groups may share a round (Carnival 2027: the
+                    // 1000 has the CHALLENGE teams and teams of its own); a name is a team in the participants import
+                    $taken = static function (string $candidate) use (&$usedNames, $group): bool {
+                        foreach ($group->roundKeys as $roundKey) {
+                            if (isset($usedNames[$roundKey][$candidate])) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    };
+
+                    // Another fun name first (a fun name is never taken within its own group), then a number
+                    for ($shift = 1; $group->teamNames === SandboxDemoGroup::NAMES_FUN && $shift < 12 && $taken($name); $shift++) {
+                        $name = self::teamName($group, $groupIndex + $shift, $unitIndex, []);
+                    }
+
+                    if ($taken($name)) {
+                        $name = $base;
+                    }
+
+                    for ($copy = 2; $taken($name); $copy++) {
                         $name = sprintf('%s (%d)', $base, $copy);
                     }
 
-                    $usedNames[$group->key][$name] = true;
+                    foreach ($group->roundKeys as $roundKey) {
+                        $usedNames[$roundKey][$name] = true;
+                    }
                 }
 
                 $units[$group->key][] = ['name' => $name, 'members' => $members];
@@ -1208,7 +1235,7 @@ final readonly class SandboxDemoEvents
     /**
      * The organization owning the event (approved at once, the organiser's logo), the extra organisers on its team.
      *
-     * @param array{name: string, slug: string} $definition
+     * @param array{name: string, slug: string, short?: string} $definition
      * @param list<string> $maintainerIds
      * @param \Closure(string): void $say
      */
@@ -1222,7 +1249,7 @@ final readonly class SandboxDemoEvents
                 organizationId: Uuid::fromString($organizationId),
                 playerId: $organizerPlayerId,
                 name: $definition['name'],
-                shortName: 'SPWS',
+                shortName: $definition['short'] ?? null,
                 about: 'A made-up organization on the MySpeedPuzzling sandbox for demonstrating the competition toolkit.',
                 website: null,
                 socialLinks: [],
@@ -1257,14 +1284,14 @@ final readonly class SandboxDemoEvents
     /**
      * The displays in the event's own look (SandboxDemoDisplays), found again by name - kept as the organisers edit them.
      *
-     * @param array<string, string> $roundIds
+     * @param list<array{name: string, kind: DisplayKind, pinnedRoundId: null|string, design: array<string, mixed>}> $displays
      * @param \Closure(string): void $say
      */
-    private function brandedDisplays(string $competitionId, array $roundIds, string $organizerPlayerId, \Closure $say): void
+    private function brandedDisplays(string $competitionId, array $displays, string $organizerPlayerId, \Closure $say): void
     {
         $existing = $this->demoData->displays($competitionId);
 
-        foreach (SandboxDemoDisplays::all($roundIds) as $display) {
+        foreach ($displays as $display) {
             if (isset($existing[$display['name']])) {
                 continue;
             }

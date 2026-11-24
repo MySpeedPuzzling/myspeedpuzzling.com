@@ -204,7 +204,7 @@
                 <select name="boxes" onchange="this.form.submit()" data-tag-boxes>
                     <option value="">{{ 'name_tags.plates.none'|trans }}</option>
                     {% for option in boxes_options %}
-                        <option value="{{ option.value }}" {{ boxes_value == option.value ? 'selected' }}>{{ option.label != '' ? option.label : 'name_tags.plates.category'|trans({'%category%': ('competition.round.category.' ~ option.category)|trans}) }}</option>
+                        <option value="{{ option.value }}" {{ boxes_value == option.value ? 'selected' }}>{{ option.value == 'round' and round is not null ? 'name_tags.plates.this_round'|trans({'%round%': round.name}) : (option.label != '' ? option.label : 'name_tags.plates.category'|trans({'%category%': ('competition.round.category.' ~ option.category)|trans})) }}</option>
                     {% endfor %}
                 </select>
             </label>

@@ -5300,6 +5300,7 @@ name_tags:
     boxes: "Políčka na časy"
     none: "Žádná"
     category: "Kola: %category%"
+    this_round: "Jen toto kolo: %round%"
     missing_field: "S políčkem „chybějící dílky“"
     hint: "Jedna jmenovka pro každého účastníka kola %round% s jeho stolem a políčkem na každou výzvu, kam rozhodčí perem zapíše čas - na straně k rozhodčímu."
     several_tables: "%count% lidí sedí v pozdějším z těchto kol u jiného stolu - jejich jmenovka ukazuje stůl prvního kola."

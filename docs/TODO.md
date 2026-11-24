@@ -4,6 +4,14 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## St. Paul Winter Carnival 2027 demo (`docs/features/sandbox/README.md` "Demo events", `toolkit/STATUS.md` row CW, 2026-11-24)
+- [ ] The organisers' answers to the open questions of their guide (sent with the demo) → adjust the definition / the sandbox event (Solo vs Family time, counts, divisions, missing-piece rule, tables)
+- [ ] One ranking across rounds with different entrants (all teams of CHALLENGE / OPEN #1 / OPEN #2 on their shared puzzle) does not exist - a sum standing keys on the exact line-up; build only if they ask
+- [ ] Participants sheet: typing a substitute over a team member leaves the replaced person in the round's "without a team" tray (+ a "1 without a team" warning) - offer "take them out of the round" right there
+- [ ] Display leaderboard with columns `rank, name, table, result` renders the table after the time ("01:38 27") - check the column order
+- [ ] Demo pair names from first names repeat with "(2)" at 60 pairs - cosmetic
+- [ ] Rehearsal leftovers on the sandbox event: OPEN #2 tables 27-29 have results (finished, didn't finish, did not start), table 5 has the made-up substitute "Robin Example" (the replaced member in the tray)
+
 ## SPWS fast time entry (`docs/features/competitions-management/toolkit/fast-time-entry.md`, 2026-11-24)
 
 - [ ] Real phones: iPhone Safari (numeric pad without Return - Review stays visible above it; a tap on minutes selects

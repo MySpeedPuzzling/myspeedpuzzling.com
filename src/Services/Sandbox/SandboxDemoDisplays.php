@@ -71,7 +71,7 @@ final readonly class SandboxDemoDisplays
             $displays[] = ['name' => 'Hall screen - Family Teams', 'kind' => DisplayKind::Screen, 'pinnedRoundId' => $roundIds['family'], 'design' => self::winterHallScreen()];
         }
 
-        $displays[] = ['name' => 'Stream overlay', 'kind' => DisplayKind::Overlay, 'pinnedRoundId' => null, 'design' => self::winterStreamOverlay()];
+        $displays[] = ['name' => 'Stream overlay', 'kind' => DisplayKind::Overlay, 'pinnedRoundId' => null, 'design' => self::winterStreamOverlay(), 'followRoundIds' => $main];
 
         return $displays;
     }
@@ -119,7 +119,7 @@ final readonly class SandboxDemoDisplays
     {
         return self::design(DisplayKind::Screen, [
             self::element('backgrnd', 'box', 'Background', [0, 0, 100, 100], 0, ['gradient' => ['from' => self::WINTER_NIGHT, 'to' => self::WINTER_DEEP, 'angle' => 160]], []),
-            self::element('evtname1', 'field', 'Event name', [3, 5, 56, 7], 3, ['fontSize' => 40, 'fontWeight' => 700, 'align' => 'left', 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 2, 'fit' => 'shrink'], ['field' => 'competition_name']),
+            self::element('evtname1', 'field', 'Event name', [3, 4, 94, 7], 3, ['fontSize' => 40, 'fontWeight' => 700, 'align' => 'left', 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 2, 'fit' => 'shrink'], ['field' => 'competition_name']),
             self::element('roundnm1', 'field', 'Round', [3, 12.5, 56, 8], 4, ['fontSize' => 56, 'fontWeight' => 700, 'align' => 'left', 'fit' => 'shrink'], ['field' => 'round_name']),
             self::element('timer001', 'timer', 'Timer', [3, 25, 56, 36], 5, ['fontSize' => 300, 'font' => 'bebas', 'color' => '#ffffff', 'letterSpacing' => 4], [
                 'bigCountdown' => 10,
@@ -130,9 +130,9 @@ final readonly class SandboxDemoDisplays
             self::element('progres1', 'progress', 'Progress', [3, 72, 56, 2.5], 7, ['radius' => 12], ['trackColor' => '#ffffff22', 'barColor' => self::WINTER_FROST, 'warningColor' => '#fe696a', 'warningSeconds' => 600]),
             self::element('finished', 'finished_count', 'Finished', [3, 80, 56, 9], 8, ['fontSize' => 56, 'fontWeight' => 700, 'color' => self::WINTER_FROST], ['source' => 'live', 'format' => 'fraction']),
             // The board panel waits for the first result - no empty box at the start
-            self::element('boardbox', 'box', 'Board panel', [62, 4, 35.5, 92], 9, ['background' => '#ffffff10', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::WINTER_FROST]], [], self::ONCE_RESULTS_ARE_IN),
-            self::element('boardttl', 'text', 'Board title', [64, 6, 31.5, 6], 10, ['fontSize' => 36, 'fontWeight' => 700, 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 3], ['text' => 'Live top 10'], self::ONCE_RESULTS_ARE_IN),
-            self::element('leaders1', 'leaderboard', 'Top 10', [64, 13.5, 31.5, 80], 11, ['fontSize' => 32, 'align' => 'left'], [
+            self::element('boardbox', 'box', 'Board panel', [62, 13, 35.5, 84], 9, ['background' => '#ffffff10', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::WINTER_FROST]], [], self::ONCE_RESULTS_ARE_IN),
+            self::element('boardttl', 'text', 'Board title', [64, 15, 31.5, 6], 10, ['fontSize' => 36, 'fontWeight' => 700, 'color' => self::WINTER_ICE, 'uppercase' => true, 'letterSpacing' => 3], ['text' => 'Live top 10'], self::ONCE_RESULTS_ARE_IN),
+            self::element('leaders1', 'leaderboard', 'Top 10', [64, 22, 31.5, 72], 11, ['fontSize' => 32, 'align' => 'left'], [
                 'rows' => 10,
                 'columns' => ['rank', 'name', 'table', 'result'],
                 'source' => 'live',

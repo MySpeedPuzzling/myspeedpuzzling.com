@@ -94,13 +94,13 @@ final class LiveResultsCurrentRoundTest extends TestCase
      * The cases the live entry's offline copy runs too (assets/live_entry_shell.js currentRound(),
      * tests/live-entry-shell-harness.mjs) - the JS port picks what this class picks.
      *
-     * @param list<array{name: string, startsAt: string, status: null|string, startedAt: null|string}> $rounds
+     * @param list<array{name: string, startsAt: string, status: null|string, startedAt: null|string, published?: bool}> $rounds
      */
     #[DataProvider('provideSharedCases')]
     public function testTheSharedCasesTheOfflineCopyRunsToo(string $now, array $rounds, null|string $expected): void
     {
         $overviews = array_map(
-            static fn (array $round): RoundResultsOverview => self::round($round['name'], $round['startsAt'], $round['status'], $round['startedAt']),
+            static fn (array $round): RoundResultsOverview => self::round($round['name'], $round['startsAt'], $round['status'], $round['startedAt'], $round['published'] ?? false),
             $rounds,
         );
 
@@ -108,11 +108,11 @@ final class LiveResultsCurrentRoundTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, list<array{name: string, startsAt: string, status: null|string, startedAt: null|string}>, null|string}>
+     * @return iterable<string, array{string, list<array{name: string, startsAt: string, status: null|string, startedAt: null|string, published?: bool}>, null|string}>
      */
     public static function provideSharedCases(): iterable
     {
-        /** @var list<array{case: string, now: string, rounds: list<array{name: string, startsAt: string, status: null|string, startedAt: null|string}>, expected: null|string}> $cases */
+        /** @var list<array{case: string, now: string, rounds: list<array{name: string, startsAt: string, status: null|string, startedAt: null|string, published?: bool}>, expected: null|string}> $cases */
         $cases = json_decode((string) file_get_contents(__DIR__ . '/../../fixtures/live-current-round-cases.json'), true, flags: JSON_THROW_ON_ERROR);
 
         foreach ($cases as $case) {
@@ -120,7 +120,7 @@ final class LiveResultsCurrentRoundTest extends TestCase
         }
     }
 
-    private static function round(string $name, string $startsAt, null|string $status, null|string $stopwatchStartedAt): RoundResultsOverview
+    private static function round(string $name, string $startsAt, null|string $status, null|string $stopwatchStartedAt, bool $published = false): RoundResultsOverview
     {
         return new RoundResultsOverview(
             roundId: strtolower($name),
@@ -132,7 +132,7 @@ final class LiveResultsCurrentRoundTest extends TestCase
             stopwatchStatus: $status,
             stopwatchStartedAt: $stopwatchStartedAt !== null ? new DateTimeImmutable($stopwatchStartedAt) : null,
             stopwatchStoppedAt: null,
-            resultsPublishedAt: null,
+            resultsPublishedAt: $published ? new DateTimeImmutable($startsAt) : null,
             resultsFirstPublishedAt: null,
             tableNumbersOff: false,
             puzzlesCount: 1,

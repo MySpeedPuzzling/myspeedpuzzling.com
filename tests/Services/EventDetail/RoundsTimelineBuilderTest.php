@@ -79,6 +79,45 @@ final class RoundsTimelineBuilderTest extends TestCase
         self::assertSame(0, $timeline->foldedCount);
     }
 
+    public function testARoundPublishedAheadOfItsScheduleIsDoneNeverTheNext(): void
+    {
+        // A demo built on the real dates a year ahead (spws-demo-ux-leftovers.md §9): the first block published already
+        $timeline = $this->build([
+            self::round('pairs', '2027-06-02 11:00', minutes: 90, resultsPublished: true),
+            self::round('teams', '2027-06-03 10:00', minutes: 120),
+            self::round('solo', '2027-06-04 11:00', minutes: 75),
+        ]);
+
+        self::assertSame([RoundStatus::Past, RoundStatus::Next, RoundStatus::Later], self::statuses($timeline));
+        self::assertSame('teams', $timeline->nextRoundId);
+        self::assertNull($timeline->rounds[0]->when);
+        self::assertSame(DateLeaf::TONE_MUTED, $timeline->rounds[0]->leaf->tone);
+        self::assertFalse($timeline->isLive);
+        self::assertSame(0, $timeline->foldedCount);
+
+        // Every round published: no next round at all
+        $allPublished = $this->build([
+            self::round('pairs', '2027-06-02 11:00', minutes: 90, resultsPublished: true),
+            self::round('teams', '2027-06-03 10:00', minutes: 120, resultsPublished: true),
+        ]);
+
+        self::assertSame([RoundStatus::Past, RoundStatus::Past], self::statuses($allPublished));
+        self::assertNull($allPublished->nextRoundId);
+    }
+
+    public function testARoundPublishedWhileItsTimeRunsStaysLive(): void
+    {
+        // Now = 14:00 New York: published at 13:30, its 90 minutes run until 14:30 - as before the change
+        $timeline = $this->build([
+            self::round('r1', '2026-06-10 13:00', minutes: 90, zone: 'America/New_York', resultsPublished: true),
+            self::round('r2', '2026-06-10 16:00', minutes: 60, zone: 'America/New_York'),
+        ]);
+
+        self::assertSame([RoundStatus::Live, RoundStatus::Later], self::statuses($timeline));
+        self::assertSame('r1', $timeline->nextRoundId);
+        self::assertTrue($timeline->isLive);
+    }
+
     public function testANextRoundLaterTodaySaysToday(): void
     {
         $timeline = $this->build([

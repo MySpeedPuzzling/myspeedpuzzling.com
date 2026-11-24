@@ -44,6 +44,8 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] An early stopwatch start beats the schedule on the event/edition timeline and the round results page
       (`EditionRoundDetail::startedAt()`), not yet on the events agenda (`/en/events` "Live"), the series page and
       "You organize" - they read the schedule only (`spws-demo-ux-leftovers.md` §8.4).
+      A published round ahead of its schedule is done everywhere "next / current" is decided (§9); those three pages
+      have no "next round" and date by the schedule.
 - [ ] Results desk at 375 px: the Pairs/Teams table still scrolls ~20-100 px sideways (the Qualified column and the
       per-challenge chips) - the teams' flags no longer stack above the name.
 

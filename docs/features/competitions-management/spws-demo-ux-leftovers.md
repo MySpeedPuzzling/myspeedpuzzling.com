@@ -156,6 +156,28 @@ is). Today or past: as above.
    made-up GD-drawn box picture (`SandboxPlaceholderBox`, "DEMO BOX" + the name on coloured pieces - never real
    artwork), so the unboxed effect shows: no picture before the results, a picture after.
 
+## 9. A published round is done (follow-up, 2026-11-24)
+
+Seen on the sandbox SPWS demo (built on the real June 2027 dates, Pairs - Challenges 1 + 2 published, scheduled
+2 June 2027) and on any event whose organisers start a round early and publish it: the round read as upcoming - the
+sidebar's "Next round" named it and every display following the current round (hall screen, overlay, live control)
+picked it and showed "Not started" with dashes. §4 made a running stopwatch beat the schedule; this extends it: **a round
+with published results is done**, so it is never "next" or "upcoming", whatever its schedule says.
+
+- `LiveResultsCurrentRound::pick()` (displays following the current round, live control, the referee's event link, the
+  scan landing, competitor pages; the offline copy's port `live_entry_shell.js currentRound()` with the shared cases):
+  the "next one" step skips published rounds - the next **unpublished** round ahead; every round ahead published = the
+  last round, as before. Running and "started within 12 hours" are unchanged, so a round published right after it ended
+  still holds the hall screen. `GetCompetitorPage` hands the picker the round's published state (it passed none).
+- `EditionRoundDetail::isOverAt()` = its time over counted from `startedAt()`, or published while it has not begun -
+  the event/edition timeline (Past / Live / Next, the sidebar's and facts strip's "Next round", folding) reads it. A
+  round published while its time still runs stays Live, as before.
+
+Untouched events: their published rounds have begun, so every page reads as before (goldens unchanged). Not changed:
+the round results page (a published round shows its official results anyway; "Add time" keeps following the start,
+like the timeline), the events agenda, the series page and "You organize" (they date occurrences by their schedule
+and have no "next round").
+
 Left on purpose: a team whose only entries are no-shows is left out of the standing (Jan asks SPWS).
 
 ## Review amendments (independent review 2026-11-24 - binding)

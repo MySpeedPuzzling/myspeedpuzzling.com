@@ -58,9 +58,10 @@ function latestStarted(rounds, nowMs) {
 /**
  * The round a referee most likely enters results for right now - LiveResultsCurrentRound::pick() in PHP, the same
  * rules (pinned by the shared cases tests/fixtures/live-current-round-cases.json, run by both): the running stopwatch
- * (the latest started of several), else the round started last within 12 hours, else the next one, else the last one.
+ * (the latest started of several), else the round started last within 12 hours, else the next one not published yet,
+ * else the last one.
  *
- * @param {Array<object>} rounds  rounds as the state JSON has them (`id`, `name`, `startsAt`, `stopwatch`)
+ * @param {Array<object>} rounds  rounds as the state JSON has them (`id`, `name`, `startsAt`, `stopwatch`, `resultsPublished`)
  * @returns {object|null}
  */
 export function currentRound(rounds, nowMs) {
@@ -92,7 +93,8 @@ export function currentRound(rounds, nowMs) {
         return latestStarted(recent, nowMs);
     }
 
-    const upcoming = list.filter((round) => (momentOf(round.startsAt) ?? -Infinity) > nowMs)
+    // A round with published results is done - never "the next one", even with its schedule still ahead
+    const upcoming = list.filter((round) => (momentOf(round.startsAt) ?? -Infinity) > nowMs && round.resultsPublished !== true)
         .sort((a, b) => compare([momentOf(a.startsAt), String(a.name ?? '')], [momentOf(b.startsAt), String(b.name ?? '')]));
 
     if (upcoming.length > 0) {

@@ -105,7 +105,7 @@
                     {% for choice in form.policy %}
                         <div class="form-check mb-1">
                             {{ form_widget(choice, {attr: {'aria-describedby': choice.vars.id ~ '_help'}}) }}
-                            <label class="form-check-label" for="{{ choice.vars.id }}">{{ ('participant_linking.hub.policy.' ~ choice.vars.value)|trans }}</label>
+                            {{ form_label(choice) }}
                             <div class="form-text mt-0" id="{{ choice.vars.id }}_help">
                                 {% if choice.vars.value == 'automatic' %}
                                     {{ (claim_policy.proposalsEffective ? 'participant_linking.hub.policy.automatic_now_approval' : 'participant_linking.hub.policy.automatic_now_open')|trans }}

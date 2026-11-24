@@ -56,7 +56,7 @@
 
         /* Table tents: A4 landscape, folded along the middle - the upper half upside down reads from the other side */
         .tents { display: flex; flex-direction: column; gap: 16px; }
-        .tent { width: 281mm; height: 194mm; display: grid; grid-template-rows: 1fr 1fr; border: 1px solid #ddd; break-after: page; page-break-after: always; break-inside: avoid; }
+        .tent { width: 281mm; height: 194mm; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); border: 1px solid #ddd; break-after: page; page-break-after: always; break-inside: avoid; }
         .tent:last-child { break-after: auto; page-break-after: auto; }
         .tent-face { display: flex; align-items: center; gap: 10mm; padding: 8mm 12mm; overflow: hidden; }
         .tent-face.upper { transform: rotate(180deg); border-top: 1px dashed #999; }
@@ -88,6 +88,14 @@
         .tent-face.with-boxes .tent-table strong { font-size: 34pt; }
         .tent-face.with-boxes .tent-qr { flex-basis: 44mm; }
         .tent-face.with-boxes .tent-qr svg { width: 44mm; height: 44mm; }
+        /* The plate face keeps its half - a team of four with flags, the table and the boxes all fit; without this the
+           face grew past the fold and the printer cut the boxes off (UX walk 2026-11-24) */
+        .tent-face.with-boxes .tent-text { gap: 2mm; }
+        .tent-face.with-boxes .tent-event img { max-height: 10mm; }
+        .tent-face.with-boxes .tag-members { font-size: 15pt; gap: 1mm; }
+        .tent-face.with-boxes .tag-members:has(> .tag-member:nth-child(3)) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
+        .tent-face.with-boxes .tag-member .member-code { font-size: 11pt; }
+        .with-flags .tent-face.with-boxes .tag-member img { width: 10mm; height: 7.5mm; }
         .time-boxes { flex: 0 0 auto; display: grid; grid-template-columns: repeat(var(--boxes-per-row, 5), minmax(0, 1fr)); gap: 2.5mm; }
         .time-box { border: 0.4mm solid #222; border-radius: 2mm; padding: 1.6mm 2.5mm 2mm; display: flex; flex-direction: column; gap: 1.5mm; min-width: 0; break-inside: avoid; }
         .time-box-label { font-size: 10pt; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

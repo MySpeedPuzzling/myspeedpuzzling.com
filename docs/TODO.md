@@ -4,6 +4,33 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## SPWS demo UX walk (`toolkit/STATUS.md` "SPWS 1:1 demo" row UX, `toolkit/spws-demo-guide.md`, 2026-11-24)
+
+- [ ] Event page: a signed-in competitor gets no "Your competitor page" link - they go through Competitors and find
+      their name (alphabetical, 350+ rows at SPWS). A link on the event page / their own rows first on the list.
+- [ ] Judge, "Didn't finish" on a block before any puzzle is tapped asks "Pieces placed" (of what?) - preselect the
+      puzzles in their order when the round solves all of them (K = N), or say "tap the puzzles first".
+- [ ] Judge + desk: an unfinished block still reads as pieces placed ("1960 / 2000 pcs"); the judge typed the pieces
+      missing (40) - show "40 missing" where the count was typed that way. Desk chips show "960 pcs" per puzzle.
+- [ ] Judge card "Which 2 puzzles? Tap them in solving order." + "Save puzzle choice" on a K = N block whose order is
+      fixed by the rules - jargon for a nervous judge; say "Order solved" and hide the choice button when K = N.
+- [ ] Live control and displays follow the earliest upcoming round when none runs - before a block starts the hall
+      screen shows the previous day's round ("Not started · 29 / 29 finished").
+- [ ] Displays (demo design data): leaderboard names truncated ("Hanna…") in the overlay sidebar and the hall top 10;
+      empty overlay panels (leaderboard, "Just finished") cover a quarter of the camera picture at a round's start;
+      the "--:--" idle timer reads as broken glyphs; overlay boxes sit 30 px from the edge (title-safe is ~5 %).
+- [ ] Name plates: a one-puzzle round's box is labelled with the round name ("Individual - Challenge 1", "Pairs -
+      Challenge 5") while blocks use the puzzle label ("Challenge 3") - one style.
+- [ ] Stopwatch reveal list: an unboxed puzzle says "its picture on this event" although its picture waits for the
+      results to be published.
+- [ ] Analytics studio row: "Line-up 0×" and "#3 1:00:19" wrap in their narrow columns; the live list shows no
+      "+1 piece missing".
+- [ ] Standings on a phone label rounds "R1 R2 R3" (Pairs R3 = Challenge 5) with no legend.
+- [ ] Seating "Fill from a hall plan" opens with "Places per table 1" while the list holds A1 L / A1 R.
+- [ ] Wizard start times: every day field starts empty - prefill the event's first day.
+- [ ] Local dev Postgres: /dev/shm 64 MB is full (≈300 leftover test databases' stats) - any new query fails with
+      "could not resize shared memory segment"; needs the scratch databases dropped or `shm_size` raised.
+
 ## SPWS 1:1 demo - unboxed per puzzle + wizard (`spws-unboxed-per-puzzle.md`, `spws-wizard.md`, 2026-11-24)
 
 - [x] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch

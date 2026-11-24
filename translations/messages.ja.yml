@@ -5096,7 +5096,7 @@ live_results:
     type: "タイムを入力"
     save: "タイムを保存"
     toast: "%label%を%time%で完成"
-    out_of_order: "順番に合わないタイムです。各パズルは前のパズルより後に完成します。"
+    out_of_order: "このパズルが完成したときのラウンドの時計の時刻を入力してください（パズル単体のタイムではありません）。各パズルは前のパズルより後に完成します。"
     pick_remaining: "最後に完成したパズルはどれですか？先にそのチップをタップしてから、タイムを保存してください。"
     whole_round: "これはラウンド全体を完了します。1つのパズルにはそのパズル自身の「今完成」を使ってください。"
   proposals:
@@ -15731,6 +15731,7 @@ analytics_studio:
   "stats.group_median": "ペア/チームの中央値"
   "stats.fastest": "最速"
   "pick_format": "%total%個中%count%個を選択"
+  "pick_format_all": "%total%個すべてを解く"
   "help": "キーボードショートカット"
   "help.title": "キーボードショートカット"
   "keys.focus_search": "検索"
@@ -15765,6 +15766,7 @@ finished_missing:
     judge:
         add: "欠けたピース"
         label: "完成したパズルの欠けたピース"
+        label_all: "完成したパズルの欠けたピース（すべてのパズルの合計）"
         hint: "例：製造時から欠けていたピース。空欄 = パズルは揃っています。"
         field: "欠けたピース"
         none: "欠けたピースなし"

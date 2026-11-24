@@ -33,9 +33,11 @@ see every organiser page. A second judge on the call: an organiser's phone (orga
 
 ### Organiser (laptop)
 1. Event page → **Manage** → **Toolkit** (`/en/manage-event-toolkit/<event id>`): one card per area.
-2. **Seating** of "Pairs - Challenges 1 + 2": tables named A1 L, A1 R, A2 L … (two places per table; Teams: A1, A2 …
-   one table per team). "Table names" panel: change the scheme (e.g. A1-1 / A1-2) for the whole championship.
-3. **Name plates**: Toolkit → Name tags → Table tents, "Time boxes" = the championship, "Show country flags":
+2. **Seating** of "Pairs - Challenges 1 + 2" (Toolkit → card "Round formats & reveals" → the link "Tables A1 L … H21 R"
+   under the round, or the **Seating** button on the results desk): tables named A1 L, A1 R, A2 L … (two places per
+   table; Teams: A1, A2 … one table per team). "Table names" panel: change the scheme (e.g. A1-1 / A1-2) for the whole championship.
+3. **Name plates**: Toolkit → card "Competitor pages & QR codes" → **Print tags** → "Pairs & teams" (or "People"),
+   Layout "Table tents", Round = the championship's first round, "Time boxes" = the championship, "Show country flags":
    name, flag, table, pair/team name, QR and a box per challenge for writing times by pen. Print preview.
 4. **Results desk** of "Teams - Challenges 1 + 2": who has finished, who has only Challenge 1, the standing preview.
 5. **Standings** (`/en/manage-event-standings/<event id>`): one standing per championship, rules 5 s per missing piece,
@@ -44,14 +46,19 @@ see every organiser page. A second judge on the call: an organiser's phone (orga
 
 ### Judge (phone, 375 px)
 1. Sign in as the judge → the round's judge page (`/en/live-results/<round id>`), add it to the home screen.
-2. Type `a1` → the table A1 opens without Enter → **Finished now** per challenge (a block: Challenge 3's split
-   first, then Challenge 4 = the time), or **Didn't finish** with the pieces still loose, or **Missing pieces**.
+2. Type `a1` → A1 is at the top of the list (A10 … also match) - tap it or press Enter; a unique table opens at once
+   (`a1l` = A1 L). **Finished now** per challenge appears only while the round's stopwatch runs - Teams Challenges 1 + 2
+   is *not* started in the build, so start its stopwatch first (no secret puzzles in it) or type the time on the clock
+   (a block: Challenge 1's split first, then Challenge 2 = the time - always the clock's time, never a challenge's own
+   time). **Didn't finish**: tap both challenges first, then type the pieces still loose; **Pieces missing** is on the
+   Save step (one count for both challenges).
 3. Airplane mode: keep entering - the phone keeps the results and sends them when back online.
 
 ### Competitor (phone)
-1. Sign in as a made-up player → the event page → "Your competitor page" (or scan the QR on the plate).
-2. Their table, the clock of their round, their results and rank; with the stopwatch running, **Stop** proposes
-   their time to the judge, who confirms it on the table's card.
+1. Sign in as a made-up player → the event page → **Competitors** → their own name (marked "You") - or scan the QR on
+   the plate. The event page itself has no "Your competitor page" link.
+2. Their table, the day and clock of each round, their results and rank; with the stopwatch running,
+   **Done - propose my time** → **Propose** sends their time to the judge, who confirms it on the table's card.
 
 ### Commentators
 The round page → "Analytics studio" (`/en/events/spws-toronto-2027-demo/analytics-studio/<round slug>`): who is at
@@ -128,7 +135,7 @@ Per round (desk = organisers' results desk, judge = the phone page, stopwatch = 
 | Pairs - Challenges 1 + 2 | published | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenges-1-2 |
 | Pairs - Challenges 3 + 4 | published | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenges-3-4 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenges-3-4 |
 | Pairs - Challenge 5 | published, unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenge-5 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenge-5 |
-| Teams - Challenges 1 + 2 | running: 5 finished, 5 with Challenge 1 only | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-1-2 |
+| Teams - Challenges 1 + 2 | results in (5 finished, 5 with Challenge 1 only), stopwatch **not started** | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-1-2 |
 | Teams - Challenges 3 + 4 | planned: 2 secret puzzles, reveal at the stopwatch start, Challenge 4 unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-3-4 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-3-4 |
 | Individual - Challenge 1 | planned | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/individual-challenge-1 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/individual-challenge-1 |
 | Individual - Challenge 5 | planned, unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/individual-challenge-5 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/individual-challenge-5 |

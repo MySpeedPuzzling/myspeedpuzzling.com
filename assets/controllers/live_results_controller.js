@@ -61,6 +61,20 @@ import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevi
  */
 
 const REQUEST_TIMEOUT_MS = 15000;
+
+/**
+ * The pieces of a round where every entrant solves all its puzzles (a back-to-back block): known like a one-puzzle
+ * round's, so "Didn't finish" reads "1960 / 2000 pcs" and not a bare "1960 pcs" (UX walk 2026-11-24). Null otherwise.
+ */
+function allPuzzlesPieces(format) {
+    if (format === null || format.toSolve !== format.puzzles.length) {
+        return null;
+    }
+
+    const counts = format.puzzles.map((puzzle) => puzzle.piecesCount);
+
+    return counts.every((count) => Number.isInteger(count) && count > 0) ? counts.reduce((sum, count) => sum + count, 0) : null;
+}
 const STATE_REFRESH_MS = 60000;
 // The first state did not come: tried again after 2, 4 … 30 s (and at once when the device is back online)
 const LOAD_RETRY_MAX_MS = 30000;
@@ -984,7 +998,7 @@ export default class extends Controller {
     }
 
     describe(result, missing = null) {
-        const text = describeResult(result, this.round?.piecesCount ?? null, {
+        const text = describeResult(result, this.round?.piecesCount ?? allPuzzlesPieces(pickFormat(this.round)), {
             noResult: '–',
             piecesPlaced: this.t('piecesPlaced'),
             piecesPlacedOf: this.t('piecesPlacedOf'),
@@ -3731,7 +3745,12 @@ export default class extends Controller {
         this.pendingMissing = undefined;
         this.missingInputTarget.value = shown !== null ? String(shown) : '';
         this.missingInputTarget.classList.remove('is-invalid');
-        this.setText(this.missingHintTarget, this.t('missingHint'));
+        this.setText(this.missingHintTarget, this.t('finishedMissingHint'));
+        // A round of several puzzles has one count for all of them (UX walk 2026-11-24: "which puzzle?")
+        const label = this.missingFieldTarget.querySelector('[data-live-results-missing-label]');
+        if (label) {
+            this.setText(label, this.t((pickFormat(this.round)?.toSolve ?? 1) >= 2 ? 'finishedMissingLabelAll' : 'finishedMissingLabel'));
+        }
         this.missingFieldTarget.hidden = !finished || shown === null;
         this.missingToggleTarget.hidden = !finished || shown !== null;
     }
@@ -3746,7 +3765,7 @@ export default class extends Controller {
         const parsed = parseMissingPieces(this.missingInputTarget.value, this.round?.piecesCount ?? null);
         this.pendingMissing = parsed.error ? false : (parsed.empty ? null : parsed.value);
         this.missingInputTarget.classList.toggle('is-invalid', parsed.error === true);
-        this.setText(this.missingHintTarget, parsed.error ? this.t('missingInvalid') : this.t('missingHint'));
+        this.setText(this.missingHintTarget, parsed.error ? this.t('finishedMissingInvalid') : this.t('finishedMissingHint'));
         this.renderConfirmResult();
     }
 

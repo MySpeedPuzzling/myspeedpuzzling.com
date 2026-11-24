@@ -5107,7 +5107,7 @@ live_results:
     type: "Escribe el tiempo"
     save: "Guardar tiempo"
     toast: "%label% terminó a las %time%"
-    out_of_order: "Ese tiempo no encaja con el orden: cada puzzle termina después del anterior."
+    out_of_order: "Escribe el tiempo del reloj de la ronda en que se terminó este puzzle, no el tiempo propio del puzzle: cada puzzle termina después del anterior."
     pick_remaining: "¿Qué puzzle se terminó el último? Toca primero su etiqueta y luego guarda el tiempo."
     whole_round: "Esto termina toda la ronda: para un solo puzzle usa su propio «Terminó ahora»."
   proposals:
@@ -15742,6 +15742,7 @@ analytics_studio:
   "stats.group_median": "Mediana parejas/equipos"
   "stats.fastest": "Más rápido"
   "pick_format": "Elige %count% de %total%"
+  "pick_format_all": "Resolver los %total%"
   "help": "Atajos de teclado"
   "help.title": "Atajos de teclado"
   "keys.focus_search": "Buscar"
@@ -15776,6 +15777,7 @@ finished_missing:
     judge:
         add: "Piezas que faltan"
         label: "Piezas que faltan en el puzzle terminado"
+        label_all: "Piezas que faltan en los puzzles terminados (todos los puzzles juntos)"
         hint: "P. ej., una pieza que faltaba de fábrica. Vacío = el puzzle está completo."
         field: "Piezas que faltan"
         none: "no falta ninguna pieza"

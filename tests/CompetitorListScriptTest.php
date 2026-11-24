@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Value\SearchText;
+use SpeedPuzzling\Web\Value\TableLabels;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -61,8 +62,75 @@ final class CompetitorListScriptTest extends TestCase
     }
 
     /**
-     * @param list<array{sections: list<list<string>>, query: string}> $cases
-     * @return list<array{shown: list<list<bool>>, counts: list<int>, total: int}>
+     * @return iterable<string, array{string, list<bool>, list<int>, list<list<string>>}>
+     */
+    public static function provideTableQueries(): iterable
+    {
+        // Rows: 0 A10 L, 1 A1 L, 2 A1 (a team's table), 3 A1 R, 4 H21 R, 5 table 12, 6 table 120, 7 no table
+        $none = [[], [], [], [], [], [], [], []];
+        yield 'nothing typed: everybody in the server order' => ['', [true, true, true, true, true, true, true, true], [0, 1, 2, 3, 4, 5, 6, 7], $none];
+        yield 'a1: the exact table, whole segments, then started' => ['a1', [true, true, true, true, false, false, false, false], [2, 1, 3, 0, 4, 5, 6, 7], [['A.10.L'], ['A.1.L'], ['A.1'], ['A.1.R'], [], [], [], []]];
+        yield 'A1 L beats A10 L' => ['A1 L', [false, true, false, false, false, false, false, false], [1, 0, 2, 3, 4, 5, 6, 7], [[], ['A.1.L'], [], [], [], [], [], []]];
+        yield 'a1l without a space' => ['a1l', [false, true, false, false, false, false, false, false], [1, 0, 2, 3, 4, 5, 6, 7], [[], ['A.1.L'], [], [], [], [], [], []]];
+        yield 'a1-l with a dash' => ['a1-l', [false, true, false, false, false, false, false, false], [1, 0, 2, 3, 4, 5, 6, 7], [[], ['A.1.L'], [], [], [], [], [], []]];
+        yield 'h21 r in lower case' => ['h21 r', [false, false, false, false, true, false, false, false], [4, 0, 1, 2, 3, 5, 6, 7], [[], [], [], [], ['H.21.R'], [], [], []]];
+        yield 'a plain table number first, then the longer ones' => ['12', [false, false, false, false, false, true, true, false], [5, 6, 0, 1, 2, 3, 4, 7], [[], [], [], [], [], ['12'], ['120'], []]];
+        yield 'a letter alone is a name search, not a column' => ['a', [false, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
+        yield 'a name still finds its row, no table shown' => ['zed', [true, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
+        yield 'a table nobody has' => ['b7', [false, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
+    }
+
+    /**
+     * @param list<bool> $shown
+     * @param list<int> $order
+     * @param list<list<string>> $tables
+     */
+    #[DataProvider('provideTableQueries')]
+    public function testATypedTableFindsItsRowsExactNameFirst(string $query, array $shown, array $order, array $tables): void
+    {
+        $rows = [
+            ['search' => 'zed', 'tables' => ['A.10.L']],
+            ['search' => 'yew', 'tables' => ['A.1.L']],
+            ['search' => 'xiu', 'tables' => ['A.1']],
+            ['search' => 'wu', 'tables' => ['A.1.R']],
+            ['search' => 'vic', 'tables' => ['H.21.R']],
+            ['search' => 'tom', 'tables' => ['12']],
+            ['search' => 'sol', 'tables' => ['120']],
+            ['search' => 'rex', 'tables' => []],
+        ];
+
+        $result = $this->runInNode([['sections' => [$rows], 'query' => $query]])[0];
+
+        self::assertSame([$shown], $result['shown']);
+        self::assertSame([$order], $result['order']);
+        self::assertSame([$tables], $result['tables']);
+    }
+
+    /**
+     * The keys the browser compares are the server's: TableLabels::key() of what a table reads as.
+     */
+    public function testTheServersTableKeysAreWhatTheBrowserTypes(): void
+    {
+        $rows = [
+            ['search' => 'one', 'tables' => [TableLabels::key('A1 L')]],
+            ['search' => 'two', 'tables' => [TableLabels::key('A1-1')]],
+            ['search' => 'three', 'tables' => [TableLabels::key('07')]],
+        ];
+
+        $results = $this->runInNode([
+            ['sections' => [$rows], 'query' => 'a1l'],
+            ['sections' => [$rows], 'query' => 'A1 1'],
+            ['sections' => [$rows], 'query' => '7'],
+        ]);
+
+        self::assertSame([[true, false, false]], $results[0]['shown']);
+        self::assertSame([[false, true, false]], $results[1]['shown']);
+        self::assertSame([[false, false, true]], $results[2]['shown']);
+    }
+
+    /**
+     * @param list<array{sections: list<list<string|array{search: string, tables: list<string>}>>, query: string}> $cases
+     * @return list<array{shown: list<list<bool>>, counts: list<int>, total: int, order: list<list<int>>, tables: list<list<list<string>>>}>
      */
     private function runInNode(array $cases): array
     {
@@ -74,7 +142,7 @@ final class CompetitorListScriptTest extends TestCase
         $process->setInput(json_encode(['cases' => $cases], JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var list<array{shown: list<list<bool>>, counts: list<int>, total: int}> $results */
+        /** @var list<array{shown: list<list<bool>>, counts: list<int>, total: int, order: list<list<int>>, tables: list<list<list<string>>>}> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

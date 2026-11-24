@@ -1,0 +1,8 @@
+{# A competitor list row's tables (competitor-pages.md "Competitor list - search by table"): "Table A1 L", or the first two of several. Hidden while the search shows the hint of a table that matched. #}
+<span class="competitor-list-tables small text-muted" data-competitor-list-tables>
+    {%- if tables|length == 1 -%}
+        {{ 'competitor_page.list.table'|trans({'%table%': tables[0].label}) }}
+    {%- else -%}
+        {{ 'competitor_page.list.tables'|trans({'%tables%': tables|slice(0, 2)|map(table => table.label)|join(', '), '%count%': tables|length - 2}) }}
+    {%- endif -%}
+</span>

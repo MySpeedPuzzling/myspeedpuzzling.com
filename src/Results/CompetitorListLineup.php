@@ -13,6 +13,7 @@ readonly final class CompetitorListLineup
 {
     /**
      * @param list<PublishedRoundEntrant> $members by name, masked like the public round page
+     * @param list<CompetitorListTable> $tables
      */
     public function __construct(
         public string $lineupId,
@@ -23,8 +24,10 @@ readonly final class CompetitorListLineup
         public bool $isTeam,
         // The viewer is one of the members - "You"
         public bool $isViewers,
-        // SearchText::fold() of the team name and the members' names - the list's filter reads it
+        // SearchText::fold() of its team names and the members' names - the list's filter reads it
         public string $search,
+        // Its tables over its rounds - [] without tables
+        public array $tables = [],
     ) {
     }
 

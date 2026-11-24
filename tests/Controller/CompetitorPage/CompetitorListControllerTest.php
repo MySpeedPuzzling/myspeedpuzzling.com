@@ -80,16 +80,66 @@ final class CompetitorListControllerTest extends WebTestCase
         self::assertStringContainsString('Anna Fast & Ben Steady', $sharks->text());
         self::assertSame('/en/competitor/' . self::CUP . '/g/' . CompetitionLineupId::of(self::CUP, [F::PARTICIPANT_ANNA, F::PARTICIPANT_BEN]), $sharks->filter('a')->attr('href'));
 
-        // No avatars, no results, no tables, no puzzles - and no "You" for a guest
+        // No avatars, no results, no puzzles - and no "You" for a guest
         $list = $crawler->filter('[data-competitor-list]');
         self::assertCount(0, $list->filter('img'));
         self::assertCount(0, $list->filter('[data-competitor-list-you]'));
         self::assertStringNotContainsString('Puzzle 10', $list->text());
-        self::assertStringNotContainsString('Table', $list->text());
+
+        // Tables as their competitor pages show them (search by table): Anna at table 1 of Group A, her pair at table 1 of
+        // Pairs; the unnamed pair has none - no table line, no hint
+        self::assertSame('Table 1', $anna->filter('[data-competitor-list-tables]')->text());
+        self::assertSame('1', $anna->filter('[data-competitor-list-table]')->attr('data-competitor-list-table'));
+        self::assertSame('Table 1 · Group A', $anna->filter('[data-competitor-list-table]')->text());
+        self::assertNotNull($anna->filter('[data-competitor-list-table]')->attr('hidden'), 'the hint shows only when its table matched');
+        self::assertSame('Table 1 · Pairs', $sharks->filter('[data-competitor-list-table]')->text());
+        $unnamed = $crawler->filter('[data-competitor-list-row="g"]')->eq(2);
+        self::assertSame('Eva Noshow & Filip Pending', $unnamed->filter('[data-competitor-list-name]')->text());
+        self::assertCount(0, $unnamed->filter('[data-competitor-list-tables], [data-competitor-list-table]'));
+        self::assertSame('Search by name, #code or table', $crawler->filter('[data-competitor-list-target="search"]')->attr('placeholder'));
 
         // The search field is there for the browser (hidden until the controller connects), no notice without asking
         self::assertCount(1, $crawler->filter('[data-competitor-list-target="search"]'));
         self::assertCount(0, $crawler->filter('[data-competitor-list-notice]'));
+    }
+
+    public function testTableNamesAndEveryRoundOfATableAreSearchable(): void
+    {
+        $browser = self::createClient();
+        $this->turnOn($browser);
+        $database = $browser->getContainer()->get(Connection::class);
+        // Pairs named like a hall plan (Sharks 1, Corners 2, Edges 3), Anna kept at table 1 for the Final, Group B
+        // without table numbers, a team name of an earlier round
+        $database->executeStatement(
+            'UPDATE competition_round SET table_labels = :labels WHERE id = :id',
+            ['labels' => json_encode(['A1 L', 'A1 R', 'A10 L'], JSON_THROW_ON_ERROR), 'id' => F::ROUND_PAIRS],
+        );
+        $database->executeStatement('UPDATE competition_participant_round SET table_number = 1 WHERE id = :id', ['id' => F::ENTRY_FINAL_ANNA]);
+        $database->executeStatement('UPDATE competition_round SET table_numbers_off = true WHERE id = :id', ['id' => F::ROUND_GROUP_B]);
+
+        $crawler = $browser->request('GET', self::URL);
+        self::assertResponseIsSuccessful();
+
+        $anna = $crawler->filter('[data-competitor-list-row="p"]')->first();
+        self::assertSame('Table 1', $anna->filter('[data-competitor-list-tables]')->text());
+        self::assertSame('Table 1 · Group A and 1 more round', $anna->filter('[data-competitor-list-table]')->text());
+
+        // Group B's tables are off: Gina, Hugo and Ivan have none (their pages show none either)
+        foreach ([6, 7, 8] as $index) {
+            self::assertCount(0, $crawler->filter('[data-competitor-list-row="p"]')->eq($index)->filter('[data-competitor-list-tables]'));
+        }
+
+        $tables = [];
+        $crawler->filter('[data-competitor-list-row="g"]')->each(static function (Crawler $row) use (&$tables): void {
+            $hint = $row->filter('[data-competitor-list-table]');
+            $tables[$row->filter('[data-competitor-list-name]')->text()] = $hint->count() > 0 ? [(string) $hint->attr('data-competitor-list-table'), $hint->text(), $row->filter('[data-competitor-list-tables]')->text()] : null;
+        });
+        self::assertSame([
+            'Corner Pieces' => ['A.1.R', 'Table A1 R · Pairs', 'Table A1 R'],
+            'Edge Hunters' => ['A.10.L', 'Table A10 L · Pairs', 'Table A10 L'],
+            'Eva Noshow & Filip Pending' => null,
+            'Puzzle Sharks' => ['A.1.L', 'Table A1 L · Pairs', 'Table A1 L'],
+        ], $tables);
     }
 
     public function testEveryListedRowOpensItsPage(): void

@@ -207,12 +207,29 @@ somebody without a printed tag.
   round's team name, else "A & B". Masked through `OfficialEntrantsView::entrant()` without avatars (#code only of a
   profile the viewer may see); blocklist = `OfficialEntrantsView::isHiddenFromViewer()` per person and per line-up
   (group rule: a member sees their own pair). "You" marks the viewer's row and pairs. Sorted by `SearchText::fold()`,
-  ties by id. Nothing about rounds, tables, results or puzzles (D1).
+  ties by id. Nothing about results or puzzles (D1); tables since SPWS (below).
 - **Page** `templates/competitor_page/list.html.twig` (styles in `_competitor-page.scss`): back link, "Competitors N",
   search field, "People (N)" and "Pairs & teams (N)" (each only when non-empty), "No competitors yet." for an empty
   event. Search: lazy `competitor_list_controller.js` over the pure `assets/competitor_list_filter.js` (`foldSearchText`,
   every typed word in the row's `data-search`), hides rows and empty sections, updates the counts, "Nobody matches";
   without JavaScript the field stays hidden and every row shows. No pagination, no cache (viewer-dependent, D1).
+- **Search by table (SPWS demo, 2026-11-24)** - Jan: "find him by table, see his results". Each row carries its tables,
+  read in the entrants statement (still 2 statements, `CompetitorListQueryBudgetTest`): a person's tables of their solo
+  rounds (a pair's/team's table is its line-up's row - else `a1` would list both members too), a line-up's tables of
+  every round it plays; never of a round with table numbers off - exactly what the competitor pages show, so nothing
+  new is public (blocked rows are dropped whole, drafts are the team's only). Collapsed per table name
+  (`CompetitorListTable`: `TableLabels::key()`, label or number, its rounds in schedule order) - SPWS keeps one table for
+  the whole championship = one item. Row: "Table A1 L" (or "Tables A1 L, B3 +N") on the right, only on rows that have
+  a table (an event without tables renders as before apart from the placeholder "Search by name, #code or table"), plus
+  one hidden hint per table "Table A1 L · <first round>" (+ "and N more rounds"). Browser
+  (`competitor_list_filter.js`, `table_labels.js` `key()`/`continues()`): the whole typed text as one key ("a1 l",
+  "A1-L", "a1l" → `A.1.L`); tiers exact → whole segments (`a1` → A1 L, A1 R) → started (`a1` → A10 L); without a digit
+  typed only an exact name (`a` stays a name search); a row shows when its names or a table match, rows reorder by tier
+  while some table matched (server order within, back on an empty search via `data-competitor-list-index`), the
+  matched tables' hints replace the plain line. Every team name a line-up played under is searchable. No start
+  numbers: the only participant number is `externalId`, the organiser's reference from their own system (sheet,
+  import, claim CSV) - never public. Tests: `CompetitorListScriptTest` (node harness), `CompetitorListControllerTest`,
+  budget test with tables, `BlocklistCanaryTest` (a blocked pair's table goes with it).
 - **Links** (only while pages are on - off = byte-identical HTML): the event and edition pages' rounds heading
   ("Competitors", `data-event-competitors-link`, `RoundsTimeline::$competitorsUrl` from `CompetitionEvent::$competitorPages`
   = the `c.*` row of `GetCompetitionEvents::byId()`, +0 statements) and every competitor page's header line.

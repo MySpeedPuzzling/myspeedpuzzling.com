@@ -4,9 +4,10 @@
     row one link to their competitor page. Mobile first: people open it with a phone at the venue. Never indexed.
 
     From CompetitorListView only: names masked like the public round page (a #code only of a profile the viewer may see),
-    no avatars, no results, tables or puzzles. The search (competitor_list_controller.js, lazy) filters the rows the
-    server rendered by their `data-search` (SearchText::fold()); without JavaScript the field stays hidden and every row
-    shows.
+    no avatars, no results or puzzles. Tables only on rows that have one (what their competitor page shows already):
+    the plain line `_list_tables.html.twig` + one hidden hint per table for the search (`_list_table_hints.html.twig`).
+    The search (competitor_list_controller.js, lazy) filters the rows the server rendered by their `data-search`
+    (SearchText::fold()) and their tables' keys; without JavaScript the field stays hidden and every row shows.
 #}
 {% extends 'base.html.twig' %}
 
@@ -64,7 +65,9 @@
                                         {%- if person.entrant.playerCountry is not null %}<span class="fi fi-{{ person.entrant.playerCountry.name }} shadow-custom me-1" aria-hidden="true"></span>{% endif -%}
                                         <span data-competitor-list-name>{{ person.entrant.playerName }}</span>
                                         {%- if person.code is not null %} <span class="competitor-page-code text-muted" data-competitor-list-code>#{{ person.code }}</span>{% endif -%}
+                                        {%- if person.tables is not empty %}{{ include('competitor_page/_list_table_hints.html.twig', {tables: person.tables}) }}{% endif -%}
                                     </span>
+                                    {%- if person.tables is not empty %}{{ include('competitor_page/_list_tables.html.twig', {tables: person.tables}) }}{% endif %}
                                     {%- if person.isViewer %} <span class="badge rounded-pill competitor-page-you" data-competitor-list-you>{{ 'competitor_page.list.you'|trans }}</span>{% endif %}
                                     <i class="bi bi-chevron-right text-muted competitor-list-chevron" aria-hidden="true"></i>
                                 </a>
@@ -84,7 +87,9 @@
                                     <span class="competitor-list-name">
                                         <i class="bi {{ lineup.isTeam ? 'bi-people-fill' : 'bi-person-fill-add' }} text-muted me-1" aria-hidden="true"></i><span data-competitor-list-name>{{ lineup.displayName }}</span>
                                         {%- if lineup.teamName is not null %}<span class="competitor-list-members small text-muted">{{ lineup.membersNames }}</span>{% endif -%}
+                                        {%- if lineup.tables is not empty %}{{ include('competitor_page/_list_table_hints.html.twig', {tables: lineup.tables}) }}{% endif -%}
                                     </span>
+                                    {%- if lineup.tables is not empty %}{{ include('competitor_page/_list_tables.html.twig', {tables: lineup.tables}) }}{% endif %}
                                     {%- if lineup.isViewers %} <span class="badge rounded-pill competitor-page-you" data-competitor-list-you>{{ 'competitor_page.list.you'|trans }}</span>{% endif %}
                                     <i class="bi bi-chevron-right text-muted competitor-list-chevron" aria-hidden="true"></i>
                                 </a>

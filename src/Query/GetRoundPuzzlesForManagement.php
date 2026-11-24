@@ -63,6 +63,7 @@ SELECT
     crp.hides_everywhere,
     crp.position,
     crp.label,
+    crp.unboxed,
     {$sharedWithRounds} AS shared_with_rounds,
     {$sharedHideDiffers} AS shared_hide_differs,
     cr.starts_at AS round_starts_at,
@@ -128,6 +129,7 @@ SQL;
              *     label: null|string,
              *     shared_with_rounds: null|string,
              *     shared_hide_differs: bool|string,
+             *     unboxed: bool|string,
              * } $row
              */
             $position = $positions[$row['round_puzzle_id']];
@@ -176,6 +178,7 @@ SQL;
                 customLabel: $row['label'],
                 sharedWithRounds: SharedRoundPuzzle::names($row['shared_with_rounds']),
                 sharedHideDiffers: self::bool($row['shared_hide_differs']),
+                unboxed: self::bool($row['unboxed']),
             );
         }, $data);
     }

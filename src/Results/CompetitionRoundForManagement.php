@@ -44,6 +44,8 @@ readonly final class CompetitionRoundForManagement
         public null|string $slug = null,
         // "Unboxed" (world-series-rules.md §7): no box picture until the round's results are first published
         public bool $unboxed = false,
+        // Puzzles unboxed on their own (spws-unboxed-per-puzzle.md) - shown only while the round switch is off
+        public int $unboxedPuzzleCount = 0,
     ) {
     }
 }

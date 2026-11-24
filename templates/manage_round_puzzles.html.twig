@@ -65,17 +65,45 @@
             </p>
         {% endif %}
         {# World Series rules W2: "Unboxed" - no box picture on the event's pages, screens and phones until the round's
-           results are first published (world-series-rules.md §7) #}
+           results are first published (world-series-rules.md §7); for every puzzle of the round or only some of them
+           (spws-unboxed-per-puzzle.md - one challenge of a back-to-back block) #}
         {% if toolkit_manage %}
-            <form method="post" action="{{ path('change_round_unboxed', {roundId: round.id}) }}" class="mb-3 col-xl-9 px-0" data-round-unboxed="{{ round.unboxed ? 'on' : 'off' }}"
-                {%- if round.keepsPicturesUnboxed %} onsubmit="return this.unboxed.checked || confirm('{{ 'competition.round_puzzles.unboxed.confirm_off'|trans|e('js') }}')"{% endif %}>
+            {% set unboxed_some = round.unboxed == false and puzzles|filter(puzzle => puzzle.unboxed) is not empty %}
+            {% set unboxed_choice = round.unboxed ? '1' : (unboxed_some ? 'some' : '0') %}
+            <form method="post" action="{{ path('change_round_unboxed', {roundId: round.id}) }}" class="mb-3 col-xl-9 px-0" data-round-unboxed="{{ round.unboxed ? 'on' : (unboxed_some ? 'some' : 'off') }}"
+                {#- Asks only when a picture held back now would come out: the whole round off, or an unboxed puzzle unticked #}
+                {%- if round.keepsPicturesUnboxed %} onsubmit="var held = this.querySelectorAll('{{ round.unboxed ? 'input[name^=unboxed_puzzles]' : '[data-was-unboxed]' }}'); var keeps = this.unboxed.value === '1' || (this.unboxed.value === 'some' &amp;&amp; !Array.prototype.some.call(held, function (box) { return !box.checked; })); return keeps || confirm('{{ 'competition.round_puzzles.unboxed.confirm_off'|trans|e('js') }}')"{% endif %}>
                 <input type="hidden" name="_token" value="{{ csrf_token('change_round_unboxed_' ~ round.id) }}">
-                <div class="form-check form-switch mb-1">
-                    <input class="form-check-input" type="checkbox" role="switch" name="unboxed" value="1" id="round-unboxed-{{ round.id }}"{{ round.unboxed ? ' checked' }}>
-                    <label class="form-check-label" for="round-unboxed-{{ round.id }}">{{ 'competition.round_puzzles.unboxed.label'|trans }}</label>
-                </div>
+                <fieldset class="mb-1">
+                    <legend class="form-label fw-medium fs-base mb-1">{{ 'competition.round_puzzles.unboxed.label'|trans }}</legend>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="unboxed" value="0" id="round-unboxed-off-{{ round.id }}"{{ unboxed_choice == '0' ? ' checked' }}>
+                        <label class="form-check-label" for="round-unboxed-off-{{ round.id }}">{{ 'competition.round_puzzles.unboxed.choice_off'|trans }}</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="unboxed" value="1" id="round-unboxed-{{ round.id }}"{{ unboxed_choice == '1' ? ' checked' }}>
+                        <label class="form-check-label" for="round-unboxed-{{ round.id }}">{{ 'competition.round_puzzles.unboxed.choice_all'|trans }}</label>
+                    </div>
+                    {# A flag left on a round that has one puzzle now stays visible here, so it can be cleared #}
+                    {% if puzzles|length > 1 or unboxed_some %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="unboxed" value="some" id="round-unboxed-some-{{ round.id }}"{{ unboxed_choice == 'some' ? ' checked' }}>
+                            <label class="form-check-label" for="round-unboxed-some-{{ round.id }}">{{ 'competition.round_puzzles.unboxed.choice_some'|trans }}</label>
+                        </div>
+                        <div class="ms-4" data-round-unboxed-puzzles>
+                            {% for puzzle in puzzles|sort((a, b) => a.position <=> b.position) %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="unboxed_puzzles[]" value="{{ puzzle.roundPuzzleId }}" id="round-puzzle-unboxed-{{ puzzle.roundPuzzleId }}"{{ puzzle.unboxed and round.unboxed == false ? ' checked data-was-unboxed' }}
+                                        onchange="if (this.checked) { this.form.elements['round-unboxed-some-{{ round.id }}'].checked = true; }">
+                                    <label class="form-check-label small" for="round-puzzle-unboxed-{{ puzzle.roundPuzzleId }}">{{ puzzle.label }} – {{ puzzle.puzzleName }}</label>
+                                </div>
+                            {% endfor %}
+                            <p class="small text-muted mb-1">{{ 'competition.round_puzzles.unboxed.some_help'|trans }}</p>
+                        </div>
+                    {% endif %}
+                </fieldset>
                 <p class="small text-muted mb-1">{{ 'competition.round_puzzles.unboxed.help'|trans }}</p>
-                {% if round.unboxed and round.resultsFirstPublishedAt is not null %}
+                {% if (round.unboxed or unboxed_some) and round.resultsFirstPublishedAt is not null %}
                     <p class="small text-muted mb-1" data-round-unboxed-published>{{ 'competition.round_puzzles.unboxed.published'|trans }}</p>
                 {% endif %}
                 <button type="submit" class="btn btn-sm btn-outline-primary">{{ 'competition.round_puzzles.unboxed.save'|trans }}</button>
@@ -118,7 +146,7 @@
                         <div class="card-body">
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                                 <div>
-                                    <div class="fw-semibold">{{ puzzle.puzzleName }}</div>
+                                    <div class="fw-semibold">{{ puzzle.puzzleName }}{% if round.unboxed or puzzle.unboxed %} <span class="badge text-bg-dark fw-normal ms-1" data-round-puzzle-unboxed><i class="bi bi-box-seam me-1"></i>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% endif %}</div>
                                     <div class="small text-muted">{{ puzzle.manufacturerName ?? '-' }} · {{ puzzle.piecesCount }} {{ 'competition.puzzle.pieces'|trans|lower }}</div>
                                     {# Other rounds of the category with the same puzzle (shared puzzles) - and, when they keep it secret differently, what that does #}
                                     {% if puzzle.sharedWithRounds is not empty %}

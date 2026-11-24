@@ -412,7 +412,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'lentPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
             'lentPuzzleTransfers' => [],
             'soldSwappedItems' => [],
-            'competitionRoundPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'competitionRoundPuzzles' => ['moved' => [], 'droppedAsDuplicate' => [], 'unboxedSet' => []],
             'conversations' => [],
             'stopwatches' => [],
             'changeRequests' => [],
@@ -427,6 +427,9 @@ readonly final class ApprovePuzzleMergeRequestHandler
         // puzzles the second one's lookup goes to the database, which does not hold the first one's moves before the
         // flush - two rows would land on the survivor and the flush would fail
         $onSurvivor = [];
+        // Round puzzles moved onto the survivor, by round - the row a later duplicate is dropped against
+        /** @var array<string, CompetitionRoundPuzzle> $roundPuzzlesOnSurvivor */
+        $roundPuzzlesOnSurvivor = [];
         // The same for collection items, with the item itself: per collection and player, the item on the survivor
         /** @var array<string, CollectionItem> $survivorItems */
         $survivorItems = [];
@@ -562,17 +565,24 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $roundPuzzles = $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($roundPuzzles as $roundPuzzle) {
                 $key = 'round|' . $roundPuzzle->round->id->toString();
-                $existing = isset($onSurvivor[$key]) || $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy([
+                $survivorRow = $roundPuzzlesOnSurvivor[$key] ?? $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy([
                     'round' => $roundPuzzle->round,
                     'puzzle' => $survivorPuzzle,
-                ]) !== null;
+                ]);
 
-                if ($existing) {
+                if ($survivorRow instanceof CompetitionRoundPuzzle) {
+                    // An unboxed challenge stays unboxed on the row that is kept (spws-unboxed-per-puzzle.md)
+                    if ($roundPuzzle->unboxed && $survivorRow->unboxed === false) {
+                        $survivorRow->changeUnboxed(true);
+                        // RevertPuzzleMergeRequestHandler switches it off again
+                        $inventory['competitionRoundPuzzles']['unboxedSet'][] = $survivorRow->id->toString();
+                    }
+
                     $this->entityManager->remove($roundPuzzle);
                     $inventory['competitionRoundPuzzles']['droppedAsDuplicate'][] = $roundPuzzle->id->toString();
                 } else {
                     $roundPuzzle->moveToPuzzle($survivorPuzzle);
-                    $onSurvivor[$key] = true;
+                    $roundPuzzlesOnSurvivor[$key] = $roundPuzzle;
                     $inventory['competitionRoundPuzzles']['moved'][] = $roundPuzzle->id->toString();
                 }
             }

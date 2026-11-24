@@ -448,6 +448,14 @@ readonly final class RevertPuzzleMergeRequestHandler
             return true;
         });
 
+        // A kept row the merge made unboxed (a dropped unboxed duplicate, spws-unboxed-per-puzzle.md) is boxed again
+        $roundPuzzleRecords = $migrated['competitionRoundPuzzles'] ?? null;
+        $unboxedSet = is_array($roundPuzzleRecords) ? ($roundPuzzleRecords['unboxedSet'] ?? []) : [];
+        foreach (is_array($unboxedSet) ? array_filter($unboxedSet, is_string(...)) : [] as $roundPuzzleId) {
+            $roundPuzzle = Uuid::isValid($roundPuzzleId) ? $this->entityManager->find(CompetitionRoundPuzzle::class, $roundPuzzleId) : null;
+            $roundPuzzle?->changeUnboxed(false);
+        }
+
         $movedBack['conversations'] = $this->each(Conversation::class, self::movedIds($migrated, 'conversations'), static function (Conversation $conversation) use ($onSurvivor, $restored): bool {
             if ($onSurvivor($conversation->puzzle) === false) {
                 return false;

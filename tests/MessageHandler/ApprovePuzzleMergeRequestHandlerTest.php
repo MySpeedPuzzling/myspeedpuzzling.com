@@ -1102,6 +1102,43 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     }
 
     /**
+     * spws-unboxed-per-puzzle.md: a round has both puzzles and the merged one is the unboxed challenge - its row is dropped
+     * as a duplicate, so the kept row becomes unboxed (recorded for the revert)
+     */
+    public function testAnUnboxedDuplicateRowMakesTheKeptRowUnboxed(): void
+    {
+        $round = $this->entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_CZECH_FINAL);
+        self::assertNotNull($round);
+
+        $kept = new CompetitionRoundPuzzle(id: Uuid::uuid7(), round: $round, puzzle: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04));
+        $dropped = new CompetitionRoundPuzzle(id: Uuid::uuid7(), round: $round, puzzle: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05));
+        $dropped->changeUnboxed(true);
+        $this->entityManager->persist($kept);
+        $this->entityManager->persist($dropped);
+        $this->entityManager->flush();
+        $keptId = $kept->id->toString();
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $this->submitMergeRequest(),
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Survivor Name',
+                mergedEans: null,
+                mergedBrandCodes: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ),
+        );
+        $this->entityManager->clear();
+
+        $keptRow = $this->entityManager->find(CompetitionRoundPuzzle::class, $keptId);
+        self::assertNotNull($keptRow);
+        self::assertTrue($keptRow->unboxed);
+    }
+
+    /**
      * A puzzle that already lists two EANs must not come out of a merge with one.
      * Reducing the list loses a code that identifies a real edition - and the record
      * that carried it is deleted moments later.

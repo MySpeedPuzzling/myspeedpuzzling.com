@@ -26,8 +26,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  *   RoundPuzzleReveal): before it the puzzle is left out entirely, or - PuzzleHideMode::ImageOnly - shown by name
  *   without its picture.
  * - The puzzle's site-wide embargo: hide_until leaves the puzzle out, hide_image_until takes its picture away.
- * - An unboxed round (CompetitionRound::$unboxed): no picture of any of its puzzles until its results are first
- *   published - the SQL twin is RoundPuzzleReveal::sqlImageHidden().
+ * - An unboxed round (CompetitionRound::$unboxed) or unboxed puzzle (CompetitionRoundPuzzle::$unboxed): no picture of
+ *   any of its puzzles (of that puzzle) until the round's results are first published - the SQL twin is
+ *   RoundPuzzleReveal::sqlImageHidden().
  *
  * Every round also comes as its slots (competition toolkit A2): each puzzle as a place with its position and neutral
  * label, in the organiser's order (RoundPuzzleLabel) - a hidden one by its label only.
@@ -90,7 +91,7 @@ SELECT
     m.name AS manufacturer_name,
     cr.starts_at AS round_starts_at,
     cr.reveal_delay_minutes AS round_reveal_delay_minutes,
-    cr.unboxed AND cr.results_first_published_at IS NULL AS round_keeps_pictures_unboxed
+    (cr.unboxed OR crp.unboxed) AND cr.results_first_published_at IS NULL AS round_keeps_pictures_unboxed
 FROM competition_round_puzzle crp
 INNER JOIN puzzle p ON p.id = crp.puzzle_id
 INNER JOIN competition_round cr ON cr.id = crp.round_id

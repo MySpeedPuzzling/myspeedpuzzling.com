@@ -4,6 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Unboxed per puzzle (`docs/features/competitions-management/spws-unboxed-per-puzzle.md`, SPWS 1:1 demo, 2026-11-24)
+
+- [ ] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch
+      is copied) - say so on the duplicate form next to the format-reset notice.
+- [ ] The event page's note under an unboxed puzzle says "Picture revealed when the round starts" (`event_rounds.picture_hidden`,
+      also for W2 whole-round unboxed) - say "after the results are published" (needs a flag on `VisibleRoundPuzzle`).
+- [ ] Internal API has no unboxed field (round or puzzle) - add `unboxed` / `unboxedRoundPuzzleIds` to the round
+      endpoints if Claude Code should set it there.
+
 ## No barcode on the box (`docs/features/puzzle-approvals.md` "No barcode on the box", 2026-11-23)
 
 - [ ] A merge keeps the survivor's confirmation only - a merged puzzle's "no barcode" is not carried over (any EAN of

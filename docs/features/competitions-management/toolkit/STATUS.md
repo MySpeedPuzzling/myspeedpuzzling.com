@@ -396,3 +396,11 @@ viewer-free; non-staff get the public answer. The public rule = `LiveResultsBefo
 page (the only public page that shows judge-entered times before publishing), parity test. Walked at 375 + 1280
 (`cm-delivery/shots/fu/st/`). Open question: stream displays/overlays with live elements stay outside this rule (the
 organiser's broadcast).
+
+## SPWS 1:1 demo (2026-11-24; brief `cm-delivery/brief-spws-common.md`)
+The Speed Puzzle World Series format reachable and configurable 1:1 for the organisers' demo (~2 Dec). One package per
+row; each delivered to main = production.
+
+| Pkg | PR | What |
+|---|---|---|
+| B1 | this PR | Unboxed per puzzle: `competition_round_puzzle.unboxed` (round switch OR row flag, moment = the round's first publish), page choice No / Every puzzle / Only some, hub "Unboxed: N puzzles", merge keeps it, "Add to my profile" ticks unboxed ([spws-unboxed-per-puzzle.md](../spws-unboxed-per-puzzle.md)) |

@@ -34,7 +34,7 @@
                                         {%- else -%}
                                             {{ ('competition_toolkit.round_format.reveal.' ~ round.secretRevealModes|first)|trans({'%count%': round.revealDelayMinutes}) }}
                                         {%- endif -%}
-                                    </span>{% if round.unboxed %} · <span data-toolkit-round-unboxed>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% endif %}
+                                    </span>{% if round.unboxed %} · <span data-toolkit-round-unboxed>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% elseif round.unboxedPuzzleCount > 0 %} · <span data-toolkit-round-unboxed="some">{{ 'competition.round_puzzles.unboxed.badge_some'|trans({'%count%': round.unboxedPuzzleCount}) }}</span>{% endif %}
                                 </div>
                             </div>
                             <a href="{{ path('manage_round_puzzles', {roundId: round.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary ms-auto">

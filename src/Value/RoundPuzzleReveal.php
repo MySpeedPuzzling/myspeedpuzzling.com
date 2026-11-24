@@ -130,8 +130,9 @@ enum RoundPuzzleReveal: string
 
     /**
      * True while the round keeps the puzzle's PICTURE back at :now: sqlHidden() (a secret not revealed yet, entirely or
-     * its picture), or an unboxed round (competition_round.unboxed) whose results were never published - the picture
-     * of every puzzle of such a round, secret or not, stays back until the first publish
+     * its picture), or an unboxed round (competition_round.unboxed) or unboxed puzzle (competition_round_puzzle.unboxed,
+     * spws-unboxed-per-puzzle.md) whose round's results were never published - the picture of every puzzle of such a
+     * round (of such a puzzle), secret or not, stays back until the first publish
      * (docs/features/competitions-management/world-series-rules.md §7; RoundPuzzlesVisibleNow is the PHP twin).
      * Whether the NAME is hidden stays sqlHidden() + the hide mode - unboxed never hides a name.
      *
@@ -141,7 +142,7 @@ enum RoundPuzzleReveal: string
     {
         $hidden = self::sqlHidden($roundPuzzleAlias, $roundAlias, $nowParameter);
 
-        return "({$hidden} OR ({$roundAlias}.unboxed AND {$roundAlias}.results_first_published_at IS NULL))";
+        return "({$hidden} OR (({$roundAlias}.unboxed OR {$roundPuzzleAlias}.unboxed) AND {$roundAlias}.results_first_published_at IS NULL))";
     }
 
     /**

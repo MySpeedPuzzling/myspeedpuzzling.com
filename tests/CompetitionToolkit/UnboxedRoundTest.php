@@ -178,6 +178,69 @@ final class UnboxedRoundTest extends WebTestCase
         self::assertSame(['Future Round' => true, 'Past Round' => false], array_map(boolval(...), $unboxed));
     }
 
+    /**
+     * spws-unboxed-per-puzzle.md: only one puzzle of the round is unboxed (a back-to-back block's unboxed challenge) - its
+     * picture is out of every surface, the round's other puzzles keep theirs; the first publish lets it out.
+     */
+    public function testOnlyTheUnboxedPuzzleHidesItsPicture(): void
+    {
+        $visible = $this->roundPuzzleOf(CompetitionApiFixture::PUZZLE_VISIBLE);
+        $this->bus()->dispatch(new ChangeRoundUnboxed(self::COMPETITION, self::ROUND, false, [$visible]));
+
+        $surfaces = $this->surfaces();
+        foreach ($surfaces as $surface => $content) {
+            self::assertStringNotContainsString(CompetitionApiFixture::IMAGE_VISIBLE, $content, "the unboxed puzzle: {$surface}");
+        }
+
+        foreach (['the one rule', 'display state', 'competitor state', 'judge state'] as $surface) {
+            self::assertStringContainsString(CompetitionApiFixture::IMAGE_HIDDEN_IMAGE, $surfaces[$surface], "a boxed puzzle of the round: {$surface}");
+        }
+
+        $this->bus()->dispatch(new PublishRoundResults(self::COMPETITION, self::ROUND));
+        $this->assertSurfaces(pictures: true, when: 'one puzzle unboxed, after the first publish');
+    }
+
+    public function testTheOrganiserUnboxesOnlySomePuzzles(): void
+    {
+        $visible = $this->roundPuzzleOf(CompetitionApiFixture::PUZZLE_VISIBLE);
+        $hiddenImage = $this->roundPuzzleOf(CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE);
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $this->browser->request('GET', '/en/manage-round-puzzles/' . self::ROUND);
+        $token = $crawler->filter('form[data-round-unboxed="off"] input[name="_token"]')->attr('value');
+        $roundPuzzles = $this->database->fetchOne('SELECT COUNT(*) FROM competition_round_puzzle WHERE round_id = :round', ['round' => self::ROUND]);
+        assert(is_int($roundPuzzles));
+        self::assertCount($roundPuzzles, $crawler->filter('[data-round-unboxed-puzzles] input[name="unboxed_puzzles[]"]'));
+
+        $this->browser->request('POST', '/en/round-unboxed/' . self::ROUND, ['_token' => $token, 'unboxed' => 'some', 'unboxed_puzzles' => [$visible]]);
+        self::assertResponseRedirects('/en/manage-round-puzzles/' . self::ROUND, 303);
+        self::assertSame([$visible], $this->unboxedRoundPuzzles());
+        self::assertFalse((bool) $this->database->fetchOne('SELECT unboxed FROM competition_round WHERE id = :id', ['id' => self::ROUND]));
+
+        $crawler = $this->browser->request('GET', '/en/manage-round-puzzles/' . self::ROUND);
+        self::assertCount(1, $crawler->filter('form[data-round-unboxed="some"]'));
+        self::assertCount(1, $crawler->filter('[data-round-puzzle-unboxed]'));
+        $crawler = $this->browser->request('GET', '/en/manage-event-toolkit/' . self::COMPETITION);
+        self::assertCount(1, $crawler->filter(sprintf('[data-toolkit-round="%s"] [data-toolkit-round-unboxed="some"]', self::ROUND)));
+
+        // A round puzzle of another round: refused, nothing written
+        $foreign = $this->database->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id <> :round LIMIT 1', ['round' => self::ROUND]);
+        assert(is_string($foreign));
+        $this->browser->request('POST', '/en/round-unboxed/' . self::ROUND, ['_token' => $token, 'unboxed' => 'some', 'unboxed_puzzles' => [$hiddenImage, $foreign]]);
+        self::assertResponseRedirects('/en/manage-round-puzzles/' . self::ROUND, 303);
+        self::assertSame([$visible], $this->unboxedRoundPuzzles());
+
+        // Every puzzle: the round switch, the per-puzzle picks cleared
+        $this->browser->request('POST', '/en/round-unboxed/' . self::ROUND, ['_token' => $token, 'unboxed' => '1', 'unboxed_puzzles' => [$hiddenImage]]);
+        self::assertTrue((bool) $this->database->fetchOne('SELECT unboxed FROM competition_round WHERE id = :id', ['id' => self::ROUND]));
+        self::assertSame([], $this->unboxedRoundPuzzles());
+
+        // None
+        $this->browser->request('POST', '/en/round-unboxed/' . self::ROUND, ['_token' => $token, 'unboxed' => '0']);
+        self::assertFalse((bool) $this->database->fetchOne('SELECT unboxed FROM competition_round WHERE id = :id', ['id' => self::ROUND]));
+        self::assertSame([], $this->unboxedRoundPuzzles());
+    }
+
     public function testARoundOfAnotherEventIsRefused(): void
     {
         $this->expectException(\Throwable::class);
@@ -281,6 +344,28 @@ final class UnboxedRoundTest extends WebTestCase
         self::assertResponseIsSuccessful($url);
 
         return html_entity_decode((string) $this->browser->getResponse()->getContent(), ENT_QUOTES | ENT_HTML5);
+    }
+
+    private function roundPuzzleOf(string $puzzleId): string
+    {
+        $id = $this->database->fetchOne(
+            'SELECT id FROM competition_round_puzzle WHERE round_id = :round AND puzzle_id = :puzzle',
+            ['round' => self::ROUND, 'puzzle' => $puzzleId],
+        );
+        assert(is_string($id));
+
+        return $id;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function unboxedRoundPuzzles(): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->database->fetchFirstColumn('SELECT id FROM competition_round_puzzle WHERE round_id = :round AND unboxed ORDER BY id', ['round' => self::ROUND]);
+
+        return $ids;
     }
 
     private function bus(): MessageBusInterface

@@ -54,6 +54,34 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $this->assertSelectorNotExists('[data-official-entry-which-one]');
     }
 
+    /**
+     * spws-unboxed-per-puzzle.md: an unboxed challenge (the round's switch or the puzzle's own flag) opens with "Solved
+     * without looking at the box image" ticked; a boxed one never
+     */
+    public function testAnUnboxedPuzzleOpensWithTheUnboxedBoxTicked(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $url = $this->url(PuzzleFixture::PUZZLE_1000_05, 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA);
+        $unboxedBox = 'input[name="puzzle_add_form[unboxed]"]';
+
+        $crawler = $browser->request('GET', $url);
+        self::assertNull($crawler->filter($unboxedBox)->attr('checked'), 'a boxed round');
+
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'UPDATE competition_round_puzzle SET unboxed = true WHERE round_id = :round AND puzzle_id = :puzzle',
+            ['round' => OfficialResultsFixture::ROUND_GROUP_A, 'puzzle' => PuzzleFixture::PUZZLE_1000_05],
+        );
+        $crawler = $browser->request('GET', $url);
+        self::assertNotNull($crawler->filter($unboxedBox)->attr('checked'), 'the puzzle unboxed on its own');
+
+        $database->executeStatement('UPDATE competition_round_puzzle SET unboxed = false WHERE round_id = :round', ['round' => OfficialResultsFixture::ROUND_GROUP_A]);
+        $database->executeStatement('UPDATE competition_round SET unboxed = true WHERE id = :round', ['round' => OfficialResultsFixture::ROUND_GROUP_A]);
+        $crawler = $browser->request('GET', $url);
+        self::assertNotNull($crawler->filter($unboxedBox)->attr('checked'), 'the whole round unboxed');
+    }
+
     public function testTheRoundsPuzzleIsFilledInWithoutOneInTheUrl(): void
     {
         $browser = self::createClient();

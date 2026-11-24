@@ -47,6 +47,7 @@ use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PhotoStash\EmptyPhotoParts;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
+use SpeedPuzzling\Web\Query\IsRoundPuzzleUnboxed;
 use SpeedPuzzling\Web\Services\RoundResults\OfficialEntryTimePrefill;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
@@ -98,6 +99,7 @@ final class PuzzleAddController extends AbstractController
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
         readonly private OfficialEntryTimePrefill $officialEntryTimePrefill,
+        readonly private IsRoundPuzzleUnboxed $isRoundPuzzleUnboxed,
         readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
         readonly private AddFormCustomFields $addFormCustomFields,
         readonly private UnfinishedResultForm $unfinishedResultForm,
@@ -285,6 +287,12 @@ final class PuzzleAddController extends AbstractController
             $data->timeMinutes = $officialEntry->minutes();
             $data->timeSeconds = $officialEntry->secondsPart();
             $data->finishedAt = $officialEntry->finishedAt;
+
+            // An unboxed challenge (the round's switch or the puzzle's own, spws-unboxed-per-puzzle.md) - the player may still
+            // untick it; read only while the form opens (one statement, never on the save)
+            if ($officialEntry->roundId !== null && $this->isRoundPuzzleUnboxed->of($officialEntry->roundId, $officialEntry->puzzleId)) {
+                $data->unboxed = true;
+            }
 
             // An official result that did not finish within the round's time limit: the switch on, its pieces filled in
             // (with the kill switch off the form cannot ask it - the entry then fills in its puzzle, day and people only)

@@ -48,6 +48,8 @@ readonly final class RoundPuzzleForManagement
         // whether one of them keeps it secret differently (the page explains the effect, SharedRoundPuzzle)
         public array $sharedWithRounds = [],
         public bool $sharedHideDiffers = false,
+        // Unboxed on its own (competition_round_puzzle.unboxed) - the round's switch is CompetitionRound::$unboxed
+        public bool $unboxed = false,
     ) {
     }
 }

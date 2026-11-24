@@ -90,6 +90,12 @@ final class SandboxGateTest extends WebTestCase
         $client->request('GET', '/-/health-check/liveness');
 
         self::assertResponseIsSuccessful();
+
+        // The analytics studio's JSON, fetched without cookies - its own answer (an unknown round), not the welcome page
+        $client->request('GET', '/analytics-studio/018d0000-0000-0000-0000-00000000ffff/state');
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertSelectorNotExists('[data-testid="sandbox-gate"]');
     }
 
     public function testProductionHasNoWelcomePage(): void

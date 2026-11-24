@@ -97,7 +97,9 @@ INNER JOIN puzzle p ON p.id = crp.puzzle_id
 INNER JOIN competition_round cr ON cr.id = crp.round_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE crp.round_id IN (:roundIds)
-ORDER BY p.name
+-- The organiser's order where they arranged the round (a block of challenges: Challenge 1 first), else by name as
+-- always - a round nobody arranged lists exactly as before
+ORDER BY crp.position NULLS LAST, p.name
 SQL;
 
         $rows = $this->database

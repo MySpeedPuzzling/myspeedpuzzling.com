@@ -95,6 +95,55 @@ puzzles. The two places per table are named "L"/"R" until SPWS decides.
 A started stopwatch, revealed puzzles and typed results stay. To start over, Jan deletes the event (admin) and runs
 the build command again (README "Demo events").
 
-## 6. URLs (built 2026-11-24)
+## 6. URLs (built on the sandbox 2026-11-24, `--date=2026-12-02`)
 
-Filled in after the sandbox build - see the next section of this file once the event exists.
+| What | Link |
+|---|---|
+| Event page | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo |
+| Organization | https://sandbox.myspeedpuzzling.com/en/organizations/speed-puzzle-world-series-demo-organization |
+| Toolkit hub (organisers) | https://sandbox.myspeedpuzzling.com/en/manage-event-toolkit/01a20b2b-0cd2-7b3b-8e49-74e27784a483 |
+| Participants sheet | https://sandbox.myspeedpuzzling.com/en/participants-sheet/01a20b2b-0cd2-7b3b-8e49-74e27784a483 |
+| Competitors (public list) | https://sandbox.myspeedpuzzling.com/en/competitor/01a20b2b-0cd2-7b3b-8e49-74e27784a483 |
+| Standings (organisers) | https://sandbox.myspeedpuzzling.com/en/manage-event-standings/01a20b2b-0cd2-7b3b-8e49-74e27784a483 |
+| Displays (organisers) | https://sandbox.myspeedpuzzling.com/en/manage-displays/01a20b2b-0cd2-7b3b-8e49-74e27784a483 |
+| Live control (message, spotlight) | https://sandbox.myspeedpuzzling.com/en/display-control/01a20b2b-0cd2-7b3b-8e49-74e27784a483 |
+| Pairs standing | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/standings/pairs-championship |
+| Teams standing | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/standings/teams-championship |
+| Individual standing | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/standings/individual-championship |
+| Pairs standing embed | https://sandbox.myspeedpuzzling.com/embed/standing/01a20b2b-1761-70b8-92ed-92c2cf0ee184 (add `?theme=dark`) |
+| Teams standing embed | https://sandbox.myspeedpuzzling.com/embed/standing/01a20b2b-1771-7168-9fde-59a64ba17de1 |
+| Name plates - pairs | https://sandbox.myspeedpuzzling.com/en/name-tags/01a20b2b-0cd2-7b3b-8e49-74e27784a483?kind=lineups&layout=tents&boxes=standing:01a20b2b-1761-70b8-92ed-92c2cf0ee184&flags=1 |
+| Name plates - teams | https://sandbox.myspeedpuzzling.com/en/name-tags/01a20b2b-0cd2-7b3b-8e49-74e27784a483?kind=lineups&layout=tents&boxes=standing:01a20b2b-1771-7168-9fde-59a64ba17de1&flags=1 |
+| Name plates - individuals | https://sandbox.myspeedpuzzling.com/en/name-tags/01a20b2b-0cd2-7b3b-8e49-74e27784a483?kind=people&layout=tents&boxes=standing:01a20b2b-174b-7585-9110-174d0376882d&flags=1 |
+| SPWS hall screen | https://sandbox.myspeedpuzzling.com/display/LeXaK4EjDQPFgh57cfRQFB |
+| SPWS stream overlay (OBS) | https://sandbox.myspeedpuzzling.com/display/YCUazosLiaFFKEagMowinD |
+| SPWS championship standings | https://sandbox.myspeedpuzzling.com/display/EHh5Pv6BxCG6WBKLtLsKFn |
+| SPWS challenge board | https://sandbox.myspeedpuzzling.com/display/H3maevaPrtSqrgyUs784j4 |
+| SPWS lower third | https://sandbox.myspeedpuzzling.com/display/XckkEw6YFjd6xv9iM7s6Ta |
+
+Per round (desk = organisers' results desk, judge = the phone page, stopwatch = organisers' start page):
+
+| Round | State | Desk | Judge | Stopwatch | Results | Analytics studio |
+|---|---|---|---|---|---|---|
+| Pairs - Challenges 1 + 2 | published | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-11f8-72d4-8a5d-82d799388646 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenges-1-2 |
+| Pairs - Challenges 3 + 4 | published | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1210-7d64-81ac-399437a1f9ff | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenges-3-4 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenges-3-4 |
+| Pairs - Challenge 5 | published, unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-121f-76a7-a383-8232999c8a52 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/pairs-challenge-5 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/pairs-challenge-5 |
+| Teams - Challenges 1 + 2 | running: 5 finished, 5 with Challenge 1 only | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-122b-77ba-a0b6-53f8ddf29ad0 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-1-2 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-1-2 |
+| Teams - Challenges 3 + 4 | planned: 2 secret puzzles, reveal at the stopwatch start, Challenge 4 unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1237-79be-b897-ede5d631a1f6 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/teams-challenges-3-4 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/teams-challenges-3-4 |
+| Individual - Challenge 1 | planned | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-125d-75ce-b181-be1228eac59f | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/individual-challenge-1 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/individual-challenge-1 |
+| Individual - Challenge 5 | planned, unboxed | https://sandbox.myspeedpuzzling.com/en/manage-round-results/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/live-results/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/manage-round-stopwatch/01a20b2b-1293-7208-8b4e-860ddeb3fc54 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/results/individual-challenge-5 | https://sandbox.myspeedpuzzling.com/en/events/spws-toronto-2027-demo/analytics-studio/individual-challenge-5 |
+
+Individual Challenges 2-4 follow the same pattern (the build command prints every link).
+
+Who is where (made-up players, password `sandbox`): table A1 of the teams = "Corner Sorters" (`test-user+91` …
+`+94`); `test-user+92` (Alfie Linton) is also individual A1 R; pairs A1 L = "Antoni & Sem" (`test-user+37`, `+38`).
+
+## 7. Notes from the walk (2026-11-24)
+
+- **Finished now** on the judge's phone appears once the round's stopwatch runs (before that: type the time).
+- The stream overlay's background is transparent (checked); a normal browser tab shows it on white.
+- Before the call the standings of Teams are empty ("No round of this standing has published results yet") - they
+  fill when the organiser publishes Teams Challenges 1 + 2 or 3 + 4 in the simulation.
+- The Pairs no-show did not start in any of the three Pairs rounds of this build, so it is not in the Pairs standing
+  (somebody who never came is left out); the Teams simulation's "Did not start" shows a no-show that stays ranked.
+  A rebuilt event puts each Pairs no-show on another pair, so each stays ranked.

@@ -166,3 +166,15 @@ As designed above plus the amendments: `SandboxDemoRound` `brands`, `piecesOfPuz
 `unboxedLabels`, `seatsPerTable`, `tie`; `SandboxDemoEvent` `organization`, `brandedDisplays`;
 `SandboxDemoDisplays` (5 designs); `SandboxDemoEventDefinitions::known()`; command options `--event`, `--maintainer`
 (repeatable), `--logo`. Test `SandboxDemoEventsTest::testBuildsTheSpwsTorontoDemoOnRequest`.
+
+## Sandbox build + walk (2026-11-24, PR #487 + follow-up)
+
+Built on the sandbox with `--date=2026-12-02` (URLs: the guide §6). The walk found and the follow-up PR fixed:
+- **Puzzle order on public pages**: `RoundPuzzlesVisibleNow` listed a round's visible puzzles by name, so a block
+  showed "Challenge 2" before "Challenge 1" on the event page and the round page. Now `crp.position NULLS LAST,
+  p.name` - a round nobody arranged lists exactly as before.
+- **Analytics studio stuck on "Loading…" on the sandbox**: its JSON is fetched without cookies, so the sandbox welcome
+  gate answered 401. `SandboxGate` leaves `/analytics-studio/` (data only) open, like `/embed/`.
+- **No-show left out of the Pairs standing**: the same pair (last by name) did not start in all three rounds, and an
+  only-no-show entrant is left out. `SandboxDemoRound::$noShowFromEnd` puts each round's no-show on another pair (a
+  rebuild shows it; the current sandbox event keeps its recorded results).

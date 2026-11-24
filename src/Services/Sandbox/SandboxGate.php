@@ -28,6 +28,10 @@ final class SandboxGate
         '/-/',
         // The embeddable standing (real events L3): framed by another site, where the gate's cookie is a third-party one
         '/embed/',
+        // The analytics studio's JSON answers (analytics-studio.md): fetched without cookies (the stateless firewall), so
+        // the gate's cookie never comes along - closed, the studio page stayed on "Loading…". Data only, the page
+        // itself (/{locale}/events/…/analytics-studio/…) stays behind the gate
+        '/analytics-studio/',
     ];
 
     private const array OPEN_PATHS = [

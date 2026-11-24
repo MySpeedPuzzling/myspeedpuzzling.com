@@ -58,6 +58,9 @@ readonly final class SandboxDemoRound
         // A published round: the 5th entrant by name gets exactly the 4th's result - a shared place
         public bool $tie = false,
         public array $piecesOfPuzzles = [],
+        // A published round's no-show: the n-th entrant from the end by name (0 = the last). Different per round, the
+        // no-show entrant has results elsewhere and stays ranked in the standing (as_zero_pieces)
+        public int $noShowFromEnd = 0,
     ) {
     }
 

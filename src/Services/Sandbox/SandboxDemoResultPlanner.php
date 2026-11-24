@@ -75,7 +75,7 @@ final readonly class SandboxDemoResultPlanner
         $limit = $round->minutesLimit * 60;
         $published = $round->state === SandboxDemoRound::PUBLISHED;
 
-        if ($published && $index === $count - 1) {
+        if ($published && $index === $count - 1 - $round->noShowFromEnd) {
             return ['result' => RoundEntryResult::didNotStart()];
         }
 

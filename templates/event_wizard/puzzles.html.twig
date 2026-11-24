@@ -4,7 +4,7 @@
 
 {% block wizard_title %}{{ 'event_wizard.puzzles.title'|trans }}{% endblock %}
 
-{% macro slot(slot, round_id) %}
+{% macro slot(slot, round_id, label = null, unboxed = null) %}
     {#- W1's picker (time_form_autocomplete): brand, puzzle, a new puzzle's pieces - empty = "Decide later" -#}
     <div class="border rounded p-2 mb-2"
          data-controller="time-form-autocomplete"
@@ -22,6 +22,13 @@
             <div class="col-12 col-sm-6">{{ form_row(slot.puzzle, {attr: {'data-time-form-autocomplete-target': 'puzzle'}, help: false}) }}</div>
         </div>
         </div></div>
+        {%- if label is not null -%}
+            {#- Toolkit (spws-wizard.md): its label and "Unboxed" - beside the shared slot form -#}
+            <div class="row g-2 align-items-start mt-1" data-event-wizard-puzzles-slot-extras>
+                <div class="col-12 col-sm-6">{{ form_row(label, {row_attr: {class: 'mb-2'}}) }}</div>
+                <div class="col-12 col-sm-6 pt-sm-4">{{ form_row(unboxed, {row_attr: {class: 'mb-2'}}) }}</div>
+            </div>
+        {%- endif %}
         <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
             <div class="row g-2 align-items-end">
                 <div class="col-6 col-sm-4">{{ form_row(slot.piecesCount) }}</div>
@@ -106,6 +113,7 @@
                                     <li class="d-flex align-items-center gap-2 mb-1">
                                         <span class="badge bg-light text-dark border">{{ round_puzzle.label }}</span>
                                         <span class="text-truncate">{{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}</span>
+                                        {% if round.unboxed or round_puzzle.unboxed %}<span class="badge text-bg-light border flex-shrink-0{{ round_puzzle.hideUntilRoundStarts ? '' : ' ms-auto' }}" data-event-wizard-puzzles-unboxed><i class="bi bi-box-seam me-1"></i>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% endif %}
                                         {% if round_puzzle.hideUntilRoundStarts %}<span class="badge bg-dark ms-auto flex-shrink-0"><i class="ci-locked me-1"></i>{{ ('event_wizard.puzzles.secret_' ~ round_puzzle.revealMode.value)|trans }}</span>{% endif %}
                                     </li>
                                     {#- Another round of the category has the same puzzle (shared puzzles) -#}
@@ -119,12 +127,15 @@
                             <a class="small d-inline-block mb-2" href="{{ path('manage_round_puzzles', {roundId: round_id}) }}">{{ 'event_wizard.puzzle.manage_existing'|trans }}</a>
                         {% endif %}
 
+                        {%- set open = max(1, (open_slots[round_id] ?? 1) - (saved_counts[round_id] ?? 0)) -%}
                         {% for index, slot in row.puzzles %}
                             {%- set filled = slot.vars.value.puzzle is not empty or slot.vars.value.brand is not empty or not slot.vars.valid -%}
-                            {% if index == 0 or filled %}
-                                {{ _self.slot(slot, round_id) }}
+                            {%- set label = row.labels is defined ? row.labels[index] : null -%}
+                            {%- set unboxed = row.unboxedSlots is defined ? row.unboxedSlots[index] : null -%}
+                            {% if index < open or filled or (label is not null and not label.vars.valid) %}
+                                {{ _self.slot(slot, round_id, label, unboxed) }}
                             {% else %}
-                                <template data-event-wizard-puzzles-slot>{{ _self.slot(slot, round_id) }}</template>
+                                <template data-event-wizard-puzzles-slot>{{ _self.slot(slot, round_id, label, unboxed) }}</template>
                             {% endif %}
                         {% endfor %}
                         {% if existing is empty %}<p class="form-text mt-0 mb-2"><i class="ci-time me-1"></i>{{ 'event_wizard.puzzles.decide_later'|trans }}</p>{% endif %}

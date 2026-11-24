@@ -1,0 +1,28 @@
+{#-
+    The rules of a standing the wizard makes (EventWizardStandingRulesFormType, spws-wizard.md) - the standing form's
+    fields and words. Variables: rules (the sub-form's view).
+-#}
+<div class="border-start ps-3" data-standing-rules>
+    <div class="col-8 col-sm-5">{{ form_row(rules.penaltySecondsPerPiece) }}</div>
+    {{ form_row(rules.penaliseFinishedMissing) }}
+    <fieldset class="mb-3">
+        <legend class="form-label fs-sm mb-1">{{ rules.orderRule.vars.label|trans }}</legend>
+        {% for child in rules.orderRule %}
+            <div class="form-check">
+                {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+            </div>
+        {% endfor %}
+    </fieldset>
+    <fieldset class="mb-0">
+        <legend class="form-label fs-sm mb-1">{{ rules.missingRule.vars.label|trans }}</legend>
+        {% for child in rules.missingRule %}
+            <div class="form-check">
+                {{ form_widget(child, {attr: {class: 'form-check-input'}}) }}
+                {{ form_label(child, null, {label_attr: {class: 'form-check-label'}}) }}
+            </div>
+        {% endfor %}
+    </fieldset>
+    {%- do rules.orderRule.setRendered -%}
+    {%- do rules.missingRule.setRendered -%}
+</div>

@@ -192,6 +192,9 @@ final class UnboxedRoundTest extends WebTestCase
             self::assertStringNotContainsString(CompetitionApiFixture::IMAGE_VISIBLE, $content, "the unboxed puzzle: {$surface}");
         }
 
+        // The event page says when the picture comes - with the results, not at the round's start
+        self::assertStringContainsString('Picture shown once the results are published', $surfaces['event page']);
+
         foreach (['the one rule', 'display state', 'competitor state', 'judge state'] as $surface) {
             self::assertStringContainsString(CompetitionApiFixture::IMAGE_HIDDEN_IMAGE, $surfaces[$surface], "a boxed puzzle of the round: {$surface}");
         }

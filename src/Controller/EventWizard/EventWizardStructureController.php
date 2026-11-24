@@ -44,6 +44,7 @@ use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingsPerCategory;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
+use SpeedPuzzling\Web\Services\EventWizard\EventWizardDefaults;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardStructurePlanner;
 use SpeedPuzzling\Web\Services\EventWizard\StandingsJoiningNewRounds;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
@@ -189,14 +190,28 @@ final class EventWizardStructureController extends AbstractController
         }
 
         try {
-            if ($planned !== null && $startsForm?->isSubmitted() === true && $startsForm->isValid() && $this->saveTemplate($templateForm, $startsForm, $planned, $competition, $rounds, $toolkit)) {
+            $challenges = $planned !== null && $startsForm?->isSubmitted() === true && $startsForm->isValid()
+                ? $this->saveTemplate($templateForm, $startsForm, $planned, $competition, $rounds, $toolkit)
+                : null;
+
+            if ($challenges !== null) {
                 if ($planned === []) {
                     return $this->redirectToRoute('event_wizard_structure', ['competitionId' => $competitionId, '_fragment' => 'schedule'], Response::HTTP_SEE_OTHER);
                 }
 
                 $next = $progress->next(EventWizardStep::Structure) ?? EventWizardStep::Review;
+                $parameters = ['competitionId' => $competitionId];
 
-                return $this->redirectToRoute($next->route(), ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+                // The Challenges template's plan travels to the Puzzles step as a prefill only (spws-wizard.md) - the
+                // rounds' challenge numbers: n slots, "Challenge k" labels, "Solve all n"
+                if ($next === EventWizardStep::Puzzles && $challenges !== []) {
+                    $parameters[EventWizardPuzzlesController::CHALLENGES] = array_map(
+                        static fn (array $numbers): string => implode(',', $numbers),
+                        $challenges,
+                    );
+                }
+
+                return $this->redirectToRoute($next->route(), $parameters, Response::HTTP_SEE_OTHER);
             }
 
             $scheduleSaved = $scheduleForm->isSubmitted() && $scheduleForm->isValid() && $this->saveSchedule($scheduleForm, $competition, $rounds);
@@ -239,16 +254,18 @@ final class EventWizardStructureController extends AbstractController
     }
 
     /**
-     * The template's rounds with the organiser's starts, in one transaction - false with the reason on the form (a row's
-     * start outside the event's days or skipped by a clock change, a refusal of the messages).
+     * The template's rounds with the organiser's starts, in one transaction - null with the reason on the form (a row's
+     * start outside the event's days or skipped by a clock change, a refusal of the messages); saved = the Challenges
+     * template's challenge numbers per new round id (empty for the other templates).
      *
      * @param FormInterface<EventWizardStructureFormData> $form
      * @param FormInterface<EventWizardRoundStartsFormData> $startsForm
      * @param list<EventWizardPlannedRound> $planned
      * @param list<CompetitionRound> $rounds
+     * @return null|array<string, list<int>>
      * @throws EventWizardStructureLocked
      */
-    private function saveTemplate(FormInterface $form, FormInterface $startsForm, array $planned, Competition $competition, array $rounds, bool $toolkit): bool
+    private function saveTemplate(FormInterface $form, FormInterface $startsForm, array $planned, Competition $competition, array $rounds, bool $toolkit): null|array
     {
         $data = $form->getData();
         $starts = $startsForm->getData();
@@ -263,6 +280,8 @@ final class EventWizardStructureController extends AbstractController
         $stageRoundIds = [];
         /** @var array<string, list<string>> $roundIdsByCategory */
         $roundIdsByCategory = [];
+        /** @var array<string, list<int>> $challenges */
+        $challenges = [];
 
         foreach ($planned as $index => $round) {
             $row = $starts->rows[$index] ?? null;
@@ -295,13 +314,17 @@ final class EventWizardStructureController extends AbstractController
             $roundId = $add->roundId->toString();
             $roundIdsByCategory[$round->category->value][] = $roundId;
 
+            if ($round->challengeNumbers !== []) {
+                $challenges[$roundId] = $round->challengeNumbers;
+            }
+
             if ($round->stage !== null) {
                 $stageRoundIds[$round->stage][] = $roundId;
             }
         }
 
         if ($refused) {
-            return false;
+            return null;
         }
 
         $steps = [];
@@ -314,12 +337,17 @@ final class EventWizardStructureController extends AbstractController
                 // Said on the template's stage field - the start times' form is refused with it
                 $startsForm->addError(new FormError($this->translator->trans('event_wizard.structure.advance_mixed_categories')));
 
-                return false;
+                return null;
             }
         }
 
         if ($toolkit && $data->template === EventWizardStructureTemplate::EveryRoundCounts && $data->sumPerCategory) {
-            $standings = $this->standingsPerCategory->messages($competitionId, $roundIdsByCategory);
+            $standings = $this->standingsPerCategory->messages($competitionId, $roundIdsByCategory, rules: $data->everyRoundRules->toRules());
+        }
+
+        // Challenges (spws-wizard.md): one total time per category with the organiser's rules (World Series prefilled)
+        if ($toolkit && $data->template === EventWizardStructureTemplate::Challenges && $data->challengesSum) {
+            $standings = $this->standingsPerCategory->messages($competitionId, $roundIdsByCategory, rules: $data->challengesRules->toRules());
         }
 
         $message = new SetUpEventWizardStructure(
@@ -334,14 +362,14 @@ final class EventWizardStructureController extends AbstractController
         );
 
         if ($this->dispatch($message, $startsForm) === false) {
-            return false;
+            return null;
         }
 
         if ($adds !== []) {
             $this->addFlash('success', $this->translator->trans('event_wizard.structure.flash.created', ['%count%' => count($adds)]));
         }
 
-        return true;
+        return $challenges;
     }
 
     /**
@@ -657,7 +685,7 @@ final class EventWizardStructureController extends AbstractController
 
     /**
      * The template's starting values: the template the entry screen's answer chose; three stages (groups → semifinals →
-     * final, the WJPC shape) and 6 solo / 6 pairs / 6 teams of 4 (the World Series shape). No start time - the
+     * final, the WJPC shape), 6 solo / 6 pairs / 6 teams of 4, and the World Series' challenge rows. No start time - the
      * organiser types every round's.
      */
     private function templateDefaults(null|EventWizardStructureTemplate $requested): EventWizardStructureFormData
@@ -675,6 +703,13 @@ final class EventWizardStructureController extends AbstractController
         $data->soloRounds = 6;
         $data->pairsRounds = 6;
         $data->teamsRounds = 6;
+        // Challenges (spws-wizard.md): the World Series shape - pairs in two blocks of two then one, teams in two blocks
+        // of two, five solo challenges; the spare rows stay empty
+        $data->blocks[0] = new EventWizardStageFormData(null, 2, RoundCategory::Duo, null, 90, challenges: 2);
+        $data->blocks[1] = new EventWizardStageFormData(null, 1, RoundCategory::Duo, null, 60, challenges: 1);
+        $data->blocks[2] = new EventWizardStageFormData(null, 1, RoundCategory::Team, EventWizardDefaults::TEAM_SIZE, 120, challenges: 2);
+        $data->blocks[3] = new EventWizardStageFormData(null, 1, RoundCategory::Team, EventWizardDefaults::TEAM_SIZE, 150, challenges: 2);
+        $data->blocks[4] = new EventWizardStageFormData(null, 5, RoundCategory::Solo, null, 75, challenges: 1);
 
         return $data;
     }

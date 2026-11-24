@@ -4,12 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Unboxed per puzzle (`docs/features/competitions-management/spws-unboxed-per-puzzle.md`, SPWS 1:1 demo, 2026-11-24)
+## SPWS 1:1 demo - unboxed per puzzle + wizard (`spws-unboxed-per-puzzle.md`, `spws-wizard.md`, 2026-11-24)
 
 - [ ] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch
       is copied) - say so on the duplicate form next to the format-reset notice.
-- [ ] The event page's note under an unboxed puzzle says "Picture revealed when the round starts" (`event_rounds.picture_hidden`,
-      also for W2 whole-round unboxed) - say "after the results are published" (needs a flag on `VisibleRoundPuzzle`).
+- [ ] Wizard (spws-wizard.md R10): a "Get ready" item "Same tables for the whole championship" once entries exist (the
+      checklist's 2 statements are pinned - from the existing facts only); today a Review line says it.
+- [ ] Wizard: a Challenges block left "Decide later" loses its prefill on resume (no labels, "One result") - derive the
+      plan from the draft (e.g. the round's planned challenge count stored, or the round name) if organisers trip on it.
+- [ ] Wizard: labels / Unboxed of puzzles already saved are edited on the round puzzles page, not on the grid.
 - [ ] Internal API has no unboxed field (round or puzzle) - add `unboxed` / `unboxedRoundPuzzleIds` to the round
       endpoints if Claude Code should set it there.
 

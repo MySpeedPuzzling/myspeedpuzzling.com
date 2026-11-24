@@ -71,6 +71,29 @@ final class EventWizardStructurePlannerTest extends TestCase
         self::assertCount(40, self::planner()->plan($data));
     }
 
+    /**
+     * spws-wizard.md: rows of challenges - numbered per category in row order, a round of several solves them back to
+     * back; spare rows (no challenges chosen) are not used
+     */
+    public function testChallengesNumberEachCategoryAndNameTheBlocks(): void
+    {
+        $data = new EventWizardStructureFormData();
+        $data->template = EventWizardStructureTemplate::Challenges;
+        $data->blocks[0] = new EventWizardStageFormData(null, 2, RoundCategory::Duo, null, 90, challenges: 2);
+        $data->blocks[1] = new EventWizardStageFormData(null, 1, RoundCategory::Solo, null, 75, challenges: 1);
+        $data->blocks[2] = new EventWizardStageFormData(null, 1, RoundCategory::Duo, null, 60, challenges: 1);
+        $data->blocks[3] = new EventWizardStageFormData(null, 1, RoundCategory::Team, null, 150, challenges: 3);
+        $data->blocks[4] = new EventWizardStageFormData(null, 3, RoundCategory::Solo, null, 75);
+
+        $rounds = self::planner()->plan($data);
+
+        self::assertSame(['Pairs - Challenges 1 + 2', 'Pairs - Challenges 3 + 4', 'Solo - Challenge 1', 'Pairs - Challenge 5', 'Teams - Challenges 1 + 2 + 3'], self::names($rounds));
+        self::assertSame([[1, 2], [3, 4], [1], [5], [1, 2, 3]], array_map(static fn (EventWizardPlannedRound $round): array => $round->challengeNumbers, $rounds));
+        self::assertSame([90, 90, 75, 60, 150], array_map(static fn (EventWizardPlannedRound $round): int => $round->minutesLimit, $rounds));
+        self::assertSame(4, $rounds[4]->teamSize);
+        self::assertNull($rounds[0]->teamSize);
+    }
+
     public function testNotSureYetGeneratesNoRound(): void
     {
         $data = new EventWizardStructureFormData();
@@ -102,6 +125,8 @@ final class EventWizardStructurePlannerTest extends TestCase
                     'event_wizard.round_name.solo' => 'Solo',
                     'event_wizard.round_name.duo' => 'Pairs',
                     'event_wizard.round_name.team' => 'Teams',
+                    'event_wizard.structure.challenges.round_name_one' => strtr('%category% - Challenge %numbers%', array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : "", $parameters)),
+                    'event_wizard.structure.challenges.round_name_block' => strtr('%category% - Challenges %numbers%', array_map(static fn (mixed $value): string => is_scalar($value) ? (string) $value : "", $parameters)),
                     default => (string) $id,
                 };
             }

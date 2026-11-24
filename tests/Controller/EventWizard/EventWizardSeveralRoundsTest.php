@@ -41,7 +41,7 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/en/new-event');
         self::assertResponseIsSuccessful();
-        self::assertCount(3, $crawler->filter('[data-event-wizard-structure-question] input[name="structure"]'));
+        self::assertCount(4, $crawler->filter('[data-event-wizard-structure-question] input[name="structure"]'));
 
         $this->browser->request('GET', '/en/new-event?kind=several_rounds&structure=every_round_counts');
         self::assertResponseRedirects('/en/new-event/basics?path=several_rounds&structure=every_round_counts');
@@ -206,6 +206,11 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         self::assertSame([null, null, null], array_column($standings, 'published_at'));
         $soloIds = array_column(array_filter($rounds, static fn (array $round): bool => $round['category'] === 'solo'), 'id');
         self::assertSame($soloIds, json_decode($standings[1]['round_ids'], true));
+        // The rules untouched: today's standing (spws-wizard.md)
+        self::assertSame(
+            [['unfinished_penalty_seconds_per_piece' => 0, 'order_rule' => 'finished_rounds_first', 'missing_rule' => 'incomplete', 'penalise_finished_missing' => false]],
+            $this->database()->fetchAllAssociative('SELECT DISTINCT unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing FROM competition_standing WHERE competition_id = :id', ['id' => $competitionId]),
+        );
     }
 
     public function testExactlyOneRoundIsRefusedWith422(): void
@@ -482,6 +487,109 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
 
         $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
         self::assertSelectorTextContains('body', 'Solve all 3 (order recorded)');
+    }
+
+    /**
+     * spws-wizard.md: the Challenges template - the World Series shape in its rows (pairs 2 × 2 + 1, teams 2 × 2, solo
+     * 5 × 1), rounds named after their challenges, one standing per category with the World Series rules, and the plan
+     * travels to the Puzzles step: labels "Challenge k" and "Solve all 2" prefilled; a puzzle ticked "Unboxed"
+     */
+    public function testTheChallengesTemplateSetsUpTheWorldSeries(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $competitionId = $this->startDraft('challenges');
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=challenges');
+        self::assertResponseIsSuccessful();
+        self::assertCount(5, $crawler->filter('[data-event-wizard-challenge-row]:not([data-empty])'));
+        $crawler = $this->buildTemplate($crawler, ['template' => 'challenges']);
+        self::assertCount(10, $crawler->filter('[data-event-wizard-starts-row]'));
+        self::assertCount(4, $crawler->filter('[data-event-wizard-back-to-back]'));
+
+        $this->createRounds($crawler, array_map(static fn (int $index): string => sprintf('%02d:00', 8 + $index), range(0, 9)));
+        self::assertResponseRedirects();
+        $location = (string) $this->browser->getResponse()->headers->get('Location');
+        self::assertStringContainsString('/puzzles?challenges', $location);
+
+        $rounds = $this->rounds($competitionId);
+        self::assertSame([
+            'Pairs – Challenges 1 + 2', 'Pairs – Challenges 3 + 4', 'Pairs – Challenge 5',
+            'Teams – Challenges 1 + 2', 'Teams – Challenges 3 + 4',
+            'Solo – Challenge 1', 'Solo – Challenge 2', 'Solo – Challenge 3', 'Solo – Challenge 4', 'Solo – Challenge 5',
+        ], array_column($rounds, 'name'));
+        self::assertSame([90, 90, 60, 120, 150, 75, 75, 75, 75, 75], array_column($rounds, 'minutes_limit'));
+        self::assertSame(4, $rounds[3]['team_size']);
+
+        /** @var list<array{category: string, unfinished_penalty_seconds_per_piece: int, order_rule: string, missing_rule: string, penalise_finished_missing: bool}> $standings */
+        $standings = $this->database()->fetchAllAssociative('SELECT category, unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing FROM competition_standing WHERE competition_id = :id ORDER BY category', ['id' => $competitionId]);
+        self::assertSame(['duo', 'solo', 'team'], array_column($standings, 'category'));
+        foreach ($standings as $standing) {
+            self::assertSame([5, 'total_only', 'as_zero_pieces', true], [
+                $standing['unfinished_penalty_seconds_per_piece'],
+                $standing['order_rule'],
+                $standing['missing_rule'],
+                $standing['penalise_finished_missing'],
+            ]);
+        }
+
+        // The Puzzles step with the plan: the block's labels and "Solve all 2" prefilled
+        $block = $rounds[1]['id'];
+        $crawler = $this->browser->request('GET', $location);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Challenge 3', $crawler->filter('input[name="event_wizard_puzzles[rows][' . $block . '][labels][0]"]')->attr('value'));
+        self::assertSame('Challenge 4', $crawler->filter('input[name="event_wizard_puzzles[rows][' . $block . '][labels][1]"]')->attr('value'));
+        self::assertSame('all', $crawler->filter('input[name="event_wizard_puzzles[rows][' . $block . '][puzzleFormat]"][checked]')->attr('value'));
+
+        $form = $crawler->filter('form[name="event_wizard_puzzles"]')->form();
+        $values = $form->getPhpValues();
+        self::assertIsArray($values['event_wizard_puzzles']);
+        $grid = $values['event_wizard_puzzles'];
+        self::assertIsArray($grid['rows']);
+        self::assertIsArray($grid['rows'][$block]);
+        $grid['rows'][$block]['puzzles'] = [
+            ['brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 'puzzle' => PuzzleFixture::PUZZLE_500_01, 'piecesCount' => ''],
+            ['brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 'puzzle' => PuzzleFixture::PUZZLE_500_02, 'piecesCount' => ''],
+        ];
+        $grid['rows'][$block]['labels'] = ['Challenge 3', 'Challenge 4', '', ''];
+        $grid['rows'][$block]['unboxedSlots'] = [1 => '1'];
+        $values['event_wizard_puzzles'] = $grid;
+        $this->browser->request('POST', $form->getUri(), $values);
+        self::assertResponseRedirects();
+
+        /** @var list<array{puzzle_id: string, label: string, position: int, unboxed: bool}> $saved */
+        $saved = $this->database()->fetchAllAssociative('SELECT puzzle_id, label, position, unboxed FROM competition_round_puzzle WHERE round_id = :id ORDER BY position', ['id' => $block]);
+        self::assertSame([
+            [PuzzleFixture::PUZZLE_500_01, 'Challenge 3', 1, false],
+            [PuzzleFixture::PUZZLE_500_02, 'Challenge 4', 2, true],
+        ], array_map(static fn (array $row): array => array_values($row), $saved));
+        $round = $this->database()->fetchAssociative('SELECT puzzle_format, puzzles_to_solve, unboxed FROM competition_round WHERE id = :id', ['id' => $block]);
+        self::assertSame(['puzzle_format' => 'pick', 'puzzles_to_solve' => 2, 'unboxed' => false], $round);
+
+        $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
+        self::assertSelectorTextContains('[data-event-wizard-review-unboxed]', 'Unboxed');
+        self::assertSelectorTextContains('[data-event-wizard-review-label]', 'Challenge 3');
+        self::assertSelectorExists('[data-event-wizard-review-standing-rules] [data-standing-rule-no-show]');
+    }
+
+    /**
+     * spws-wizard.md: "Overall standings" on Extras with the organiser's rules (untouched = today's standing)
+     */
+    public function testExtrasMakeTheOverallStandingsWithTheirRules(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $competitionId = $this->startDraftWithRounds([]);
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/extras');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('form[name="event_wizard_extras_form"]')->form();
+        self::tick($form, 'event_wizard_extras_form[standings]');
+        $form['event_wizard_extras_form[standingRules][penaltySecondsPerPiece]'] = '7';
+        $form['event_wizard_extras_form[standingRules][missingRule]'] = 'as_zero_pieces';
+        $this->browser->submit($form);
+        self::assertResponseRedirects();
+
+        $standing = $this->database()->fetchAssociative('SELECT unfinished_penalty_seconds_per_piece, order_rule, missing_rule, penalise_finished_missing FROM competition_standing WHERE competition_id = :id', ['id' => $competitionId]);
+        self::assertSame(['unfinished_penalty_seconds_per_piece' => 7, 'order_rule' => 'finished_rounds_first', 'missing_rule' => 'as_zero_pieces', 'penalise_finished_missing' => false], $standing);
     }
 
     public function testAnotherPlayerCannotOpenTheSteps(): void

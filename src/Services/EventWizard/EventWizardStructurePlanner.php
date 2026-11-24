@@ -35,6 +35,7 @@ readonly final class EventWizardStructurePlanner
         $rounds = match ($data->template) {
             EventWizardStructureTemplate::Qualification => $this->qualification($data),
             EventWizardStructureTemplate::EveryRoundCounts => $this->everyRoundCounts($data),
+            EventWizardStructureTemplate::Challenges => $this->challenges($data),
             EventWizardStructureTemplate::Empty => [],
         };
 
@@ -45,9 +46,44 @@ readonly final class EventWizardStructurePlanner
                 teamSize: $round[2],
                 minutesLimit: $round[3],
                 stage: $round[4],
+                challengeNumbers: $round[5] ?? [],
             ),
             $rounds,
         );
+    }
+
+    /**
+     * The Challenges template (spws-wizard.md): row by row, each row's rounds; challenges numbered per category in row
+     * order, a round of several = "Pairs – Challenges 1 + 2" (solved back to back), of one = "Pairs – Challenge 5".
+     *
+     * @return list<array{string, RoundCategory, null|int, int, null, list<int>}>
+     */
+    private function challenges(EventWizardStructureFormData $data): array
+    {
+        $rounds = [];
+        /** @var array<string, int> $numbered challenges numbered so far, per category */
+        $numbered = [];
+
+        foreach ($data->usedBlocks() as $block) {
+            $count = $block->challenges ?? 1;
+
+            for ($round = 1; $round <= ($block->roundsCount ?? 1); $round++) {
+                $first = ($numbered[$block->category->value] ?? 0) + 1;
+                $numbers = range($first, $first + $count - 1);
+                $numbered[$block->category->value] = $first + $count - 1;
+
+                $rounds[] = [
+                    $this->defaults->challengeRoundName($block->category, $numbers),
+                    $block->category,
+                    $block->category === RoundCategory::Team ? ($block->teamSize ?? EventWizardDefaults::TEAM_SIZE) : null,
+                    $block->minutesLimit ?? EventWizardDefaults::MINUTES_LIMIT,
+                    null,
+                    $numbers,
+                ];
+            }
+        }
+
+        return $rounds;
     }
 
     /**

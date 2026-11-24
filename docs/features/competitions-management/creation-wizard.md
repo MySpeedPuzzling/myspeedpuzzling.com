@@ -36,6 +36,16 @@ signed-in player's "Add event" - and since 2026-11-18 the only way to create an 
 | Backfill (WB) | The event → Puzzles → Link my results → Done | see "Backfill" below - submitted at once, never a draft |
 | Series | Series Basics → Dates + each date's round → Review | rule (weekly / Nth weekday / picked days, `EditionsPreview` shared with "Add several dates"), start time, a round per date or none; re-sending creates nothing twice; the rule fills the series' "When it happens" in the creator's language while it is empty ("Third Saturday of the month at 7:00 PM", picked days: "At 7:00 PM on each date" - `SeriesScheduleText`, `CompetitionSeries::scheduleFromDatesRule()`, also on "Add the next dates"; a typed text is never replaced); Publish publishes the series and its draft dates. Series page: "Add the next dates" (prefilled from the last dates) and a quick "Add puzzle" per date |
 
+## Challenges template, labels, unboxed, standing rules (SPWS 1:1 demo, 2026-11-24)
+Design + as built: [spws-wizard.md](spws-wizard.md). A fourth Structure template **"No - challenges added up per
+championship"** (`EventWizardStructureTemplate::Challenges`, World Series style): rows of who / challenges back to back
+(1-4) / how many such rounds / limit for the whole round → rounds "Pairs – Challenges 1 + 2" (several = one round
+solving them in order), challenges numbered per category, one standing per category with the World Series rules
+prefilled and editable. The plan rides to the Puzzles step as `?challenges[<roundId>]=1,2` (a prefill only): n slots,
+labels "Challenge k", "Solve all n". The Puzzles grid (toolkit) has a label and "Unboxed" per new puzzle
+(`ArrangeRoundPuzzles` / `ChangeRoundUnboxed` inside `SetUpEventWizardRound`), Every round counts and Extras' "Overall
+standings" show the standing rules (untouched = today's standing), Review shows labels, unboxed, rules.
+
 ## Classic create retired (2026-11-18)
 
 Jan: "retire now, keep classic only for single updates, i would like the wizzard to be default and no 'Use classic form'

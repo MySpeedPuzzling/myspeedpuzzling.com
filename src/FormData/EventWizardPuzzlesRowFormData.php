@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -32,10 +33,21 @@ final class EventWizardPuzzlesRowFormData
     )]
     public null|int $puzzlesToSolve = null;
 
+    // Per new puzzle (slot index), toolkit only (spws-wizard.md): its label ("Challenge 3", empty = the letter of its
+    // place) and "Unboxed" - kept beside the slots, so Backfill's shared slot form stays as it is
+    /** @var array<int, null|string> */
+    #[Assert\All([new Assert\Length(max: RoundPuzzleLabel::MAX_LENGTH)])]
+    public array $labels = [];
+
+    /** @var array<int, bool> */
+    public array $unboxedSlots = [];
+
     public function __construct()
     {
         for ($index = 0; $index < self::SLOTS; $index++) {
             $this->puzzles[$index] = new EventWizardPuzzleSlotFormData();
+            $this->labels[$index] = null;
+            $this->unboxedSlots[$index] = false;
         }
     }
 

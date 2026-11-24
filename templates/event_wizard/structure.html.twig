@@ -108,7 +108,14 @@
                         </div>
                     {% endfor %}
                     {% if form.sumPerCategory is defined %}
-                        <div data-event-wizard-sum>{{ form_row(form.sumPerCategory) }}</div>
+                        <div data-event-wizard-sum>
+                            {{ form_row(form.sumPerCategory) }}
+                            {#- The standing's rules (spws-wizard.md) - untouched = today's standing -#}
+                            <details class="mb-3 ms-4" data-event-wizard-sum-rules>
+                                <summary class="small">{{ 'event_wizard.structure.standing_rules'|trans }}</summary>
+                                <div class="mt-2">{{ include('event_wizard/_standing_rules.html.twig', {rules: form.everyRoundRules}, with_context = false) }}</div>
+                            </details>
+                        </div>
                     {% endif %}
                     <div class="mb-3">
                         <div class="form-label">{{ 'event_wizard.structure.order'|trans }}</div>
@@ -121,7 +128,42 @@
                     </div>
                 </div>
 
-                <p class="form-text" data-organizer-form-target="part" data-show-field="template" data-show-values="qualification every_round_counts">{{ 'event_wizard.structure.schedule_rule'|trans }}</p>
+                {#- Challenges (spws-wizard.md): one row per kind of round - who, how many challenges back to back, how many such
+                    rounds, the limit; the rounds are named after their challenges -#}
+                <div data-organizer-form-target="part" data-show-field="template" data-show-values="challenges" data-event-wizard-challenges>
+                    <p class="small text-muted">{{ 'event_wizard.structure.challenges.intro'|trans }}</p>
+                    {{ form_errors(form.blocks) }}
+                    <div data-controller="event-wizard-rows">
+                        {% for challenge_row in form.blocks %}
+                            {%- set used = challenge_row.vars.value.block -%}
+                            <div class="border rounded p-3 mb-2" data-event-wizard-rows-target="spare"{% if not used %} data-empty{% endif %} data-event-wizard-challenge-row>
+                                <div data-controller="organizer-form" data-action="change->organizer-form#update">
+                                    <div class="row g-2">
+                                        <div class="col-6 col-sm-4">{{ form_row(challenge_row.category) }}</div>
+                                        <div class="col-6 col-sm-4" data-organizer-form-target="part" data-show-field="category" data-show-values="team">{{ form_row(challenge_row.teamSize) }}</div>
+                                        <div class="w-100 m-0"></div>
+                                        <div class="col-6 col-sm-4">{{ form_row(challenge_row.challenges) }}</div>
+                                        <div class="col-6 col-sm-4">{{ form_row(challenge_row.roundsCount) }}</div>
+                                        <div class="col-12 col-sm-4">{{ form_row(challenge_row.minutesLimit) }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" hidden data-event-wizard-rows-target="add" data-action="event-wizard-rows#add"><i class="ci-plus me-1"></i>{{ 'event_wizard.structure.challenges.add_row'|trans }}</button>
+                    </div>
+                    {% if form.challengesSum is defined %}
+                        <div data-event-wizard-challenges-sum>
+                            {{ form_row(form.challengesSum) }}
+                            <div class="ms-4 mb-3">
+                                <div class="small fw-medium mb-2">{{ 'event_wizard.structure.challenges.rules'|trans }}</div>
+                                {{ include('event_wizard/_standing_rules.html.twig', {rules: form.challengesRules}, with_context = false) }}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <p class="form-text">{{ 'event_wizard.structure.challenges.puzzles_next'|trans }}</p>
+                </div>
+
+                <p class="form-text" data-organizer-form-target="part" data-show-field="template" data-show-values="qualification every_round_counts challenges">{{ 'event_wizard.structure.schedule_rule'|trans }}</p>
                 <p class="form-text" data-organizer-form-target="part" data-show-field="template" data-show-values="empty">{{ 'event_wizard.structure.empty_help'|trans }}</p>
 
                 <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
@@ -158,7 +200,7 @@
                             {{ form_label(row.name, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
                             {{ form_widget(row.name, {attr: {'aria-describedby': 'starts-meta-' ~ index}}) }}
                             {{ form_errors(row.name) }}
-                            <div class="small text-muted mt-1" id="starts-meta-{{ index }}">{{ _self.category_label(round.category) }}{% if round.teamSize is not null %} ({{ round.teamSize }}){% endif %} · {{ 'event_wizard.structure.minutes'|trans({'%count%': round.minutesLimit}) }}</div>
+                            <div class="small text-muted mt-1" id="starts-meta-{{ index }}">{{ _self.category_label(round.category) }}{% if round.teamSize is not null %} ({{ round.teamSize }}){% endif %} · {{ 'event_wizard.structure.minutes'|trans({'%count%': round.minutesLimit}) }}{% if round.challengeNumbers|length > 1 %} · <span data-event-wizard-back-to-back>{{ 'event_wizard.structure.challenges.solved_back_to_back'|trans({'%count%': round.challengeNumbers|length}) }}</span>{% endif %}</div>
                         </div>
                         <div class="col-7 col-md-4">
                             {{ form_label(row.date, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}

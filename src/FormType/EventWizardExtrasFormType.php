@@ -163,6 +163,7 @@ final class EventWizardExtrasFormType extends AbstractType
                 'help' => 'event_wizard.extras.standings_help',
                 'required' => false,
             ]);
+            $builder->add('standingRules', EventWizardStandingRulesFormType::class);
         }
     }
 

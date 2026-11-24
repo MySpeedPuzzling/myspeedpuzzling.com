@@ -27,7 +27,9 @@
                 </div>
                 {% for round_puzzle in round_puzzles %}
                     <div>
+                        {%- if round_puzzle.customLabel is not null %}<span class="fw-medium" data-event-wizard-review-label>{{ round_puzzle.customLabel }}</span> · {% endif -%}
                         {{ round_puzzle.manufacturerName }} · {{ round_puzzle.puzzleName }} · {{ round_puzzle.piecesCount }}
+                        {%- if round.unboxed or round_puzzle.unboxed %} <span class="text-muted" data-event-wizard-review-unboxed>· <i class="bi bi-box-seam"></i> {{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% endif %}
                         {% if round_puzzle.hideUntilRoundStarts %}
                             <span class="text-muted">
                                 · <i class="ci-locked"></i>
@@ -57,7 +59,12 @@
                 {% endfor %}
                 {% for standing in standings %}
                     <div><i class="ci-list me-1"></i>{{ standing.name }} <span class="text-muted">· {{ 'event_wizard.structure.standing_unpublished'|trans }}</span></div>
+                    <div class="text-muted ms-4" data-event-wizard-review-standing-rules>{{ include('standing/_rules.html.twig', {rules: standing.rules}, with_context = false) }}</div>
                 {% endfor %}
+                {% if standings is not empty %}
+                    {#- The same table for a whole championship can only be copied once entries exist (seating.md "Same tables") -#}
+                    <div class="mt-2" data-event-wizard-review-same-tables><i class="ci-info me-1"></i>{{ 'event_wizard.review.same_tables'|trans }}</div>
+                {% endif %}
             </div>
         {% endif %}
     </div>

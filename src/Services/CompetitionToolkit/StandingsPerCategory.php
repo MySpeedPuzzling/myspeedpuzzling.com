@@ -29,9 +29,10 @@ readonly final class StandingsPerCategory
     /**
      * @param array<string, list<string>> $roundIdsByCategory RoundCategory value => the category's round ids, in order
      * @param list<RoundCategory> $covered categories that have a standing already
+     * @param StandingRules $rules every standing's rules - today's defaults unless the organiser chose (the wizard)
      * @return list<CreateCompetitionStanding> in the order of RoundCategory::cases()
      */
-    public function messages(string $competitionId, array $roundIdsByCategory, array $covered = []): array
+    public function messages(string $competitionId, array $roundIdsByCategory, array $covered = [], StandingRules $rules = new StandingRules()): array
     {
         $messages = [];
 
@@ -50,7 +51,7 @@ readonly final class StandingsPerCategory
                 ]),
                 category: $category,
                 roundIds: $roundIds,
-                rules: new StandingRules(),
+                rules: $rules,
             );
         }
 

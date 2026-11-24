@@ -150,6 +150,10 @@
                 <div class="card shadow-sm mb-3" data-event-wizard-extra="standings">
                     <div class="card-body">
                         <div class="form-switch">{{ form_row(form.standings, {row_attr: {class: 'mb-0'}}) }}</div>
+                        {#- The standing form's rules (spws-wizard.md) - untouched = today's standing -#}
+                        <div class="mt-3" data-organizer-form-target="part" data-show-field="standings" data-show-values="1" data-event-wizard-standing-rules>
+                            {{ include('event_wizard/_standing_rules.html.twig', {rules: form.standingRules}, with_context = false) }}
+                        </div>
                     </div>
                 </div>
             {% elseif extras.standingsShown %}

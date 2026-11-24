@@ -93,6 +93,7 @@ SQL;
                     manufacturerName: $puzzle->manufacturerName,
                     hidden: false,
                     imageHidden: $puzzle->imageHidden,
+                    pictureWaitsForResults: $puzzle->pictureWaitsForResults,
                 );
             }
         }

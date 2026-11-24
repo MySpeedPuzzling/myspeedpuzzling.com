@@ -17,6 +17,8 @@ readonly final class EditionRoundPuzzle
         // Shown, but its picture is still under wraps (the round's "image only" hiding or the puzzle's own
         // hide_image_until) - not revealed yet
         public bool $imageHidden = false,
+        // ... because the round or puzzle is unboxed: the picture comes with the round's results (spws-unboxed-per-puzzle.md)
+        public bool $pictureWaitsForResults = false,
     ) {
     }
 }

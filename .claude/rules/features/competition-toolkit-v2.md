@@ -171,3 +171,13 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   sidebar, round results page) - use it, never `startsAt <= now`, on those pages; studio `imageLater`; competitor badge
   "Next" before anything began; "You took back" only while it can be tapped again; `SandboxPlaceholderBox` for the
   demo's new secret puzzles.
+- **Fast time entry (SPWS)**: `toolkit/fast-time-entry.md` (Review amendments binding) — every field where a judge or
+  organiser types a competition time carries `data-time-entry` and is read by `readTimeEntry()` (never `parseResultTime()`
+  on such a field): judge `#lr-time`, the block's typed split (`renderSplits()`), desk result editor (time mode only -
+  `convertCounts()` toggles it) + per-puzzle `data-row-at`. `assets/time_entry.js`: digits fill from the right (blind
+  path = `parseResultTime(digits)`, pinned over 2,400 strings), typed separators ignored, a pasted `83:45` read as written;
+  the first tap after a focus selects all, a tap on the field being typed in selects a part (`timeTouched`), 2 digits →
+  next part, never more than 2 per part; `bindTimeEntry(this.element)` in `connect()` (capture phase, before Stimulus
+  `input->`), unbound in `disconnect()`; prefills via `setTimeEntry()` / `formatTimeEntry()` (58:12, not 0:58:12).
+  `parseResultTime()` drops leading zeros (one digit kept). Player's add form untouched. Tests `TimeEntryScriptsTest`,
+  `LiveResultsScriptsTest`; judge bundle budget 245.5 KB / 68 KB gzip.

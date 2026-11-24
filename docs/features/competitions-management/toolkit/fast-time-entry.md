@@ -169,9 +169,20 @@ Baseline 239.3 KB / 65.8 KB gzip (budget 240.5 / 66). The module is small; the b
 - Texts (6 locales): `live_results.entry.time_placeholder` / `time_hint` / `time_invalid` changed, `time_parsed` gone,
   new `time_words`, `time_words_hours`, `time_minutes_invalid`, `time_seconds_invalid`, `time_too_long`;
   `results_desk.editor.placeholder_time` / `error_time`, `competition_toolkit.desk_puzzles.error_split` changed.
-- Judge bundle 239.3 → 244.4 KB / 65.8 → 67.5 KB gzip, budget 245.5 KB / 68 KB.
+- Judge bundle 239.3 → 244.8 KB / 65.8 → 67.6 KB gzip, budget 245.5 KB / 68 KB.
 - Walked in Selenium Chrome at 375 px (mobile emulation) and 1280 px: blind 13025 / 3025 / 5812 / 12345, minutes fixed
   by a tap, a fresh tap replacing a value, an invalid time on Review, a block's per-challenge typed time, the offline
   copy (network off, reload, type), the desk result editor (time, mode switch to pieces and back) and per-puzzle rows.
 - Keystrokes for the time itself: 58:12 = 4 (`5812`), 1:23:45 = 5 (`12345`), no colon, no field to move to; then
   Review + Save as before.
+
+## PR review fixes (second independent review, 2026-11-24)
+
+- "Being typed in" = the user typed or tapped in this field since it got the focus (`timeTouched`, cleared on
+  `focusin` and by `setTimeEntry()`); a focus by code (proposal prefill, refused restore, split edit) never counts, so
+  the judge's first tap on a prefilled time selects all of it.
+- The split edit and the refused-change restore select the value after focusing it (typed over, never appended to).
+- `compositionend` only re-sends `input` (the capture listener masks it once).
+- Part mode: a backspace over a colon takes the digit before it, the parts stay.
+- Desk: the time typed comes back when the organiser switches pieces → time again.
+- The blur tidy-up sends `input`, so drafts and previews follow it.

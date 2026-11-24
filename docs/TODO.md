@@ -4,6 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## SPWS fast time entry (`docs/features/competitions-management/toolkit/fast-time-entry.md`, 2026-11-24)
+
+- [ ] Real phones: iPhone Safari (numeric pad without Return - Review stays visible above it; a tap on minutes selects
+      them after iOS placed its caret; the Copy/Paste callout over a selected part), Android Chrome with Gboard and a
+      Samsung keyboard (composition on `inputmode=numeric`, no doubled digits after `compositionend`). Selenium cannot
+      show the OS keyboard.
+- [ ] Watch the first real judges: do they find "tap a part to fix it", or do they retype the whole time (5 digits)?
+      If nobody uses it, the part edit could go (≈1.5 KB of the judge bundle).
+
 ## SPWS demo UX walk (`toolkit/STATUS.md` "SPWS 1:1 demo" row UX, `toolkit/spws-demo-guide.md`, 2026-11-24)
 
 - [x] Event page: a signed-in competitor gets no "Your competitor page" link - they go through Competitors and find

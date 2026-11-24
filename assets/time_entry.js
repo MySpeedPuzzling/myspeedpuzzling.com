@@ -136,7 +136,18 @@ export function maskTimeEntry({ value, caret, part = false, previous = '', inser
     const cleaned = text.replace(/[^\d:]/g, '');
     const parts = cleaned.split(':');
 
-    if (part && parts.length >= 2 && parts.length <= 3 && parts.length === String(previous).split(':').length && /\d/.test(cleaned)) {
+    const before = String(previous).split(':');
+
+    // Part mode, a backspace that took a colon: the digit before it goes instead, the parts stay
+    if (part && !inserting && parts.length === before.length - 1 && cleaned.replace(/:/g, '') === before.join('')) {
+        const index = cleaned.slice(0, caret).split(':').length - 1;
+        before[index] = before[index].slice(0, -1);
+        const end = before.slice(0, index + 1).join(':').length;
+
+        return { value: before.join(':'), start: end, end, part: true };
+    }
+
+    if (part && parts.length >= 2 && parts.length <= 3 && parts.length === before.length && /\d/.test(cleaned)) {
         return editPart(parts, caret - (text.slice(0, caret).length - text.slice(0, caret).replace(/[^\d:]/g, '').length), inserting);
     }
 
@@ -216,6 +227,7 @@ export function timeEntryText(text) {
 export function setTimeEntry(input, text) {
     input.value = timeEntryText(text);
     input.dataset.timePart = '';
+    input.dataset.timeTouched = '';
 }
 
 /**
@@ -224,8 +236,6 @@ export function setTimeEntry(input, text) {
  */
 export function bindTimeEntry(root) {
     const field = (event) => (event.target instanceof HTMLInputElement && event.target.dataset.timeEntry !== undefined ? event.target : null);
-    let tappedWhileFocused = false;
-
     const mask = (input, type) => {
         const out = maskTimeEntry({
             value: input.value,
@@ -255,8 +265,9 @@ export function bindTimeEntry(root) {
         input(event) {
             const input = field(event);
 
-            // A keyboard still composing (some Android ones) gets the value once it is done - compositionend
+            // A keyboard still composing (some Android ones) gets the value once it is done - compositionend sends it
             if (input !== null && !event.isComposing) {
+                input.dataset.timeTouched = '1';
                 mask(input, typeof event.inputType === 'string' && event.inputType !== '' ? event.inputType : 'insertText');
             }
         },
@@ -264,24 +275,34 @@ export function bindTimeEntry(root) {
             const input = field(event);
 
             if (input !== null) {
-                mask(input, 'insertText');
                 input.dispatchEvent(new Event('input', { bubbles: true }));
             }
         },
-        pointerdown(event) {
+        // Focused by code (a proposal, a restored value) or by a tap: nothing typed or tapped in this field yet
+        focusin(event) {
             const input = field(event);
-            tappedWhileFocused = input !== null && input === document.activeElement;
+
+            if (input !== null) {
+                input.dataset.timeTouched = '';
+            }
         },
         // The first tap selects everything (typing starts over, blind); a tap on the field being typed in selects the
         // part under the finger. After the browser placed its caret (iOS places it after the click)
         click(event) {
             const input = field(event);
 
-            if (input === null || input.value === '' || input.selectionStart !== input.selectionEnd) {
+            if (input === null) {
                 return;
             }
 
-            const whole = !tappedWhileFocused || !/^\d*(:\d*){1,2}$/.test(input.value);
+            const touched = input.dataset.timeTouched === '1';
+            input.dataset.timeTouched = '1';
+
+            if (input.value === '' || input.selectionStart !== input.selectionEnd) {
+                return;
+            }
+
+            const whole = !touched || !/^\d*(:\d*){1,2}$/.test(input.value);
             const [start, end] = whole ? [0, input.value.length] : partAt(input.value, input.selectionStart ?? input.value.length);
             input.dataset.timePart = whole ? '' : '1';
             input.dataset.timePrev = input.value;
@@ -300,6 +321,8 @@ export function bindTimeEntry(root) {
 
             if (read.seconds !== undefined && formatTimeEntry(read.seconds) !== input.value) {
                 input.value = formatTimeEntry(read.seconds);
+                // The draft and the previews follow the tidied text
+                input.dispatchEvent(new Event('input', { bubbles: true }));
             }
         },
     };

@@ -175,10 +175,19 @@ const scenarios = {
         assert.equal(out.part, true);
         assert.deepEqual(readTimeEntry('1::25'), { seconds: 3625 });
 
-        // a colon deleted too: back to the digits, refilled from the right - never a part mode on a changed shape
-        const shape = maskTimeEntry({ value: '1:25', caret: 1, part: true, previous: '1::25', inserting: false });
+        // a backspace over a colon while a part is edited takes the digit before it - never a dead key
+        const colon = maskTimeEntry({ value: '1:4512', caret: 4, part: true, previous: '1:45:12', inserting: false });
+        assert.deepEqual(colon, { value: '1:4:12', start: 3, end: 3, part: true });
+
+        // the same in front of an emptied part: the hour before it goes, the shape stays
+        const emptied = maskTimeEntry({ value: '1:25', caret: 1, part: true, previous: '1::25', inserting: false });
+        assert.deepEqual(emptied, { value: '::25', start: 0, end: 0, part: true });
+        assert.deepEqual(readTimeEntry('::25'), { seconds: 25 });
+
+        // any other change of the shape: back to the digits, refilled from the right - never a part mode on it
+        const shape = maskTimeEntry({ value: '1:2:5:9', caret: 7, part: true, previous: '1:25', inserting: true });
         assert.equal(shape.part, false);
-        assert.equal(shape.value, '1:25');
+        assert.equal(shape.value, '12:59');
     },
 
     'a value set by code shows like typed'() {

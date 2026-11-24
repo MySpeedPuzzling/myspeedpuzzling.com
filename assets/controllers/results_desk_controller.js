@@ -1372,10 +1372,6 @@ export default class extends Controller {
         };
     }
 
-    /**
-     * Didn't finish ↔ Didn't finish (missing pieces): the counts typed or prefilled keep what they meant - 4900 placed of
-     * 5000 becomes 100 missing (reliability hardening T1).
-     */
     /** A typed time's error said precisely (fast-time-entry.md) - `fallback` for anything else */
     timeErrorText(error, fallback) {
         const key = { minutes: 'error_time_minutes', seconds: 'error_time_seconds', too_long: 'error_time_too_long', out_of_range: 'error_time_range' }[error];
@@ -1383,6 +1379,10 @@ export default class extends Controller {
         return key === undefined ? fallback : this.t(key);
     }
 
+    /**
+     * Didn't finish ↔ Didn't finish (missing pieces): the counts typed or prefilled keep what they meant - 4900 placed of
+     * 5000 becomes 100 missing (reliability hardening T1).
+     */
     convertCounts(form) {
         const select = form.querySelector('[data-editor-mode]');
         const was = form.dataset.counts ?? select?.querySelector('[selected]')?.value;
@@ -1392,9 +1392,16 @@ export default class extends Controller {
         // The one field of the result editor is a time only in time mode: a time never becomes a count, nor back
         const field = form.dataset.editor === 'result' ? form.querySelector('[data-editor-input]') : null;
 
+        // (the time typed comes back when the organiser returns to time mode)
         if (field !== null && select !== null && was !== mode && (was === 'time') !== (mode === 'time')) {
             field.toggleAttribute('data-time-entry', mode === 'time');
-            field.value = '';
+
+            if (mode === 'time') {
+                field.value = form.dataset.typedTime ?? '';
+            } else {
+                form.dataset.typedTime = field.value;
+                field.value = '';
+            }
         }
 
         if (select === null || was === mode || ![was, mode].every((one) => one === 'pieces' || one === 'missing')) {

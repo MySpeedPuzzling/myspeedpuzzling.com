@@ -2979,6 +2979,8 @@ export default class extends Controller {
             this.finishedNowTarget.focus();
         } else {
             this.timeInputTarget.focus();
+            // A refused time is retyped over, never appended to (fast-time-entry.md)
+            this.timeInputTarget.select();
         }
 
         this.rememberDraft();
@@ -3630,7 +3632,9 @@ export default class extends Controller {
         this.splitEditing = this.splitEditing === id ? null : id;
         this.splitNote = null;
         this.renderSplits();
-        this.splitsTarget.querySelector('.lr-split-form input')?.focus();
+        const input = this.splitsTarget.querySelector('.lr-split-form input');
+        input?.focus();
+        input?.select();
     }
 
     typedSplit(event) {

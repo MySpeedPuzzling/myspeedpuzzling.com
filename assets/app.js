@@ -35,8 +35,10 @@ window.bootstrap = { Modal, Dropdown, Collapse, Tab, Toast };
 import * as Turbo from '@hotwired/turbo';
 import './turbo-stream-actions.js'
 import { installCreateOptionLabels } from './tom_select_create_option.js';
+import { installDefaultOptionBadges } from './tom_select_default_option.js';
 
 installCreateOptionLabels();
+installDefaultOptionBadges();
 
 // After a sign-out (or another player signing in) the live result entry's saved rounds and drafts of the previous
 // player leave the device (competition toolkit C4, live_entry_device.js) - one localStorage read on every other device

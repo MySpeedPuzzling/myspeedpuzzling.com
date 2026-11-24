@@ -2720,8 +2720,6 @@ badges:
     "badge": "Predeterminada"
     "make": "Hacer predeterminada"
   "quick_pick":
-    "label": "Elige una colección"
-    "more": "Más colecciones en la búsqueda de abajo"
     "change_default": "Cambiar predeterminada"
   "display":
     "label": "Mostrar"

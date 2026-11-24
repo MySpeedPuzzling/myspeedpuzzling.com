@@ -2719,8 +2719,6 @@ badges:
     "badge": "Standard"
     "make": "Als Standard festlegen"
   "quick_pick":
-    "label": "Sammlung wählen"
-    "more": "Weitere Sammlungen in der Suche unten"
     "change_default": "Standard ändern"
   "display":
     "label": "Anzeige"

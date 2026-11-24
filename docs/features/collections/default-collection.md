@@ -72,16 +72,14 @@ zone; `byId()` never does) - no statement more on any page (`PuzzleAddPageQueryB
 
 ## Seeing which one is chosen
 
-Jan: a silent preselection in a closed select is not enough. Above the picker of the add form, the add-to-collection
-modal and the bulk add, members with 2+ choices get one-tap chips under the field label (the partial renders the
-whole row: label, chips, picker, help, errors) (`collections/_collection_quick_pick.html.twig` +
-`collection_quick_pick_controller.js`): the default first (marked "Default"), then the system collection, then the newest
-own ones, at most 5 (more = "More collections in the search below" - the TomSelect picker stays below); the one the
-field holds is always among them (a `?collection=` preset further down takes the fifth chip). The chosen one
-is filled with a check mark. A tap sets the picker's value (`tomselect.setValue()`, which fires the input's change event
-the forms already listen to); the chips follow the picker. The picker stays the submitted field - same name, same
-values - so nothing changes for the server or the add-form tests. "Change default" links to the library overview.
-Without JavaScript the picker alone works as before.
+Jan: a silent preselection in a closed select is not enough - and (2026-11-24) a row of chips above the picker was
+too much: two controls for one choice, and many collections would flood it. So there is one field only. The add form,
+the add-to-collection modal and the bulk add render the collection row through `collections/_collection_quick_pick.html.twig`
+(the whole row: label, picker, help, errors). For members with 2+ choices the picker input carries
+`data-default-collection` + `data-default-label`, and `assets/tom_select_default_option.js` (an `autocomplete:pre-connect`
+listener installed in `app.js`) lists the default first and marks it with a "Default" badge - in the dropdown and on
+the chosen item - so the preselected value reads "My collection [Default]". "Change default" (next to the label) links
+to the library overview. The picker is the submitted field as before; without JavaScript it works as a plain input.
 
 The success messages name the collection the puzzle went to (`flashes.puzzle_added_to_named_collection`,
 `collections.flash.puzzle_added_to`) - a forgotten selection now saves into the default instead of asking.

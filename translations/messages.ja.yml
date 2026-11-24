@@ -2709,8 +2709,6 @@ badges:
     "badge": "デフォルト"
     "make": "デフォルトにする"
   "quick_pick":
-    "label": "コレクションを選択"
-    "more": "その他のコレクションは下の検索から"
     "change_default": "デフォルトを変更"
   "display":
     "label": "表示"

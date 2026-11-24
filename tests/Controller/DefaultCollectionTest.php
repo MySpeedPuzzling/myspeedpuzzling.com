@@ -6,15 +6,12 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Entity\Collection;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ChangeDefaultCollection;
-use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
-use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -38,12 +35,8 @@ final class DefaultCollectionTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(Collection::SYSTEM_ID, $this->addFormCollection($crawler));
 
-        // The chips: the system collection first, marked default and pressed
-        $chips = $crawler->filter('[data-testid="collection-quick-pick"] button[data-value]');
-        self::assertCount(3, $chips);
-        self::assertSame(Collection::SYSTEM_ID, $chips->first()->attr('data-value'));
-        self::assertSame('true', $chips->first()->attr('aria-pressed'));
-        self::assertStringContainsString('Default', $chips->first()->text());
+        // The picker marks the system collection as the default
+        self::assertSame(Collection::SYSTEM_ID, $this->addFormDefaultMark($crawler));
     }
 
     public function testTheMembersDefaultIsPreselectedAndAPresetStillWins(): void
@@ -53,7 +46,7 @@ final class DefaultCollectionTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection');
         self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $this->addFormCollection($crawler));
-        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $crawler->filter('[data-testid="collection-quick-pick"] button[aria-pressed="true"]')->attr('data-value'));
+        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $this->addFormDefaultMark($crawler));
 
         // "Add puzzle here" of a collection page
         $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection&collection=' . CollectionFixture::COLLECTION_STRIPE_TREFL);
@@ -61,28 +54,6 @@ final class DefaultCollectionTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection&collection=' . Collection::SYSTEM_ID);
         self::assertSame(Collection::SYSTEM_ID, $this->addFormCollection($crawler));
-    }
-
-    public function testAtMostFiveChipsAndThePresetOneIsAlwaysAmongThem(): void
-    {
-        $browser = $this->member();
-        $bus = self::getContainer()->get(MessageBusInterface::class);
-
-        // 2 own collections + 4 new ones + the system collection = 7 choices
-        foreach (['Shelf A', 'Shelf B', 'Shelf C', 'Shelf D'] as $name) {
-            $bus->dispatch(new CreateCollection(Uuid::uuid7()->toString(), PlayerFixture::PLAYER_WITH_STRIPE, $name, null, CollectionVisibility::Private));
-        }
-
-        $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection');
-        self::assertCount(5, $crawler->filter('[data-testid="collection-quick-pick"] button[data-value]'));
-        self::assertStringContainsString('More collections in the search below', $crawler->filter('[data-testid="collection-quick-pick"]')->text());
-
-        // The oldest collection comes last in the list (newest first): preset, it takes the fifth chip
-        $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection&collection=' . CollectionFixture::COLLECTION_PUBLIC);
-        $chips = $crawler->filter('[data-testid="collection-quick-pick"] button[data-value]');
-        self::assertCount(5, $chips);
-        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $chips->last()->attr('data-value'));
-        self::assertSame('true', $chips->last()->attr('aria-pressed'));
     }
 
     public function testASubmittedEmptyCollectionIsNotReplacedByTheDefault(): void
@@ -98,7 +69,6 @@ final class DefaultCollectionTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertEmpty($this->addFormCollection($crawler));
-        self::assertCount(0, $crawler->filter('[data-testid="collection-quick-pick"] button[aria-pressed="true"]'));
     }
 
     public function testThePreselectedDefaultSavesAndTheFlashNamesIt(): void
@@ -131,7 +101,7 @@ final class DefaultCollectionTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection');
         self::assertSame(Collection::SYSTEM_ID, $this->addFormCollection($crawler));
-        self::assertCount(0, $crawler->filter('[data-testid="collection-quick-pick"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="collection-picker-row"]'));
 
         $crawler = $browser->request('GET', '/en/collections/' . PuzzleFixture::PUZZLE_9000 . '/add', server: self::FRAME);
         self::assertSame(Collection::SYSTEM_ID, $crawler->filter('input[name="collection_puzzle_action_form[collection]"]')->attr('value'));
@@ -148,7 +118,7 @@ final class DefaultCollectionTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/collections/' . PuzzleFixture::PUZZLE_9000 . '/add', server: self::FRAME);
         self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $this->modalCollection($crawler));
-        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $crawler->filter('[data-testid="collection-quick-pick"] button[aria-pressed="true"]')->attr('data-value'));
+        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $crawler->filter('input[name="collection_puzzle_action_form[collection]"]')->attr('data-default-collection'));
 
         // PUZZLE_1000_01 is in the default collection already (not in the system one): the system collection then
         $crawler = $browser->request('GET', '/en/collections/' . PuzzleFixture::PUZZLE_1000_01 . '/add', server: self::FRAME);
@@ -259,6 +229,12 @@ final class DefaultCollectionTest extends WebTestCase
     private function addFormCollection(Crawler $crawler): null|string
     {
         return $crawler->filter('input[name="puzzle_add_form[collection]"]')->attr('value');
+    }
+
+    /** The collection the picker lists first and marks "Default" (assets/tom_select_default_option.js) */
+    private function addFormDefaultMark(Crawler $crawler): null|string
+    {
+        return $crawler->filter('input[name="puzzle_add_form[collection]"]')->attr('data-default-collection');
     }
 
     private function modalCollection(Crawler $crawler): null|string

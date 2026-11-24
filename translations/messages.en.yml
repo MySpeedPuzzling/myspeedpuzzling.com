@@ -3344,8 +3344,6 @@ collections:
         badge: "Default"
         make: "Make default"
     quick_pick:
-        label: "Choose a collection"
-        more: "More collections in the search below"
         change_default: "Change default"
     display:
         label: "Display"

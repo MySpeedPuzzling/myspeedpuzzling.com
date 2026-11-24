@@ -404,3 +404,4 @@ row; each delivered to main = production.
 | Pkg | PR | What |
 |---|---|---|
 | B1 | this PR | Unboxed per puzzle: `competition_round_puzzle.unboxed` (round switch OR row flag, moment = the round's first publish), page choice No / Every puzzle / Only some, hub "Unboxed: N puzzles", merge keeps it, "Add to my profile" ticks unboxed ([spws-unboxed-per-puzzle.md](../spws-unboxed-per-puzzle.md)) |
+| A1 | this PR | Table names + name plates: optional per-round `table_labels` (A1, A1 L …; the number stays the identity, QR paths unchanged), seating "Table names" panel with a hall plan generator + "Use for" rounds, internal API, every surface shows/takes names (seating + print, desk, sheet, judge "a1l" opens without Enter + My tables, tags/tents, competitor page, displays, studio, export); tents "Time boxes for" a championship (a box per challenge + "missing") ([table-labels-and-plates.md](../table-labels-and-plates.md)) |

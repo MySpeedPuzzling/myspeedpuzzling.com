@@ -33,8 +33,6 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Results desk at 375 px on a teams round: four flags stack above the team name and the table scrolls sideways
       (Country column) - fold the flags into the row like the Pairs desk.
 - [ ] Wizard start times: every day field starts empty - prefill the event's first day.
-- [ ] Local dev Postgres: /dev/shm 64 MB is full (≈300 leftover test databases' stats) - any new query fails with
-      "could not resize shared memory segment"; needs the scratch databases dropped or `shm_size` raised.
 
 ## SPWS 1:1 demo - unboxed per puzzle + wizard (`spws-unboxed-per-puzzle.md`, `spws-wizard.md`, 2026-11-24)
 

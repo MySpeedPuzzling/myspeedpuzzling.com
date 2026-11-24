@@ -1,13 +1,13 @@
 {# "Table names" (docs/features/competitions-management/table-labels-and-plates.md): an optional list naming the round's
    table numbers - a hall plan like A1, A2 … or two places per table (A1 L / A1 R). Collapsed; closed = nothing changes.
+   The generator opens with the saved scheme's places when it reads them off the names ("A1 L, A1 R" = 2, left / right) -
+   nothing is guessed for plain numbers or a list of another shape (UX walk 2026-11-24).
    Variables: round, overview, rounds (overviews of the event), entries, csrf_token_id #}
 {% set current = overview.tableLabels %}
-{#- The generator opens with the saved scheme's places when it reads them off the names ("A1 L, A1 R" = 2, left / right) -
-    nothing is guessed for plain numbers or a list of another shape (UX walk 2026-11-24) #}
-{%- set first_label = current is not null ? current.labelOf(1) : '' -%}
-{%- set guess_style = first_label matches '/^[A-Za-z]+\\d+ L$/' ? 'side' : (first_label matches '/^[A-Za-z]+\\d+-1$/' ? 'dash' : (first_label matches '/^[A-Za-z]+\\d+a$/' ? 'letter' : null)) -%}
-{%- set guess_base = guess_style is null ? '' : first_label|slice(0, first_label|length - (guess_style == 'letter' ? 1 : 2)) -%}
-{%- set guess_seats = guess_style is null or current.count < 2 ? null : 1 + range(2, min(4, current.count))|filter(n => current.labelOf(n)|slice(0, guess_base|length) == guess_base and current.labelOf(n)|length == first_label|length)|length -%}
+{% set first_label = current is not null ? current.labelOf(1) : '' %}
+{% set guess_style = first_label matches '/^[A-Za-z]+\\d+ L$/' ? 'side' : (first_label matches '/^[A-Za-z]+\\d+-1$/' ? 'dash' : (first_label matches '/^[A-Za-z]+\\d+a$/' ? 'letter' : null)) %}
+{% set guess_base = guess_style is null ? '' : first_label|slice(0, first_label|length - (guess_style == 'letter' ? 1 : 2)) %}
+{% set guess_seats = guess_style is null or current.count < 2 ? null : 1 + range(2, min(4, current.count))|filter(n => current.labelOf(n)|slice(0, guess_base|length) == guess_base and current.labelOf(n)|length == first_label|length)|length %}
 {% set same_kind = rounds|filter(other => other.roundId != round.id.toString and other.category == overview.category and not other.tableNumbersOff) %}
 <details class="card mb-4 seating-labels" data-seating-labels {{ app.request.query.has('labels') ? 'open' }}>
     <summary class="card-header bg-transparent d-flex flex-wrap align-items-center gap-2">

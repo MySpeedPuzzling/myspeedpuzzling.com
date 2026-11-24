@@ -21,10 +21,11 @@ export const TABLE_PAUSE_MS = 700;
  * @param {object[]} index buildSearchIndex()'s items ({entry, labelKey})
  */
 export function pausedTable(index, query, { tableNumbersOff = false, labels = null } = {}) {
-    const text = String(query ?? '').trim();
+    const raw = String(query ?? '');
+    const text = raw.trim();
 
-    // Text ending in a separator ("a1-", "a1 " is trimmed) is a name still being typed (A1-1 / A1-2)
-    if (labels === null || tableNumbersOff || !/\d/.test(text) || !/[A-Za-z0-9]$/.test(text)) {
+    // Text ending in a separator ("a1-", "a1 ") is a name still being typed (A1-1, A1 L)
+    if (labels === null || tableNumbersOff || !/\d/.test(text) || !/[A-Za-z0-9]$/.test(raw)) {
         return null;
     }
 

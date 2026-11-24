@@ -19,10 +19,16 @@ final readonly class SandboxPlaceholderBox
     private const int SCALE = 4;
 
     /**
-     * A PNG in the temp dir, as an upload the handlers may optimise and move (like a logo the organiser picks)
+     * A PNG in the temp dir, as an upload the handlers may optimise and move (like a logo the organiser picks) - null
+     * without GD
      */
-    public static function upload(string $name): UploadedFile
+    public static function upload(string $name): null|UploadedFile
     {
+        // GD is in the image (the base image's php -m); without it the puzzle simply gets no picture
+        if (!function_exists('imagecreatetruecolor')) {
+            return null;
+        }
+
         $small = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
         $hash = md5($name);
 

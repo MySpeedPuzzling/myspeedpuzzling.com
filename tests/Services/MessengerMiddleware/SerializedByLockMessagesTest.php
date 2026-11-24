@@ -113,6 +113,7 @@ use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
+use SpeedPuzzling\Web\Message\StartSandboxDemoRoundStopwatch;
 use SpeedPuzzling\Web\Message\StopRoundStopwatch;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
@@ -454,6 +455,7 @@ final class SerializedByLockMessagesTest extends TestCase
         CheckOnlineRoundFinishPhotos::class => 'sends a round\'s finish photos to the completeness check (Phase 3) - reads the round, writes nothing but queued messages; the checks write online_media_check only',
         ScheduleRoundStart::class => 'the round\'s stopwatch only - a start ahead (the countdown)',
         StartRoundStopwatch::class => 'the round\'s stopwatch only',
+        StartSandboxDemoRoundStopwatch::class => 'the round\'s stopwatch only - a sandbox demo round started at its stored start',
         StopRoundStopwatch::class => 'the round\'s stopwatch only',
         SetCompetitionRoundPuzzles::class => 'the round\'s puzzles - entries and results are not touched',
         // Players' own times and the round they belong to (round-results.md) - puzzle_solving_time only

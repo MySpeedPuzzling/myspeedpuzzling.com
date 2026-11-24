@@ -133,13 +133,16 @@ is). Today or past: as above.
    the live board ranked a DNF right after the finishers while other teams were still solving. Now `finished` = finished
    results only; while the round is not published and its time is not over (`roundIsOver()`: stopwatch stopped, or
    running past the limit) the live board lists finishers only - after the time (or published) the DNFs follow the
-   finishers as ranked. The ticker ("Just finished") and the spotlight are unchanged.
+   finishers as ranked. The ticker ("Just finished"), the latest-finisher spotlight and the division views follow the
+   board; a running round without a limit (imported) counts as over (as before).
 3. **Challenge board headings**: a new `field` value `puzzle_label` with an optional `position` (1-50, stored only when
    set) = the label of the round's puzzle at that position ("Challenge 3"); the state carries `puzzleLabels`
    (position => label) only for a design naming one (labels are public before the reveal - the event page shows them).
    The demo's challenge board uses it instead of the fixed "Challenge 1 / 2" texts.
 4. **A stopwatch started early beats the schedule**: `EditionRoundDetail::$stopwatchStartedAt` (the stopwatch's first
-   start while it has a status, in the existing rounds statement) and `startedAt($now)` = that start when it is earlier
+   start while it runs or counts down - stopped or reset = the schedule again, so a rehearsal Start + Stop days ahead
+   never makes the round "Past"; trade-off: a round started early and stopped at its end reads by its schedule again;
+   in the existing rounds statement) and `startedAt($now)` = that start when it is earlier
    than the schedule, else the schedule. Event/edition timeline (Live / Past / Next, the sidebar's and facts strip's
    "Next round" - a running round wins), the round results page ("This round starts in 8 days" no more). The competitor
    page already picks the running round (LiveResultsCurrentRound); its badge says "Next" instead of "Now" while that
@@ -171,6 +174,12 @@ Left on purpose: a team whose only entries are no-shows is left out of the stand
 | 10 (L) | The shared timeline partial is on 4 pages | `attendance.ownParticipantId ?? null` - the series page passes none |
 | 11 (L) | One unboxed text does not fit every scope | `scope_unboxed.everywhere / name_everywhere / event` |
 | 12 (L) | The editor's sample data always has rows | The editor's "Data: display" preview shows the real state; documented |
+
+PR review (2026-11-24): the demo's "day ahead" check reads the round's stored start (a re-run with another `--date`
+never seeds / schedules a round of another day); an early start counts only while running / counting down; ticker,
+spotlight and division views follow the board's DNF rule, a running round without a limit counts as over; `a1 ` (a
+trailing space) never pause-opens; `SandboxPlaceholderBox` needs GD (in the base image) and gives no picture without
+it. Left: the wizard's carried marks live in the page only - after a 422 re-render carried days count as picked.
 
 ## Test plan
 

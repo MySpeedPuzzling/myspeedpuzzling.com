@@ -530,7 +530,8 @@ SQL,
         $spotlight = null;
         // An entry that did not finish is ranked after every finisher - but while the round still runs (not published,
         // its time not over) the teams still solving may finish yet: a live board lists finishers only, and "finished"
-        // counts finished entries only, never a "Didn't finish" (SPWS demo rehearsal, spws-demo-ux-leftovers.md §4)
+        // counts finished entries only, never a "Didn't finish" (SPWS demo rehearsal, spws-demo-ux-leftovers.md §8) - the
+        // ticker, the latest-finisher spotlight and the division views follow the board
         $roundOver = $published || self::roundIsOver($round, $now);
         $boardRows = [];
 
@@ -574,7 +575,8 @@ SQL,
         $latestRows = max($allowed('ticker') ? $demand['ticker']['rows'] : 0, $latestPick ? 1 : 0);
         $latest = [];
         if ($latestRows > 0) {
-            $latest = self::newest($rows, $latestRows);
+            // "Just finished" - a "Didn't finish" only once the round is over, like the board
+            $latest = self::newest($boardRows, $latestRows);
         }
 
         $viewRows = $emptyViews;
@@ -583,7 +585,7 @@ SQL,
             $viewRows = [];
 
             foreach ($allowedViews as $elementId => $view) {
-                $chosen = $this->viewRows($view, $facts, $entries, $results, $rows, $token, $slots, $labels);
+                $chosen = $this->viewRows($view, $facts, $entries, $results, $boardRows, $token, $slots, $labels);
                 $viewRows[$elementId] = $view['type'] === 'ticker' ? self::newest($chosen, $view['rows']) : self::best($chosen, $view['rows']);
             }
         }
@@ -619,10 +621,13 @@ SQL,
             return $round['starts_at']->modify('+' . ($round['minutes_limit'] ?? 0) . ' minutes') <= $now;
         }
 
-        return $status === RoundStopwatchStatus::RUNNING
-            && $round['stopwatch_started_at'] !== null
-            && $round['minutes_limit'] !== null
-            && $now->getTimestamp() - $round['stopwatch_started_at']->getTimestamp() >= $round['minutes_limit'] * 60;
+        if ($status !== RoundStopwatchStatus::RUNNING || $round['stopwatch_started_at'] === null) {
+            return false;
+        }
+
+        // A round without a limit (imported) has no "time over" - its results show as before
+        return $round['minutes_limit'] === null
+            || $now->getTimestamp() - $round['stopwatch_started_at']->getTimestamp() >= $round['minutes_limit'] * 60;
     }
 
     /**

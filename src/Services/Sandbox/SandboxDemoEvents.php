@@ -191,8 +191,8 @@ final readonly class SandboxDemoEvents
         $this->participants($event, $competitionId, $people, $say);
         $this->divisions($event, $competitionId, $roundIds, $people, $say);
         $this->tables($event, $competitionId, $roundIds, $say);
-        $this->results($event, $competitionId, $roundIds, $organizerPlayerId, $say, $day);
-        $this->stopwatches($event, $roundIds, $say, $day);
+        $this->results($event, $competitionId, $roundIds, $organizerPlayerId, $say);
+        $this->stopwatches($event, $roundIds, $say);
 
         if ($event->standings) {
             $this->standings($event, $competitionId, $roundIds, $say);
@@ -856,7 +856,7 @@ final readonly class SandboxDemoEvents
      * @param array<string, string> $roundIds
      * @param \Closure(string): void $say
      */
-    private function results(SandboxDemoEvent $event, string $competitionId, array $roundIds, string $organizerPlayerId, \Closure $say, string $day): void
+    private function results(SandboxDemoEvent $event, string $competitionId, array $roundIds, string $organizerPlayerId, \Closure $say): void
     {
         $overview = [];
 
@@ -867,7 +867,7 @@ final readonly class SandboxDemoEvents
         foreach ($event->rounds as $round) {
             $roundId = $roundIds[$round->key];
 
-            if ($this->waitsForItsDay($round, $day, $event->timezone)) {
+            if ($this->waitsForItsDay($round, $roundId, $event->timezone)) {
                 $say(sprintf('"%s" is the demo day\'s running block - the day is ahead: no results, not started (start it yourself)', $round->name));
 
                 continue;
@@ -908,13 +908,23 @@ final readonly class SandboxDemoEvents
      * §5). Nothing else of the demo depends on today: earlier rounds are recorded and published as always. Today or a
      * day past: as designed (results seeded, the stopwatch from the round's start).
      */
-    private function waitsForItsDay(SandboxDemoRound $round, string $day, string $timezone): bool
+    private function waitsForItsDay(SandboxDemoRound $round, string $roundId, string $timezone): bool
     {
         if ($round->state !== SandboxDemoRound::RUNNING || $round->stopwatchFromStart === false) {
             return false;
         }
 
-        return $day > $this->clock->now()->setTimezone(new DateTimeZone($timezone))->format('Y-m-d');
+        // The round's stored day - a re-run with another --date never moves an existing round, so it decides
+        $stored = $this->demoData->roundReveal($roundId);
+
+        if ($stored === null) {
+            return false;
+        }
+
+        $zone = new DateTimeZone($timezone);
+        $roundDay = new DateTimeImmutable($stored['starts_at'], new DateTimeZone('UTC'))->setTimezone($zone)->format('Y-m-d');
+
+        return $roundDay > $this->clock->now()->setTimezone($zone)->format('Y-m-d');
     }
 
     /**
@@ -926,10 +936,10 @@ final readonly class SandboxDemoEvents
      * @param array<string, string> $roundIds
      * @param \Closure(string): void $say
      */
-    private function stopwatches(SandboxDemoEvent $event, array $roundIds, \Closure $say, string $day): void
+    private function stopwatches(SandboxDemoEvent $event, array $roundIds, \Closure $say): void
     {
         foreach ($event->rounds as $round) {
-            if ($round->state !== SandboxDemoRound::RUNNING || $round->stopwatchFromStart === false || $this->waitsForItsDay($round, $day, $event->timezone)) {
+            if ($round->state !== SandboxDemoRound::RUNNING || $round->stopwatchFromStart === false || $this->waitsForItsDay($round, $roundIds[$round->key], $event->timezone)) {
                 continue;
             }
 

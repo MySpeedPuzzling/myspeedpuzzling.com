@@ -49,9 +49,9 @@ SELECT
     cr.results_published_at IS NOT NULL AS results_published,
     cr.puzzle_format,
     cr.puzzles_to_solve,
-    -- The stopwatch's first start while it has one (a reset clears it) - a round started before its schedule is
-    -- running now, not "in 8 days" (spws-demo-ux-leftovers.md §4)
-    CASE WHEN cr.stopwatch_status IS NOT NULL THEN COALESCE(cr.stopwatch_first_started_at, cr.stopwatch_started_at) END AS stopwatch_first_started_at,
+    -- The stopwatch's first start while it runs or counts down - a round started before its schedule is running now,
+    -- not "in 8 days" (spws-demo-ux-leftovers.md §8.4); stopped (a rehearsal ended) or reset = the schedule again
+    CASE WHEN cr.stopwatch_status IN ('running', 'scheduled') THEN COALESCE(cr.stopwatch_first_started_at, cr.stopwatch_started_at) END AS stopwatch_first_started_at,
     c.location_country_code,
     tz_cs.location_country_code AS series_country_code,
     -- The round's online timing has live video on - its watch page (docs/features/online-competitions/), in this

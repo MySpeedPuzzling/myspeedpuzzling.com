@@ -57,13 +57,15 @@ use Symfony\Component\Process\Process;
  *   ids, at most 50 items - `invalid_change` like the server); budget 232.5 KB / 64 KB gzip. 2026-11-24 (SPWS table
  *   names, table-labels-and-plates.md): 231.6 → 236.7 KB / 63.4 → 65.0 KB gzip - typed labels ("a1l" opens A1 L,
  *   table_labels.js: folded keys, the label lookup, My tables over labels; the editor's half stays out in
- *   table_labels_editor.js); budget 237.5 KB / 65.5 KB gzip;
+ *   table_labels_editor.js); budget 237.5 KB / 65.5 KB gzip. 2026-11-24 (SPWS demo UX leftovers): 236.7 → 239.3 KB - a
+ *   typed table name opens after a pause (live_entry_table_pause.js), "Didn't finish" on a solve-all block in the
+ *   round's order (solveAllOrder(), "Order solved" / "Save order"); budget 240.5 KB / 66 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 237_500;
-    private const int GZIP_BUDGET_BYTES = 65_500;
+    private const int MINIFIED_BUDGET_BYTES = 240_500;
+    private const int GZIP_BUDGET_BYTES = 66_000;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

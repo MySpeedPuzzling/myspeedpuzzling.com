@@ -37,7 +37,8 @@ const scenarios = {
         // C7: `a1` waits while A10, A11, A12 continue it
         assert.equal(uniqueTable(round.index, 'a1', { labels: round.lookup }), null);
         assert.equal(opened(round, 'a1'), 'A1');
-        assert.equal(opened(round, ' A1 '), 'A1', 'case and spaces fold');
+        assert.equal(opened(round, ' A1'), 'A1', 'case and leading spaces fold');
+        assert.equal(opened(round, 'a1 '), null, 'a trailing space - "A1 L" is still being typed');
         assert.equal(opened(round, 'a10'), 'A10');
         assert.ok(TABLE_PAUSE_MS >= 600 && TABLE_PAUSE_MS <= 800);
     },

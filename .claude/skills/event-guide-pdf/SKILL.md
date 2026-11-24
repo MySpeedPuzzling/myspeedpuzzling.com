@@ -43,7 +43,9 @@ event (new ids/URLs) just run the full command - URLs, ids and round lines come 
 
 - Discovery only GETs pages. In the browser, the sandbox gate and the sign-in are the only POSTs; after sign-in
   every page gets a guard (`READ_ONLY_GUARD`) that refuses non-GET fetch/XHR/beacons and form submits. A shot may
-  type a table into the judge's search or open a tab/menu, never press Save/Start/Publish/Stop/Confirm.
+  type a table into the judge's search or open a tab/menu/row, never press Save/Start/Publish/Stop/Confirm, and
+  **never click a link** (a few state-changing actions are plain GET links, e.g. "I'm going!" - the guard can't
+  stop those).
 - Use made-up accounts only (sandbox: `test-user+1` organiser, `+2` judge, a made-up competitor; password
   `sandbox`). Never the real organisers' accounts. On production use accounts Jan gives you, and remember the
   bot-blocker stops headless Chrome there - shoot the sandbox copy of the event instead.
@@ -96,6 +98,18 @@ event (new ids/URLs) just run the full command - URLs, ids and round lines come 
    pins vs captions? Apply its findings, re-render.
 8. **Report** to Jan: PDF path + page count, the command, what the reviewer changed, and every feature you found
    missing or confusing while writing (that goes to the UX work, not into the guide as a promise).
+
+## Surviving a rebuilt event or a changed UI
+
+- Find elements by **UI labels** ("Publish results", "Challenge 2", "Table ") or stable attributes
+  (`[data-time-boxes]`, `[data-toolkit-card=…]`), never by made-up data (a team name, a puzzle stand-in, a time).
+  Open a table the event always has (`a1`), not one whose state you liked today. A typed key opens the card only
+  when it is unique (`a1` also lists A10 …), so tap the first row after typing (see `shots.example.json`).
+- Anything a caption says about the data ("3 pieces missing", "none of the displays has X", "Table A6") goes stale
+  silently. Prefer `{{…}}` values from `facts.json`; otherwise keep the wording generic. After every refresh,
+  re-read the captions next to the shots that changed, and the "How it is set up" table.
+- Keep the event folder the one source of truth: edit `guide.html` / `shots.json` there and run the full command
+  there (not only `--only render`).
 
 ## Gotchas
 

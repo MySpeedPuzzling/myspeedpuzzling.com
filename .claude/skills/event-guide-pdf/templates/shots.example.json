@@ -25,7 +25,7 @@
  {"name": "judge-start", "account": "judge", "url": "{{rounds.ROUND_SLUG.judge}}", "viewport": "phone", "settle": 4000,
   "marks": [{"selector": ".lr-find-input"}]},
  {"name": "judge-card", "account": "judge", "url": "{{rounds.ROUND_SLUG.judge}}", "viewport": "phone", "settle": 2500,
-  "actions": [{"wait": 3500}, {"type": "a1", "into": ".lr-find-input"}, {"wait": 1500}]},
+  "actions": [{"wait": 3500}, {"type": "a1", "into": ".lr-find-input"}, {"wait": 1500}, {"click": {"contains": "A1", "index": 0}, "pause": 1500}]},
  {"name": "competitor-page", "account": "competitor", "url": "{{people.competitor_page}}", "viewport": "phone", "full": true, "max_height": 1000, "settle": 3000},
  {"name": "results-round", "account": "guest", "url": "{{rounds.ROUND_SLUG.results}}", "clip": "main", "pad": 0, "max_height": 1150},
  {"name": "standing-public", "account": "guest", "url": "{{standings.STANDING_SLUG.public}}", "clip": "main", "pad": 0, "max_height": 1200},

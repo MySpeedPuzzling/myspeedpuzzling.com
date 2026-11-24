@@ -671,8 +671,10 @@ def main() -> None:
     ap.add_argument('--shots', help='comma-separated shot names to retake (default: all)')
     args = ap.parse_args()
     folder = os.path.abspath(args.folder)
-    if os.path.commonpath([folder, REPO_DIR]) == REPO_DIR and '/.claude/worktrees/' not in folder:
-        sys.exit('The event folder must live outside the repository (real event data never goes into the public repo).')
+    if os.path.commonpath([folder, REPO_DIR]) == REPO_DIR:
+        ignored = subprocess.run(['git', '-C', REPO_DIR, 'check-ignore', '-q', os.path.join(folder, 'event.json')]).returncode == 0
+        if not ignored:
+            sys.exit('The event folder must be outside the repository or gitignored (real event data never goes into the public repo).')
     cfg = load_json(os.path.join(folder, 'event.json'))
     problems: list[str] = []
     steps = [args.only] if args.only else ['discover', 'shoot', 'render']

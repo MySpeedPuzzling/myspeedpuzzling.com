@@ -57,6 +57,7 @@ final class ExportRoundResultsController extends AbstractController
         $piecesCount = null;
         $pickFormat = null;
         $withDivisions = false;
+        $tableLabels = null;
 
         foreach ($this->officialResultsRounds->forCompetition($competitionId) as $candidate) {
             if ($candidate->id() === $roundId) {
@@ -66,6 +67,8 @@ final class ExportRoundResultsController extends AbstractController
                 $pickFormat = $candidate->overview->puzzleFormatView;
                 // A round with divisions adds "Division" + "Division rank" (shared-puzzles-and-divisions.md D2)
                 $withDivisions = $candidate->overview->divisions !== [];
+                // A round with table labels writes them (table-labels-and-plates.md)
+                $tableLabels = $candidate->overview->tableNumbersOff ? null : $candidate->overview->tableLabels;
             }
         }
 
@@ -76,6 +79,7 @@ final class ExportRoundResultsController extends AbstractController
             ExportFormat::from($format),
             $pickFormat,
             $withDivisions,
+            $tableLabels,
         );
 
         $slugger = new AsciiSlugger();

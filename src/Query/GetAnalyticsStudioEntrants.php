@@ -128,6 +128,8 @@ SQL;
         );
         $entrants = [];
 
+        $labels = $round->tableNumbersOff ? null : $round->tableLabels;
+
         foreach ($rows as $row) {
             /** @var array{kind: string, id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_puzzles: null|string, team_name: null|string, members: null|string} $row */
             /** @var list<array{participant_id: string, name: string, country: null|string, player_id: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, time_predictions_opted_out: bool, ranking_opted_out: bool}> $members */
@@ -164,6 +166,7 @@ SQL;
                     },
                     $members,
                 ),
+                tableLabel: $labels !== null && $row['table_number'] !== null && $labels->names($row['table_number']) ? $labels->labelOf($row['table_number']) : null,
             );
         }
 

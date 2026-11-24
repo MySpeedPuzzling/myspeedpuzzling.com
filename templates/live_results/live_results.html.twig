@@ -105,6 +105,7 @@
     addTeamMissing: 'live_results.add.team_missing'|trans,
     addTableInvalid: 'official_results.reason.invalid_table_number'|trans,
     addTableTaken: 'live_results.add.table_taken'|trans,
+    addTableUnknown: 'seating.labels.unknown'|trans,
     sheetEmpty: 'live_results.sheet.empty'|trans,
     sheetWaiting: 'live_results.sheet.waiting'|trans,
     sheetSending: 'live_results.sheet.sending'|trans,
@@ -123,6 +124,7 @@
     pageTitle: 'live_results.title'|trans ~ ' - %round% – MySpeedPuzzling',
     findPlaceholder: 'live_results.find.placeholder'|trans,
     findPlaceholderNames: 'live_results.find.placeholder_names'|trans,
+    findPlaceholderLabels: 'live_results.find.placeholder_labels'|trans,
     addTitlePerson: 'live_results.add.title_person'|trans,
     addTitleTeam: 'live_results.add.title_team'|trans,
     addNameLabel: 'live_results.add.name'|trans,
@@ -197,6 +199,9 @@
     myTablesTodoEmpty: 'live_results.my_tables.todo_empty'|trans,
     myTablesOthers: 'live_results.my_tables.others_divider'|trans,
     myTablesErrorSyntax: 'live_results.my_tables.error_syntax'|trans,
+    myTablesErrorLabels: 'live_results.my_tables.error_labels'|trans,
+    myTablesErrorUnknown: 'seating.labels.unknown'|trans,
+    myTablesPlaceholderLabels: 'live_results.my_tables.placeholder_labels'|trans,
     myTablesErrorRange: 'live_results.my_tables.error_range'|trans,
     myTablesErrorTooMany: 'live_results.my_tables.error_too_many'|trans,
     proposalAgeSeconds: 'live_results.proposals.age_seconds'|trans,
@@ -256,6 +261,8 @@
         .lr-row.lr-row-exact { border-color: var(--bs-primary, #fe696a); box-shadow: 0 0 0 1px var(--bs-primary, #fe696a); }
         .lr-table { flex: 0 0 auto; min-width: 2.75rem; padding: .25rem .375rem; border-radius: .375rem; background: var(--bs-tertiary-bg, #f3f5f9); font-size: 1.125rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
         .lr-table-none { color: var(--bs-secondary-color, #6c757d); font-weight: 400; }
+        /* A table name (table-labels-and-plates.md): "A1 L" stays on one line */
+        .lr-table-label { white-space: nowrap; }
         .lr-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
         .lr-row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .lr-row-sub { font-size: .8125rem; color: var(--bs-secondary-color, #6c757d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -266,6 +266,10 @@ export default function (test) {
         assert.equal(teamLabelText(m, 't-corners', t, say), 'Corners · Table 2 · Kim Example, Pat Sample');
         assert.equal(teamLabelText(m, 't-corners2', t, say), 'corners · Lee Mock, Max Demo');
         assert.equal(teamLabelText(m, 't-empty', t, say), '(no name)');
+
+        // A labelled round names the table (table-labels-and-plates.md): table 2 of the Pairs round is "A1 R"
+        const labelled = model({ rounds: smallState().rounds.map((r) => (r.id === 'r-pairs' ? { ...r, tableLabels: ['A1 L', 'A1 R'] } : r)) });
+        assert.equal(teamLabelText(labelled, 't-corners', t, say), 'Corners · Table A1 R · Kim Example, Pat Sample');
     });
 
     test('the counters and the first-in-line hint come from the people loaded, names escaped', () => {

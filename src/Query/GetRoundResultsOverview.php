@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\RoundDivision;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\RoundPuzzleFormats;
 use SpeedPuzzling\Web\Services\SeatingReadiness;
+use SpeedPuzzling\Web\Value\TableLabels;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
@@ -43,6 +44,7 @@ SELECT
     cr.results_published_at,
     cr.results_first_published_at,
     cr.table_numbers_off,
+    cr.table_labels,
     cr.puzzle_format,
     cr.puzzles_to_solve,
     c.is_online,
@@ -182,7 +184,7 @@ SQL;
      */
     private function hydrate(array $row, DateTimeImmutable $now): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, stopwatch_reveal_left: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int, divisions: null|string} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, table_labels: null|string, puzzle_format: string, puzzles_to_solve: null|int, is_online: bool, puzzles_count: int, pieces_count: null|int, stopwatch_reveal_left: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int, divisions: null|string} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
         $stopwatchStartedAt = $date($row['stopwatch_started_at']);
@@ -213,6 +215,7 @@ SQL;
             puzzlesToSolve: $row['puzzles_to_solve'],
             stopwatchRevealMissed: self::stopwatchRevealMissed((int) $row['stopwatch_reveal_left'], $row['stopwatch_status'], $stopwatchStartedAt, $startsAt, $row['minutes_limit'], $now),
             divisions: RoundDivision::listFromJson($row['divisions']),
+            tableLabels: TableLabels::fromStored($row['table_labels']),
             showsTablesReadiness: SeatingReadiness::isShown(
                 $row['is_online'],
                 $row['table_numbers_off'],

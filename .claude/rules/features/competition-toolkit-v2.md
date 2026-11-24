@@ -24,6 +24,12 @@ paths:
   - "src/**/CompetitionRoundPuzzle.php"
   - "templates/manage_round_puzzles.html.twig"
   - "docs/features/competitions-management/spws-*.md"
+  - "src/**/*TableLabel*"
+  - "src/**/GetTagPlateChallenges.php"
+  - "assets/table_labels*.js"
+  - "assets/controllers/table_labels_editor_controller.js"
+  - "templates/seating/_table_labels.html.twig"
+  - "docs/features/competitions-management/table-labels-and-plates.md"
 ---
 
 # Competition toolkit v2 (the deferred items, 2026-11-18)
@@ -88,3 +94,21 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   puzzles". A puzzle merge keeps the flag on the kept row. "Add to my profile" of an unboxed challenge opens the add form
   with "Solved without looking at the box image" ticked (`IsRoundPuzzleUnboxed`, only while the form opens). Duplicate
   copies only the round switch. Tests `UnboxedRoundTest`, `SecretPuzzleHidesTest`, `PuzzleAddOfficialEntryTest`.
+- **Table names + name plates** (`table-labels-and-plates.md`, Review amendments A1-A13
+  binding): optional `competition_round.table_labels` jsonb (item i names table number i + 1; NULL = numbers, every
+  untouched round byte-identical - JSON `tableLabels` / per entry `tableLabel` only when set). **The number stays the
+  identity** (writes, `from`, uniqueness, proposer, copy, QR `/live/{cid}/t/{n}`); labels are shown and typed:
+  `Value\TableLabels` (ASCII `[A-Za-z0-9 .-/]` ≤ 12, folded key `A.1.L`, `labelOf()` never blank) + JS twin
+  `assets/table_labels.js` (judge/desk/seating/sheet), editor half `table_labels_editor.js` + `TableLabelGenerator`
+  (letters × numbers × places, `dash`/`letter`/`side`, order, skip) - shared cases `tests/fixtures/table-labels-cases.json`.
+  One write `SetRoundTableLabels` (participants lock, all or nothing, `expected` = the list shown, `too_few` when somebody
+  sits beyond the list); seating page "Table names" panel (`official_results_table_labels`), internal API
+  `GET|PUT /internal-api/rounds/{id}/table-labels` (`labels` | `generate`, `alsoRounds`); every table write refuses a
+  number beyond a list (`no_label`); same tables / copy only between rounds with equal lists; duplicate copies them.
+  Judge: label keys open without Enter (`uniqueLabel()` in `official_results_live.js`; letters for the places = no
+  separator), text keyboard, My tables read labels (`labelRanges()`, `storableText()`); bundle budget 237.5 KB. Tag reads
+  carry the label in SQL (`TableLabelSql`). **Plates**: tents `?boxes=standing:<id>|solo|duo|team` (+ `?missing=0`) =
+  a box per challenge on the judge's face (block K = N: per puzzle label; K < N: K numbered; else the round's name;
+  labels only), the championship's first round printed (`GetTagPlateChallenges`). Tests `TableLabelsTest`,
+  `SetRoundTableLabelsHandlerTest`, `TableLabelsControllerTest`, `CompetitionTagsPrintTest`, `DisplayTableLabelsTest`,
+  sheet harnesses.

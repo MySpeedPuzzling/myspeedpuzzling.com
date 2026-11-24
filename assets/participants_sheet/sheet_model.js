@@ -20,6 +20,7 @@
  */
 
 import { foldSearchText } from '../search_fold.js';
+import { tableLabels, tableText } from '../table_labels.js';
 
 export const OUT = 'out';
 export const IN = 'in';
@@ -597,6 +598,40 @@ export class Working {
 
         return this.autoDelete(touchedTeams, removedPeople);
     }
+}
+
+// ---------------------------------------------------------------- table labels
+
+const tableLookups = new WeakMap();
+
+/**
+ * The round's table labels (table-labels-and-plates.md) as a lookup (assets/table_labels.js tableLabels()) - one per
+ * list, built once; null for a round of plain numbers (every round without `tableLabels`).
+ */
+export function roundTableLookup(round) {
+    const labels = round?.tableLabels;
+
+    if (!Array.isArray(labels) || labels.length === 0) {
+        return null;
+    }
+
+    let lookup = tableLookups.get(labels);
+
+    if (lookup === undefined) {
+        lookup = tableLabels(labels);
+        tableLookups.set(labels, lookup);
+    }
+
+    return lookup;
+}
+
+/** What table number `number` of the round reads as - its label on a labelled round, else the number; '' for none. */
+export function roundTableText(model, roundId, number) {
+    if (number === null || number === undefined) {
+        return '';
+    }
+
+    return tableText(roundTableLookup(model.round(roundId)), number);
 }
 
 /** Active and not on the waitlist (a waitlisted person may be placed - O8 - but a result never belongs to them). */
@@ -1545,6 +1580,16 @@ export class SheetModel {
         for (const key of ['resultsPublished', 'tableNumbersOff', 'started', 'piecesCount', 'puzzleFormat']) {
             if (key in overview) {
                 next[key] = overview[key];
+            }
+        }
+
+        // Table labels (table-labels-and-plates.md): the overview carries `tableLabels` only while the round has them -
+        // a full overview without them = plain numbers again (a round of plain numbers stays as it was)
+        if ('tableNumbersOff' in overview) {
+            if (Array.isArray(overview.tableLabels) && overview.tableLabels.length > 0) {
+                next.tableLabels = same(overview.tableLabels, round.tableLabels) ? round.tableLabels : overview.tableLabels;
+            } else {
+                delete next.tableLabels;
             }
         }
 

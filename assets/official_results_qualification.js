@@ -130,9 +130,10 @@ export function qualificationDiff(entries, selectedRefs, keepOthers, isQualified
  *
  * @param {Array<{ref: string, tableNumber: number|null}>} targetEntries the target round as it is now
  * @param {string[]} refsInSeedOrder the plan's created entries of this round, fastest first
+ * @param {number} highest the highest table number to give - 9999, or a labelled round's list length
  * @returns {Array<{entry: string, from: null, number: number}>} `from` = no table, as the target round has it now
  */
-export function seatAdvanced(targetEntries, refsInSeedOrder, slowestFirst = false) {
+export function seatAdvanced(targetEntries, refsInSeedOrder, slowestFirst = false, highest = 9999) {
     const byRef = new Map(targetEntries.map((entry) => [entry.ref, entry]));
     const taken = new Set(targetEntries
         .map((entry) => entry.tableNumber)
@@ -153,7 +154,8 @@ export function seatAdvanced(targetEntries, refsInSeedOrder, slowestFirst = fals
             next++;
         }
 
-        if (next > 9999) {
+        // A round with table labels names only its list's tables (table-labels-and-plates.md A4)
+        if (next > highest) {
             break;
         }
 

@@ -20,7 +20,7 @@
 
 {% block title %}
     {%- if is_table -%}
-        {{- 'competitor_page.page.title'|trans({'%name%': 'competitor_page.page.table'|trans({'%number%': view.tableNumber}), '%event%': view.competition.displayName}) -}}
+        {{- 'competitor_page.page.title'|trans({'%name%': 'competitor_page.page.table'|trans({'%number%': view.tableName}), '%event%': view.competition.displayName}) -}}
     {%- else -%}
         {{- 'competitor_page.page.title'|trans({'%name%': header_name, '%event%': view.competition.displayName}) -}}
     {%- endif -%}
@@ -105,7 +105,7 @@
 
         <header class="competitor-page-header" data-competitor-header>
             {% if is_table %}
-                <h1 class="competitor-page-title"><i class="bi bi-grid-3x3-gap me-2" aria-hidden="true"></i>{{ 'competitor_page.page.table'|trans({'%number%': view.tableNumber}) }}</h1>
+                <h1 class="competitor-page-title"><i class="bi bi-grid-3x3-gap me-2" aria-hidden="true"></i>{{ 'competitor_page.page.table'|trans({'%number%': view.tableName}) }}</h1>
                 <p class="small text-muted mb-0">{{ 'competitor_page.page.table_lead'|trans }}</p>
             {% else %}
                 {% if view.isTeam and view.teamName is not null %}

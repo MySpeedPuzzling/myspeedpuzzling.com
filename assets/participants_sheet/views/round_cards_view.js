@@ -368,7 +368,7 @@ export class RoundCardsView {
         const holds = this.model.holdsDataInRound(personId, this.roundId);
 
         return `<div class="sheet-card-head">
-                <h3 class="sheet-card-title">${table !== null && table !== undefined ? `<span class="sheet-card-table">${escapeHtml(this.t('label_table', { table }))}</span> ` : ''}${flagHtml(person.country)}${escapeHtml(person.name)}${this.model.isWaitlisted(personId) ? ` <span class="sheet-badge sheet-badge-waitlist">${escapeHtml(this.t('waitlisted'))}</span>` : ''}</h3>
+                <h3 class="sheet-card-title">${table !== null && table !== undefined ? `<span class="sheet-card-table">${escapeHtml(this.t('label_table', { table: this.results.tableText(table) }))}</span> ` : ''}${flagHtml(person.country)}${escapeHtml(person.name)}${this.model.isWaitlisted(personId) ? ` <span class="sheet-badge sheet-badge-waitlist">${escapeHtml(this.t('waitlisted'))}</span>` : ''}</h3>
                 <button type="button" class="btn btn-sm btn-outline-secondary sheet-card-out" data-key="out:${escapeHtml(personId)}" data-action="out" data-person="${escapeHtml(personId)}"${holds ? ' aria-disabled="true"' : ''} aria-label="${escapeHtml(this.t('card_take_out_label', { name: person.name }))}">${escapeHtml(this.t('card_take_out'))}</button>
             </div>
             ${this.divisionLine(personId)}

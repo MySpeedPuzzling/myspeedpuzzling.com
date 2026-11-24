@@ -374,6 +374,45 @@ scenario('search: table numbers match that table exactly (12 is not 112)', () =>
     assert.deepEqual(shownKeys({ query: '99' }), []);
 });
 
+// A labelled round (table-labels-and-plates.md): the server sends `tableLabel` next to `table` only when the list names it
+function labelledState() {
+    const state = clone(STATE);
+    const labels = { [E(1)]: 'A1-1', [E(2)]: 'A1 L', [E(3)]: 'B2-1', [E(5)]: '12' };
+    state.entrants = state.entrants.map((entrant) => (labels[entrant.key] !== undefined ? { ...entrant, tableLabel: labels[entrant.key] } : entrant));
+
+    return state;
+}
+
+scenario('table labels: a labelled row carries its label, search finds labels (not the hidden numbers), sort stays by number', () => {
+    const state = labelledState();
+    const { rows } = rowsFor(state);
+    const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
+    assert.equal(byKey[E(1)].tableLabel, 'A1-1');
+    assert.equal(byKey[E(1)].table, 12);
+    assert.equal(byKey[E(4)].tableLabel, null, 'a table the list does not name keeps its number');
+    assert.equal(byKey[E(6)].tableLabel, null, 'no table, no label');
+    assert.equal(rowsFor().rows.find((row) => row.key === E(1)).tableLabel, null, 'an unlabelled round: no label');
+
+    assert.deepEqual(shownKeys({ query: 'a1' }, state).sort(), [E(1), E(2)].sort());
+    assert.deepEqual(shownKeys({ query: 'A1-1' }, state), [E(1)]);
+    assert.deepEqual(shownKeys({ query: 'a1 1' }, state), [E(1)]);
+    assert.deepEqual(shownKeys({ query: 'a1l' }, state), [E(2)]);
+    assert.deepEqual(shownKeys({ query: 'b2' }, state), [E(3)]);
+    assert.deepEqual(shownKeys({ query: '12' }, state), [E(5)], 'the label 12, not the hidden number 12');
+    assert.deepEqual(shownKeys({ query: '#112' }, state), [], 'a labelled row is not found by its number');
+    assert.deepEqual(shownKeys({ query: '7' }, state), [E(4)], 'an unlabelled row keeps the number rule');
+    assert.deepEqual(shownKeys({ query: 'a1 ben' }, state), [E(2)], 'a label and a name');
+    assert.deepEqual(shownKeys({ sort: 'table' }, state), shownKeys({ sort: 'table' }), 'sorted by number as before');
+});
+
+scenario('render: a labelled row shows "Table A1-1", an unlabelled one its number', () => {
+    const { root } = renderModel({ state: labelledState(), view: { selected: E(1), open: true } });
+    assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(1)}"] .as-row__table`)), 'Table A1-1');
+    assert.equal(text(root.querySelector(`.as-row[data-as-entry="${E(4)}"] .as-row__table`)), 'Table 7');
+    const detail = root.querySelector('.as-entrant__table');
+    assert.equal(detail === null ? null : text(detail), 'Table A1-1');
+});
+
 scenario('search: team names and members of pairs/teams', () => {
     const { state, analytics } = pairState();
     assert.deepEqual(shownKeys({ query: 'zraloci' }, state, analytics), [E(7)]);

@@ -119,6 +119,8 @@ export function contentKey(round) {
         round.puzzles ?? null,
         round.puzzleFormat ?? null,
         round.entry ?? null,
+        // Only on a round with table labels - every other key is as before
+        ...(round.tableLabel !== undefined ? [round.tableLabel] : []),
     ]);
 }
 

@@ -8,6 +8,7 @@ import {
     officialEdits,
     parseResultAs,
     parseResultInput,
+    parseTableInput,
     parseTableNumber,
     parsedValue,
     resultEditText,
@@ -20,6 +21,7 @@ import {
     tableHolder,
     wordList,
 } from '../../assets/participants_sheet/sheet_results.js';
+import { tableLabels } from '../../assets/table_labels.js';
 import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
 import { SheetSaveQueue, DEBOUNCE_MS } from '../../assets/participants_sheet/sheet_save_queue.js';
 import { ROUND_TEAMS, clock, fakeServer, ids, smallState } from '../participants-sheet-core/fixture.mjs';
@@ -217,5 +219,21 @@ export default function (test) {
         // "Finished" keeps the cell's own grammar: digits right-aligned as h:mm:ss
         assert.deepEqual(parseResultAs('finished', '123', { piecesCount: 500 }), { kind: 'result', result: { seconds: 83 } });
         assert.deepEqual(parseResultAs(null, '479', { piecesCount: 500 }), { kind: 'error', reason: 'invalid' });
+    });
+
+    test('table labels: a labelled round reads a typed table as a label (folded key, numerals a label too), never a number beyond the list', () => {
+        const lookup = tableLabels(['A1-1', 'A1-2', 'B1 L', '12']);
+        assert.deepEqual(parseTableInput('a1 2', lookup), { kind: 'number', value: 2 });
+        assert.deepEqual(parseTableInput(' b1l ', lookup), { kind: 'number', value: 3 });
+        // "12" names table 4 here - not table number 12
+        assert.deepEqual(parseTableInput('12', lookup), { kind: 'number', value: 4 });
+        // "3" is no label of this round - the number 3 is never sent
+        assert.deepEqual(parseTableInput('3', lookup), { kind: 'error', reason: 'unknown_table_label', label: '3' });
+        assert.deepEqual(parseTableInput('Z9', lookup), { kind: 'error', reason: 'unknown_table_label', label: 'Z9' });
+        assert.deepEqual(parseTableInput('  ', lookup), { kind: 'empty' });
+        // A round of plain numbers parses exactly as before
+        for (const text of ['', '7', '#7', '0', 'A1', '10000']) {
+            assert.deepEqual(parseTableInput(text, null), parseTableNumber(text));
+        }
     });
 }

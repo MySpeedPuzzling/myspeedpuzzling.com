@@ -573,7 +573,7 @@ export default class extends Controller {
                 continue;
             }
 
-            const assignments = seatAdvanced(state.data.entries ?? [], this.seedOrder(roundId, refs, state.data.entries ?? []), slowestFirst);
+            const assignments = seatAdvanced(state.data.entries ?? [], this.seedOrder(roundId, refs, state.data.entries ?? []), slowestFirst, Array.isArray(state.data.round?.tableLabels) && state.data.round.tableLabels.length > 0 ? state.data.round.tableLabels.length : 9999);
 
             if (assignments.length === 0) {
                 this.seatLine(resultLine, 'secondary', this.t('seat_nothing'));

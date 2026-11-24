@@ -24,6 +24,8 @@ readonly final class AnalyticsStudioEntrant
         public RoundEntryResult $result,
         public null|RoundEntryPuzzles $puzzles,
         public array $members,
+        // The table's name on a labelled round (table-labels-and-plates.md) - null on plain numbers and beyond the list
+        public null|string $tableLabel = null,
     ) {
     }
 

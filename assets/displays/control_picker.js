@@ -2,7 +2,10 @@
 // the message rules (the twin of CompetitionDisplayControl::cleanMessage() and its length check), the spotlight picker's
 // chips (sorted by table, filtered by table or name, "Just finished") and the optimistic choice of one tap. Used by
 // assets/controllers/display_control_controller.js (the live control page and the stopwatch page's card); run under
-// node by tests/display-control-harness.mjs.
+// node by tests/display-control-harness.mjs. On a labelled round (table-labels-and-plates.md A4) a chip carries
+// `tableLabel`: shown instead of the number and found by what is typed (folded like the judge page), sorted by number.
+
+import { continues, key as labelKey } from '../table_labels.js';
 
 export const MESSAGE_MAX_LENGTH = 200;
 export const JUST_FINISHED = 6;
@@ -37,11 +40,19 @@ function fold(text) {
     return String(text ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
+function hasLabel(entry) {
+    return typeof entry?.tableLabel === 'string' && entry.tableLabel !== '';
+}
+
 /**
- * "12 · Jane Doe" - the table first, the way the hall finds people.
+ * "12 · Jane Doe" (or "A1-1 · Jane Doe" on a labelled round) - the table first, the way the hall finds people.
  */
 export function entryLabel(entry) {
     const name = typeof entry?.name === 'string' ? entry.name : '';
+
+    if (hasLabel(entry)) {
+        return `${entry.tableLabel} · ${name}`;
+    }
 
     return typeof entry?.table === 'number' ? `${entry.table} · ${name}` : name;
 }
@@ -60,7 +71,8 @@ export function sortEntries(entries) {
 
 /**
  * Digits = tables starting with them ("1" → 1, 12, 15 …); anything else = names (members of a pair/team too), without
- * accents or case.
+ * accents or case. A labelled chip's table is its label instead: found when the typed text starts it by folded key
+ * ("a1" → A1-1, A1-2, A12; "a1 l" → A1 L), digits included - and by name like any chip.
  */
 export function filterEntries(entries, query) {
     const wanted = fold(query);
@@ -69,12 +81,22 @@ export function filterEntries(entries, query) {
         return entries;
     }
 
-    if (/^\d+$/.test(wanted)) {
-        return entries.filter((entry) => typeof entry.table === 'number' && String(entry.table).startsWith(wanted));
-    }
+    const typedKey = labelKey(query);
+    const digits = /^\d+$/.test(wanted);
+    const byName = (entry) => [entry.name, ...(Array.isArray(entry.members) ? entry.members : [])]
+        .some((name) => fold(name).includes(wanted));
 
-    return entries.filter((entry) => [entry.name, ...(Array.isArray(entry.members) ? entry.members : [])]
-        .some((name) => fold(name).includes(wanted)));
+    return entries.filter((entry) => {
+        if (hasLabel(entry)) {
+            return continues(typedKey, labelKey(entry.tableLabel)) || (!digits && byName(entry));
+        }
+
+        if (digits) {
+            return typeof entry.table === 'number' && String(entry.table).startsWith(wanted);
+        }
+
+        return byName(entry);
+    });
 }
 
 /**

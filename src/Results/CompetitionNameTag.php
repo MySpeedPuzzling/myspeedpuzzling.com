@@ -26,6 +26,8 @@ readonly final class CompetitionNameTag
         public null|string $division = null,
         // The linked player's own country, public profiles only - fills a missing country with "Show country flags"
         public null|string $profileCountry = null,
+        // The table's name on a round with table labels (table-labels-and-plates.md) - null = print the number
+        public null|string $tableLabel = null,
     ) {
     }
 

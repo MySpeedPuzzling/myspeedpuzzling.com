@@ -2,7 +2,7 @@
 // - merges the `state` answer (§3.1, who is in the round, the slots, results) with the `analytics` answer (§3.2) into
 //   one row per entry for the active puzzle slot;
 // - search (diacritics folded like SearchText::fold() - search_fold.js; names, team names, country codes, table
-//   numbers), filter chips, sort - a sort or filter needing a puzzle only once that slot is visible (§5);
+//   numbers or, on a labelled round, table labels), filter chips, sort - a sort or filter needing a puzzle only once that slot is visible (§5);
 // - the prediction column + sort (v2 R31/R32): solo rounds only, from the round's `round-predictions` answer (the third,
 //   lowest-priority source after the entrant and compare answers); the sort only once that answer is `ready` for the
 //   visible puzzles shown - a list never re-orders under the commentator while the values trickle in;
@@ -226,6 +226,8 @@ export function entrantRows(state, analytics, slotKey = null, sources = null) {
             name,
             subtitle: isTeam ? memberNames(members) : '',
             table: isNumber(entrant.table) ? entrant.table : null,
+            // A labelled round's table name (table-labels-and-plates.md) - shown instead of the number; sorts stay by number
+            tableLabel: isNumber(entrant.table) && typeof entrant.tableLabel === 'string' && entrant.tableLabel !== '' ? entrant.tableLabel : null,
             members,
             lineup,
             hasHistory,
@@ -247,9 +249,16 @@ export function entrantRows(state, analytics, slotKey = null, sources = null) {
 
 // ---- search, filter, sort
 
+function compactLabel(text) {
+    return String(text ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
 /**
  * Whether a row holds every typed word: names and team name folded, a country code, a table number ("12" or "#12" -
- * exactly that table, or a name holding the digits).
+ * exactly that table, or a name holding the digits). On a labelled round a row's table is its label instead: a word
+ * starting it - separators left out, any case - finds it ("a1" → A1-1, A1 L; "a1 1" / "a11" → A1-1), the hidden number
+ * does not. (Deliberately looser than table_labels.js' folded key, which the judge page needs - the studio's budget
+ * keeps that module out of its bundle.)
  */
 export function matchesQuery(row, query) {
     const folded = foldSearchText(query);
@@ -258,10 +267,22 @@ export function matchesQuery(row, query) {
         return true;
     }
 
+    const label = typeof row.tableLabel === 'string' ? compactLabel(row.tableLabel) : null;
+    const typedLabel = compactLabel(query);
+
+    // The whole query as one label ("a1 1" types A1-1 with a space)
+    if (label !== null && typedLabel !== '' && label.startsWith(typedLabel)) {
+        return true;
+    }
+
     return folded.split(' ').every((token) => {
+        if (label !== null && compactLabel(token) !== '' && label.startsWith(compactLabel(token))) {
+            return true;
+        }
+
         const number = /^#?(\d+)$/.exec(token);
 
-        if (number !== null && row.table !== null && String(row.table) === String(Number(number[1]))) {
+        if (label === null && number !== null && row.table !== null && String(row.table) === String(Number(number[1]))) {
             return true;
         }
 

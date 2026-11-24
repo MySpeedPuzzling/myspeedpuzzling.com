@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\RoundPuzzleSlot;
 use SpeedPuzzling\Web\Results\RoundResultEntryMember;
 use SpeedPuzzling\Web\Value\ExportFormat;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Value\TableLabels;
 
 /**
  * One round's official results as a spreadsheet for the organiser (results desk "Export"): one row per entry in
@@ -32,6 +33,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * A round that uses divisions (shared-puzzles-and-divisions.md D2) adds "Division" and "Division rank" right after
  * "Rank" (the short label is for the screen - the export names the division in full).
+ *
+ * A round with table labels (table-labels-and-plates.md) writes the label in "Table" and the number in "Table number"
+ * right after it.
  */
 readonly final class RoundResultsExporter
 {
@@ -44,18 +48,19 @@ readonly final class RoundResultsExporter
      * @param list<RoundResultEntry> $entries in ranking order (GetRoundResultEntries::forRound())
      * @param null|RoundPuzzleFormatView $pickFormat the round's format when it is a `pick` round
      * @param bool $withDivisions the round uses divisions
+     * @param null|TableLabels $tableLabels the round's table labels
      */
-    public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format, null|RoundPuzzleFormatView $pickFormat = null, bool $withDivisions = false): ExportFile
+    public function export(array $entries, null|int $piecesCount, string $timezone, ExportFormat $format, null|RoundPuzzleFormatView $pickFormat = null, bool $withDivisions = false, null|TableLabels $tableLabels = null): ExportFile
     {
         // Finished with pieces missing (competition toolkit T6): a last column only when some entry has them - every other
         // round exports exactly the columns it did
         $withMissing = array_any($entries, static fn (RoundResultEntry $entry): bool => $entry->missingPieces !== null);
         $missingHeader = $withMissing ? [$this->translator->trans('finished_missing.export_column')] : [];
-        $rows = [[...$this->header($withDivisions), ...$this->puzzlesHeader($pickFormat), ...$missingHeader]];
+        $rows = [[...$this->header($withDivisions, $tableLabels !== null), ...$this->puzzlesHeader($pickFormat), ...$missingHeader]];
 
         foreach ($entries as $entry) {
             $rows[] = [
-                ...$this->row($entry, $piecesCount, new DateTimeZone($timezone), $withDivisions),
+                ...$this->row($entry, $piecesCount, new DateTimeZone($timezone), $withDivisions, $tableLabels),
                 ...$this->puzzlesRow($entry, $pickFormat),
                 ...($withMissing ? [$entry->missingPieces] : []),
             ];
@@ -71,23 +76,23 @@ readonly final class RoundResultsExporter
     /**
      * @return list<string>
      */
-    private function header(bool $withDivisions): array
+    private function header(bool $withDivisions, bool $withTableLabels = false): array
     {
         return array_map(
             fn (string $column): string => $this->translator->trans('results_desk.export.column.' . $column),
-            ['rank', ...($withDivisions ? ['division', 'division_rank'] : []), 'table', 'entrant', 'members', 'country', 'result', 'seconds', 'pieces_placed', 'qualified', 'entered_by', 'entered_at'],
+            ['rank', ...($withDivisions ? ['division', 'division_rank'] : []), 'table', ...($withTableLabels ? ['table_number'] : []), 'entrant', 'members', 'country', 'result', 'seconds', 'pieces_placed', 'qualified', 'entered_by', 'entered_at'],
         );
     }
 
     /**
      * @return list<null|int|string>
      */
-    private function row(RoundResultEntry $entry, null|int $piecesCount, DateTimeZone $zone, bool $withDivisions): array
+    private function row(RoundResultEntry $entry, null|int $piecesCount, DateTimeZone $zone, bool $withDivisions, null|TableLabels $tableLabels = null): array
     {
         return [
             $entry->rank,
             ...($withDivisions ? [$entry->division?->name, $entry->divisionRank] : []),
-            $entry->tableNumber,
+            ...($tableLabels !== null ? [TableLabels::display($tableLabels, $entry->tableNumber), $entry->tableNumber] : [$entry->tableNumber]),
             $entry->displayName(),
             implode(', ', array_map(static fn (RoundResultEntryMember $member): string => $member->name, $entry->members)),
             implode(', ', array_map(strtoupper(...), $entry->countries)),

@@ -21,7 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The live control's data (competition toolkit v2 L1/L2, displays-standings.md §5.3) - `?round=` one of the event's
  * rounds, else the current one (LiveResultsCurrentRound): `{roundId, message, recentMessages, displays, elements:
- * {message, spotlight}, spotlight: {entryRef, name, table}|null, entries: [{ref, table, name, members, finishedAtMs}]}` -
+ * {message, spotlight}, spotlight: {entryRef, name, table, tableLabel?}|null, entries: [{ref, table, tableLabel?, name, members,
+ * finishedAtMs}]}` -
  * the round's entries for the spotlight picker with the organiser's names (did not start left out). Organisers only (COMPETITION_TOOLKIT_MANAGE), `private, no-store`, 401/403 as JSON.
  */
 final class CompetitionDisplayControlStateController extends AbstractController
@@ -71,13 +72,18 @@ final class CompetitionDisplayControlStateController extends AbstractController
         $spotlight = null;
 
         if ($round !== null) {
-            $entries = DisplayControlEntries::forPicker($this->getRoundResultEntries->forRound($round->roundId));
+            $entries = DisplayControlEntries::forPicker($this->getRoundResultEntries->forRound($round->roundId), $round->tableLabels);
             $ref = $this->getDisplayControlState->spotlightRef($round->roundId);
 
             if ($ref !== null) {
                 $entry = array_values(array_filter($entries, static fn (array $chip): bool => $chip['ref'] === $ref))[0] ?? null;
                 // An entry gone meanwhile (removed from the event): the displays show nobody - the picker names nobody
                 $spotlight = ['entryRef' => $ref, 'name' => $entry['name'] ?? null, 'table' => $entry['table'] ?? null];
+
+                // A labelled round's table name (table-labels-and-plates.md A4) - the key only when set
+                if (isset($entry['tableLabel'])) {
+                    $spotlight['tableLabel'] = $entry['tableLabel'];
+                }
             }
         }
 

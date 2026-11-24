@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Query\GetCompetitionLineupTags;
 use SpeedPuzzling\Web\Query\GetCompetitionNameTags;
 use SpeedPuzzling\Web\Query\GetCompetitionTableTags;
 use SpeedPuzzling\Web\Query\GetRoundEntryTags;
+use SpeedPuzzling\Web\Query\GetTagPlateChallenges;
+use SpeedPuzzling\Web\Value\TableLabels;
 use SpeedPuzzling\Web\Results\CompetitionLineupChange;
 use SpeedPuzzling\Web\Results\CompetitionLineupTag;
 use SpeedPuzzling\Web\Results\CompetitionNameTag;
@@ -43,7 +45,10 @@ use Symfony\Component\HttpFoundation\Request;
  */
 readonly final class CompetitionTagSheet
 {
-    public const int MAX_TABLES = 300;
+    // SPWS: 350 places in one hall (table-labels-and-plates.md)
+    public const int MAX_TABLES = 400;
+    // Name plates: at most this many time boxes on a plate
+    public const int MAX_BOXES = 10;
     public const int HIGHEST_TABLE = 9999;
 
     public function __construct(
@@ -54,6 +59,7 @@ readonly final class CompetitionTagSheet
         private NameTagQrCode $nameTagQrCode,
         private ParticipantClaimLinkList $participantClaimLinkList,
         private OnlineRoundRepository $onlineRoundRepository,
+        private GetTagPlateChallenges $getTagPlateChallenges,
     ) {
     }
 
@@ -79,9 +85,23 @@ readonly final class CompetitionTagSheet
             $sort = $kind->sortsByTableByDefault() ? GetCompetitionNameTags::SORT_TABLE : GetCompetitionNameTags::SORT_NAME;
         }
 
+        // Name plates with time boxes (table-labels-and-plates.md): offered on table tents of people, line-ups and
+        // entries - `?boxes=standing:<id>` or a category's rounds; without a round chosen the championship's first round
+        // is the printed one (its entrants, its tables)
+        $plates = $this->plates($request, $competitionId, $rounds, $kind, $layout);
+
+        if ($round === null && $plates['rounds'] !== []) {
+            $round = $plates['rounds'][0];
+        }
+
         // A round's entries need a round: the first one by schedule unless one is chosen
         if ($kind === CompetitionTagPrintKind::Entries && $round === null) {
             $round = $rounds[0] ?? null;
+        }
+
+        // Table cards of an event with table names print one round's names (A1): the first round that has them
+        if ($kind === CompetitionTagPrintKind::Tables && $round === null) {
+            $round = array_find($rounds, static fn (RoundResultsOverview $overview): bool => $overview->tableLabels !== null);
         }
 
         $variables = [
@@ -103,6 +123,13 @@ readonly final class CompetitionTagSheet
             'flags' => $flags,
             'flags_offered' => $kind->printsCountryFlags(),
             'flags_asked' => $request->query->getBoolean('flags'),
+            'boxes_offered' => $plates['offered'],
+            'boxes_options' => $plates['options'],
+            'boxes_value' => $plates['value'],
+            'boxes' => $plates['boxes'],
+            'boxes_missing' => $plates['missing'],
+            'boxes_several_tables' => $plates['severalTables'],
+            'table_labels' => $round?->tableLabels,
         ];
 
         return match ($kind) {
@@ -136,6 +163,7 @@ readonly final class CompetitionTagSheet
                 'heading' => $tag->name,
                 'members' => [['name' => null, 'country' => $flags ? $tag->flagCountry() : $tag->country, 'code' => $tag->playerCode]],
                 'table_number' => $tag->tableNumber,
+                'table_label' => $tag->tableLabel,
                 'division' => $tag->division,
                 'table' => false,
                 'qr_url' => $url = $this->nameTagQrCode->url($competitionId, $tag->participantId, $locale),
@@ -161,6 +189,7 @@ readonly final class CompetitionTagSheet
                 'heading' => $tag->teamName,
                 'members' => self::members($tag->members, $flags),
                 'table_number' => $tag->tableNumber,
+                'table_label' => $tag->tableLabel,
                 'division' => $tag->division,
                 'table' => false,
                 'qr_url' => $url = $this->nameTagQrCode->lineupUrl($competitionId, $tag->lineupId),
@@ -176,19 +205,21 @@ readonly final class CompetitionTagSheet
     {
         $used = $this->getCompetitionTableTags->usedNumbers($competitionId, $round?->roundId);
 
-        $from = self::tableNumber($request->query->getString('from')) ?? 1;
-        $to = self::tableNumber($request->query->getString('to')) ?? ($used === [] ? 0 : max($used));
+        $labels = $round?->tableLabels;
+        $from = self::tableNumber($request->query->getString('from'), $labels) ?? 1;
+        $to = self::tableNumber($request->query->getString('to'), $labels) ?? ($used === [] ? ($labels?->count() ?? 0) : max($used));
         $to = min($to, $from + self::MAX_TABLES - 1);
         $numbers = $to >= $from ? range($from, $to) : [];
 
         return [
             'tables_from' => $from,
             'tables_to' => $to >= $from ? $to : null,
-            'tables_used' => $used,
+            'tables_used' => $labels === null ? $used : array_map($labels->labelOf(...), $used),
             'tags' => array_map(fn (int $number): array => [
                 'heading' => null,
                 'members' => [],
                 'table_number' => $number,
+                'table_label' => $labels?->labelOf($number),
                 'division' => null,
                 'table' => true,
                 'qr_url' => $url = $this->nameTagQrCode->tableUrl($competitionId, $number),
@@ -211,6 +242,7 @@ readonly final class CompetitionTagSheet
                     ? [['name' => null, 'country' => $flags ? $tag->members[0]->flagCountry() : $tag->members[0]->country, 'code' => $tag->members[0]->playerCode]]
                     : self::members($tag->members, $flags),
                 'table_number' => $tag->tableNumber,
+                'table_label' => $tag->tableLabel,
                 'division' => $tag->division,
                 'table' => false,
                 'qr_url' => $url = $this->nameTagQrCode->entryUrl($competitionId, $tag->entryId),
@@ -249,6 +281,94 @@ readonly final class CompetitionTagSheet
     }
 
     /**
+     * Name plates with time boxes (table-labels-and-plates.md "Name plates", A5/A6): the championship's rounds by
+     * schedule - a standing's rounds of this event, or a category's rounds no advancement step feeds - and a box per
+     * challenge: a back-to-back block (pick K ≥ 2 of K) one per puzzle by its label, a pick K < N round K numbered boxes,
+     * any other round one box with its name. Labels only - never a puzzle's name.
+     *
+     * @param list<RoundResultsOverview> $rounds
+     * @return array{offered: bool, options: list<array{value: string, label: string, category: string}>, value: string, rounds: list<RoundResultsOverview>, boxes: list<string>, missing: bool, severalTables: int}
+     */
+    private function plates(Request $request, string $competitionId, array $rounds, CompetitionTagPrintKind $kind, CompetitionTagPrintLayout $layout): array
+    {
+        $none = ['offered' => false, 'options' => [], 'value' => '', 'rounds' => [], 'boxes' => [], 'missing' => true, 'severalTables' => 0];
+
+        if ($layout !== CompetitionTagPrintLayout::Tents || $kind->printsCountryFlags() === false || $rounds === []) {
+            return $none;
+        }
+
+        $options = $this->getTagPlateChallenges->options($competitionId);
+        $choices = [];
+
+        foreach ($options['standings'] as $standing) {
+            $standingRounds = array_values(array_filter($rounds, static fn (RoundResultsOverview $overview): bool => in_array($overview->roundId, array_map(strtolower(...), $standing['roundIds']), true)));
+
+            if ($standingRounds !== []) {
+                $choices['standing:' . $standing['id']] = ['label' => $standing['name'], 'category' => $standing['category'], 'rounds' => $standingRounds];
+            }
+        }
+
+        foreach (['solo', 'duo', 'team'] as $category) {
+            $categoryRounds = array_values(array_filter(
+                $rounds,
+                static fn (RoundResultsOverview $overview): bool => $overview->category === $category && !in_array($overview->roundId, $options['fedRoundIds'], true),
+            ));
+
+            if ($categoryRounds !== []) {
+                $choices[$category] = ['label' => null, 'category' => $category, 'rounds' => $categoryRounds];
+            }
+        }
+
+        $value = $request->query->getString('boxes');
+        $chosen = $choices[$value] ?? null;
+        $result = [
+            'offered' => true,
+            'options' => array_map(
+                static fn (string $key, array $choice): array => ['value' => $key, 'label' => (string) $choice['label'], 'category' => $choice['category']],
+                array_keys($choices),
+                array_values($choices),
+            ),
+            'value' => $chosen === null ? '' : $value,
+            'rounds' => [],
+            'boxes' => [],
+            'missing' => $request->query->get('missing') !== '0',
+            'severalTables' => 0,
+        ];
+
+        if ($chosen === null) {
+            return $result;
+        }
+
+        $roundIds = array_map(static fn (RoundResultsOverview $overview): string => $overview->roundId, $chosen['rounds']);
+        $labels = $this->getTagPlateChallenges->puzzleLabels($roundIds);
+        $boxes = [];
+
+        foreach ($chosen['rounds'] as $overview) {
+            $toSolve = $overview->puzzleFormat === 'pick' ? (int) $overview->puzzlesToSolve : 1;
+            $roundLabels = $labels[$overview->roundId] ?? [];
+
+            if ($toSolve >= 2 && $toSolve === count($roundLabels)) {
+                // A back-to-back block: a box per puzzle, by its label ("Challenge 1"; a bare letter with the round's name)
+                foreach ($roundLabels as $label) {
+                    $boxes[] = mb_strlen($label) > 1 ? $label : $overview->name . ' · ' . $label;
+                }
+            } elseif ($toSolve >= 2) {
+                for ($place = 1; $place <= $toSolve; $place++) {
+                    $boxes[] = $overview->name . ' · ' . $place;
+                }
+            } else {
+                $boxes[] = $overview->name;
+            }
+        }
+
+        $result['rounds'] = $chosen['rounds'];
+        $result['boxes'] = array_slice($boxes, 0, self::MAX_BOXES);
+        $result['severalTables'] = $this->getTagPlateChallenges->peopleWithSeveralTables($roundIds);
+
+        return $result;
+    }
+
+    /**
      * @param list<CompetitionTagMember> $members
      * @return list<array{name: string, country: null|string, code: null|string}>
      */
@@ -261,8 +381,13 @@ readonly final class CompetitionTagSheet
         ], $members);
     }
 
-    private static function tableNumber(string $value): null|int
+    private static function tableNumber(string $value, null|TableLabels $labels = null): null|int
     {
+        // A round with table names: `?from=A1` (digits are names there too)
+        if ($labels !== null && trim($value) !== '') {
+            return $labels->numberOf($value);
+        }
+
         if (preg_match('/^\d{1,4}$/', trim($value)) !== 1) {
             return null;
         }

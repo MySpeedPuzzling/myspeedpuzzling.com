@@ -163,18 +163,35 @@ export function recentMine(entries, outboxItems, ranges, limit = 15) {
     return { mine, others };
 }
 
+/**
+ * The text kept for an event: numbers normalised ("1-20, 41-45"), or - for rounds with table labels
+ * (table-labels-and-plates.md A9) - labels, label prefixes and `..` ranges as typed ("A, B", "A1..A5"), resolved per
+ * round by table_labels.js labelRanges(). Null for text that is neither.
+ */
+export function storableText(text) {
+    const parsed = parseTables(text);
+
+    if (parsed.error === undefined) {
+        return parsed.ranges.length > 0 ? parsed.text : null;
+    }
+
+    const source = String(text ?? '').replace(/\s+/g, ' ').trim();
+
+    return source !== '' && source.length <= MAX_TEXT && /[A-Za-z]|\.\./.test(source) && /^[A-Za-z0-9 .\-/,;–—]+$/.test(source) ? source : null;
+}
+
 function normaliseOne(value) {
     if (value === null || typeof value !== 'object' || Array.isArray(value) || typeof value.text !== 'string' || typeof value.savedAt !== 'number' || !Number.isFinite(value.savedAt)) {
         return null;
     }
 
-    const parsed = parseTables(value.text);
+    const text = storableText(value.text);
 
-    if (parsed.error !== undefined || parsed.ranges.length === 0) {
+    if (text === null) {
         return null;
     }
 
-    return { text: parsed.text, on: value.on !== false, savedAt: value.savedAt };
+    return { text, on: value.on !== false, savedAt: value.savedAt };
 }
 
 /**
@@ -206,10 +223,10 @@ export function withMyTables(stored, competitionId, { text, on = true }, now) {
     const all = { ...normaliseMyTables(stored) };
     delete all[competitionId];
 
-    const parsed = parseTables(text);
+    const kept = storableText(text);
 
-    if (parsed.error === undefined && parsed.ranges.length > 0) {
-        all[competitionId] = { text: parsed.text, on: on !== false, savedAt: now };
+    if (kept !== null) {
+        all[competitionId] = { text: kept, on: on !== false, savedAt: now };
     }
 
     return normaliseMyTables(all);
@@ -221,5 +238,6 @@ export function withMyTables(stored, competitionId, { text, on = true }, now) {
 export function myTablesOf(prefs, competitionId) {
     const one = typeof competitionId === 'string' ? normaliseMyTables(prefs?.myTables)[competitionId] : undefined;
 
-    return one === undefined ? null : { text: one.text, on: one.on, ranges: parseTables(one.text).ranges };
+    // Label text (rounds with table labels) has no number ranges of its own - the page resolves it per round
+    return one === undefined ? null : { text: one.text, on: one.on, ranges: parseTables(one.text).ranges ?? [] };
 }

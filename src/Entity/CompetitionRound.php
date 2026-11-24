@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use SpeedPuzzling\Web\Value\TableLabels;
 
 #[Entity]
 #[UniqueConstraint(name: 'competition_round_slug_unique', columns: ['competition_id', 'slug'])]
@@ -50,6 +51,15 @@ class CompetitionRound implements EntityWithEvents
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::SMALLINT, nullable: true)]
     public null|int $puzzlesToSolve = null;
+
+    // The names of the round's table numbers (table-labels-and-plates.md): item i names table number i + 1 - e.g.
+    // ["A1-1", "A1-2", "A2-1", …] for a hall plan. Null = plain numbers (every round before SPWS). Only a display and
+    // typing layer: entries keep their numbers. Changed only through changeTableLabels() (SetRoundTableLabels), read
+    // through tableLabels() / Value\TableLabels.
+    /** @var null|list<string> */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $tableLabels = null;
 
     // The moment the round's clock first started (competition toolkit P1F) - the stopwatch start, or the scheduled
     // moment. Unlike $stopwatchStartedAt (which a resume after a pause moves forward by the pause) it stays through
@@ -329,6 +339,16 @@ class CompetitionRound implements EntityWithEvents
         }
 
         return false;
+    }
+
+    public function tableLabels(): null|TableLabels
+    {
+        return TableLabels::fromStored($this->tableLabels);
+    }
+
+    public function changeTableLabels(null|TableLabels $labels): void
+    {
+        $this->tableLabels = $labels?->labels;
     }
 
     public function changeTableNumbersUsage(bool $off): void

@@ -700,8 +700,12 @@ const scenarios = {
             assert.equal(readPrefs(local).keyboard, 'text');
         }
 
-        local.setItem(PREFS_KEY, JSON.stringify({ myTables: { [EVENT(1)]: { text: ' 3 ,1-2', on: 'yes', savedAt: 5 }, [EVENT(2)]: { text: 'zzz', savedAt: 6 } } }));
+        local.setItem(PREFS_KEY, JSON.stringify({ myTables: { [EVENT(1)]: { text: ' 3 ,1-2', on: 'yes', savedAt: 5 }, [EVENT(2)]: { text: 'z<z', savedAt: 6 } } }));
         assert.deepEqual(readPrefs(local).myTables, { [EVENT(1)]: { text: '1-3', on: true, savedAt: 5 } }, 'normalised; a broken event dropped alone');
+
+        // Table names (table-labels-and-plates.md A9): label text is kept as typed, its ranges resolved per round
+        local.setItem(PREFS_KEY, JSON.stringify({ myTables: { [EVENT(1)]: { text: ' A,  B1..B5 ', savedAt: 5 } } }));
+        assert.deepEqual(myTablesOf(readPrefs(local), EVENT(1)), { text: 'A, B1..B5', on: true, ranges: [] }, 'label text kept, no number ranges of its own');
 
         assert.equal(myTablesOf(readPrefs(brokenStorage()), EVENT(1)), null, 'a private window: none, no error');
         const kept2 = writePrefs(brokenStorage(), { myTables: withMyTables({}, EVENT(1), { text: '4' }, 1) });

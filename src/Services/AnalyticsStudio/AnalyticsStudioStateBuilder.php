@@ -27,8 +27,8 @@ use Symfony\Contracts\Cache\ItemInterface;
  *
  * Statements: the round and its visible puzzles (2, always - the cache key is made of them), then the entrants and,
  * for a published round, its official rows (OfficialEntrantsView) - kept 2 s in `analytics_studio_cache` under the
- * round, its stopwatch state hash (RoundClock::stateHash()), the visible hash, the published moment and the live results
- * switch, never past the next reveal moment (not kept at all when that is under 2 s away). `serverNowMs` is stamped on every answer outside
+ * round, its stopwatch state hash (RoundClock::stateHash()), the visible hash, the published moment, the live results
+ * switch and - only on a labelled round - a hash of its table labels, never past the next reveal moment (not kept at all when that is under 2 s away). `serverNowMs` is stamped on every answer outside
  * the cache. A result recorded, edited or cleared reaches the page within those 2 s: the write's studio signal
  * (AnalyticsStudioSignals) makes the page ask after SIGNAL_SETTLE_MS (2.3 s), when the entry has expired - one
  * computation per 2 s per round under any write rate, no key needs the results.
@@ -97,6 +97,12 @@ readonly final class AnalyticsStudioStateBuilder
             $round->resultsPublishedAt !== null ? (string) RoundClock::milliseconds($round->resultsPublishedAt) : 'u',
             $round->liveResults ? 'l' : 'n',
         ]);
+
+        // A labelled round's table names are in the answer (entrants' `tableLabel`): a changed list is another entry at
+        // once - an unlabelled round's key stays as it was
+        if ($round->tableLabels !== null) {
+            $key .= '.t' . substr(sha1(implode("\n", $round->tableLabels->labels)), 0, 12);
+        }
 
         $next = $context->puzzles->nextRevealAtMs;
         $ttl = $next === null ? self::TTL_SECONDS : intdiv($next - $nowMs, 1000);
@@ -196,22 +202,32 @@ readonly final class AnalyticsStudioStateBuilder
      * Built field by field - never a serialized OfficialEntrantsView object (R16): a private or unlinked person is
      * the organiser's name only, a public profile adds its profile path and code.
      *
-     * @return array{key: string, isTeam: bool, teamName: null|string, table: null|int, members: list<array{name: string, country: null|string, profile: null|string, code: null|string, analysable: bool}>}
+     * A labelled round's entrant also carries `tableLabel` (table-labels-and-plates.md) - only when the list names its table.
+     *
+     * @return array{key: string, isTeam: bool, teamName: null|string, table: null|int, tableLabel?: string, members: list<array{name: string, country: null|string, profile: null|string, code: null|string, analysable: bool}>}
      */
     public static function entrant(AnalyticsStudioEntrant $entrant): array
     {
-        return [
+        $json = [
             'key' => $entrant->key(),
             'isTeam' => $entrant->isTeam(),
             'teamName' => $entrant->teamName,
             'table' => $entrant->tableNumber,
-            'members' => array_map(static fn (AnalyticsStudioMember $member): array => [
-                'name' => $member->entrant->playerName,
-                'country' => $member->entrant->playerCountry?->name,
-                'profile' => $member->analysablePlayerId() !== null ? AnalyticsStudioProfile::path($member->analysablePlayerId()) : null,
-                'code' => $member->playerCode,
-                'analysable' => $member->analysable(),
-            ], $entrant->members),
         ];
+
+        // Next to `table`; an unlabelled entrant keeps its exact shape
+        if ($entrant->tableLabel !== null) {
+            $json['tableLabel'] = $entrant->tableLabel;
+        }
+
+        $json['members'] = array_map(static fn (AnalyticsStudioMember $member): array => [
+            'name' => $member->entrant->playerName,
+            'country' => $member->entrant->playerCountry?->name,
+            'profile' => $member->analysablePlayerId() !== null ? AnalyticsStudioProfile::path($member->analysablePlayerId()) : null,
+            'code' => $member->playerCode,
+            'analysable' => $member->analysable(),
+        ], $entrant->members);
+
+        return $json;
     }
 }

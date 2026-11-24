@@ -2016,3 +2016,9 @@ See `docs/features/event-results-import/results-import-page.md` "As built: PR 4"
 See `docs/features/competitions-management/shared-puzzles-and-divisions.md` "As built: S3".
 - [ ] Browser walk before merge (no-Docker mode): Add to my profile from two rounds sharing a puzzle, the round page's "This is my time - link it", the result detail's "Choose the round" in the modal and on the full page, an unfinished entry from Add to my profile
 - [ ] Pick rounds: no "link it" for a time no round holds (only one-puzzle rounds have it)
+
+## SPWS table names + name plates (`docs/features/competitions-management/table-labels-and-plates.md`)
+- [ ] Creation wizard Extras: an optional "Table names (hall plan)" row (generator → every in-person round of the draft)
+- [ ] SPWS's answer on how the two places at a table are named - regenerate with that style (default "A1 L / A1 R")
+- [ ] Toolkit hub card line "Table names: A1 L … H21 R" linking the seating page
+- [ ] Plates printed on real A4 and folded once (box sizes, the judge's pen on a standing tent)

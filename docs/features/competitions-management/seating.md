@@ -82,6 +82,12 @@ to the other rounds' seating.
 The pure half of the page - the order, every write an action sends, the find box - is `assets/seating.js`, run under
 node by `tests/SeatingJsTest.php`.
 
+## Table names (A1, A1 L …)
+
+Optional per round: a list naming the table numbers - a hall plan ("A-H × 1-22, 2 places" → A1 L, A1 R …) set in the
+page's "Table names" panel. Numbers stay what is stored and written; every list, input and text of the page shows and
+takes the names. Design and as built: [table-labels-and-plates.md](table-labels-and-plates.md).
+
 ## Auto-assign: a proposal first
 
 `SeatingProposer::propose()` numbers **every** entrant of the round from a first table number (default 1), the entrants

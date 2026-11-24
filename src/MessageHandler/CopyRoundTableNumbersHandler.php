@@ -81,6 +81,13 @@ readonly final class CopyRoundTableNumbersHandler
                 continue;
             }
 
+            // A target with table labels takes only the numbers its list names (table-labels-and-plates.md)
+            if ($target->exceedsLabels()) {
+                $problems[] = ['round' => $target->roundId, 'reason' => 'no_label'];
+
+                continue;
+            }
+
             $chosen[] = $target;
         }
 

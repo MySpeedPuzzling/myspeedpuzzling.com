@@ -233,6 +233,30 @@ export function parseTableNumber(input) {
 }
 
 /**
+ * A typed table on a round (table-labels-and-plates.md): without labels (`lookup` null) exactly parseTableNumber(); on a
+ * labelled round the text is a label (its folded key - "a1 1" = "A1-1"; digits are a label too, "12" = label 12, never
+ * table number 12) resolved through `lookup.numberOf()` - so a number beyond the list is never the answer.
+ *
+ * @param {object|null} lookup assets/table_labels.js tableLabels() of the round's list
+ * @returns {{kind: 'empty'} | {kind: 'number', value: number} | {kind: 'error', reason: 'invalid_table_number'|'unknown_table_label', label?: string}}
+ */
+export function parseTableInput(input, lookup = null) {
+    if (lookup === null || lookup === undefined) {
+        return parseTableNumber(input);
+    }
+
+    const text = String(input ?? '').trim();
+
+    if (text === '') {
+        return { kind: 'empty' };
+    }
+
+    const value = lookup.numberOf(text);
+
+    return value === null ? { kind: 'error', reason: 'unknown_table_label', label: text } : { kind: 'number', value };
+}
+
+/**
  * The entry (`{ref, table, …}`) that holds a table number in the round, other than `exceptRef` - "Table 6 is Ben's".
  */
 export function tableHolder(entries, number, exceptRef) {

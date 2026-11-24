@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\AnalyticsStudioEventRound;
 use SpeedPuzzling\Web\Results\AnalyticsStudioRound;
 use SpeedPuzzling\Web\Value\LiveResultsBeforePublishing;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\TableLabels;
 
 /**
  * The round of an analytics studio (docs/features/competitions-management/analytics-studio.md §2.2) - one statement:
@@ -19,7 +20,7 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  * embeds IsCompetitionPubliclyVisible::SQL_CONDITION (an edition of a draft or unapproved series included), so a round
  * of an event that is not public - for its team too - or a round without a slug is AnalyticsStudioNotFound.
  *
- * @phpstan-type Row array{id: string, competition_id: string, name: string, slug: string, category: string, starts_at: string, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_first_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, event_name: string, event_slug: null|string, series_name: null|string, series_slug: null|string, live_results: bool, event_rounds: null|string}
+ * @phpstan-type Row array{id: string, competition_id: string, name: string, slug: string, category: string, starts_at: string, minutes_limit: null|int, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_first_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, table_numbers_off: bool, puzzle_format: string, puzzles_to_solve: null|int, event_name: string, event_slug: null|string, series_name: null|string, series_slug: null|string, live_results: bool, event_rounds: null|string, table_labels: null|string}
  */
 readonly final class GetAnalyticsStudioRound
 {
@@ -83,6 +84,7 @@ SELECT
     cr.table_numbers_off,
     cr.puzzle_format,
     cr.puzzles_to_solve,
+    cr.table_labels::text AS table_labels,
     c.name AS event_name,
     c.slug AS event_slug,
     cs.name AS series_name,
@@ -154,6 +156,7 @@ SQL,
                 ),
                 $eventRounds,
             ),
+            tableLabels: TableLabels::fromStored($row['table_labels']),
         );
     }
 

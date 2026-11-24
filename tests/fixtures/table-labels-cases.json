@@ -1,0 +1,43 @@
+{
+    "keys": [
+        ["A1-1", "A.1.1"],
+        ["a1 1", "A.1.1"],
+        ["A1L", "A.1.L"],
+        ["a1 l", "A.1.L"],
+        ["B07", "B.7"],
+        ["12", "12"],
+        ["0", "0"],
+        ["Hall 2 / A1", "HALL.2.A.1"],
+        ["x9", "X.9"],
+        ["A1/B", "A.1.B"],
+        ["--", ""]
+    ],
+    "validate": [
+        {"list": ["A1", " B2 ", "C  3"], "labels": ["A1", "B2", "C 3"]},
+        {"list": ["A1-1", "a1 1"], "problems": [{"label": "a1 1", "reason": "duplicate", "first": "A1-1"}]},
+        {"list": ["A1", ""], "problems": [{"label": "", "reason": "empty"}]},
+        {"list": ["ABCDEFGHIJKLM"], "problems": [{"label": "ABCDEFGHIJKLM", "reason": "too_long"}]},
+        {"list": ["A1,2"], "problems": [{"label": "A1,2", "reason": "characters"}]},
+        {"list": ["-A1"], "problems": [{"label": "-A1", "reason": "characters"}]},
+        {"list": ["<b>"], "problems": [{"label": "<b>", "reason": "characters"}]},
+        {"list": ["A..1"], "problems": [{"label": "A..1", "reason": "characters"}]},
+        {"list": ["Č3"], "problems": [{"label": "Č3", "reason": "characters"}]},
+        {"list": [], "problems": [{"label": "", "reason": "empty_list"}]}
+    ],
+    "generate": [
+        {"settings": {"letters": "A-B", "numbers": "1-2", "seats": 1, "seatStyle": "dash", "order": "letters", "skip": ""}, "labels": ["A1", "A2", "B1", "B2"]},
+        {"settings": {"letters": "A-B", "numbers": "1-2", "seats": 1, "seatStyle": "dash", "order": "numbers", "skip": ""}, "labels": ["A1", "B1", "A2", "B2"]},
+        {"settings": {"letters": "A", "numbers": "1-2", "seats": 2, "seatStyle": "dash", "order": "letters", "skip": ""}, "labels": ["A1-1", "A1-2", "A2-1", "A2-2"]},
+        {"settings": {"letters": "A", "numbers": "1", "seats": 2, "seatStyle": "letter", "order": "letters", "skip": ""}, "labels": ["A1a", "A1b"]},
+        {"settings": {"letters": "A", "numbers": "1", "seats": 2, "seatStyle": "side", "order": "letters", "skip": ""}, "labels": ["A1 L", "A1 R"]},
+        {"settings": {"letters": "", "numbers": "1-3", "seats": 1, "seatStyle": "dash", "order": "letters", "skip": "2"}, "labels": ["1", "3"]},
+        {"settings": {"letters": "a, c", "numbers": "5", "seats": 1, "seatStyle": "dash", "order": "letters", "skip": ""}, "labels": ["A5", "C5"]},
+        {"settings": {"letters": "A-B", "numbers": "1-2", "seats": 2, "seatStyle": "dash", "order": "letters", "skip": "B2, A1-2"}, "labels": ["A1-1", "A2-1", "A2-2", "B1-1", "B1-2"]},
+        {"settings": {"letters": "A-H", "numbers": "1-22", "seats": 1, "seatStyle": "dash", "order": "letters", "skip": "H22"}, "count": 175, "first": "A1", "last": "H21"},
+        {"settings": {"letters": "A-H", "numbers": "1-22", "seats": 2, "seatStyle": "side", "order": "letters", "skip": "H22"}, "count": 350, "first": "A1 L", "last": "H21 R"},
+        {"settings": {"letters": "A-1", "numbers": "1", "seats": 1, "seatStyle": "dash", "order": "letters", "skip": ""}, "problems": [{"label": "A-1", "reason": "letters"}]},
+        {"settings": {"letters": "A", "numbers": "x", "seats": 1, "seatStyle": "dash", "order": "letters", "skip": ""}, "problems": [{"label": "x", "reason": "numbers"}]},
+        {"settings": {"letters": "A", "numbers": "1", "seats": 5, "seatStyle": "dash", "order": "letters", "skip": ""}, "problems": [{"label": "5", "reason": "seats"}]},
+        {"settings": {"letters": "A", "numbers": "1", "seats": 3, "seatStyle": "side", "order": "letters", "skip": ""}, "problems": [{"label": "side", "reason": "seat_style"}]}
+    ]
+}

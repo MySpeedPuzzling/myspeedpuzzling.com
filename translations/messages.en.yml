@@ -5479,6 +5479,7 @@ live_results:
         keyboard: "Switch between the number pad and the full keyboard"
         keyboard_letters: "ABC"
         keyboard_digits: "123"
+        placeholder_labels: "Table (e.g. %example%), name or #code"
     scan:
         button: "Scan a name tag"
         title: "Scan a name tag"
@@ -5650,6 +5651,8 @@ live_results:
         todo_empty: "Every table of yours has a result."
         other_tables: "{1}+ 1 at another table|[0,Inf[+ %count% at other tables"
         others_divider: "Other tables"
+        error_labels: "Write table names, letters for whole rows and ranges like A, B or A1..A11."
+        placeholder_labels: "e.g. A, B or A1..A11"
     tags:
         foreign: "This QR code is not a tag of this event."
         lineup_not_in_round: "This pair/team does not play in %round%."
@@ -5764,6 +5767,16 @@ name_tags:
         empty_entries: "Nobody is in this round yet."
         print_tags: "Print tags"
         show_flags: "Show country flags"
+    plates:
+        boxes: "Time boxes"
+        none: "None"
+        category: "Rounds: %category%"
+        missing_field: "With a \"missing pieces\" field"
+        hint: "A plate per entrant of %round% with their table there, and a box per challenge for the judge to write the time by pen - on the side facing the judge."
+        several_tables: "%count% people sit at another table in a later round of these - their plate shows the table of the first round."
+        table_names_hint: "The cards show the table names of %round%. A card’s QR code finds its table by number in every round."
+        time: "Time"
+        missing: "Missing"
 
 series:
     meta:
@@ -5837,6 +5850,7 @@ results_desk:
             entered_at: "Entered at"
             division: "Division"
             division_rank: "Division rank"
+            table_number: "Table number"
     divisions:
         column: "Division"
         all: "All"
@@ -6229,6 +6243,53 @@ seating:
             invalid_table_number: "That round would need a table above 9999."
 
 # Referral Program
+            no_label: "That round has fewer table names than these tables need."
+    labels:
+        title: "Table names"
+        summary_numbers: "Plain numbers (1, 2, 3 …)"
+        summary: "%count% tables: %first% … %last%"
+        intro: "Name the tables like the hall plan - A1, A2 … or two places per table (A1 L, A1 R). Everybody keeps their place; only what the tables are called changes. Judges then type \"a1l\" to open a table."
+        generator: "Fill from a hall plan"
+        letters: "Letters"
+        numbers: "Numbers"
+        seats: "Places per table"
+        seat_style: "Places are called"
+        style_side: "A1 L, A1 R (left / right)"
+        style_letter: "A1a, A1b"
+        style_dash: "A1-1, A1-2"
+        order: "Order (the first seat goes to the fastest)"
+        order_letters: "A1, A2 … then B1"
+        order_numbers: "A1, B1 … then A2"
+        skip: "Leave out (tables or places)"
+        skip_placeholder: "e.g. H22"
+        fill: "Fill the list"
+        seat_hint: "Judges type a table fastest when the places are letters (\"a1l\" opens A1 L at once); with \"A1-1\" they type \"a1 1\"."
+        list: "The table names, in seating order (one per line)"
+        preview: "%count% tables: %sample%"
+        preview_none: "No names yet - the round uses plain numbers."
+        too_few_warning: "Somebody sits at table %highest% - give at least %highest% names (now %count%)."
+        renamed: "Seated entries whose table will read differently: %count% (e.g. %name%: %from% → %to%). Nobody moves - only the name changes."
+        remove_confirm: "Use plain table numbers again? Everybody keeps their place."
+        use_for: "Use for"
+        use_for_hint: "A table number is the same place only in rounds with the same names - give every round of a championship the same list."
+        save: "Save the names"
+        remove: "Back to plain numbers"
+        unknown: "There is no table \"%table%\" in this round’s table names."
+        too_few_toast: "This round names only %count% tables - nothing was saved."
+        reason:
+            empty_list: "Give at least one name."
+            too_many: "At most 9999 tables."
+            empty: "An empty name."
+            too_long: "\"%label%\" is longer than 12 characters."
+            characters: "\"%label%\": use letters A-Z, digits, spaces, \"-\", \".\" or \"/\" (starting and ending with a letter or digit)."
+            duplicate: "\"%label%\" is the same table as \"%first%\"."
+            letters: "Letters like A-H or A, C, E."
+            numbers: "Numbers like 1-22 or 1-10, 15."
+            seats: "1 to 4 places per table."
+            seat_style: "Left / right works for 2 places only."
+            changed_meanwhile: "Somebody else changed the table names of this round meanwhile - load the page again."
+            too_few: "Somebody sits at table %highest% there - give at least %highest% names."
+            no_rounds: "Choose at least one round."
 referral:
     know_someone: "Know someone who sent you here?"
     enter_code_label: "Enter their referral code"
@@ -8139,6 +8200,7 @@ official_results:
         group_refused: "Saved together with another change of this entrant that was refused - nothing of the two was saved."
         proposals_off: "This event does not take time proposals from competitors (any more)."
         proposal_not_found: "This time proposal is not one of this entrant (any more)."
+        no_label: "This round’s table names do not include that table."
     notification:
         published: "The official results of %round% at %competition% are out - see your result."
     guard:
@@ -8969,6 +9031,7 @@ participants_sheet_round:
     new_needs_something_team: "Type a name or pick a person first."
     save: "Save"
 # end participants_sheet_round
+    table_unknown_label: "There is no table \"%table%\" in this round."
 
 participants_sheet_people:
     tab: "People"

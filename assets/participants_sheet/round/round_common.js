@@ -12,7 +12,7 @@
 
 import { withMissing } from '../../official_results_finished_missing.js';
 import { escapeHtml } from '../sheet_grid.js';
-import { IN, OUT, cleanTeamName, hasOfficialData, nameKey, parsePlace } from '../sheet_model.js';
+import { IN, OUT, cleanTeamName, hasOfficialData, nameKey, parsePlace, roundTableLookup, roundTableText } from '../sheet_model.js';
 import { keepMineInEditor, openEditor, savedMeanwhile } from '../../official_results_pending_changes.js';
 import { refusalDetails } from '../sheet_changes.js';
 import { buildAction } from '../sheet_changes.js';
@@ -22,7 +22,7 @@ import {
     officialEdits,
     parseResultAs,
     parseResultInput,
-    parseTableNumber,
+    parseTableInput,
     parsedValue,
     resultKind,
     resultPreview,
@@ -36,6 +36,9 @@ import {
 } from '../sheet_results.js';
 import { SKIP, chosenResultChanges, newTeamsOfResults } from '../round_paste.js';
 import { recordCellText, sheetPuzzlesPopover, sheetPuzzlesPopoverHtml } from '../sheet_puzzles.js';
+import { tableText } from '../../table_labels.js';
+
+export { roundTableLookup, roundTableText };
 
 export const CREATE = '__create';
 export const OPTION_LIMIT = 30;
@@ -64,6 +67,15 @@ export function safeColor(color) {
 
 export function flagHtml(country) {
     return country && /^[a-z]{2}$/.test(country) ? `<span class="fi fi-${escapeHtml(country)} shadow-custom" aria-hidden="true"></span> ` : '';
+}
+
+// ---------------------------------------------------------------- table labels
+
+/** What the round's labels add to a view's columns key: nothing for plain numbers, the list itself otherwise. */
+export function tableLabelsKey(round) {
+    const lookup = roundTableLookup(round);
+
+    return lookup === null ? [] : [lookup.labels.join('\n')];
 }
 
 export function isTeamRound(round) {
@@ -132,7 +144,7 @@ export function teamLabelText(model, teamId, texts, { members = true, table = un
     const parts = [label.name ?? texts.t('team_no_name')];
 
     if (shownTable !== null && shownTable !== undefined) {
-        parts.push(texts.t('label_table', { table: shownTable }));
+        parts.push(texts.t('label_table', { table: roundTableText(model, model.team(teamId)?.roundId ?? null, shownTable) }));
     }
 
     if (members && label.members.length > 0) {
@@ -225,7 +237,7 @@ export function sizeInfo(model, teamId, texts) {
         const members = model.membersOf(others[0]).map((person) => person.name);
 
         if (other?.table !== null && other?.table !== undefined) {
-            sameAs = texts.t('size_same_name_table', { table: other.table });
+            sameAs = texts.t('size_same_name_table', { table: roundTableText(model, other.roundId, other.table) });
         } else if (members.length > 0) {
             sameAs = texts.t(duo ? 'size_same_name_pair' : 'size_same_name_team', { members: members.join(', ') });
         } else {
@@ -940,6 +952,26 @@ export class RoundResultsCells {
         return this.context.queue.results(this.roundId);
     }
 
+    /** The round's table labels lookup, null for plain numbers (roundTableLookup()). */
+    tableLookup() {
+        return roundTableLookup(this.round());
+    }
+
+    /** A table number as the round names it ('' for none) - the label on a labelled round. */
+    tableText(number) {
+        return number === null || number === undefined ? '' : tableText(this.tableLookup(), number);
+    }
+
+    /** A typed table: parseTableInput() over the round's labels. */
+    parseTable(text) {
+        return parseTableInput(text, this.tableLookup());
+    }
+
+    /** The editor's refusal of a typed table: "There is no table "Z9" in this round" on a labelled round. */
+    tableInvalidText(parsed) {
+        return parsed.reason === 'unknown_table_label' ? this.t('table_unknown_label', { table: parsed.label }) : this.t('table_invalid');
+    }
+
     resultTexts() {
         return {
             piecesPlaced: this.t('result_pieces_placed'),
@@ -1042,16 +1074,17 @@ export class RoundResultsCells {
     tableCell(ref, server, { readonly = false } = {}) {
         const value = this.shown(ref, 'table_number', server);
         const cell = ref === null ? null : this.pending().get(ref, 'table_number');
-        let html = value === null || value === undefined ? '' : escapeHtml(String(value));
+        const shownText = this.tableText(value);
+        let html = escapeHtml(shownText);
 
         if (cell !== null && cell.status === 'error' && cell.reason === 'table_number_taken') {
             const holder = this.holderOf(ref, value);
-            const text = holder ? this.t('table_taken', { table: value, name: holder.displayName }) : this.t('table_taken_unknown', { table: value });
+            const text = holder ? this.t('table_taken', { table: shownText, name: holder.displayName }) : this.t('table_taken_unknown', { table: shownText });
             html = `${html} <span class="sheet-attention"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(text)}</span>`;
         }
 
         return {
-            text: value === null || value === undefined ? '' : String(value),
+            text: shownText,
             html,
             marker: this.marker(ref, 'table_number'),
             readonly,
@@ -1116,7 +1149,7 @@ export class RoundResultsCells {
     meanwhileText(field, found) {
         const value = field === 'result'
             ? (resultText(found.current, this.round()?.piecesCount ?? null, this.resultTexts()) || this.t('result_preview_none'))
-            : (found.current === null || found.current === undefined ? this.t('table_none') : String(found.current));
+            : (found.current === null || found.current === undefined ? this.t('table_none') : this.tableText(found.current));
 
         return found.enteredBy
             ? this.t('meanwhile_by', { name: found.enteredBy, value })
@@ -1234,16 +1267,17 @@ export class RoundResultsCells {
             return {
                 options: [
                     { value: 'keep', label: this.t('meanwhile_keep_mine'), className: 'sheet-option-action' },
-                    { value: 'theirs', label: this.t('meanwhile_take_theirs'), detail: found.current === null ? this.t('table_none') : String(found.current), className: 'sheet-option-action' },
+                    { value: 'theirs', label: this.t('meanwhile_take_theirs'), detail: found.current === null || found.current === undefined ? this.t('table_none') : this.tableText(found.current), className: 'sheet-option-action' },
                 ],
                 hint: this.meanwhileText('table_number', found),
             };
         }
 
-        const parsed = parseTableNumber(query);
+        // The cell's own text unchanged (an entry beyond a labelled round's list shows its number) names its own table
+        const parsed = this.sameAsShown(entry, query) ? { kind: 'number', value: entry.table } : this.parseTable(query);
 
         if (parsed.kind === 'error') {
-            return { options: [], hint: this.t('table_invalid') };
+            return { options: [], hint: this.tableInvalidText(parsed) };
         }
 
         if (parsed.kind === 'number' && entry) {
@@ -1251,8 +1285,8 @@ export class RoundResultsCells {
 
             if (holder !== null) {
                 return {
-                    options: [{ value: 'swap', label: this.t('table_swap'), detail: this.t('table_swap_detail', { name: holder.displayName, table: entry.table ?? this.t('table_none') }), className: 'sheet-option-action' }],
-                    hint: this.t('table_taken', { table: parsed.value, name: holder.displayName }),
+                    options: [{ value: 'swap', label: this.t('table_swap'), detail: this.t('table_swap_detail', { name: holder.displayName, table: entry.table === null || entry.table === undefined ? this.t('table_none') : this.tableText(entry.table) }), className: 'sheet-option-action' }],
+                    hint: this.t('table_taken', { table: this.tableText(parsed.value), name: holder.displayName }),
                 };
             }
         }
@@ -1285,10 +1319,10 @@ export class RoundResultsCells {
             return { error: `${this.meanwhileText('table_number', found)} ${this.t('meanwhile_choose')}` };
         }
 
-        const parsed = parseTableNumber(input.text);
+        const parsed = this.sameAsShown(entry, input.text) ? { kind: 'number', value: entry.table } : this.parseTable(input.text);
 
         if (parsed.kind === 'error') {
-            return { error: this.t('table_invalid') };
+            return { error: this.tableInvalidText(parsed) };
         }
 
         const value = parsed.kind === 'number' ? parsed.value : null;
@@ -1299,7 +1333,7 @@ export class RoundResultsCells {
                 return { swap: swapAssignments({ ref: entry.ref, table: current.seen ?? null }, value, holder), holder };
             }
 
-            return { error: `${this.t('table_taken', { table: value, name: holder.displayName })} ${this.t('table_swap_choose')}` };
+            return { error: `${this.t('table_taken', { table: this.tableText(value), name: holder.displayName })} ${this.t('table_swap_choose')}` };
         }
 
         if (sameValue(value, current.seen)) {
@@ -1307,6 +1341,17 @@ export class RoundResultsCells {
         }
 
         return { action: officialEdit(this.roundId, entry.ref, 'table_number', current.seen, value) };
+    }
+
+    /**
+     * On a labelled round the editor opens with the shown text - a number beyond the list shows as the number, which is
+     * no label: typed back unchanged it keeps the entry's table. A round of plain numbers parses as always.
+     */
+    sameAsShown(entry, text) {
+        const table = entry?.table;
+
+        return this.tableLookup() !== null && table !== null && table !== undefined
+            && String(text ?? '').trim() === this.tableText(table);
     }
 
     /** "Swap them": one AssignTableNumbers write; its undo is the swap back as RecordRoundResults changes. */
@@ -1323,7 +1368,7 @@ export class RoundResultsCells {
                 results,
                 inverseResults: results.slice().reverse().map((change) => ({ ...change, from: change.to, to: change.from })),
             });
-            this.context.announce(this.t('table_swapped', { name: holder.displayName, table: assignments[0].number }));
+            this.context.announce(this.t('table_swapped', { name: holder.displayName, table: this.tableText(assignments[0].number) }));
 
             return true;
         }

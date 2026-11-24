@@ -6,6 +6,9 @@ namespace SpeedPuzzling\Web\Tests\Controller\ParticipantsSheet;
 
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Value\TableLabels;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetVersion;
@@ -435,6 +438,41 @@ final class ParticipantsSheetStateTest extends WebTestCase
 
         $ivan = self::getContainer()->get(GetParticipantsSheetState::class)->person(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::PARTICIPANT_IVAN, self::ORGANISER);
         self::assertSame(4, $ivan->registration?->waitlistPosition);
+    }
+
+    public function testTableLabelsAreInTheRoundJsonOnlyOnALabelledRoundAndMoveTheVersion(): void
+    {
+        $versions = self::getContainer()->get(GetParticipantsSheetVersion::class);
+        $before = $versions->ofCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        $this->labelRound(OfficialResultsFixture::ROUND_GROUP_A, TableLabels::fromList(['A1-1', 'A1-2', 'B1-1']));
+
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $rounds = self::objects($this->state()['rounds']);
+
+        $groupA = self::find($rounds, OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertSame(['A1-1', 'A1-2', 'B1-1'], $groupA['tableLabels']);
+        self::assertSame('tableLabels', array_key_last($groupA));
+        // Every other round: no key at all
+        self::assertArrayNotHasKey('tableLabels', self::find($rounds, OfficialResultsFixture::ROUND_GROUP_B));
+        self::assertArrayNotHasKey('tableLabels', self::find($rounds, OfficialResultsFixture::ROUND_PAIRS));
+
+        // A label change refreshes open sheets; back to plain numbers = the version of before
+        $labelled = $versions->ofCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        self::assertNotSame($before, $labelled);
+        $this->labelRound(OfficialResultsFixture::ROUND_GROUP_A, TableLabels::fromList(['A1-1', 'A1-2', 'B1-2']));
+        self::assertNotSame($labelled, $versions->ofCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP));
+        $this->labelRound(OfficialResultsFixture::ROUND_GROUP_A, null);
+        self::assertSame($before, $versions->ofCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP));
+    }
+
+    private function labelRound(string $roundId, null|TableLabels $labels): void
+    {
+        $manager = self::getContainer()->get(EntityManagerInterface::class);
+        $round = $manager->find(CompetitionRound::class, $roundId);
+        self::assertInstanceOf(CompetitionRound::class, $round);
+        $round->changeTableLabels($labels);
+        $manager->flush();
+        $manager->clear();
     }
 
     /**

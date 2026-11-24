@@ -47,6 +47,7 @@ import {
     sortedPeopleIds,
     storedResultsColumns,
     storeResultsColumns,
+    tableLabelsKey,
     usesTables,
 } from '../round/round_common.js';
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
@@ -188,7 +189,7 @@ export class SoloRoundView {
     columnsKey() {
         const round = this.model.round(this.roundId);
 
-        return [usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null, divisionsKey(this.model, this.roundId)].join('|');
+        return [usesTables(this.model, round), this.showResults, round?.name ?? '', roundPickFormat(this.model, this.roundId) !== null, divisionsKey(this.model, this.roundId), ...tableLabelsKey(round)].join('|');
     }
 
     rebuild() {
@@ -589,7 +590,7 @@ export class SoloRoundView {
         }
 
         if (col === 'table') {
-            return entry.table === null || entry.table === undefined ? '' : String(entry.table);
+            return this.results.tableText(entry.table);
         }
 
         if (col === DIVISION_COLUMN) {
@@ -1314,7 +1315,7 @@ export class SoloRoundView {
                 return this.entryOf(key)?.ref ?? { skip: 'no_entry' };
             })
             : [];
-        const plan = planResultsPaste(this.model, this.roundId, entries, block, { mode, targets, parse: this.results.parseOptions(), tables: this.tablesUsed, headerWords: this.headerWords() });
+        const plan = planResultsPaste(this.model, this.roundId, entries, block, { mode, targets, parse: this.results.parseOptions(), tables: this.tablesUsed, headerWords: this.headerWords(), labels: this.results.tableLookup() });
         await previewResults(this, plan, entries);
     }
 }

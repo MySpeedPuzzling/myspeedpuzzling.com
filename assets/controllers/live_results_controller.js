@@ -42,7 +42,8 @@ import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzl
 import { finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, splitStep } from '../live_entry_splits.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
-import { myTablesOf, parseTables, recentMine, splitMine, todo, withMyTables } from '../live_entry_my_tables.js';
+import { myTablesOf, parseTables, recentMine, splitMine, storableText, todo, withMyTables } from '../live_entry_my_tables.js';
+import { labelRanges, tableLabels, tableText } from '../table_labels.js';
 import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalChoiceUntouched, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
@@ -555,7 +556,8 @@ export default class extends Controller {
             };
         }
 
-        this.setKeyboard(this.prefs().keyboard ?? (this.usesTables() && this.round?.entries?.withTableNumber > 0 ? 'numeric' : 'text'));
+        // A round with table labels ("A1 L") is typed on the letters keyboard - the saved preference is for numbers
+        this.setKeyboard(this.tableLabels() !== null ? 'text' : (this.prefs().keyboard ?? (this.usesTables() && this.round?.entries?.withTableNumber > 0 ? 'numeric' : 'text')));
         this.events.update(state.mercure ?? null);
         this.events.start();
         this.render();
@@ -897,7 +899,7 @@ export default class extends Controller {
         if (target.open) {
             this.openEntry(target.open);
         } else if (target.notice) {
-            this.notice(this.t(target.notice, target.parameters), 'warning');
+            this.notice(this.t(target.notice, this.withTableName(target.parameters)), 'warning');
         }
     }
 
@@ -1111,7 +1113,10 @@ export default class extends Controller {
             document.title = this.t('pageTitle', { '%round%': settings.roundName });
         }
 
-        const placeholder = this.t(settings.usesTables ? 'findPlaceholder' : 'findPlaceholderNames');
+        const labels = settings.usesTables ? this.tableLabels() : null;
+        const placeholder = labels !== null
+            ? this.t('findPlaceholderLabels', { '%example%': labels.labelOf(1) })
+            : this.t(settings.usesTables ? 'findPlaceholder' : 'findPlaceholderNames');
         this.findInputTarget.setAttribute('placeholder', placeholder);
         this.findInputTarget.setAttribute('aria-label', placeholder);
         this.keyboardToggleTarget.hidden = !settings.usesTables;
@@ -1124,6 +1129,16 @@ export default class extends Controller {
         this.setText(this.addNoteTarget, this.t(settings.canSetTables ? 'addNote' : 'addNoteResultOnly'));
         this.addMembersFieldTarget.hidden = settings.solo;
         this.addTableFieldTarget.hidden = !settings.canSetTables;
+        // The quick add's table: a label ("A1 L") on a round with table labels, digits otherwise
+        if (this.tableLabels() !== null) {
+            this.addTableTarget.setAttribute('inputmode', 'text');
+            this.addTableTarget.setAttribute('autocapitalize', 'characters');
+            this.addTableTarget.removeAttribute('pattern');
+        } else {
+            this.addTableTarget.setAttribute('inputmode', 'numeric');
+            this.addTableTarget.setAttribute('pattern', '[0-9]*');
+            this.addTableTarget.removeAttribute('autocapitalize');
+        }
 
         while (!settings.solo && this.addMembersTarget.querySelectorAll('input[data-member]').length < settings.members) {
             this.addMemberInput(null, { focus: false });
@@ -1253,12 +1268,50 @@ export default class extends Controller {
     }
 
     searchIndex() {
-        if (this.indexDirty || !this.index) {
-            this.index = buildSearchIndex(this.allEntries());
+        const labels = this.tableLabels();
+
+        if (this.indexDirty || !this.index || this.indexLabels !== labels) {
+            this.index = buildSearchIndex(this.allEntries(), labels);
+            this.indexLabels = labels;
             this.indexDirty = false;
         }
 
         return this.index;
+    }
+
+    /**
+     * The round's table labels (table-labels-and-plates.md) as a lookup - null on a round with plain numbers. Built once
+     * per list the round state brings.
+     */
+    tableLabels() {
+        const list = this.usesTables() ? (this.round?.tableLabels ?? null) : null;
+
+        if (this.tableLabelsList !== list) {
+            const before = this.tableLabelsList;
+            this.tableLabelsList = list;
+            this.tableLabelsLookup = tableLabels(list);
+
+            // Names that come or go with a live update: the keyboard follows (once the page has chosen one)
+            if (before !== undefined && (before === null) !== (list === null) && this.keyboard !== undefined) {
+                queueMicrotask(() => this.setKeyboard(list !== null ? 'text' : (this.prefs().keyboard ?? 'numeric')));
+            }
+        }
+
+        return this.tableLabelsLookup ?? null;
+    }
+
+    // What a table number reads as on this round: its label, else the number
+    tableName(number) {
+        return tableText(this.tableLabels(), number);
+    }
+
+    // A notice's table number (`%number%`, e.g. "Nobody sits at table A1 L") named by the round's label
+    withTableName(parameters) {
+        const number = parameters?.['%number%'];
+
+        return /^[1-9]\d{0,3}$/.test(String(number ?? ''))
+            ? { ...parameters, '%number%': this.tableName(Number(number)) }
+            : parameters;
     }
 
     /**
@@ -1876,7 +1929,7 @@ export default class extends Controller {
             return;
         }
 
-        const { rows } = findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue });
+        const { rows } = findRows(index, this.query, items, { tableNumbersOff, entries: typed ? [] : this.allEntries(), roundId: this.roundIdValue, labels: this.tableLabels() });
 
         if (typed) {
             this.matchesTarget.innerHTML = rows.length > 0
@@ -1954,7 +2007,7 @@ export default class extends Controller {
         }
 
         return typeof number === 'number'
-            ? `<span class="lr-table" title="${escapeHtml(this.t('table', { '%number%': number }))}">${number}</span>`
+            ? `<span class="lr-table${this.tableLabels() !== null ? ' lr-table-label' : ''}" title="${escapeHtml(this.t('table', { '%number%': this.tableName(number) }))}">${escapeHtml(this.tableName(number))}</span>`
             : `<span class="lr-table lr-table-none" title="${escapeHtml(this.t('noTable'))}">–</span>`;
     }
 
@@ -1970,7 +2023,7 @@ export default class extends Controller {
 
         this.setText(this.entryNameTarget, name);
         this.setText(this.entryMembersTarget, entry.kind === 'team' && entry.name !== null ? (entry.members ?? []).map((member) => member.name).join(', ') : (entry.playerCode ? `#${entry.playerCode.toUpperCase()}` : ''));
-        this.setText(this.entryTableTarget, typeof entry.tableNumber === 'number' ? String(entry.tableNumber) : '–');
+        this.setText(this.entryTableTarget, typeof entry.tableNumber === 'number' ? this.tableName(entry.tableNumber) : '–');
         this.entryTableTarget.classList.toggle('lr-table-none', typeof entry.tableNumber !== 'number');
 
         const shown = shownValue(entry, 'result', items);
@@ -2322,7 +2375,7 @@ export default class extends Controller {
         }
 
         if (field === 'table_number') {
-            return value === null ? this.t('noTable') : this.t('table', { '%number%': value });
+            return value === null ? this.t('noTable') : this.t('table', { '%number%': typeof value === 'number' ? this.tableName(value) : value });
         }
 
         if (field === 'puzzles') {
@@ -2577,7 +2630,7 @@ export default class extends Controller {
         // A table number nothing else starts with opens at once - no Enter (iOS's number pad has none), no row tap
         // (competition toolkit C7; a per-phone preference, on by default)
         if (this.prefs().autoOpenTable !== false) {
-            const unique = uniqueTable(this.searchIndex(), this.query, { tableNumbersOff: !this.usesTables() });
+            const unique = uniqueTable(this.searchIndex(), this.query, { tableNumbersOff: !this.usesTables(), labels: this.tableLabels() });
 
             if (unique !== null) {
                 this.openEntry(unique.ref);
@@ -2592,7 +2645,7 @@ export default class extends Controller {
     find(event) {
         event.preventDefault();
         this.query = this.findInputTarget.value;
-        const found = searchEntries(this.searchIndex(), this.query, { tableNumbersOff: !this.usesTables() });
+        const found = searchEntries(this.searchIndex(), this.query, { tableNumbersOff: !this.usesTables(), labels: this.tableLabels() });
         const entry = entryForEnter(found);
 
         if (entry !== null) {
@@ -2621,7 +2674,20 @@ export default class extends Controller {
             this.myTablesPref = myTablesOf(this.prefs(), competitionId);
         }
 
-        return this.usesTables() ? this.myTablesPref : null;
+        if (!this.usesTables() || this.myTablesPref === null) {
+            return null;
+        }
+
+        // A round with table labels reads the text as labels ("A, B", "A1..A5" - table-labels-and-plates.md A9)
+        const labels = this.tableLabels();
+
+        const mine = labels === null
+            ? this.myTablesPref
+            : { ...this.myTablesPref, ranges: labelRanges(this.myTablesPref.text, labels, { lenient: true }).ranges ?? [] };
+
+        // Text naming no table of this round (labels on a round of numbers, or the other way round): no filter here -
+        // never every entry under "other tables"
+        return mine.ranges.length === 0 ? null : mine;
     }
 
     saveMyTables(change) {
@@ -2660,7 +2726,12 @@ export default class extends Controller {
     setMyTables(event) {
         event.preventDefault();
         const input = this.myTablesInputTarget;
-        const parsed = parseTables(input.value);
+        const labels = this.tableLabels();
+        // A round with table labels: labels, label prefixes and `..` ranges, checked against this round's list
+        const stored = storableText(input.value);
+        const parsed = labels === null
+            ? parseTables(input.value)
+            : (input.value.trim() !== '' && stored === null ? { error: 'syntax' } : { ...labelRanges(input.value, labels), text: stored ?? '' });
         const invalid = parsed.error !== undefined;
 
         input.classList.toggle('is-invalid', invalid);
@@ -2668,7 +2739,9 @@ export default class extends Controller {
         this.myTablesErrorTarget.hidden = !invalid;
 
         if (invalid) {
-            this.setText(this.myTablesErrorTarget, this.t({ syntax: 'myTablesErrorSyntax', range: 'myTablesErrorRange', too_many: 'myTablesErrorTooMany' }[parsed.error]));
+            this.setText(this.myTablesErrorTarget, parsed.error === 'unknown'
+                ? this.t('myTablesErrorUnknown', { '%table%': parsed.token })
+                : this.t({ syntax: labels === null ? 'myTablesErrorSyntax' : 'myTablesErrorLabels', range: 'myTablesErrorRange', too_many: 'myTablesErrorTooMany' }[parsed.error]));
 
             return;
         }
@@ -2709,6 +2782,13 @@ export default class extends Controller {
         } else {
             input.setAttribute('inputmode', 'search');
             input.removeAttribute('pattern');
+        }
+
+        // Table labels are capital letters - the phone starts every word with one (table-labels-and-plates.md)
+        if (this.tableLabels() !== null) {
+            input.setAttribute('autocapitalize', 'characters');
+        } else {
+            input.setAttribute('autocapitalize', 'off');
         }
 
         if (this.hasKeyboardToggleTarget) {
@@ -3894,6 +3974,9 @@ export default class extends Controller {
 
         if (this.hasMyTablesInputTarget) {
             this.myTablesInputTarget.value = this.myTables()?.text ?? '';
+            // A round with table labels takes labels ("A, B", "A1..A11"); the page's placeholder is for numbers
+            this.myTablesInputTarget.dataset.numbersPlaceholder ??= this.myTablesInputTarget.getAttribute('placeholder') ?? '';
+            this.myTablesInputTarget.setAttribute('placeholder', this.tableLabels() !== null ? this.t('myTablesPlaceholderLabels') : this.myTablesInputTarget.dataset.numbersPlaceholder);
             this.myTablesInputTarget.classList.remove('is-invalid');
             this.myTablesInputTarget.removeAttribute('aria-invalid');
             this.myTablesErrorTarget.hidden = true;
@@ -4042,7 +4125,7 @@ export default class extends Controller {
             }
 
             if (this.isConnected()) {
-                this.notice(this.t(notice, parameters), 'warning', link);
+                this.notice(this.t(notice, this.withTableName(parameters)), 'warning', link);
             }
 
             return;
@@ -4080,7 +4163,7 @@ export default class extends Controller {
             delete input.dataset.participantName;
         }
 
-        if (typed !== '' && /^\d+$/.test(typed) && this.settings.canSetTables) {
+        if (typed !== '' && this.settings.canSetTables && (this.tableLabels() !== null ? this.tableLabels().numberOf(typed) !== null : /^\d+$/.test(typed))) {
             this.addTableTarget.value = typed;
         } else if (typed !== '' && !typed.startsWith('#')) {
             this.addNameTarget.value = typed;
@@ -4304,16 +4387,17 @@ export default class extends Controller {
             return null;
         }
 
-        const table = /^\d+$/.test(tableText) ? parseInt(tableText, 10) : null;
+        const labels = this.tableLabels();
+        const table = labels !== null ? labels.numberOf(tableText) : (/^\d+$/.test(tableText) ? parseInt(tableText, 10) : null);
         let error = null;
 
         if (table === null || table < 1 || table > 9999) {
-            error = this.t('addTableInvalid');
+            error = labels !== null ? this.t('addTableUnknown', { '%table%': tableText }) : this.t('addTableInvalid');
         } else {
             const holder = this.allEntries().find((entry) => entry.tableNumber === table);
 
             if (holder) {
-                error = this.t('addTableTaken', { '%number%': table, '%name%': holder.displayName ?? holder.name ?? '' });
+                error = this.t('addTableTaken', { '%number%': this.tableName(table), '%name%': holder.displayName ?? holder.name ?? '' });
             }
         }
 

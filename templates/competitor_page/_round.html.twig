@@ -42,7 +42,7 @@
     </p>
 
     {% if round.tableNumber is not null and not is_table %}
-        <p class="competitor-round-table" data-competitor-table>{{ 'competitor_page.page.table'|trans({'%number%': round.tableNumber}) }}</p>
+        <p class="competitor-round-table" data-competitor-table>{{ 'competitor_page.page.table'|trans({'%number%': round.tableLabel ?? round.tableNumber}) }}</p>
     {% endif %}
 
     {#- Who plays: the occupant of a table, the pair/team of a person's pair/team round, the entry of an entry tag -#}

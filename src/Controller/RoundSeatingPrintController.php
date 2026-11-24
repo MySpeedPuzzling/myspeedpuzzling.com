@@ -63,6 +63,8 @@ final class RoundSeatingPrintController extends AbstractController
             'list' => $list,
             'by_table' => SeatingPrintList::byTable($entries),
             'by_name' => SeatingPrintList::byName($entries, $request->getLocale()),
+            // The round's table names (table-labels-and-plates.md) - null = numbers, the page as before
+            'table_labels' => $round->tableLabels(),
             'without_table' => count(array_filter($entries, static fn (RoundResultEntry $entry): bool => $entry->tableNumber === null)),
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');

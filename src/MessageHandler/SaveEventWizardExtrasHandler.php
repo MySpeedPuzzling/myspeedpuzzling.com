@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\CompetitionDisplayLimitReached;
 use SpeedPuzzling\Web\Exceptions\EventWizardExtraRefused;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
+use SpeedPuzzling\Web\Exceptions\InvalidTableLabels;
+use SpeedPuzzling\Web\Exceptions\TableLabelsRefused;
 use SpeedPuzzling\Web\Message\SaveEventWizardExtras;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
 use SpeedPuzzling\Web\Value\CompetitionRefereeAddition;
@@ -75,6 +77,16 @@ readonly final class SaveEventWizardExtrasHandler
                 $refusal = EventWizardRefusal::find($failure, InvalidCompetitionStanding::class);
 
                 throw $refusal !== null ? new EventWizardExtraRefused('standings', $refusal) : $failure;
+            }
+        }
+
+        foreach ($message->tableLabels as $tableLabels) {
+            try {
+                $this->messageBus->dispatch($tableLabels);
+            } catch (Throwable $failure) {
+                $refusal = EventWizardRefusal::find($failure, TableLabelsRefused::class) ?? EventWizardRefusal::find($failure, InvalidTableLabels::class);
+
+                throw $refusal !== null ? new EventWizardExtraRefused('tableNames', $refusal) : $failure;
             }
         }
 

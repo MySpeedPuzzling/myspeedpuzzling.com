@@ -10669,6 +10669,14 @@ event_duplicate:
         notice: "Formáty puzzlí se resetují: kola kopie začínají bez puzzlí, takže každé je „Jeden výsledek za kolo“. Přidejte puzzle a pak formát nastavte znovu:"
         round: "%round% mělo formát „%format%“"
         flash: "Formáty puzzlí se resetovaly - přidejte do kol kopie puzzle a pak formát nastavte znovu: %rounds%."
+    # spws-wizard.md package D: what each round keeps; puzzle labels and own Unboxed marks go with the puzzles
+    kept: "Každé kolo si ponechá svá nastavení: časový limit, „Bez krabice“ pro celé kolo, názvy stolů - a zkopírují se i pořadí, obrazovky a divize."
+    puzzle_marks:
+        notice: "Popisky puzzle a puzzle bez krabice nastavené po jednom patří k puzzle - nastavte je znovu na stránkách puzzle kol kopie:"
+        round: "%round%: %marks%"
+        labels: "{1}1 popisek puzzle|[2,4]%count% popisky puzzle|[0,Inf[%count% popisků puzzle"
+        unboxed: "{1}1 puzzle bez krabice|[2,4]%count% puzzle bez krabice|[0,Inf[%count% puzzlí bez krabice"
+        flash: "Popisky puzzle a puzzle bez krabice se nekopírují - nastavte je znovu, až budou mít kola kopie své puzzle: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Velké jednobarevné plochy"
@@ -14136,6 +14144,7 @@ competition_toolkit:
             title: "Formáty kol a odhalení"
             help: "Jak se každé kolo hraje a kdy se jeho puzzle odhalí. Měníte to na stránce puzzlí každého kola."
             no_rounds: "Tato událost zatím nemá žádná kola."
+            table_names: "Stoly %first% … %last%"
         judges:
             title: "Rozhodčí"
             help: "Rozhodčí zadávají výsledky na svých telefonech v živém zadávání. Přidejte je na stránce rozhodčích."
@@ -15296,6 +15305,20 @@ event_wizard:
         standings_help: "Sečte časy každého soutěžícího za všechna kola – jedno pořadí pro každou kategorii."
         standings_set_up: "Celkové pořadí je nastavené"
         tables_note: "Čísla stolů se přidělují, až budou lidé přihlášení – připomene vám to kontrolní seznam „Připravte se“."
+        table_names: "Pojmenovat stoly podle plánu sálu"
+        table_names_help: "Např. A1, A2 … B1 místo 1, 2, 3 - rozhodčí je píší, jmenovky je tisknou. Vypnuto = obyčejná čísla."
+        table_names_preview: "%category%: %count% názvů, %first% … %last%"
+        table_names_preview_problem: "%category%: zkontrolujte pole výše"
+        table_names_later: "Jeden sál pro všechna kola; každá kategorie dostane vlastní seznam. Změnit ho můžete kdykoli na stránce rozsazení kola."
+        table_names_change: "Změnit na stránce rozsazení"
+        table_names_set: "Názvy stolů:"
+        table_names_category: "%category% %count% (%first% … %last%)"
+        table_names_refused: "Názvy stolů se nepodařilo uložit - mezitím je někdo změnil. Otevřete krok znovu."
+        table_seats_side: "Místa jako „A1 L / A1 R“ jsou pro 2 místa u stolu - pro víc zvolte jiný styl."
+        table_seats:
+            solo: "Míst u stolu - Sólo"
+            duo: "Míst u stolu - Dvojice"
+            team: "Míst u stolu - Týmy"
     structure:
         title: "Jak se hraje?"
         how_played: "Postupují soutěžící do dalších kol?"

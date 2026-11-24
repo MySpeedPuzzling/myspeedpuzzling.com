@@ -146,6 +146,51 @@
                 </div>
             {% endif %}
 
+            {#- "Name the tables like your hall plan" (spws-wizard.md package D): one hall, places per table per category -#}
+            {% if form.tableNames is defined %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="table_names">
+                    <div class="card-body">
+                        <div class="form-switch">{{ form_row(form.tableNames, {row_attr: {class: 'mb-0'}}) }}</div>
+                        <div class="mt-3" data-organizer-form-target="part" data-show-field="tableNames" data-show-values="1"
+                             data-controller="wizard-table-names"
+                             data-wizard-table-names-texts-value="{{ {
+                                 summary: 'event_wizard.extras.table_names_preview'|trans,
+                                 problem: 'event_wizard.extras.table_names_preview_problem'|trans,
+                                 categories: {
+                                     solo: 'event_wizard.round_name.solo'|trans,
+                                     duo: 'event_wizard.round_name.duo'|trans,
+                                     team: 'event_wizard.round_name.team'|trans,
+                                 },
+                             }|json_encode }}"
+                             data-action="input->wizard-table-names#update change->wizard-table-names#update">
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3">{{ form_row(form.tableLetters, {row_attr: {class: 'mb-2'}}) }}</div>
+                                <div class="col-6 col-md-3">{{ form_row(form.tableNumbers, {row_attr: {class: 'mb-2'}}) }}</div>
+                                <div class="col-12 col-md-6">{{ form_row(form.tableOrder, {row_attr: {class: 'mb-2'}}) }}</div>
+                                <div class="col-12 col-md-6">{{ form_row(form.tableSkip, {row_attr: {class: 'mb-2'}}) }}</div>
+                                <div class="col-12 col-md-6">{{ form_row(form.tableSeatStyle, {row_attr: {class: 'mb-2'}}) }}</div>
+                                {% for category in ['solo', 'duo', 'team'] %}
+                                    {% set seats_key = 'tableSeats' ~ category|capitalize %}
+                                    {% if form[seats_key] is defined %}
+                                        <div class="col-6 col-md-4">{{ form_row(form[seats_key], {row_attr: {class: 'mb-2'}}) }}</div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <ul class="list-unstyled small text-body-secondary mb-1" data-wizard-table-names-target="preview" aria-live="polite"></ul>
+                            <p class="form-text mb-0">{{ 'event_wizard.extras.table_names_later'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% elseif extras.tableNamesShown %}
+                <div class="card shadow-sm mb-3" data-event-wizard-extra="table_names" data-event-wizard-set-up>
+                    <div class="card-body d-flex flex-wrap align-items-center gap-2">
+                        <i class="ci-check-circle text-success"></i>
+                        <span class="me-auto">{{ include('event_wizard/_table_names_line.html.twig', {rounds: extras.namedTableRounds}, with_context = false) }}</span>
+                        <a class="small" href="{{ path('round_seating', {roundId: (extras.namedTableRounds|first).id, labels: 1}) }}">{{ 'event_wizard.extras.table_names_change'|trans }}</a>
+                    </div>
+                </div>
+            {% endif %}
+
             {% if form.standings is defined %}
                 <div class="card shadow-sm mb-3" data-event-wizard-extra="standings">
                     <div class="card-body">

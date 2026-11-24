@@ -39,6 +39,12 @@ readonly final class AdminCompetitionRound
         public null|int $puzzlesToSolve = null,
         // null = the round does not use online timing (docs/features/internal-api.md "Online timing")
         public null|AdminOnlineTiming $onlineTiming = null,
+        // "Unboxed" for every puzzle of the round (world-series-rules.md §7) - a puzzle may be unboxed on its own too
+        public bool $unboxed = false,
+        // The names of its tables (table-labels-and-plates.md): how many (0 = plain numbers), the first and the last
+        public int $tableLabelsCount = 0,
+        public null|string $firstTableLabel = null,
+        public null|string $lastTableLabel = null,
     ) {
     }
 
@@ -62,6 +68,10 @@ readonly final class AdminCompetitionRound
      *     results_count: int,
      *     puzzle_format?: string,
      *     puzzles_to_solve?: null|int,
+     *     unboxed?: bool,
+     *     table_labels_count?: int,
+     *     first_table_label?: null|string,
+     *     last_table_label?: null|string,
      *     online_enabled_at?: null|string,
      *     online_detection_mode?: null|string,
      *     online_unfinished_measure?: null|string,
@@ -95,6 +105,10 @@ readonly final class AdminCompetitionRound
             puzzleFormat: $row['puzzle_format'] ?? 'total',
             puzzlesToSolve: $row['puzzles_to_solve'] ?? null,
             onlineTiming: AdminOnlineTiming::fromDatabaseRow($row),
+            unboxed: $row['unboxed'] ?? false,
+            tableLabelsCount: $row['table_labels_count'] ?? 0,
+            firstTableLabel: $row['first_table_label'] ?? null,
+            lastTableLabel: $row['last_table_label'] ?? null,
         );
     }
 
@@ -121,6 +135,10 @@ readonly final class AdminCompetitionRound
             'puzzleFormat' => $this->puzzleFormat,
             'puzzlesToSolve' => $this->puzzlesToSolve,
             'onlineTiming' => $this->onlineTiming?->toArray(),
+            'unboxed' => $this->unboxed,
+            // Only on a round whose tables have names (table-labels-and-plates.md) - the list itself is
+            // GET /internal-api/rounds/{id}/table-labels
+            ...($this->tableLabelsCount > 0 ? ['tableLabels' => ['count' => $this->tableLabelsCount, 'first' => $this->firstTableLabel, 'last' => $this->lastTableLabel]] : []),
             'puzzles' => array_map(static fn (AdminRoundPuzzle $puzzle): array => $puzzle->toArray(), $this->puzzles),
         ];
     }

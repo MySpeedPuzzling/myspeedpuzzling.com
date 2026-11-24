@@ -330,6 +330,78 @@ final class EventWizardExtrasTest extends WebTestCase
         self::assertSelectorExists('input[name="' . self::FORM . '[overlay]"]');
     }
 
+    /**
+     * spws-wizard.md package D: one hall, the places per table per category - a list per category for its rounds using
+     * table numbers; coming back (and Review) it is a line linking the seating page
+     */
+    public function testTableNamesNameEveryRoundOfACategoryWithItsPlacesPerTable(): void
+    {
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $competitionId = $this->startDraft();
+        $soloRound = $this->onlyRound($competitionId);
+        $pairsRound = $this->copyRound($soloRound, 'duo', 'Pairs - Challenge 1');
+        $teamsRound = $this->copyRound($soloRound, 'team', 'Teams - Challenge 1', tableNumbersOff: true);
+
+        $crawler = $this->browser->request('GET', $this->url($competitionId));
+        self::assertSelectorExists('input[name="' . self::FORM . '[tableNames]"]');
+        self::assertNull($crawler->filter('input[name="' . self::FORM . '[tableNames]"]')->attr('checked'));
+        self::assertSelectorExists('select[name="' . self::FORM . '[tableSeatsSolo]"]');
+        self::assertSelectorExists('select[name="' . self::FORM . '[tableSeatsDuo]"]');
+        // Table numbers switched off: nothing to name
+        self::assertSelectorNotExists('select[name="' . self::FORM . '[tableSeatsTeam]"]');
+
+        $this->submit($competitionId, [
+            'tableNames' => true,
+            'tableLetters' => 'A-B',
+            'tableNumbers' => '1-3',
+            'tableSkip' => 'B3',
+            'tableSeatStyle' => 'side',
+            'tableSeatsDuo' => '2',
+        ]);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
+
+        self::assertSame(['A1', 'A2', 'A3', 'B1', 'B2'], $this->tableLabels($soloRound));
+        self::assertSame(['A1 L', 'A1 R', 'A2 L', 'A2 R', 'A3 L', 'A3 R', 'B1 L', 'B1 R', 'B2 L', 'B2 R'], $this->tableLabels($pairsRound));
+        self::assertNull($this->tableLabels($teamsRound));
+
+        // Coming back: a line linking the seating page, never the generator again
+        $this->browser->request('GET', $this->url($competitionId));
+        self::assertSelectorNotExists('input[name="' . self::FORM . '[tableNames]"]');
+        self::assertSelectorExists('[data-event-wizard-extra="table_names"][data-event-wizard-set-up]');
+        self::assertSelectorTextContains('[data-event-wizard-extra="table_names"]', 'Pairs 10 (A1 L … B2 R)');
+        $this->browser->request('GET', '/en/new-event/' . $competitionId . '/review');
+        self::assertSelectorTextContains('[data-event-wizard-review-extra="table_names"]', 'Solo 5 (A1 … B2)');
+        self::assertSelectorNotExists('[data-event-wizard-review-extra="none"]');
+
+        // The toolkit hub's round line names them too
+        $this->browser->request('GET', '/en/manage-event-toolkit/' . $competitionId);
+        self::assertSelectorTextContains('[data-toolkit-round="' . $pairsRound . '"] [data-toolkit-round-table-names]', 'Tables A1 L … B2 R');
+    }
+
+    public function testRefusedTableNamesWriteNothing(): void
+    {
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+        $competitionId = $this->startDraft();
+        $round = $this->onlyRound($competitionId);
+
+        $this->submit($competitionId, ['tableNames' => true, 'tableLetters' => 'A1', 'registration' => true, 'capacity' => '20']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-event-wizard-extra="table_names"]', 'Letters like A-H');
+        self::assertNull($this->tableLabels($round));
+        self::assertFalse($this->competitionRow($competitionId)['registration_managed']);
+
+        // "A1 L / A1 R" with 3 places at a table
+        $this->submit($competitionId, ['tableNames' => true, 'tableSeatStyle' => 'side', 'tableSeatsSolo' => '3']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-event-wizard-extra="table_names"]', '2 places per table');
+        self::assertNull($this->tableLabels($round));
+
+        // Switched off, the fields are not looked at
+        $this->submit($competitionId, ['tableNames' => false, 'tableLetters' => 'A1']);
+        self::assertResponseRedirects('/en/new-event/' . $competitionId . '/review', 303);
+        self::assertNull($this->tableLabels($round));
+    }
+
     public function testAPublishedEventsExtrasLeadToItsEditPage(): void
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
@@ -417,6 +489,45 @@ final class EventWizardExtrasTest extends WebTestCase
             'referees' => $this->referees($competitionId),
             'displays' => $this->database()->fetchOne('SELECT COUNT(*) FROM competition_display WHERE competition_id = :id', ['id' => $competitionId]),
         ];
+    }
+
+    private function onlyRound(string $competitionId): string
+    {
+        $roundId = $this->database()->fetchOne('SELECT id FROM competition_round WHERE competition_id = :id', ['id' => $competitionId]);
+        self::assertIsString($roundId);
+
+        return $roundId;
+    }
+
+    /**
+     * Another round of the draft like $roundId, of another category - its id
+     */
+    private function copyRound(string $roundId, string $category, string $name, bool $tableNumbersOff = false): string
+    {
+        $copyId = Uuid::uuid7()->toString();
+        $this->database()->executeStatement(
+            "INSERT INTO competition_round SELECT (jsonb_populate_record(NULL::competition_round, to_jsonb(cr) || jsonb_build_object('id', CAST(:copy AS UUID), 'category', CAST(:category AS TEXT), 'name', CAST(:name AS TEXT), 'slug', CAST(:copy AS TEXT), 'table_numbers_off', CAST(:off AS BOOLEAN), 'team_size', CASE WHEN :category = 'team' THEN 4 END))).* FROM competition_round cr WHERE cr.id = :id",
+            ['copy' => $copyId, 'category' => $category, 'name' => $name, 'off' => $tableNumbersOff ? 'true' : 'false', 'id' => $roundId],
+        );
+
+        return $copyId;
+    }
+
+    /**
+     * @return null|list<string>
+     */
+    private function tableLabels(string $roundId): null|array
+    {
+        $stored = $this->database()->fetchOne('SELECT table_labels FROM competition_round WHERE id = :id', ['id' => $roundId]);
+
+        if (!is_string($stored)) {
+            return null;
+        }
+
+        /** @var list<string> $labels */
+        $labels = json_decode($stored, true, flags: JSON_THROW_ON_ERROR);
+
+        return $labels;
     }
 
     private function referees(string $competitionId): int

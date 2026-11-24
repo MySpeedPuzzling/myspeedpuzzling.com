@@ -278,6 +278,10 @@ SQL, ['id' => $id]);
          *     results_count: int,
          *     puzzle_format: string,
          *     puzzles_to_solve: null|int,
+         *     unboxed: bool,
+         *     table_labels_count: int,
+         *     first_table_label: null|string,
+         *     last_table_label: null|string,
          *     online_enabled_at: null|string,
          *     online_detection_mode: null|string,
          *     online_unfinished_measure: null|string,
@@ -305,6 +309,12 @@ SELECT
     cr.timezone,
     cr.puzzle_format,
     cr.puzzles_to_solve,
+    cr.unboxed,
+    -- The names of its tables (table-labels-and-plates.md): how many, the first and the last - the list is
+    -- GET /internal-api/rounds/{id}/table-labels
+    CASE WHEN jsonb_typeof(cr.table_labels) = 'array' THEN jsonb_array_length(cr.table_labels) ELSE 0 END AS table_labels_count,
+    CASE WHEN jsonb_typeof(cr.table_labels) = 'array' THEN cr.table_labels ->> 0 END AS first_table_label,
+    CASE WHEN jsonb_typeof(cr.table_labels) = 'array' THEN cr.table_labels ->> -1 END AS last_table_label,
     c.location_country_code,
     cs.location_country_code AS series_country_code,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id) AS results_count,
@@ -349,6 +359,7 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
          *     puzzle_hide_image_until: null|string,
          *     position: null|int,
          *     label: null|string,
+         *     unboxed: bool,
          *     shared_with_rounds: null|string,
          * }> $puzzleRows
          */
@@ -362,6 +373,7 @@ SELECT
     crp.hides_everywhere,
     crp.position,
     crp.label,
+    crp.unboxed,
     {$revealAt} AS reveals_at,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
@@ -411,6 +423,7 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
                 puzzle: AdminPuzzle::fromDatabaseRow($puzzleRow),
                 position: $positions[$puzzleRow['round_puzzle_id']],
                 label: $puzzleRow['label'],
+                unboxed: $puzzleRow['unboxed'],
                 sharedWithRounds: SharedRoundPuzzle::names($puzzleRow['shared_with_rounds']),
             );
         }

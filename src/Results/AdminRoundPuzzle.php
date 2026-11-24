@@ -27,6 +27,8 @@ readonly final class AdminRoundPuzzle
         public null|string $label = null,
         // Other rounds of the competition in the same category with this puzzle (shared puzzles), by start
         public array $sharedWithRounds = [],
+        // Unboxed on its own (spws-unboxed-per-puzzle.md) - the round's `unboxed` makes every puzzle of it unboxed
+        public bool $unboxed = false,
     ) {
     }
 
@@ -47,6 +49,7 @@ readonly final class AdminRoundPuzzle
             'label' => $this->label,
             'effectiveLabel' => RoundPuzzleLabel::effective($this->label, $this->position),
             'sharedWithRounds' => $this->sharedWithRounds,
+            'unboxed' => $this->unboxed,
         ];
     }
 }

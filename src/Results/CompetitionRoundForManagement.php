@@ -46,6 +46,14 @@ readonly final class CompetitionRoundForManagement
         public bool $unboxed = false,
         // Puzzles unboxed on their own (spws-unboxed-per-puzzle.md) - shown only while the round switch is off
         public int $unboxedPuzzleCount = 0,
+        // Seating (table-labels-and-plates.md): table numbers switched off for the round; how many of its tables have
+        // names (0 = plain numbers) and the first and last name
+        public bool $tableNumbersOff = false,
+        public int $tableLabelsCount = 0,
+        public null|string $firstTableLabel = null,
+        public null|string $lastTableLabel = null,
+        // Puzzles with the organiser's own label (round-formats.md) - a copy loses them with the puzzles (duplicate notice)
+        public int $labelledPuzzleCount = 0,
     ) {
     }
 }

@@ -119,6 +119,39 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         self::assertSame(['total'], array_values(array_unique(array_map(self::text(...), $copyFormats))));
     }
 
+    /**
+     * spws-wizard.md package D: puzzle labels and puzzles unboxed on their own go with the puzzles - the form lists them
+     * per round, a flash says it again after the copy; the page says what each round keeps
+     */
+    public function testPuzzleLabelsAndOwnUnboxedMarksAreSaidNotToBeCopied(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $connection = self::getContainer()->get(Connection::class);
+        $roundPuzzle = self::text($connection->fetchOne('SELECT id FROM competition_round_puzzle WHERE round_id = :id ORDER BY id LIMIT 1', ['id' => OfficialResultsFixture::ROUND_GROUP_A]));
+        $connection->executeStatement("UPDATE competition_round_puzzle SET label = 'Challenge 4', unboxed = true WHERE id = :id", ['id' => $roundPuzzle]);
+        $name = self::text($connection->fetchOne('SELECT name FROM competition_round WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_A]));
+        $line = $this->trans('event_duplicate.puzzle_marks.round', [
+            '%round%' => $name,
+            '%marks%' => $this->trans('event_duplicate.puzzle_marks.labels', ['%count%' => 1]) . ', ' . $this->trans('event_duplicate.puzzle_marks.unboxed', ['%count%' => 1]),
+        ]);
+
+        $browser->request('GET', self::PATH);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-duplicate-kept]');
+        self::assertSelectorCount(1, '[data-duplicate-puzzle-marks] li');
+        self::assertSelectorTextSame('[data-duplicate-puzzle-marks-round="' . OfficialResultsFixture::ROUND_GROUP_A . '"]', $line);
+        self::assertSame('1 puzzle label', $this->trans('event_duplicate.puzzle_marks.labels', ['%count%' => 1]));
+
+        $browser->request('POST', self::PATH, ['_token' => 'csrf-token', 'dateFrom' => '2031-05-01', 'name' => 'Results Cup Marks'], server: ['HTTP_ORIGIN' => 'http://localhost']);
+
+        self::assertResponseStatusCodeSame(303);
+        /** @var Session $session */
+        $session = $browser->getRequest()->getSession();
+        self::assertContains($this->trans('event_duplicate.puzzle_marks.flash', ['%rounds%' => $line]), $session->getFlashBag()->peek('warning'));
+    }
+
     public function testTheNextEditionOfASeriesIsProposedWithTheNextNumberAndTheSameGap(): void
     {
         $browser = self::createClient();

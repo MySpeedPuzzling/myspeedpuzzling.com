@@ -10656,6 +10656,14 @@ event_duplicate:
         notice: "パズルの形式がリセットされます。コピーのラウンドはパズルなしで始まるため、すべて「ラウンドで1つの結果」になります。パズルを追加してから、形式を設定し直してください："
         round: "%round%は「%format%」でした"
         flash: "パズルの形式がリセットされました。コピーのラウンドにパズルを追加してから、形式を設定し直してください：%rounds%。"
+    # spws-wizard.md package D: what each round keeps; puzzle labels and own Unboxed marks go with the puzzles
+    kept: "各ラウンドは設定（制限時間、ラウンド全体の「箱なし」、テーブル名）を引き継ぎます。順位表・ディスプレイ・ディビジョンもコピーされます。"
+    puzzle_marks:
+        notice: "パズルのラベルと個別に「箱なし」にしたパズルはパズルと一緒に扱われます。コピー先のラウンドのパズルページで設定し直してください:"
+        round: "%round%: %marks%"
+        labels: "パズルのラベル %count% 件"
+        unboxed: "箱なしのパズル %count% 件"
+        flash: "パズルのラベルと箱なしのパズルはコピーされません。コピー先のラウンドにパズルを追加したら設定し直してください: %rounds%。"
 puzzle_tags:
     trait:
         large_uniform_areas: "大きな単色の部分"
@@ -14123,6 +14131,7 @@ competition_toolkit:
             title: "ラウンド形式と公開"
             help: "各ラウンドの進め方と、パズルを公開するタイミングです。各ラウンドのパズルページで変更します。"
             no_rounds: "このイベントにはまだラウンドがありません。"
+            table_names: "テーブル %first% … %last%"
         judges:
             title: "審判"
             help: "審判はライブ入力でスマートフォンから結果を入力します。審判ページで追加してください。"
@@ -15283,6 +15292,20 @@ event_wizard:
         standings_help: "各出場者のラウンドのタイムを合計します - カテゴリごとに1つの総合順位です。"
         standings_set_up: "総合順位は設定済みです"
         tables_note: "テーブル番号は出場者がそろってから割り当てます。「準備」チェックリストでお知らせします。"
+        table_names: "会場図のようにテーブルに名前を付ける"
+        table_names_help: "1、2、3 の代わりに A1、A2 … B1 など。審判が入力し、ネームプレートに印刷されます。オフ = 通常の番号。"
+        table_names_preview: "%category%: %count% 件、%first% … %last%"
+        table_names_preview_problem: "%category%: 上の項目を確認してください"
+        table_names_later: "すべてのラウンドで同じ会場です。カテゴリーごとに独自のリストになります。各ラウンドの座席ページでいつでも変更できます。"
+        table_names_change: "座席ページで変更"
+        table_names_set: "テーブル名:"
+        table_names_category: "%category% %count%（%first% … %last%）"
+        table_names_refused: "テーブル名を保存できませんでした。その間に誰かが変更しました。このステップを開き直してください。"
+        table_seats_side: "「A1 L / A1 R」形式は 1 テーブル 2 席用です。それ以上の場合は別の形式を選んでください。"
+        table_seats:
+            solo: "1 テーブルの席数 - 個人"
+            duo: "1 テーブルの席数 - ペア"
+            team: "1 テーブルの席数 - チーム"
     structure:
         title: "どのように進めますか？"
         how_played: "出場者は後のラウンドに勝ち進みますか？"

@@ -572,6 +572,52 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
     }
 
     /**
+     * spws-wizard.md package D: opened again without `?challenges` (Review → Edit puzzles, resume), a block "decided
+     * later" still gets its "Challenge k" labels and "Solve all n" - read from the round's generated name, in any of the
+     * wizard's languages; any other name gets nothing; a plain Continue writes nothing
+     */
+    public function testABlockDecidedLaterKeepsItsPlanWhenOpenedAgain(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $competitionId = $this->startDraft('challenges');
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/structure?structure=challenges');
+        $crawler = $this->buildTemplate($crawler, ['template' => 'challenges']);
+        $this->createRounds($crawler, array_map(static fn (int $index): string => sprintf('%02d:00', 8 + $index), range(0, 9)));
+        self::assertResponseRedirects();
+
+        $rounds = $this->rounds($competitionId);
+        $block = $rounds[1]['id'];
+        $single = $rounds[2]['id'];
+        $czech = $rounds[3]['id'];
+        $renamed = $rounds[4]['id'];
+        // A draft created in Czech (a typed hyphen instead of the generated dash), and a round renamed by the organiser
+        $this->database()->executeStatement('UPDATE competition_round SET name = :name WHERE id = :id', ['name' => 'Týmy - Výzvy 1 + 2', 'id' => $czech]);
+        $this->database()->executeStatement('UPDATE competition_round SET name = :name WHERE id = :id', ['name' => 'Teams 2', 'id' => $renamed]);
+        $before = $this->database()->fetchAllAssociative('SELECT id, puzzle_format, puzzles_to_solve FROM competition_round WHERE competition_id = :id ORDER BY id', ['id' => $competitionId]);
+
+        $crawler = $this->browser->request('GET', '/en/new-event/' . $competitionId . '/puzzles');
+        self::assertResponseIsSuccessful();
+        $label = static fn (string $roundId, int $slot): null|string => $crawler->filter('input[name="event_wizard_puzzles[rows][' . $roundId . '][labels][' . $slot . ']"]')->attr('value');
+        $format = static fn (string $roundId): null|string => $crawler->filter('input[name="event_wizard_puzzles[rows][' . $roundId . '][puzzleFormat]"][checked]')->attr('value');
+
+        self::assertSame(['Challenge 3', 'Challenge 4'], [$label($block, 0), $label($block, 1)]);
+        self::assertSame('all', $format($block));
+        self::assertSame('Challenge 5', $label($single, 0));
+        self::assertSame(['Challenge 1', 'Challenge 2'], [$label($czech, 0), $label($czech, 1)]);
+        self::assertSame('all', $format($czech));
+        self::assertNull($label($renamed, 0));
+        self::assertNotSame('all', $format($renamed));
+        // The plan read from names never rides on the form's action - it is read again every time
+        self::assertStringNotContainsString('challenges', (string) $crawler->filter('form[name="event_wizard_puzzles"]')->attr('action'));
+
+        // Continue with every block still "decided later": nothing written
+        $this->browser->submit($crawler->filter('form[name="event_wizard_puzzles"]')->form());
+        self::assertResponseRedirects();
+        self::assertSame(0, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id', ['id' => $competitionId]));
+        self::assertSame($before, $this->database()->fetchAllAssociative('SELECT id, puzzle_format, puzzles_to_solve FROM competition_round WHERE competition_id = :id ORDER BY id', ['id' => $competitionId]));
+    }
+
+    /**
      * spws-wizard.md: "Overall standings" on Extras with the organiser's rules (untouched = today's standing)
      */
     public function testExtrasMakeTheOverallStandingsWithTheirRules(): void

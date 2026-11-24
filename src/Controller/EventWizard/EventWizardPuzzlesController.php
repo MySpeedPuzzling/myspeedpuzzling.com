@@ -125,8 +125,8 @@ final class EventWizardPuzzlesController extends AbstractController
         $competition = $this->competitionRepository->get($competitionId);
         $rounds = $this->competitionRoundRepository->ofCompetition($competition);
         $toolkit = $this->isGranted(CompetitionToolkitVoter::COMPETITION_TOOLKIT_MANAGE, $competitionId);
-        $challenges = $toolkit ? self::challengesOf($request) : [];
-        $form = $this->createGrid($competitionId, $rounds, $toolkit, $challenges);
+        [$challenges, $fromNames] = $toolkit ? $this->challengesPlan($request, $rounds) : [[], []];
+        $form = $this->createGrid($competitionId, $rounds, $toolkit, $challenges, $fromNames);
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
@@ -163,7 +163,7 @@ final class EventWizardPuzzlesController extends AbstractController
                     'competitionId' => $competitionId,
                     'another' => strtolower($another),
                     // The Challenges plan stays for the rows not filled in yet (spws-wizard.md)
-                    self::CHALLENGES => array_map(static fn (array $numbers): string => implode(',', $numbers), $challenges),
+                    self::CHALLENGES => array_map(static fn (array $numbers): string => implode(',', $numbers), array_diff_key($challenges, array_flip($fromNames))),
                     '_fragment' => 'round-' . strtolower($another),
                 ], static fn (mixed $value): bool => $value !== []), Response::HTTP_SEE_OTHER);
             }
@@ -181,6 +181,35 @@ final class EventWizardPuzzlesController extends AbstractController
         }
 
         return $this->page($form, $progress, $rounds, $toolkit, $competitionId, $challenges);
+    }
+
+    /**
+     * The Challenges template's plan: the parameter (challengesOf()), else - a block opened again without it (Review →
+     * "Edit puzzles", Finish later, Continue setting up) - what the round's generated name says ("Pairs – Challenges 3 +
+     * 4", EventWizardDefaults::challengeNumbersOf(); spws-wizard.md package D). A renamed round has no plan.
+     *
+     * @param list<CompetitionRound> $rounds
+     * @return array{array<string, non-empty-list<int>>, list<string>} the plan, and the rounds whose plan came from the name
+     */
+    private function challengesPlan(Request $request, array $rounds): array
+    {
+        $challenges = self::challengesOf($request);
+        $fromNames = [];
+
+        foreach ($rounds as $round) {
+            $roundId = $round->id->toString();
+
+            if (isset($challenges[$roundId]) === false) {
+                $numbers = $this->defaults->challengeNumbersOf($round->name, $round->category);
+
+                if ($numbers !== [] && count($numbers) <= EventWizardPuzzlesRowFormData::SLOTS) {
+                    $challenges[$roundId] = $numbers;
+                    $fromNames[] = $roundId;
+                }
+            }
+        }
+
+        return [$challenges, $fromNames];
     }
 
     /**
@@ -220,9 +249,11 @@ final class EventWizardPuzzlesController extends AbstractController
      * @param list<CompetitionRound> $rounds
      * @param array<string, non-empty-list<int>> $challenges the Challenges template's plan - prefills a round without
      *     puzzles yet: "Challenge k" labels and "Solve all n"
+     * @param list<string> $fromNames rounds whose plan came from the round's name (not the Structure step's link): their
+     *     "Solve all" is prefilled only while fewer than 2 puzzles are saved - from 2 the format shown is the organiser's
      * @return FormInterface<EventWizardPuzzlesFormData>
      */
-    private function createGrid(string $competitionId, array $rounds, bool $toolkit, array $challenges = []): FormInterface
+    private function createGrid(string $competitionId, array $rounds, bool $toolkit, array $challenges = [], array $fromNames = []): FormInterface
     {
         $rows = [];
         $rowOptions = [];
@@ -250,7 +281,7 @@ final class EventWizardPuzzlesController extends AbstractController
                     $rows[$roundId]->labels[$index] = $this->defaults->challengeLabel($number);
                 }
 
-                if (count($plan) > 1) {
+                if (count($plan) > 1 && (in_array($roundId, $fromNames, true) === false || $puzzlesCounts[$roundId] < 2)) {
                     $rows[$roundId]->puzzleFormatChoice = CompetitionRoundFormData::FORMAT_CHOICE_ALL;
                 }
             }
@@ -263,7 +294,7 @@ final class EventWizardPuzzlesController extends AbstractController
         return $this->formFactory->createNamed(self::FORM, EventWizardPuzzlesFormType::class, $data, [
             'action' => $this->generateUrl('event_wizard_puzzles', array_filter([
                 'competitionId' => $competitionId,
-                self::CHALLENGES => array_map(static fn (array $numbers): string => implode(',', $numbers), $challenges),
+                self::CHALLENGES => array_map(static fn (array $numbers): string => implode(',', $numbers), array_diff_key($challenges, array_flip($fromNames))),
             ], static fn (mixed $value): bool => $value !== [])),
             'competition_id' => $competitionId,
             'stopwatch_reveal' => $toolkit,

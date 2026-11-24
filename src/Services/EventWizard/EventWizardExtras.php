@@ -43,6 +43,22 @@ readonly final class EventWizardExtras
             ? $competition->registrationTimezone
             : ($rounds !== [] ? $rounds[array_key_last($rounds)]->timezone : $competition->registrationZone());
 
+        // Table names (spws-wizard.md package D): the rounds using table numbers per category, and the first round of each
+        // category whose tables have names
+        $tableRoundIds = [];
+        $namedTableRounds = [];
+        foreach ($rounds as $round) {
+            if ($round->tableNumbersOff) {
+                continue;
+            }
+
+            $tableRoundIds[$round->category->value][] = $round->id;
+
+            if ($round->tableLabelsCount > 0 && isset($namedTableRounds[$round->category->value]) === false) {
+                $namedTableRounds[$round->category->value] = $round;
+            }
+        }
+
         return new EventWizardExtrasState(
             competitionId: $competition->id->toString(),
             isOnline: EventIsOnline::of($competition),
@@ -62,6 +78,8 @@ readonly final class EventWizardExtras
             standingsCount: $toolkit && count($rounds) >= 2 ? count($this->getCompetitionStandings->ofCompetition($competitionId)) : 0,
             roundsCount: count($rounds),
             toolkit: $toolkit,
+            tableRoundIds: $tableRoundIds,
+            namedTableRounds: array_values($namedTableRounds),
         );
     }
 }

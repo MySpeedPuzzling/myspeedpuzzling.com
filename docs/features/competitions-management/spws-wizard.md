@@ -140,3 +140,98 @@ As designed + the amendments, and:
   organiser types the labels and picks "Solve all" (the round's name still says "Challenges 3 + 4"). docs/TODO.md.
 - The event page's note under an unboxed puzzle says "Picture shown once the results are published"
   (`VisibleRoundPuzzle::$pictureWaitsForResults` → `EditionRoundPuzzle`, `event_rounds.picture_after_results`).
+
+# Package D - every SPWS setting everywhere (2026-11-24)
+
+Closes the leftovers packages A ([table-labels-and-plates.md](table-labels-and-plates.md)) and B (this doc +
+[spws-unboxed-per-puzzle.md](spws-unboxed-per-puzzle.md)) left, so an organiser - or Claude Code over the internal API -
+sets every SPWS option wherever they are, never forced. Everything opt-in; an untouched event/draft/API call behaves
+byte-identically. No migration.
+
+## D1. Wizard Extras: "Name the tables like your hall plan" (optional)
+
+**Options.** (a) A step of its own on the several-rounds path - more clicks for everyone, also those who never need it.
+(b) The seating page only (today) - SPWS would set it per championship after the wizard. (c) **An Extras row (chosen)**,
+next to the other opt-in features; Extras is on every in-person path (one round, several rounds incl. Challenges).
+
+**The row** (toolkit = COMPETITION_TOOLKIT_MANAGE, in-person event, ≥ 1 round using table numbers, no round named yet):
+switch "Name the tables like your hall plan" - one line "Like A1, A2 … B1 instead of 1, 2, 3 - judges type them, plates
+print them. Off = plain numbers." Switched on:
+- the hall once - the seating panel's generator fields and defaults: letters (`A-H`), numbers (`1-22`), order (A1, A2 …
+  / A1, B1 …), leave out (`H22`), place style (A1 L / A1 R · A1a / A1b · A1-1 / A1-2);
+- **places per table per category** the draft has (Solo / Pairs / Teams, 1-4, default 1) - SPWS: Teams 1 (175 names),
+  Pairs 2 and Solo 2 (350). One hall, a list per championship (A's "lists per category" rule);
+- a live preview per category ("Pairs: 350 names, A1 L … G22 R") by a small lazy Stimulus controller over the pure
+  `generate()` of `assets/table_labels_editor.js` (twin of `TableLabelGenerator`); without JS the server validates.
+
+**Write.** `SaveEventWizardExtras` gets an optional last parameter `tableLabels: list<SetRoundTableLabels>` - one message
+per category: every round of the category with table numbers on, `labels` = `TableLabelGenerator::generate()` with that
+category's places, `expected` = each round's list now (null). Dispatched in the same transaction after the standings;
+the generator runs in the controller first (`InvalidTableLabels` → a field error, nothing written); `TableLabelsRefused`
+inside → `EventWizardExtraRefused('tableNames')` (all rolled back, 422). After the commit `roundChanged()` (official
+results + displays) per round, like the internal API. `isEmpty()` counts it.
+
+**Coming back.** A list cannot be turned back into generator fields: once any round of the draft has names the row is a
+line "Table names: Pairs 350 (A1 L … G22 R) …" + "Change on the seating page" (link to the first named round's seating
+page, `?labels` opens the panel) - the standings/displays pattern. Review lists the same line. `tables_note` (under
+Extras) changes to "Who sits at which table is set once people are in - the "Get ready" checklist reminds you."
+(6 locales; the note was about numbers).
+
+**Reads.** `GetCompetitionRoundsForManagement` gains `cr.table_numbers_off` and `cr.table_labels` columns
+(`CompetitionRoundForManagement::$tableNumbersOff`, `$tableLabels: null|TableLabels`) - same statement, +0. Used by
+the Extras state, Review and the hub card (D5).
+
+## D2. Resume / "Edit puzzles": a block keeps its "Challenge k" labels and "Solve all n"
+
+The plan was only `?challenges[<round>]=3,4`. **Fallback when the parameter does not name a round**: the round's name is
+matched against the names the Challenges template generates - `event_wizard.structure.challenges.round_name_one` /
+`round_name_block` with the round's category name, **in each of the 6 locales** (a draft created in Czech and resumed
+in English still matches) - exact match of the whole name, the `%numbers%` part = `\d{1,3}( \+ \d{1,3})*` (≤ 4 numbers,
+the grid's slots). "Solo 1", "Semifinal 1", "Group A" never match; a renamed round gets no prefill (as today, documented).
+`EventWizardDefaults::challengeNumbersOf(name, category): list<int>` (pure over the translator). The derived plan
+prefills exactly like the parameter (labels of the slots not saved yet, "Solve all n" for n ≥ 2) and joins the form's
+action. Toolkit only, like the parameter. A plain Continue still writes nothing for a round left without puzzles (B's
+rule: "Solve all" is saved only from 2 puzzles).
+
+## D3. Duplicate: say exactly what the copy keeps
+
+`DuplicateCompetition` copies rounds without puzzles (never: secret puzzles, a next edition's puzzles differ), so
+per-puzzle Unboxed marks and puzzle labels cannot travel - copying puzzles stays out. The page's notice grows from
+"Puzzle formats reset" to **"The copy's rounds start without puzzles"** listing per round what the organiser sets again:
+its format (as today), "N puzzles unboxed" (`unboxedPuzzleCount`, row has it), "N puzzle labels"
+(`COUNT(*) FILTER (WHERE crp.label IS NOT NULL)`, new column of the same statement). Plus one line of what IS kept:
+"Kept: each round's settings, whole-round Unboxed, table names, standings, displays, divisions". Same in the flash. The
+existing `data-duplicate-formats-reset` / `data-duplicate-format-round` attributes stay. Internal API duplicate: its
+doc lists the same (answer unchanged).
+
+## D4. Internal API: read + write unboxed, labels, order, format
+
+Reads (`GET …/competitions/{id}`, every round answer): round `unboxed` (bool), `tableLabels` (list, **only when set** -
+A's doc promised it, never built), round puzzle `unboxed` (its own flag). Additive keys.
+
+Writes - one message per call, all checks before writing:
+- `PATCH /internal-api/rounds/{id}` + `puzzleFormat` (`total` | `pick`) and `puzzlesToSolve` (pick: 1..N; `"all"`
+  not a value - K = N is "solve all") → the existing `EditCompetitionRound::$puzzleFormat/$puzzlesToSolve` (left out =
+  kept). `RoundPuzzleFormatRefused` → 409 with `reason`.
+- `PUT /internal-api/rounds/{id}/arrangement` `{"puzzleIds": [...] (order, optional), "labels": {"<puzzleId>": "Challenge
+  3" | null}}` (optional; ≤ `RoundPuzzleLabel::MAX_LENGTH`, checked in the controller → 400) → `ArrangeRoundPuzzles`
+  (puzzle ids mapped to the round's round-puzzle ids; an id not in the round = 400). After the commit: the arrange page's
+  signals.
+- `PUT /internal-api/rounds/{id}/unboxed` `{"unboxed": bool, "unboxedPuzzleIds": [puzzleId…] (optional; with
+  `unboxed: true` ignored = cleared, like the web form), "confirmReveal": bool}` → `ChangeRoundUnboxed`. A change that
+  lets a held picture out (round not first-published yet, a puzzle unboxed now would be boxed) → 409
+  `pictures_would_show` with the puzzles unless `confirmReveal: true` (the web's confirm). After: `puzzlesRevealed()`.
+Order for scripts (package C): puzzles (`PUT …/puzzles`) → `…/arrangement` → `…/unboxed` → `PATCH` format.
+
+## D5. Small TODO items
+- Done: toolkit hub "Round formats" card line "· Tables A1 L … G22 R" per named round (from D1's columns, +0).
+- Left: Get ready "Same tables" item (its 2 statements are pinned - needs a facts change; the Review line covers it),
+  real A4 plates (physical), SPWS's answer on place names (external), editing saved puzzles' labels on the grid (round
+  puzzles page does it; the grid shows them).
+
+## Tests
+`EventWizardExtrasTest` (row hidden online / without toolkit; Pairs 2 + Teams 1 → two lists; invalid letters → 422
+nothing written; named → line), `EventWizardSeveralRoundsTest`/Challenges (resume without `?challenges` prefills; cs
+draft resumed in en; "Solo 1" untouched), `DuplicateCompetition*Test` notice lines, `RoundsInternalApiTest` (format
+PATCH, arrangement, unboxed + 409 confirm, reads), JS harness for the preview if logic beyond `generate()`.
+Browser: Extras + Review + Puzzles (resume) + duplicate page + hub card, 1280 and 375 px.

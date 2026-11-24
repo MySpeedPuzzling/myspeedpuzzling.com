@@ -41,7 +41,13 @@ SELECT
     cr.reveal_delay_minutes,
     cr.slug,
     cr.unboxed,
+    cr.table_numbers_off,
+    -- The names of the round's tables (table-labels-and-plates.md): how many, the first and the last - never the list
+    CASE WHEN jsonb_typeof(cr.table_labels) = 'array' THEN jsonb_array_length(cr.table_labels) ELSE 0 END AS table_labels_count,
+    CASE WHEN jsonb_typeof(cr.table_labels) = 'array' THEN cr.table_labels ->> 0 END AS first_table_label,
+    CASE WHEN jsonb_typeof(cr.table_labels) = 'array' THEN cr.table_labels ->> -1 END AS last_table_label,
     COUNT(crp.id) AS puzzle_count,
+    COUNT(crp.id) FILTER (WHERE crp.label IS NOT NULL) AS labelled_puzzle_count,
     COUNT(crp.id) FILTER (WHERE crp.unboxed) AS unboxed_puzzle_count,
     STRING_AGG(DISTINCT crp.reveal_mode, ',' ORDER BY crp.reveal_mode) FILTER (WHERE crp.hide_until_round_starts) AS secret_reveal_modes
 FROM competition_round cr
@@ -81,6 +87,11 @@ SQL;
              *     slug: null|string,
              *     unboxed: bool,
              *     unboxed_puzzle_count: int|string,
+             *     table_numbers_off: bool,
+             *     table_labels_count: int|string,
+             *     first_table_label: null|string,
+             *     last_table_label: null|string,
+             *     labelled_puzzle_count: int|string,
              * } $row
              */
 
@@ -107,6 +118,11 @@ SQL;
                 slug: $row['slug'],
                 unboxed: $row['unboxed'],
                 unboxedPuzzleCount: (int) $row['unboxed_puzzle_count'],
+                tableNumbersOff: $row['table_numbers_off'],
+                tableLabelsCount: (int) $row['table_labels_count'],
+                firstTableLabel: $row['first_table_label'],
+                lastTableLabel: $row['last_table_label'],
+                labelledPuzzleCount: (int) $row['labelled_puzzle_count'],
             );
         }, $data, array_keys($data));
     }

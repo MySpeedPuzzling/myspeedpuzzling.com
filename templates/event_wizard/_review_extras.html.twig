@@ -38,11 +38,14 @@
                 {% if extras.overlaysCount > 0 %}
                     <li data-event-wizard-review-extra="overlay"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.overlay_added'|trans({'%count%': extras.overlaysCount}) }}</li>
                 {% endif %}
+                {% if extras.tableNamesShown %}
+                    <li data-event-wizard-review-extra="table_names"><i class="ci-check text-success me-1"></i>{{ include('event_wizard/_table_names_line.html.twig', {rounds: extras.namedTableRounds}, with_context = false) }}</li>
+                {% endif %}
                 {% if extras.standingsCount > 0 %}
                     <li data-event-wizard-review-extra="standings"><i class="ci-check text-success me-1"></i>{{ 'event_wizard.extras.standings_set_up'|trans }}</li>
                 {% endif %}
             {% endif %}
-            {% if not extras.registrationManaged and extras.registrationLink is null and extras.resultsLink is null and extras.referees is empty and (not extras.toolkit or (settings.qrTagMode is null and not settings.competitorPages and extras.screensCount == 0 and extras.overlaysCount == 0 and extras.standingsCount == 0)) %}
+            {% if not extras.registrationManaged and extras.registrationLink is null and extras.resultsLink is null and extras.referees is empty and (not extras.toolkit or (settings.qrTagMode is null and not settings.competitorPages and extras.screensCount == 0 and extras.overlaysCount == 0 and extras.standingsCount == 0 and not extras.tableNamesShown)) %}
                 <li class="text-muted" data-event-wizard-review-extra="none">{{ 'event_wizard.review.extras_none'|trans }}</li>
             {% endif %}
         </ul>

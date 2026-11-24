@@ -40,7 +40,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * Rounds are copied without their puzzles, so a `pick` round's copy is "One result for the round" (competition toolkit
  * G3, round-formats.md "Known edges") - the page and a second flash name each such round and its format, so the organiser
- * sets it again once the copy has its puzzles.
+ * sets it again once the copy has its puzzles. The same for puzzle labels and puzzles unboxed on their own (they go with
+ * the puzzles; spws-wizard.md package D) - a third list and flash; the page also says what each round keeps.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class DuplicateCompetitionController extends AbstractController
@@ -104,9 +105,16 @@ final class DuplicateCompetitionController extends AbstractController
         );
         $form = $this->formFactory->createNamed('', DuplicateCompetitionFormType::class, $formData);
         // The rounds whose format the copy does not keep (it has no puzzles to pick from)
+        $rounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
         $pickRounds = array_values(array_filter(
-            $this->getCompetitionRoundsForManagement->ofCompetition($competitionId),
+            $rounds,
             static fn (CompetitionRoundForManagement $round): bool => $round->puzzleFormat === RoundPuzzleFormat::Pick && $round->puzzlesToSolve !== null,
+        ));
+        // The rounds whose puzzles carry labels or their own Unboxed mark - they go with the puzzles (spws-wizard.md
+        // package D); a whole-round Unboxed switch is a round setting and copied
+        $markedRounds = array_values(array_filter(
+            $rounds,
+            static fn (CompetitionRoundForManagement $round): bool => $round->labelledPuzzleCount > 0 || ($round->unboxed === false && $round->unboxedPuzzleCount > 0),
         ));
         $form->handleRequest($request);
 
@@ -140,6 +148,12 @@ final class DuplicateCompetitionController extends AbstractController
                 ]));
             }
 
+            if ($markedRounds !== []) {
+                $this->addFlash('warning', $this->translator->trans('event_duplicate.puzzle_marks.flash', [
+                    '%rounds%' => implode('; ', array_map($this->puzzleMarksLine(...), $markedRounds)),
+                ]));
+            }
+
             return $this->redirectToRoute(
                 'edit_competition',
                 ['competitionId' => $newCompetitionId->toString()],
@@ -153,7 +167,30 @@ final class DuplicateCompetitionController extends AbstractController
             'source' => $source,
             'source_day' => $sourceDay,
             'pick_rounds' => $pickRounds,
+            'has_rounds' => $rounds !== [],
+            'marked_rounds' => array_map(
+                fn (CompetitionRoundForManagement $round): array => ['id' => $round->id, 'line' => $this->puzzleMarksLine($round)],
+                $markedRounds,
+            ),
         ]);
+    }
+
+    /**
+     * "Pairs – Challenges 3 + 4: 2 puzzle labels, 1 puzzle unboxed" - what the copy's round loses with its puzzles
+     */
+    private function puzzleMarksLine(CompetitionRoundForManagement $round): string
+    {
+        $marks = [];
+
+        if ($round->labelledPuzzleCount > 0) {
+            $marks[] = $this->translator->trans('event_duplicate.puzzle_marks.labels', ['%count%' => $round->labelledPuzzleCount]);
+        }
+
+        if ($round->unboxed === false && $round->unboxedPuzzleCount > 0) {
+            $marks[] = $this->translator->trans('event_duplicate.puzzle_marks.unboxed', ['%count%' => $round->unboxedPuzzleCount]);
+        }
+
+        return $this->translator->trans('event_duplicate.puzzle_marks.round', ['%round%' => $round->name, '%marks%' => implode(', ', $marks)]);
     }
 
     /**

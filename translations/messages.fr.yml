@@ -10662,6 +10662,14 @@ event_duplicate:
         notice: "Formats de puzzles réinitialisés : les manches de la copie commencent sans puzzles, chacune est donc « Un seul résultat pour la manche ». Ajoutez les puzzles, puis choisissez à nouveau le format :"
         round: "%round% était « %format% »"
         flash: "Formats de puzzles réinitialisés - ajoutez les puzzles aux manches de la copie, puis choisissez à nouveau le format : %rounds%."
+    # spws-wizard.md package D: what each round keeps; puzzle labels and own Unboxed marks go with the puzzles
+    kept: "Chaque manche garde ses réglages : limite de temps, « Sans boîte » pour toute la manche, noms des tables - et les classements, écrans et divisions suivent."
+    puzzle_marks:
+        notice: "Les libellés des puzzles et les puzzles marqués un par un « sans boîte » partent avec les puzzles - redéfinissez-les sur les pages des puzzles des manches de la copie :"
+        round: "%round% : %marks%"
+        labels: "{1}1 libellé de puzzle|[0,Inf[%count% libellés de puzzle"
+        unboxed: "{1}1 puzzle sans boîte|[0,Inf[%count% puzzles sans boîte"
+        flash: "Les libellés de puzzle et les puzzles sans boîte ne sont pas copiés - redéfinissez-les quand les manches de la copie auront leurs puzzles : %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Grandes zones d'une seule couleur"
@@ -14129,6 +14137,7 @@ competition_toolkit:
             title: "Formats de manche et révélations"
             help: "Comment chaque manche se joue et quand ses puzzles sont révélés. Vous les modifiez sur la page des puzzles de chaque manche."
             no_rounds: "Cet événement n'a pas encore de manches."
+            table_names: "Tables %first% … %last%"
         judges:
             title: "Arbitres"
             help: "Les arbitres saisissent les résultats sur leur téléphone dans la saisie en direct. Ajoutez-les sur la page des arbitres."
@@ -15289,6 +15298,20 @@ event_wizard:
         standings_help: "Additionne les temps de chaque concurrent sur les manches - un classement par catégorie."
         standings_set_up: "Le classement général est configuré"
         tables_note: "Les numéros de table s'attribuent une fois les participants inscrits - la liste « Préparatifs » vous le rappelle."
+        table_names: "Nommer les tables comme sur le plan de la salle"
+        table_names_help: "Comme A1, A2 … B1 au lieu de 1, 2, 3 - les juges les saisissent, les chevalets les impriment. Désactivé = numéros simples."
+        table_names_preview: "%category% : %count% noms, %first% … %last%"
+        table_names_preview_problem: "%category% : vérifiez les champs ci-dessus"
+        table_names_later: "Une salle pour toutes les manches ; chaque catégorie a sa propre liste. Modifiable à tout moment sur la page de placement d'une manche."
+        table_names_change: "Modifier sur la page de placement"
+        table_names_set: "Noms des tables :"
+        table_names_category: "%category% %count% (%first% … %last%)"
+        table_names_refused: "Les noms des tables n'ont pas pu être enregistrés - quelqu'un les a modifiés entre-temps, ou des personnes sont déjà placées à plus de tables que les noms n'en couvrent. Rouvrez l'étape ou nommez les tables sur la page de placement."
+        table_seats_side: "Les places comme « A1 L / A1 R » sont pour 2 places par table - choisissez un autre style pour plus."
+        table_seats:
+            solo: "Places par table - Solo"
+            duo: "Places par table - Duos"
+            team: "Places par table - Équipes"
     structure:
         title: "Comment se déroule-t-elle ?"
         how_played: "Les concurrents se qualifient-ils pour des manches suivantes ?"

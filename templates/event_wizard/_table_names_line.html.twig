@@ -1,0 +1,6 @@
+{#- "Table names: Pairs 350 (A1 L … G22 R) · Teams 175 (A1 … G22)" (spws-wizard.md package D) - the first named round
+    per category. Variables: rounds (list<CompetitionRoundForManagement>, tableLabelsCount > 0) -#}
+{{- 'event_wizard.extras.table_names_set'|trans -}}{{ ' ' }}
+{%- for round in rounds -%}
+    {{ loop.first ? '' : ' · ' }}<span data-table-names-category="{{ round.category.value }}">{{ 'event_wizard.extras.table_names_category'|trans({'%category%': ('event_wizard.round_name.' ~ round.category.value)|trans, '%count%': round.tableLabelsCount, '%first%': round.firstTableLabel, '%last%': round.lastTableLabel}) }}</span>
+{%- endfor -%}

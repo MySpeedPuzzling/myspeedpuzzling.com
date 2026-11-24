@@ -882,6 +882,23 @@ paths:
               allOf:
                 - $ref: "#/components/schemas/RoundFields"
                 - $ref: "#/components/schemas/ConfirmReveal"
+                - type: object
+                  properties:
+                    puzzleFormat:
+                      type: string
+                      enum: [total, pick]
+                      description: |
+                        How the round's puzzles are solved (the round form's toolkit field):
+                        `total` = one result for the round, `pick` = each entrant solves
+                        `puzzlesToSolve` of them (all of them = "Solve all", e.g. a back-to-back
+                        block). Left out = kept. Refused (409) outside 1..N puzzles, on a round
+                        using online timing, or when recorded per-puzzle results would break.
+                        "Solve all" is stored as pick K = N: adding a puzzle later makes it
+                        "pick K of N+1" - send the format again then.
+                    puzzlesToSolve:
+                      type: [integer, "null"]
+                      minimum: 1
+                      description: K of `pick` (required for `pick` unless the round has one); null or left out for `total`
       responses:
         "200":
           description: The round after the change
@@ -925,6 +942,133 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+
+  /internal-api/rounds/{roundId}/arrangement:
+    put:
+      summary: Set the order and labels of a round's puzzles
+      operationId: putRoundPuzzleArrangement
+      description: |
+        The round puzzles page's ArrangeRoundPuzzles (spws-wizard.md package D). Puzzles are
+        named by their puzzle id. `puzzleIds` = the new order (puzzles left out keep their
+        place after them); `labels` = `{"<puzzleId>": "Challenge 3" | null}` (null or "" = the
+        letter of its place, a puzzle left out keeps its label, at most 40 characters). At
+        least one of the two. Every check runs before anything is written.
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                puzzleIds: { type: array, items: { type: string, format: uuid } }
+                labels:
+                  type: object
+                  additionalProperties: { type: [string, "null"], maxLength: 40 }
+      responses:
+        "200":
+          description: The round after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/rounds/{roundId}/unboxed:
+    put:
+      summary: Set a round's Unboxed - the whole round or only some puzzles
+      operationId: putRoundUnboxed
+      description: |
+        The round puzzles page's ChangeRoundUnboxed (world-series-rules.md §7,
+        spws-unboxed-per-puzzle.md): no box picture until the round's results are first
+        published. `unboxed: true` = every puzzle (own marks cleared, like the page);
+        `unboxed: false` + `unboxedPuzzleIds` = exactly these puzzles (left out = their marks
+        stay). A change that would let a held picture out before the first publish is refused
+        (409 `pictures_would_show` + `puzzles`) unless `confirmReveal` is true.
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [unboxed]
+              properties:
+                unboxed: { type: boolean }
+                unboxedPuzzleIds: { type: array, items: { type: string, format: uuid } }
+                confirmReveal: { type: boolean }
+      responses:
+        "200":
+          description: The round after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: A held box picture would come out - send `confirmReveal` true
+
+  /internal-api/rounds/{roundId}/table-labels:
+    get:
+      summary: The names of a round's tables
+      operationId: getRoundTableLabels
+      description: '`{"roundId", "labels": [...] | null}` - null = plain numbers (table-labels-and-plates.md).'
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "200":
+          description: The list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Name a round's tables (and more rounds' with the same list)
+      operationId: putRoundTableLabels
+      description: |
+        The seating page's SetRoundTableLabels. Exactly one of `labels` (a list, or null =
+        plain numbers again) and `generate` (`{letters, numbers, seats, seatStyle: side |
+        letter | dash, order: letters | numbers, skip}`); `alsoRounds` = more rounds of the
+        event with the same list. All or nothing; 422 `invalid_labels` / `labels_refused`
+        with `problems`.
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                labels: { type: [array, "null"], items: { type: string, maxLength: 12 } }
+                generate: { type: object }
+                alsoRounds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: '`{"roundIds", "changed", "labels", "count"}`'
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: The list or the generator settings were refused
 
   /internal-api/rounds/{roundId}/online-timing:
     put:
@@ -4265,6 +4409,21 @@ components:
         resultsCount:
           type: integer
           description: Solving times that belong to the round.
+        puzzleFormat:
+          type: string
+          enum: [total, pick]
+          description: total = one result for the round; pick = each entrant solves puzzlesToSolve of its puzzles
+        puzzlesToSolve: { type: [integer, "null"] }
+        unboxed:
+          type: boolean
+          description: Every puzzle of the round unboxed (no box picture until its results are first published)
+        tableLabels:
+          type: object
+          description: Only on a round whose tables have names - the list itself is GET …/table-labels
+          properties:
+            count: { type: integer }
+            first: { type: string }
+            last: { type: string }
         onlineTiming:
           description: The round's online timing - null when it does not use it
           oneOf:
@@ -4295,6 +4454,12 @@ components:
                     type: array
                     items: { type: string }
                     description: Names of the other rounds of the competition in the same category with this puzzle, by start (shared puzzles) - [] when none
+                  position: { type: integer, description: Its place in the organiser's order (1..N) }
+                  label: { type: [string, "null"], description: The organiser's label (null = the letter of its place) }
+                  effectiveLabel: { type: string, description: The label, else the letter }
+                  unboxed:
+                    type: boolean
+                    description: Unboxed on its own (the round's `unboxed` makes every puzzle unboxed)
 
     OnlineTiming:
       type: object

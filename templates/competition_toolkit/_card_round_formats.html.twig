@@ -1,7 +1,8 @@
 {#
     Round formats & reveals (lane A: A1 reveal at the stopwatch start, A2 the round format) - R §1.4 card 4: one line per
     round linking to its puzzles page - how its puzzles are solved and when its secret ones are revealed; the per-round
-    settings stay on the round pages. Variables: competition, rounds (list<CompetitionRoundForManagement>), toolkit_return.
+    settings stay on the round pages; a round whose tables have names says so, linking its seating page (spws-wizard.md
+    package D). Variables: competition, rounds (list<CompetitionRoundForManagement>), toolkit_return.
 #}
 <div class="col-lg-6">
     <div class="card shadow-sm h-100" data-toolkit-card="round-formats">
@@ -34,7 +35,7 @@
                                         {%- else -%}
                                             {{ ('competition_toolkit.round_format.reveal.' ~ round.secretRevealModes|first)|trans({'%count%': round.revealDelayMinutes}) }}
                                         {%- endif -%}
-                                    </span>{% if round.unboxed %} · <span data-toolkit-round-unboxed>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% elseif round.unboxedPuzzleCount > 0 %} · <span data-toolkit-round-unboxed="some">{{ 'competition.round_puzzles.unboxed.badge_some'|trans({'%count%': round.unboxedPuzzleCount}) }}</span>{% endif %}
+                                    </span>{% if round.unboxed %} · <span data-toolkit-round-unboxed>{{ 'competition.round_puzzles.unboxed.badge'|trans }}</span>{% elseif round.unboxedPuzzleCount > 0 %} · <span data-toolkit-round-unboxed="some">{{ 'competition.round_puzzles.unboxed.badge_some'|trans({'%count%': round.unboxedPuzzleCount}) }}</span>{% endif %}{% if round.tableLabelsCount > 0 and not round.tableNumbersOff %} · <a href="{{ path('round_seating', {roundId: round.id, labels: 1}) }}" class="text-reset" data-toolkit-round-table-names>{{ 'competition_toolkit.cards.round_formats.table_names'|trans({'%first%': round.firstTableLabel, '%last%': round.lastTableLabel}) }}</a>{% endif %}
                                 </div>
                             </div>
                             <a href="{{ path('manage_round_puzzles', {roundId: round.id}|merge(toolkit_return)) }}" class="btn btn-sm btn-outline-primary ms-auto">

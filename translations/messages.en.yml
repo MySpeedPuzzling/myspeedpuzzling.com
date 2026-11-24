@@ -10919,6 +10919,14 @@ event_duplicate:
         notice: "Puzzle formats reset: the copy's rounds start without puzzles, so each is “One result for the round”. Add the puzzles, then set the format again:"
         round: "%round% was “%format%”"
         flash: "Puzzle formats reset - add the puzzles to the copy's rounds, then set the format again: %rounds%."
+    # spws-wizard.md package D: what each round keeps; puzzle labels and own Unboxed marks go with the puzzles
+    kept: "Each round keeps its settings: time limit, Unboxed for the whole round, table names - and the standings, displays and divisions come along."
+    puzzle_marks:
+        notice: "Puzzle labels and puzzles unboxed on their own go with the puzzles - set them again on the copy's round puzzles pages:"
+        round: "%round%: %marks%"
+        labels: "{1}1 puzzle label|[0,Inf[%count% puzzle labels"
+        unboxed: "{1}1 puzzle unboxed|[0,Inf[%count% puzzles unboxed"
+        flash: "Puzzle labels and unboxed puzzles are not copied - set them again once the copy's rounds have their puzzles: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Large single-colour areas"
@@ -14386,6 +14394,7 @@ competition_toolkit:
             title: "Round formats & reveals"
             help: "How each round is played and when its puzzles are revealed. You change these on each round's puzzles page."
             no_rounds: "This event has no rounds yet."
+            table_names: "Tables %first% … %last%"
         judges:
             title: "Judges"
             help: "Judges enter results on their phones in the live entry. Add them on the referees page."
@@ -15545,6 +15554,20 @@ event_wizard:
         standings_help: "Adds up each competitor's times over the rounds - one standing per category."
         standings_set_up: "Overall standings are set up"
         tables_note: "Table numbers are assigned once people are in - the \"Get ready\" checklist reminds you."
+        table_names: "Name the tables like your hall plan"
+        table_names_help: "Like A1, A2 … B1 instead of 1, 2, 3 - judges type them, name plates print them. Off = plain numbers."
+        table_names_preview: "%category%: %count% names, %first% … %last%"
+        table_names_preview_problem: "%category%: check the fields above"
+        table_names_later: "One hall for every round; each category gets its own list. Change it any time on a round's seating page."
+        table_names_change: "Change on the seating page"
+        table_names_set: "Table names:"
+        table_names_category: "%category% %count% (%first% … %last%)"
+        table_names_refused: "The table names could not be saved - somebody changed them meanwhile, or people already sit at more tables than the names cover. Open the step again, or name the tables on the seating page."
+        table_seats_side: "Places like “A1 L / A1 R” are for 2 places per table - choose another style for more."
+        table_seats:
+            solo: "Places per table - Solo"
+            duo: "Places per table - Pairs"
+            team: "Places per table - Teams"
     structure:
         title: "How is it played?"
         how_played: "Do competitors qualify for later rounds?"

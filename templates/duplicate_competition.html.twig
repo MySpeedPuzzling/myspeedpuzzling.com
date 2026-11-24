@@ -40,6 +40,10 @@
 
                         <p class="form-text mb-3" data-what-moves><i class="bi bi-info-circle me-1"></i>{{ 'event_duplicate.form.what_moves'|trans }}</p>
                         <p class="form-text mb-3">{{ 'event_duplicate.help'|trans }}</p>
+                        {#- What each round keeps (spws-wizard.md package D) - only for an event with rounds -#}
+                        {% if has_rounds|default(false) %}
+                        <p class="form-text mb-3" data-duplicate-kept><i class="bi bi-check2 me-1"></i>{{ 'event_duplicate.kept'|trans }}</p>
+                        {% endif %}
 
                         {#- Rounds are copied without puzzles: a `pick` round's copy is "One result for the round" (competition
                             toolkit G3) - said here, and again in a flash after the copy -#}
@@ -53,6 +57,18 @@
                                             ? 'competition_toolkit.round_format.name.all'|trans({'%count%': round.puzzleCount})
                                             : 'competition_toolkit.round_format.name.pick'|trans({'%count%': round.puzzlesToSolve, '%puzzles%': round.puzzleCount}) -%}
                                         <li data-duplicate-format-round="{{ round.id }}">{{ 'event_duplicate.formats.round'|trans({'%round%': round.name, '%format%': format_name}) }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        {#- Puzzle labels and puzzles unboxed on their own go with the puzzles (spws-wizard.md package D) -#}
+                        {% if marked_rounds|default([]) is not empty %}
+                            <div class="alert alert-info small py-2 mb-3" data-duplicate-puzzle-marks>
+                                <i class="bi bi-info-circle me-1"></i>{{ 'event_duplicate.puzzle_marks.notice'|trans }}
+                                <ul class="mb-0 mt-1 ps-4">
+                                    {% for round in marked_rounds %}
+                                        <li data-duplicate-puzzle-marks-round="{{ round.id }}">{{ round.line }}</li>
                                     {% endfor %}
                                 </ul>
                             </div>

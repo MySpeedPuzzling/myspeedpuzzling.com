@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 /**
  * What the event has now of the features the wizard's Extras step switches (EventWizardExtras) - the switches start
@@ -15,6 +16,9 @@ readonly final class EventWizardExtrasState
 {
     /**
      * @param list<CompetitionRefereeListItem> $referees
+     * @param array<string, list<string>> $tableRoundIds category value => its rounds using table numbers, in schedule
+     *     order (Solo, Pairs, Teams) - what "Name the tables" writes (spws-wizard.md package D)
+     * @param list<CompetitionRoundForManagement> $namedTableRounds the first round per category whose tables have names
      */
     public function __construct(
         public string $competitionId,
@@ -37,7 +41,34 @@ readonly final class EventWizardExtrasState
         public int $roundsCount,
         // Whom COMPETITION_TOOLKIT_MANAGE grants - the toolkit rows exist only for them
         public bool $toolkit,
+        public array $tableRoundIds = [],
+        public array $namedTableRounds = [],
     ) {
+    }
+
+    /**
+     * "Name the tables like your hall plan" (spws-wizard.md package D) - in person, a round using table numbers, and
+     * no round named yet (then the seating page manages them)
+     */
+    public function tableNamesOffered(): bool
+    {
+        return $this->toolkit && $this->isOnline === false && $this->tableRoundIds !== [] && $this->namedTableRounds === [];
+    }
+
+    public function tableNamesShown(): bool
+    {
+        return $this->toolkit && $this->isOnline === false && $this->namedTableRounds !== [];
+    }
+
+    /**
+     * @return list<RoundCategory> the categories with rounds using table numbers, Solo / Pairs / Teams
+     */
+    public function tableCategories(): array
+    {
+        return array_values(array_filter(
+            RoundCategory::cases(),
+            fn (RoundCategory $category): bool => isset($this->tableRoundIds[$category->value]),
+        ));
     }
 
     /**

@@ -6,15 +6,15 @@ that would otherwise be forgotten. Newest section on top.
 
 ## SPWS 1:1 demo - unboxed per puzzle + wizard (`spws-unboxed-per-puzzle.md`, `spws-wizard.md`, 2026-11-24)
 
-- [ ] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch
-      is copied) - say so on the duplicate form next to the format-reset notice.
+- [x] `DuplicateCompetition` copies no round puzzles, so per-puzzle "Unboxed" flags are lost on a copy (the round switch
+      is copied) - said on the duplicate form + flash since package D (with puzzle labels and what each round keeps).
 - [ ] Wizard (spws-wizard.md R10): a "Get ready" item "Same tables for the whole championship" once entries exist (the
       checklist's 2 statements are pinned - from the existing facts only); today a Review line says it.
-- [ ] Wizard: a Challenges block left "Decide later" loses its prefill on resume (no labels, "One result") - derive the
-      plan from the draft (e.g. the round's planned challenge count stored, or the round name) if organisers trip on it.
+- [x] Wizard: a Challenges block left "Decide later" loses its prefill on resume - package D reads the plan from the
+      round's generated name (any locale); a renamed round still gets none.
 - [ ] Wizard: labels / Unboxed of puzzles already saved are edited on the round puzzles page, not on the grid.
-- [ ] Internal API has no unboxed field (round or puzzle) - add `unboxed` / `unboxedRoundPuzzleIds` to the round
-      endpoints if Claude Code should set it there.
+- [x] Internal API has no unboxed field - package D: `PUT /internal-api/rounds/{id}/unboxed`, `…/arrangement`, round
+      `PATCH` `puzzleFormat`, reads `unboxed` / `tableLabels`.
 
 ## No barcode on the box (`docs/features/puzzle-approvals.md` "No barcode on the box", 2026-11-23)
 
@@ -86,7 +86,7 @@ v2 leftovers (`toolkit/STATUS.md` "v2", 2026-11-18):
 - [ ] v3 list in `toolkit/STATUS.md` "v2" (table ranges per referee, typed splits, sheet per-puzzle editing, studio pair/team predictions, editor copy/paste/groups, per-display message overrides, live control for referees)
 
 Deferred by design (R §3):
-- [ ] Round formats: `every` as its own mode (= pick K = N today); ~~judge-side split times~~ (done 2026-11-17, real events W5 - round-formats.md "Judge split times"); ~~the participants sheet's per-puzzle popover~~ (done v2 C5 #439, read-only + desk deep link); internal API **writes** of format/labels (read-only output ships)
+- [ ] Round formats: `every` as its own mode (= pick K = N today); ~~judge-side split times~~ (done 2026-11-17, real events W5 - round-formats.md "Judge split times"); ~~the participants sheet's per-puzzle popover~~ (done v2 C5 #439, read-only + desk deep link); ~~internal API **writes** of format/labels~~ (SPWS package D)
 - [ ] Standings: ~~the `stages` classification and `numbered_across_stages`~~ (v2 S5 #447/#450); ~~`missing_rule = as_zero_pieces`~~ (real events W1); ~~a standings Mercure topic~~ (v2 S4 #428); ~~public `public_standing_state` JSON~~ (v2 S1); "drop worst round" / season standings
 - [ ] QR / competitor pages: the `cards` layout (tags + tents ship); ~~a `competitor_list` page~~ (v2 C1 #429/#437); ~~proposal puzzle choice (`ChangeTimeProposalPuzzles`)~~ (v2 C2 #436 + C3 #459); a per-entry private Mercure topic (polling today); ~~a 90-day prune of decided proposals~~ (follow-ups FU-M #468: `myspeedpuzzling:prune-decided-time-proposals`, lily cron daily 03:27, lily.srv 6851a4f)
 - [ ] Judge page: ~~ETag/304 on the round state~~ (v2 J2: conditional entries instead of a 304); ~~continuous scanning with a warm camera~~ (v2 J4 #440); ~~a "My tables" filter~~ (v2 J3 #435); ~~a referees-page activity column~~ (v2 J1); organiser-assigned table ranges (v3); the one-tap proposal sweep (ruled out by Jan)
@@ -2021,7 +2021,8 @@ See `docs/features/competitions-management/shared-puzzles-and-divisions.md` "As 
 - [ ] Pick rounds: no "link it" for a time no round holds (only one-puzzle rounds have it)
 
 ## SPWS table names + name plates (`docs/features/competitions-management/table-labels-and-plates.md`)
-- [ ] Creation wizard Extras: an optional "Table names (hall plan)" row (generator → every in-person round of the draft)
+- [x] Creation wizard Extras: an optional "Table names (hall plan)" row - package D ("Name the tables like your hall
+      plan", places per table per category)
 - [ ] SPWS's answer on how the two places at a table are named - regenerate with that style (default "A1 L / A1 R")
-- [ ] Toolkit hub card line "Table names: A1 L … H21 R" linking the seating page
+- [x] Toolkit hub card line "Table names: A1 L … H21 R" linking the seating page - package D ("Round formats" card)
 - [ ] Plates printed on real A4 and folded once (box sizes, the judge's pen on a standing tent)

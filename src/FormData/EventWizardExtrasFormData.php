@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Results\EventWizardExtrasState;
 use SpeedPuzzling\Web\Value\DisplayPreset;
 use SpeedPuzzling\Web\Value\QrTagMode;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -78,6 +79,27 @@ final class EventWizardExtrasFormData
     #[Assert\Valid]
     public EventWizardStandingRulesFormData $standingRules;
 
+    // ... "Name the tables like your hall plan" (spws-wizard.md package D): one hall (TableLabelGenerator's fields, the
+    // seating page's defaults), places per table per category; SetRoundTableLabels per category. Checked in the
+    // controller (the generator's refusals name the field)
+    public bool $tableNames = false;
+
+    public null|string $tableLetters = 'A-H';
+
+    public null|string $tableNumbers = '1-22';
+
+    public string $tableOrder = 'letters';
+
+    public null|string $tableSkip = null;
+
+    public string $tableSeatStyle = 'side';
+
+    public int $tableSeatsSolo = 1;
+
+    public int $tableSeatsDuo = 1;
+
+    public int $tableSeatsTeam = 1;
+
     public function __construct()
     {
         $this->standingRules = new EventWizardStandingRulesFormData();
@@ -126,6 +148,15 @@ final class EventWizardExtrasFormData
                 ->atPath('qrTagMode')
                 ->addViolation();
         }
+    }
+
+    public function tableSeats(RoundCategory $category): int
+    {
+        return match ($category) {
+            RoundCategory::Solo => $this->tableSeatsSolo,
+            RoundCategory::Duo => $this->tableSeatsDuo,
+            RoundCategory::Team => $this->tableSeatsTeam,
+        };
     }
 
     public function trimmedEntryFee(): null|string

@@ -10666,6 +10666,14 @@ event_duplicate:
         notice: "Puzzle-Formate zurückgesetzt: Die Runden der Kopie beginnen ohne Puzzles, daher ist jede „Ein Ergebnis für die Runde“. Fügen Sie die Puzzles hinzu und legen Sie dann das Format erneut fest:"
         round: "%round% war „%format%“"
         flash: "Puzzle-Formate zurückgesetzt - fügen Sie den Runden der Kopie die Puzzles hinzu und legen Sie dann das Format erneut fest: %rounds%."
+    # spws-wizard.md package D: what each round keeps; puzzle labels and own Unboxed marks go with the puzzles
+    kept: "Jede Runde behält ihre Einstellungen: Zeitlimit, „Ohne Schachtel“ für die ganze Runde, Tischnamen - und Wertungen, Anzeigen und Divisionen kommen mit."
+    puzzle_marks:
+        notice: "Puzzle-Bezeichnungen und einzeln als „ohne Schachtel“ markierte Puzzles gehören zu den Puzzles - legen Sie sie auf den Puzzle-Seiten der kopierten Runden neu fest:"
+        round: "%round%: %marks%"
+        labels: "{1}1 Puzzle-Bezeichnung|[0,Inf[%count% Puzzle-Bezeichnungen"
+        unboxed: "{1}1 Puzzle ohne Schachtel|[0,Inf[%count% Puzzles ohne Schachtel"
+        flash: "Puzzle-Bezeichnungen und Puzzles ohne Schachtel werden nicht kopiert - legen Sie sie neu fest, sobald die Runden der Kopie ihre Puzzles haben: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Große einfarbige Flächen"
@@ -14133,6 +14141,7 @@ competition_toolkit:
             title: "Rundenformate & Enthüllungen"
             help: "Wie jede Runde gespielt wird und wann ihre Puzzles enthüllt werden. Sie ändern das auf der Puzzleseite jeder Runde."
             no_rounds: "Diese Veranstaltung hat noch keine Runden."
+            table_names: "Tische %first% … %last%"
         judges:
             title: "Schiedsrichter"
             help: "Schiedsrichter geben Ergebnisse auf ihren Handys in der Live-Eingabe ein. Fügen Sie sie auf der Schiedsrichterseite hinzu."
@@ -15293,6 +15302,20 @@ event_wizard:
         standings_help: "Zählt die Zeiten jedes Teilnehmers über die Runden zusammen – eine Gesamtwertung pro Kategorie."
         standings_set_up: "Gesamtwertungen sind eingerichtet"
         tables_note: "Tischnummern werden vergeben, sobald die Teilnehmer feststehen – die Checkliste „Vorbereitung“ erinnert Sie daran."
+        table_names: "Tische wie im Hallenplan benennen"
+        table_names_help: "Etwa A1, A2 … B1 statt 1, 2, 3 - Schiedsrichter tippen sie ein, Namensschilder drucken sie. Aus = einfache Nummern."
+        table_names_preview: "%category%: %count% Namen, %first% … %last%"
+        table_names_preview_problem: "%category%: bitte die Felder oben prüfen"
+        table_names_later: "Eine Halle für alle Runden; jede Kategorie bekommt ihre eigene Liste. Jederzeit änderbar auf der Sitzplan-Seite einer Runde."
+        table_names_change: "Auf der Sitzplan-Seite ändern"
+        table_names_set: "Tischnamen:"
+        table_names_category: "%category% %count% (%first% … %last%)"
+        table_names_refused: "Die Tischnamen konnten nicht gespeichert werden - jemand hat sie inzwischen geändert, oder es sitzen schon Leute an mehr Tischen, als es Namen gibt. Öffnen Sie den Schritt erneut oder benennen Sie die Tische auf der Sitzplan-Seite."
+        table_seats_side: "Plätze wie „A1 L / A1 R“ gibt es nur für 2 Plätze pro Tisch - wählen Sie für mehr einen anderen Stil."
+        table_seats:
+            solo: "Plätze pro Tisch - Einzel"
+            duo: "Plätze pro Tisch - Paare"
+            team: "Plätze pro Tisch - Teams"
     structure:
         title: "Wie wird gespielt?"
         how_played: "Qualifizieren sich die Teilnehmer für spätere Runden?"

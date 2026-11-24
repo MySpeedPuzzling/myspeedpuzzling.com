@@ -10667,6 +10667,14 @@ event_duplicate:
         notice: "Formatos de puzzles restablecidos: las rondas de la copia empiezan sin puzzles, así que cada una es «Un resultado para la ronda». Añade los puzzles y luego vuelve a elegir el formato:"
         round: "%round% era «%format%»"
         flash: "Formatos de puzzles restablecidos: añade los puzzles a las rondas de la copia y luego vuelve a elegir el formato: %rounds%."
+    # spws-wizard.md package D: what each round keeps; puzzle labels and own Unboxed marks go with the puzzles
+    kept: "Cada ronda conserva sus ajustes: límite de tiempo, «Sin caja» para toda la ronda, nombres de mesas; y también se copian las clasificaciones, pantallas y divisiones."
+    puzzle_marks:
+        notice: "Las etiquetas de los puzles y los puzles sin caja marcados uno a uno van con los puzles: vuelve a ponerlos en las páginas de puzles de las rondas de la copia:"
+        round: "%round%: %marks%"
+        labels: "{1}1 etiqueta de puzle|[0,Inf[%count% etiquetas de puzle"
+        unboxed: "{1}1 puzle sin caja|[0,Inf[%count% puzles sin caja"
+        flash: "Las etiquetas de puzle y los puzles sin caja no se copian: vuelve a ponerlos cuando las rondas de la copia tengan sus puzles: %rounds%."
 puzzle_tags:
     trait:
         large_uniform_areas: "Grandes zonas de un solo color"
@@ -14134,6 +14142,7 @@ competition_toolkit:
             title: "Formatos de ronda y revelaciones"
             help: "Cómo se juega cada ronda y cuándo se revelan sus puzzles. Los cambias en la página de puzzles de cada ronda."
             no_rounds: "Este evento aún no tiene rondas."
+            table_names: "Mesas %first% … %last%"
         judges:
             title: "Árbitros"
             help: "Los árbitros introducen resultados en su móvil en la entrada en vivo. Añádelos en la página de árbitros."
@@ -15294,6 +15303,20 @@ event_wizard:
         standings_help: "Suma los tiempos de cada participante en las rondas: una clasificación por categoría."
         standings_set_up: "La clasificación general está configurada"
         tables_note: "Los números de mesa se asignan cuando ya hay inscritos: la lista «Prepárate» te lo recuerda."
+        table_names: "Nombrar las mesas como en el plano de la sala"
+        table_names_help: "Como A1, A2 … B1 en lugar de 1, 2, 3: los jueces los escriben y las placas con el nombre los imprimen. Desactivado = números normales."
+        table_names_preview: "%category%: %count% nombres, %first% … %last%"
+        table_names_preview_problem: "%category%: revisa los campos de arriba"
+        table_names_later: "Una sala para todas las rondas; cada categoría tiene su propia lista. Puedes cambiarla cuando quieras en la página de asientos de una ronda."
+        table_names_change: "Cambiar en la página de asientos"
+        table_names_set: "Nombres de mesas:"
+        table_names_category: "%category% %count% (%first% … %last%)"
+        table_names_refused: "No se pudieron guardar los nombres de las mesas: alguien los cambió mientras tanto o ya hay personas en más mesas de las que cubren los nombres. Vuelve a abrir el paso o pon nombre a las mesas en la página de asientos."
+        table_seats_side: "Los puestos como «A1 L / A1 R» son para 2 puestos por mesa: elige otro estilo para más."
+        table_seats:
+            solo: "Puestos por mesa - Individual"
+            duo: "Puestos por mesa - Parejas"
+            team: "Puestos por mesa - Equipos"
     structure:
         title: "¿Cómo se juega?"
         how_played: "¿Los participantes se clasifican para rondas posteriores?"

@@ -11,7 +11,9 @@ use SpeedPuzzling\Web\Value\DisplayPreset;
 use SpeedPuzzling\Web\Value\QrTagMode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
+use SpeedPuzzling\Web\Value\TableLabelGenerator;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -155,6 +157,61 @@ final class EventWizardExtrasFormType extends AbstractType
                 'required' => false,
             ]);
             $builder->add('overlayPreset', EnumType::class, self::presetOptions(DisplayKind::Overlay));
+        }
+
+        if ($state->tableNamesOffered()) {
+            $builder->add('tableNames', CheckboxType::class, [
+                'label' => 'event_wizard.extras.table_names',
+                'help' => 'event_wizard.extras.table_names_help',
+                'required' => false,
+            ]);
+            // The seating page's generator (templates/seating/_table_labels.html.twig) - its words
+            $builder->add('tableLetters', TextType::class, [
+                'label' => 'seating.labels.letters',
+                'required' => false,
+                'attr' => ['autocomplete' => 'off', 'autocapitalize' => 'characters', 'data-wizard-table-names-target' => 'letters'],
+            ]);
+            $builder->add('tableNumbers', TextType::class, [
+                'label' => 'seating.labels.numbers',
+                'required' => false,
+                'attr' => ['autocomplete' => 'off', 'data-wizard-table-names-target' => 'numbers'],
+            ]);
+            $builder->add('tableOrder', ChoiceType::class, [
+                'label' => 'seating.labels.order',
+                // Always one of the choices - no "Required" mark, no empty option
+                'required' => false,
+                'placeholder' => false,
+                'empty_data' => 'letters',
+                'choices' => ['seating.labels.order_letters' => 'letters', 'seating.labels.order_numbers' => 'numbers'],
+                'attr' => ['data-wizard-table-names-target' => 'order'],
+            ]);
+            $builder->add('tableSkip', TextType::class, [
+                'label' => 'seating.labels.skip',
+                'required' => false,
+                'attr' => ['autocomplete' => 'off', 'autocapitalize' => 'characters', 'placeholder' => 'seating.labels.skip_placeholder', 'data-wizard-table-names-target' => 'skip'],
+            ]);
+            $builder->add('tableSeatStyle', ChoiceType::class, [
+                'label' => 'seating.labels.seat_style',
+                // Always one of the choices - no "Required" mark, no empty option
+                'required' => false,
+                'placeholder' => false,
+                'empty_data' => 'side',
+                'choices' => ['seating.labels.style_side' => 'side', 'seating.labels.style_letter' => 'letter', 'seating.labels.style_dash' => 'dash'],
+                'attr' => ['data-wizard-table-names-target' => 'seatStyle'],
+            ]);
+
+            foreach ($state->tableCategories() as $category) {
+                $builder->add('tableSeats' . ucfirst($category->value), ChoiceType::class, [
+                    'label' => 'event_wizard.extras.table_seats.' . $category->value,
+                // Always one of the choices - no "Required" mark, no empty option
+                'required' => false,
+                'placeholder' => false,
+                'empty_data' => '1',
+                    'choices' => array_combine(range(1, TableLabelGenerator::MAX_SEATS), range(1, TableLabelGenerator::MAX_SEATS)),
+                    'choice_translation_domain' => false,
+                    'attr' => ['data-wizard-table-names-target' => 'seats', 'data-category' => $category->value],
+                ]);
+            }
         }
 
         if ($state->standingsOffered()) {

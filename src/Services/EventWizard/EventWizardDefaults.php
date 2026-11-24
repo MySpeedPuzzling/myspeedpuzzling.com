@@ -21,6 +21,14 @@ readonly final class EventWizardDefaults
     public const int MINUTES_LIMIT = 90;
     public const int TEAM_SIZE = 4;
 
+    // The languages a draft may have been created in - a round's generated name is matched in each (challengeNumbersOf)
+    public const array LOCALES = ['en', 'cs', 'de', 'es', 'fr', 'ja'];
+
+    // At most this many challenges back to back are read from a name (the Puzzles grid's slots)
+    private const int MAX_NAMED_CHALLENGES = 4;
+
+    private const string NUMBERS_SLOT = '@@numbers@@';
+
     public function __construct(
         private TranslatorInterface $translator,
     ) {
@@ -50,5 +58,47 @@ readonly final class EventWizardDefaults
     public function challengeLabel(int $number): string
     {
         return $this->translator->trans('event_wizard.structure.challenges.label', ['%number%' => $number]);
+    }
+
+    /**
+     * The challenge numbers a round's name carries when the Challenges template named it (challengeRoundName() in any of
+     * the wizard's languages, with the round's category): "Pairs – Challenges 3 + 4" → [3, 4], "Pairs – Challenge 5" →
+     * [5]. Anything else - "Solo 1", "Semifinal 1", a renamed round - → []. Package D of spws-wizard.md: a block left
+     * "Decide later" keeps its plan when the wizard is opened again without `?challenges`.
+     *
+     * @return list<int>
+     */
+    public function challengeNumbersOf(string $name, RoundCategory $category): array
+    {
+        // A dash typed instead of the generated en dash ("Pairs - Challenge 5") is the same name
+        $name = self::sameDashes(trim($name));
+
+        foreach (self::LOCALES as $locale) {
+            foreach (['round_name_one' => false, 'round_name_block' => true] as $key => $block) {
+                $pattern = $this->translator->trans('event_wizard.structure.challenges.' . $key, [
+                    '%category%' => $this->translator->trans('event_wizard.round_name.' . $category->value, locale: $locale),
+                    '%numbers%' => self::NUMBERS_SLOT,
+                ], locale: $locale);
+                [$before, $after] = array_pad(explode(self::NUMBERS_SLOT, self::sameDashes($pattern), 2), 2, '');
+                $numbers = $block ? '\\d{1,3}(?: \\+ \\d{1,3}){1,' . (self::MAX_NAMED_CHALLENGES - 1) . '}' : '\\d{1,3}';
+
+                if (preg_match('/^' . preg_quote($before, '/') . '(' . $numbers . ')' . preg_quote($after, '/') . '$/u', $name, $match) !== 1) {
+                    continue;
+                }
+
+                $list = array_map(intval(...), explode(' + ', $match[1]));
+
+                if (in_array(0, $list, true) === false) {
+                    return $list;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    private static function sameDashes(string $text): string
+    {
+        return (string) preg_replace('/\s*[-\x{2013}\x{2014}]\s*/u', ' - ', $text);
     }
 }

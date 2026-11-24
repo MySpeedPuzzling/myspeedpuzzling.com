@@ -127,3 +127,19 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   `unboxedSlots[i]` (toolkit, never on Backfill's shared slot form) → `SetUpEventWizardRound::$arrange` (no ids listed)
   + `$unboxed` (all puzzles = the round switch; a whole-round unboxed round gets nothing); the handler clears the EM
   before them. Tests `EventWizardSeveralRoundsTest` (Challenges end to end, Extras rules), `EventWizardStructurePlannerTest`.
+- **Configurable everywhere (package D)**: `spws-wizard.md` "Package D" (Review amendments binding) — Extras row "Name
+  the tables like your hall plan" (`tableNames`, toolkit + in person + no round named yet; one hall = generator fields,
+  places per table per category `tableSeatsSolo|Duo|Team`; one `SetRoundTableLabels` per category over its rounds using
+  table numbers inside `SaveEventWizardExtras::$tableLabels`, generated + `TableLabels::fromList()` in the controller
+  first, a refusal = `EventWizardExtraRefused('tableNames')`; once named: a line + "Change on the seating page", Review
+  line `_table_names_line.html.twig`; preview `wizard_table_names_controller.js` over `generate()`). Puzzles step without
+  `?challenges`: the plan is read from the round's generated name in any of the 6 locales
+  (`EventWizardDefaults::challengeNumbersOf()`, dashes folded; "Solve all" prefilled only below 2 saved puzzles; never put
+  on the form's action). `GetCompetitionRoundsForManagement` carries `tableNumbersOff`, `tableLabelsCount` + first/last,
+  `labelledPuzzleCount` (+0 statements) → hub "Round formats" line "· Tables A1 L … H21 R" (seating link) and the
+  duplicate page's notice "Puzzle labels and puzzles unboxed on their own go with the puzzles" (`data-duplicate-puzzle-marks`,
+  flash too) + "Each round keeps…" line. Internal API: round `PATCH` `puzzleFormat`/`puzzlesToSolve`, `PUT
+  …/rounds/{id}/arrangement` (`ArrangeRoundPuzzles`, puzzle ids), `PUT …/rounds/{id}/unboxed` (`ChangeRoundUnboxed`, 409
+  `pictures_would_show` unless `confirmReveal`), reads `unboxed` (round + puzzle) and `tableLabels {count, first, last}`
+  (only when named). Tests `EventWizardExtrasTest`, `EventWizardSeveralRoundsTest`, `DuplicateCompetitionControllerTest`,
+  `RoundFormatInternalApiTest`.

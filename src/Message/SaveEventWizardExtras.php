@@ -17,7 +17,8 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  * 3. $removeReferees / $addReferees - the judges (AddCompetitionReferee answers its outcome, returned by the handler);
  * 4. $competitorPages - ChangeCompetitorPageSettings (QR tags, competitor pages, time proposals);
  * 5. $displays - AddCompetitionDisplay per row (`timerScreen`, `overlay`), refused over the event's limit;
- * 6. $standings - CreateCompetitionStanding per category ("overall standings").
+ * 6. $standings - CreateCompetitionStanding per category ("overall standings");
+ * 7. $tableLabels - SetRoundTableLabels per category ("Name the tables like your hall plan", spws-wizard.md package D).
  *
  * Holds the event's participants lock and every other key its nested messages take (the referees', the displays' -
  * SerializedByLocks), until the commit.
@@ -29,6 +30,7 @@ readonly final class SaveEventWizardExtras implements SerializedByLocks
      * @param list<AddCompetitionReferee> $addReferees
      * @param array<string, AddCompetitionDisplay> $displays the Extras row (form field) => its display
      * @param list<CreateCompetitionStanding> $standings
+     * @param list<SetRoundTableLabels> $tableLabels
      */
     public function __construct(
         public string $competitionId,
@@ -39,9 +41,10 @@ readonly final class SaveEventWizardExtras implements SerializedByLocks
         public null|ChangeCompetitorPageSettings $competitorPages = null,
         public array $displays = [],
         public array $standings = [],
+        public array $tableLabels = [],
     ) {
         $competitionId = strtolower($competitionId);
-        $nested = [$registration, $links, ...$removeReferees, ...$addReferees, $competitorPages, ...array_values($displays), ...$standings];
+        $nested = [$registration, $links, ...$removeReferees, ...$addReferees, $competitorPages, ...array_values($displays), ...$standings, ...$tableLabels];
 
         foreach ($nested as $message) {
             if ($message !== null && strtolower($message->competitionId) !== $competitionId) {
@@ -58,7 +61,8 @@ readonly final class SaveEventWizardExtras implements SerializedByLocks
             && $this->addReferees === []
             && $this->competitorPages === null
             && $this->displays === []
-            && $this->standings === [];
+            && $this->standings === []
+            && $this->tableLabels === [];
     }
 
     public function lockKey(): string

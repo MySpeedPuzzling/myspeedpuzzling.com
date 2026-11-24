@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\EventWizardExtraRefused;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionStanding;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Exceptions\InvalidTableLabels;
 use SpeedPuzzling\Web\FormData\EventWizardExtrasFormData;
 use SpeedPuzzling\Web\FormType\EventWizardExtrasFormType;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
@@ -23,6 +24,7 @@ use SpeedPuzzling\Web\Message\CreateCompetitionStanding;
 use SpeedPuzzling\Web\Message\EditCompetition;
 use SpeedPuzzling\Web\Message\RemoveCompetitionReferee;
 use SpeedPuzzling\Web\Message\SaveEventWizardExtras;
+use SpeedPuzzling\Web\Message\SetRoundTableLabels;
 use SpeedPuzzling\Web\MessageHandler\AddCompetitionRefereeHandler;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
@@ -35,6 +37,7 @@ use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingsPerCategory;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardExtras;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
+use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Value\CompetitionRefereeAddition;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
 use SpeedPuzzling\Web\Value\DisplayKind;
@@ -43,6 +46,8 @@ use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\StandingRules;
+use SpeedPuzzling\Web\Value\TableLabelGenerator;
+use SpeedPuzzling\Web\Value\TableLabels;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
@@ -88,6 +93,7 @@ final class EventWizardExtrasController extends AbstractController
         private readonly CompetitionDisplaysPresence $displaysPresence,
         private readonly CompetitionDisplayLiveUpdates $displayLiveUpdates,
         private readonly EntityManagerInterface $entityManager,
+        private readonly OfficialResultsLiveUpdates $officialResultsLiveUpdates,
     ) {
     }
 
@@ -121,10 +127,10 @@ final class EventWizardExtrasController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             $registration = $this->registrationMessage($form, $data, $state);
-
+            $tableLabels = $this->tableLabelMessages($form, $data, $state);
 
             if ($form->getErrors(true)->count() === 0) {
-                $refused = $this->write($form, $data, $state, $registration, $player->playerId, $request->getLocale());
+                $refused = $this->write($form, $data, $state, $registration, $tableLabels, $player->playerId, $request->getLocale());
 
                 if ($refused === false) {
                     $next = $progress->next(EventWizardStep::Extras) ?? EventWizardStep::Review;
@@ -204,16 +210,78 @@ final class EventWizardExtrasController extends AbstractController
     }
 
     /**
+     * "Name the tables like your hall plan" (spws-wizard.md package D): one hall, the places per table of each category -
+     * a list per category for every round of it using table numbers (SetRoundTableLabels; nobody is seated in a draft,
+     * so no list is refused for being too short). Each list is generated and validated here, before anything is
+     * written - a refusal is a field error.
+     *
+     * @param FormInterface<EventWizardExtrasFormData> $form
+     * @return list<SetRoundTableLabels>
+     */
+    private function tableLabelMessages(FormInterface $form, EventWizardExtrasFormData $data, EventWizardExtrasState $state): array
+    {
+        if ($form->has('tableNames') === false || $data->tableNames === false) {
+            return [];
+        }
+
+        $messages = [];
+
+        foreach ($state->tableCategories() as $category) {
+            $seatsField = 'tableSeats' . ucfirst($category->value);
+
+            try {
+                $labels = TableLabels::fromList(TableLabelGenerator::generate(
+                    letters: (string) $data->tableLetters,
+                    numbers: (string) $data->tableNumbers,
+                    seats: $data->tableSeats($category),
+                    seatStyle: $data->tableSeatStyle,
+                    order: $data->tableOrder,
+                    skip: (string) $data->tableSkip,
+                ))->labels;
+            } catch (InvalidTableLabels $invalid) {
+                $problem = $invalid->problems[0] ?? ['label' => '', 'reason' => 'empty_list'];
+                $reason = $problem['reason'];
+                $field = match ($reason) {
+                    // A name too long or of other characters comes from the letters (the numbers are digits)
+                    'letters', 'too_long', 'characters' => 'tableLetters',
+                    'numbers', 'too_many' => 'tableNumbers',
+                    'seats', 'seat_style' => $seatsField,
+                    default => 'tableSkip',
+                };
+                $form->get($field)->addError(new FormError($this->translator->trans(
+                    $reason === 'seat_style' ? 'event_wizard.extras.table_seats_side' : 'seating.labels.reason.' . $reason,
+                    ['%label%' => $problem['label'], '%first%' => $problem['first'] ?? ''],
+                )));
+
+                return [];
+            }
+
+            $roundIds = $state->tableRoundIds[$category->value] ?? [];
+            $messages[] = new SetRoundTableLabels(
+                competitionId: $state->competitionId,
+                roundIds: $roundIds,
+                labels: $labels,
+                // The rounds have no names yet (the row is offered only then)
+                expected: array_fill_keys($roundIds, null),
+            );
+        }
+
+        return $messages;
+    }
+
+    /**
      * Writes every row that changed in one transaction (SaveEventWizardExtras) - true when a row was refused (its field
      * says why) and nothing was written
      *
      * @param FormInterface<EventWizardExtrasFormData> $form
+     * @param list<SetRoundTableLabels> $tableLabels
      */
     private function write(
         FormInterface $form,
         EventWizardExtrasFormData $data,
         EventWizardExtrasState $state,
         null|ChangeCompetitionRegistrationSettings $registration,
+        array $tableLabels,
         string $playerId,
         string $locale,
     ): bool {
@@ -262,6 +330,7 @@ final class EventWizardExtrasController extends AbstractController
             competitorPages: $competitorPages,
             displays: $displays,
             standings: $form->has('standings') && $data->standings ? $this->standingsPerCategory($competitionId, $data->standingRules->toRules()) : [],
+            tableLabels: $tableLabels,
         );
 
         if ($message->isEmpty()) {
@@ -282,9 +351,12 @@ final class EventWizardExtrasController extends AbstractController
             $this->entityManager->refresh($this->competitionRepository->get($competitionId));
 
             $standingRefusal = EventWizardRefusal::find($refused, InvalidCompetitionStanding::class);
-            $form->get($refused->row)->addError(new FormError($standingRefusal !== null
-                ? $this->translator->trans($standingRefusal->translationKey())
-                : $this->translator->trans('competition_display.flash.limit_reached', ['%max%' => CompetitionDisplay::MAX_PER_COMPETITION])));
+            $form->get($refused->row)->addError(new FormError(match (true) {
+                $standingRefusal !== null => $this->translator->trans($standingRefusal->translationKey()),
+                // Another organiser named the tables meanwhile (or a list the generator made was refused after all)
+                $refused->row === 'tableNames' => $this->translator->trans('event_wizard.extras.table_names_refused'),
+                default => $this->translator->trans('competition_display.flash.limit_reached', ['%max%' => CompetitionDisplay::MAX_PER_COMPETITION]),
+            }));
 
             return true;
         }
@@ -292,6 +364,14 @@ final class EventWizardExtrasController extends AbstractController
         if ($displays !== []) {
             // After the commit: the event has displays now - its writes start signalling them (competition toolkit D5)
             $this->displaysPresence->changed($competitionId);
+        }
+
+        // After the commit: the rounds' judge pages, desks and displays read the new table names (the seating page's push)
+        foreach ($tableLabels as $labelsMessage) {
+            foreach ($labelsMessage->roundIds as $roundId) {
+                $this->officialResultsLiveUpdates->roundChanged($roundId);
+                $this->displayLiveUpdates->roundChanged($roundId);
+            }
         }
 
         if ($message->standings !== []) {

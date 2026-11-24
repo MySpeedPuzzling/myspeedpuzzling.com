@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\CollectionFormData;
 use SpeedPuzzling\Web\FormType\CollectionFormType;
+use SpeedPuzzling\Web\Message\ChangeDefaultCollection;
 use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -63,19 +64,25 @@ final class CreateCollectionController extends AbstractController
         $playerEntity = $this->playerRepository->getByUserIdCreateIfNotExists($user->getUserIdentifier());
         $formData = new CollectionFormData();
 
-        $form = $this->createForm(CollectionFormType::class, $formData);
+        $form = $this->createForm(CollectionFormType::class, $formData, ['with_default' => true]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $collectionId = Uuid::uuid7()->toString();
+
             $this->messageBus->dispatch(
                 new CreateCollection(
-                    collectionId: Uuid::uuid7()->toString(),
+                    collectionId: $collectionId,
                     playerId: $playerEntity->id->toString(),
                     name: $formData->name ?? '',
                     description: $formData->description,
                     visibility: $formData->visibility,
                 ),
             );
+
+            if ($formData->isDefault) {
+                $this->messageBus->dispatch(new ChangeDefaultCollection(playerId: $playerEntity->id->toString(), collectionId: $collectionId));
+            }
 
             $this->addFlash('success', $this->translator->trans('collections.flash.created'));
 

@@ -32,6 +32,12 @@
                             {{ 'collections.form.visibility_help'|trans }}
                         </small>
                     </div>
+
+                    {% if form.isDefault is defined %}
+                        <div class="mb-4">
+                            {{ form_row(form.isDefault) }}
+                        </div>
+                    {% endif %}
                     
                     <div class="d-flex justify-content-between gap-2">
                         <a href="{{ cancelUrl }}" class="btn btn-secondary">

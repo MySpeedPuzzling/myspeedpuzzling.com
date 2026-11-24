@@ -129,7 +129,8 @@ lists (system collection) in the request locale. README.txt says so.
   column); adding columns is not breaking.
 - **Library settings** (own data, nothing else holds them): `puzzle_collection_visibility`,
   `wish_list_visibility`, `unsolved_puzzles_visibility`, `solved_puzzles_visibility`, `lend_borrow_list_visibility`,
-  `collection_display_mode`, and the sell/swap list settings (`description`, `currency` resolved as below,
+  `collection_display_mode`, `default_collection_id` (the collection the pickers preselect - a `collection_id` of the
+  `collections` section, the system collection's id while none was chosen), and the sell/swap list settings (`description`, `currency` resolved as below,
   `shipping_info`, `shipping_countries`, `shipping_cost`, `contact_info`) from `SellSwapListSettings`.
 
 ### Shared puzzle columns (appended to every item section)

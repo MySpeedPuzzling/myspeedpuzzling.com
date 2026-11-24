@@ -1495,6 +1495,7 @@ competition_referees:
     "title": "%name% – Perfil de speed puzzlero"
     "description": "Perfil de speed puzzling de %name%: tiempos de puzzle más rápidos, rankings, logros y resoluciones recientes en MySpeedPuzzling."
 "flashes":
+  "puzzle_added_to_named_collection": "Puzzle añadido a %collection%."
   "photo_upload_deferred": "¡Tus datos están guardados! La foto no se pudo subir en este momento — se subirá automáticamente en cuanto nuestro almacenamiento vuelva a estar disponible."
   "stopwatch_already_saved": "Estos cronómetros ya han sido guardados."
   "result_already_saved": "Este resultado ya estaba guardado; aquí lo tienes."
@@ -2388,7 +2389,7 @@ badges:
         "text": "Mira qué tal te va con las personas con las que resuelves."
       "collections":
         "title": "Tus propias colecciones"
-        "text": "Todas las que quieras, con tus tiempos y previsiones en cada puzzle."
+        "text": "Tantas como quieras, una de ellas elegida por defecto al añadir un puzzle, con tus tiempos y predicciones en cada puzzle."
         "short": "Todas las que quieras"
       "multiscan":
         "title": "Escaneo múltiple"
@@ -2714,6 +2715,13 @@ badges:
       \ fail2ban no estaba configurado apropiadamente (se dejó en su configuración predeterminada), y combinado con UFW, de alguna manera misteriosamente bloqueó todo el tráfico en los puertos 22, 80 y 443—aunque todavía no entendemos completamente por qué pasó de esa manera.</p>\n<p>Una vez que supe la causa, la solución final no tomó mucho tiempo—rápidamente desinstalar el servidor de correo (incluyendo UFW), limpiar iptables, re-añadir las reglas de red de Docker, \"rebotar\" todo unas pocas veces, desconectar el sistema de rescate, reiniciar todo, y… finalmente, después de cinco horas agonizantes maldiciendo al monitor, MSP estaba de vuelta a la normalidad…</p>\n<p>Salté algunos detalles innecesarios—como cómo cambié DNS a un proxy de CloudFlare en cinco minutos mientras tanto y configuré un worker de Node.js para mostrar un mensaje sobre la interrupción—solo para que no hubiera una página en blanco…</p>\n<p>Por ahora, estoy dejando el trabajo del servidor de correo a un lado, y sé que\
       \ estará \"a un lado,\" en un servidor separado, lejos de MSP. Por un lado, fue interesante probar nuestro proceso de \"recuperación de desastres\"—en un punto estaba tan desesperado que estaba listo para dejar que este servidor se quemara en el infierno, girar todo en uno nuevo, y solo actualizar los registros DNS… Afortunadamente, eso resultó innecesario al final.</p>\n<p>PS. Realmente se rompió \"por sí solo\", gracias al servidor de correo, después de una semana sin ninguna intervención humana… Eso es bastante algo…</p>\n<p>PS2. Eres valiente si has leído hasta el final :-).</p>\n"
 "collections":
+  "default":
+    "badge": "Predeterminada"
+    "make": "Hacer predeterminada"
+  "quick_pick":
+    "label": "Elige una colección"
+    "more": "Más colecciones en la búsqueda de abajo"
+    "change_default": "Cambiar predeterminada"
   "display":
     "label": "Mostrar"
     "hint": "Tus propios tiempos junto a cada puzzle de esta colección"
@@ -2787,6 +2795,8 @@ badges:
     "title": "No tienes colecciones"
     "title_other": "Sin colecciones públicas"
   "flash":
+    "default_changed": "Colección predeterminada cambiada."
+    "puzzle_added_to": "Puzzle añadido a %collection%."
     "collection_unavailable": "Esa colección ya no está disponible — puede que haya sido eliminada."
     "comment_updated": "El comentario se ha actualizado correctamente."
     "created": "La colección se ha creado correctamente."
@@ -2801,6 +2811,8 @@ badges:
     "updated": "La colección se ha actualizado correctamente."
     "puzzle_moved": "El puzzle se ha movido correctamente a la colección."
   "form":
+    "default": "Colección predeterminada"
+    "default_help": "Preseleccionada cada vez que añades un puzzle a una colección. Sin una predeterminada, es Colección de Puzzles."
     "description": "Descripción"
     "name": "Nombre"
     "visibility_help": "Las colecciones públicas son visibles para todos los usuarios, las privadas solo para ti."

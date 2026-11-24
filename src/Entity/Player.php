@@ -41,6 +41,16 @@ class Player
     #[ManyToOne]
     #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
     public null|Voucher $claimedDiscountVoucher = null;
+
+    /**
+     * The collection every collection picker preselects for this member (docs/features/collections/default-collection.md);
+     * null = the system collection. Read side checks it against the request's choices (a lapsed membership, a puzzle
+     * already in it), never trusts the foreign key alone.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[ManyToOne]
+    #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public null|Collection $defaultCollection = null;
     /**
      * @var array<string>
      */
@@ -619,6 +629,24 @@ class Player
     public function changeTimePredictionsOptedOut(bool $optedOut): void
     {
         $this->timePredictionsOptedOut = $optedOut;
+    }
+
+    /**
+     * null = back to the system collection
+     */
+    public function changeDefaultCollection(null|Collection $collection): void
+    {
+        $this->defaultCollection = $collection;
+    }
+
+    /**
+     * The collection is going away: the pickers fall back to the system collection
+     */
+    public function forgetDefaultCollection(Collection $collection): void
+    {
+        if ($this->defaultCollection !== null && $this->defaultCollection->id->equals($collection->id)) {
+            $this->defaultCollection = null;
+        }
     }
 
     public function changeCollectionDisplayMode(CollectionDisplayMode $mode): void

@@ -13,10 +13,19 @@
      {% endif %}>
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
 
+    {# The collection the pickers preselect (docs/features/collections/default-collection.md): the owner, a member. The system
+       collection page offers "Make default" only while another one is (its badge alone would be noise for players without own collections) #}
+    {% set own_collection_page = logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+    {% set is_default_collection = own_collection_page and logged_user.profile.activeMembership and collection.collectionId is not null and logged_user.profile.defaultCollectionId == collection.collectionId %}
+    {% set offer_make_default = own_collection_page and logged_user.profile.activeMembership and not is_default_collection and (collection.collectionId is not null or logged_user.profile.defaultCollectionId is not null) %}
+
     <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-2 mb-4">
         <div>
-            <h1 class="h3 mb-0 d-flex align-items-center">
+            <h1 class="h3 mb-0 d-flex flex-wrap align-items-center">
                 <span><i class="bi bi-collection me-2"></i>{{ collection.name }}</span>
+                {% if is_default_collection %}
+                    <span class="badge bg-primary-subtle text-primary fs-xs fw-normal ms-2" data-testid="default-collection-badge">{{ 'collections.default.badge'|trans }}</span>
+                {% endif %}
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                     <a href="{{ collection.collectionId ? path('edit_collection', {collectionId: collection.collectionId, 'return': path('collection_detail', {collectionId: collection.collectionId}), 'return_title': collection.name}) : path('edit_system_collection', {playerId: player.playerId, 'return': path('system_collection_detail', {playerId: player.playerId}), 'return_title': collection.name}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2 text-decoration-underline">
                         <i class="{{ collection.visibility.value == 'public' ? 'ci-eye' : 'ci-locked' }} me-1"></i>{{ collection.visibility.value == 'public' ? 'collections.public'|trans : 'collections.private'|trans }}
@@ -73,6 +82,14 @@
                     <a href="{{ path('edit_system_collection', {playerId: player.playerId, 'return': path('system_collection_detail', {playerId: player.playerId}), 'return_title': collection.name}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-outline-primary">
                         <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                     </a>
+                {% endif %}
+                {% if offer_make_default %}
+                    {{ include('collections/_make_default_button.html.twig', {
+                        collection_id: collection.collectionId ?? system_collection_id,
+                        return_path: collection.collectionId ? path('collection_detail', {collectionId: collection.collectionId}) : path('system_collection_detail', {playerId: player.playerId}),
+                        form_class: 'd-inline',
+                        button_class: 'btn btn-sm btn-outline-primary',
+                    }) }}
                 {% endif %}
             {% endif %}
         </div>

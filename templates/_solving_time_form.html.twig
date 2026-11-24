@@ -519,7 +519,13 @@
                             {# Hidden actual collection field with system collection pre-selected #}
                             {{ form_row(solving_time_form.collection, {'row_attr': {'class': 'd-none'}}) }}
                         {% else %}
-                            {# Member: show collection selector with autocomplete #}
+                            {# Member: one-tap chips (default first) above the collection selector with autocomplete #}
+                            {{ include('collections/_collection_quick_pick.html.twig', {
+                                choices: collections|default({}),
+                                selected: solving_time_form.collection.vars.value,
+                                input_id: solving_time_form.collection.vars.id,
+                                system_id: system_collection_id|default(constant('SpeedPuzzling\\Web\\Entity\\Collection::SYSTEM_ID')),
+                            }) }}
                             {{ form_row(solving_time_form.collection) }}
 
                             <div data-puzzle-add-form-target="newCollectionFields" class="d-none">

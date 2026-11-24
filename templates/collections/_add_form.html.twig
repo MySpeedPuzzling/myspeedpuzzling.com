@@ -49,7 +49,13 @@
                 }
             }) }}
         {% else %}
-            {# Member: show collection selector with autocomplete #}
+            {# Member: one-tap chips (default first) above the collection selector with autocomplete #}
+            {{ include('collections/_collection_quick_pick.html.twig', {
+                choices: collection_choices|default({}),
+                selected: form.collection.vars.value,
+                input_id: form.collection.vars.id,
+                system_id: system_collection_id,
+            }) }}
             {{ form_row(form.collection, {
                 'attr': {
                     'data-puzzle-collection-form-target': 'collection'

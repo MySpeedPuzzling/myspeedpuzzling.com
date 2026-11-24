@@ -1492,6 +1492,7 @@ competition_referees:
     "title": "%name% – Speed Puzzler Profil"
     "description": "Speed Puzzling Profil von %name%: schnellste Puzzle-Zeiten, Rankings, Erfolge und aktuelle Ergebnisse auf MySpeedPuzzling."
 "flashes":
+  "puzzle_added_to_named_collection": "Puzzle zu %collection% hinzugefügt."
   "photo_upload_deferred": "Ihre Daten sind gespeichert! Das Foto konnte gerade nicht hochgeladen werden – es wird automatisch hochgeladen, sobald unser Speicher wieder verfügbar ist."
   "stopwatch_already_saved": "Diese Stoppuhren wurden bereits gespeichert."
   "result_already_saved": "Dieses Ergebnis wurde bereits gespeichert – hier ist es."
@@ -2372,7 +2373,7 @@ badges:
         "text": "Sieh, wie gut du mit den Leuten puzzelst, mit denen du puzzelst."
       "collections":
         "title": "Eigene Sammlungen"
-        "text": "So viele du willst, mit deinen Zeiten und Prognosen bei jedem Puzzle."
+        "text": "So viele du willst, eine davon beim Hinzufügen eines Puzzles vorausgewählt, mit deinen Zeiten und Prognosen bei jedem Puzzle."
         "short": "So viele du willst"
       "multiscan":
         "title": "Multiscan"
@@ -2713,6 +2714,13 @@ badges:
   "no_activity": "Keine kürzlichen Aktivitäten"
   "title": "Kürzliche Aktivitäten"
 "collections":
+  "default":
+    "badge": "Standard"
+    "make": "Als Standard festlegen"
+  "quick_pick":
+    "label": "Sammlung wählen"
+    "more": "Weitere Sammlungen in der Suche unten"
+    "change_default": "Standard ändern"
   "display":
     "label": "Anzeige"
     "hint": "Ihre eigenen Zeiten neben jedem Puzzle dieser Sammlung"
@@ -2752,10 +2760,14 @@ badges:
       "message": "Möchten Sie die Sammlung %name% wirklich löschen? Diese Aktion ist unwiderruflich und löscht auch alle Puzzles in dieser Sammlung."
       "button": "Sammlung löschen"
   "form":
+    "default": "Standardsammlung"
+    "default_help": "Vorausgewählt, wann immer du ein Puzzle zu einer Sammlung hinzufügst. Ohne Standard ist es Puzzle-Sammlung."
     "name": "Name"
     "description": "Beschreibung"
     "visibility_help": "Öffentliche Sammlungen sind für alle Benutzer sichtbar, private nur für Sie."
   "flash":
+    "default_changed": "Standardsammlung geändert."
+    "puzzle_added_to": "Puzzle zu %collection% hinzugefügt."
     "created": "Sammlung wurde erfolgreich erstellt."
     "updated": "Sammlung wurde erfolgreich aktualisiert."
     "deleted": "Sammlung wurde erfolgreich gelöscht."

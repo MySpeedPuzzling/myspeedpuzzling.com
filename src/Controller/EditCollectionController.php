@@ -9,10 +9,12 @@ use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\CollectionFormData;
 use SpeedPuzzling\Web\FormType\CollectionFormType;
+use SpeedPuzzling\Web\Message\ChangeDefaultCollection;
 use SpeedPuzzling\Web\Message\EditCollection;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CollectionPreselection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -72,7 +74,10 @@ final class EditCollectionController extends AbstractController
 
         $formData = CollectionFormData::fromCollectionOverview($collectionOverview);
 
-        $form = $this->createForm(CollectionFormType::class, $formData);
+        $wasDefault = CollectionPreselection::defaultOf($player) === $collectionId;
+        $formData->isDefault = $wasDefault;
+
+        $form = $this->createForm(CollectionFormType::class, $formData, ['with_default' => $player->activeMembership]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -85,6 +90,14 @@ final class EditCollectionController extends AbstractController
                     visibility: $formData->visibility,
                 ),
             );
+
+            // Ticked = this one, unticked while it was the default = back to the system collection
+            if ($player->activeMembership && $formData->isDefault !== $wasDefault) {
+                $this->messageBus->dispatch(new ChangeDefaultCollection(
+                    playerId: $player->playerId,
+                    collectionId: $formData->isDefault ? $collectionId : null,
+                ));
+            }
 
             $this->addFlash('success', $this->translator->trans('collections.flash.updated'));
 

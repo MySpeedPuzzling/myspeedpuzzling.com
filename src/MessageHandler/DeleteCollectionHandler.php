@@ -28,6 +28,9 @@ readonly final class DeleteCollectionHandler
             throw new CollectionNotFound();
         }
 
+        // The pickers fall back to the system collection (the foreign key would too - the managed player must not keep it)
+        $collection->player->forgetDefaultCollection($collection);
+
         $this->collectionRepository->delete($collection);
     }
 }

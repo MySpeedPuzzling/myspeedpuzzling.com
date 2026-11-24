@@ -1,0 +1,48 @@
+{#
+    One-tap collection choice above a collection picker (docs/features/collections/default-collection.md): the collection
+    the form starts with is a highlighted chip, the default one is marked, a tap on another chip picks it in the picker
+    below (the picker stays the field that is submitted - same name, same values). Members with 2+ choices only.
+
+    Parameters:
+    - choices: label => collection id (or the system collection's marker), as the form type gets them
+    - selected: the field's value now
+    - input_id: the id of the picker's input
+    - system_id: Collection::SYSTEM_ID
+#}
+{% set chip_limit = 5 %}
+{% if logged_user.profile is not null and logged_user.profile.activeMembership and choices|length > 1 %}
+    {% set default_id = logged_user.profile.defaultCollectionId ?? system_id %}
+    {% set default_id = default_id in choices ? default_id : (system_id in choices ? system_id : null) %}
+
+    {# Default first, then the system collection, then the newest own collections - pairs, a label like "2024" must stay a label #}
+    {% set ordered = [] %}
+    {% for label, id in choices %}{% if id == default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
+    {% for label, id in choices %}{% if id == system_id and id != default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
+    {% for label, id in choices %}{% if id != system_id and id != default_id %}{% set ordered = ordered|merge([{label: label, id: id}]) %}{% endif %}{% endfor %}
+
+    <div class="collection-quick-pick mb-2"
+         data-controller="collection-quick-pick"
+         data-collection-quick-pick-input-id-value="{{ input_id }}"
+         data-testid="collection-quick-pick">
+        <div class="d-flex flex-wrap gap-2" role="group" aria-label="{{ 'collections.quick_pick.label'|trans }}">
+            {% for chip in ordered|slice(0, chip_limit) %}
+                {% set id = chip.id %}
+                <button type="button"
+                        class="btn btn-sm rounded-pill text-wrap text-start {{ id == selected ? 'btn-primary' : 'btn-outline-primary' }}"
+                        aria-pressed="{{ id == selected ? 'true' : 'false' }}"
+                        data-value="{{ id }}"
+                        data-collection-quick-pick-target="chip"
+                        data-action="collection-quick-pick#pick">
+                    <i class="bi bi-check2 me-1 {{ id == selected ? '' : 'd-none' }}" data-check></i>{{ chip.label }}
+                    {% if id == default_id %}
+                        <span class="badge rounded-pill bg-body text-primary border border-primary-subtle fw-normal ms-1">{{ 'collections.default.badge'|trans }}</span>
+                    {% endif %}
+                </button>
+            {% endfor %}
+        </div>
+        <div class="fs-xs text-muted mt-1">
+            {% if ordered|length > chip_limit %}{{ 'collections.quick_pick.more'|trans }} · {% endif %}
+            <a href="{{ path('puzzle_library', {playerId: logged_user.profile.playerId}) }}" data-turbo-frame="_top" class="text-muted">{{ 'collections.quick_pick.change_default'|trans }}</a>
+        </div>
+    </div>
+{% endif %}

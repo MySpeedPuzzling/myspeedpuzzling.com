@@ -15,6 +15,12 @@
             }) }}
                 {{ include('puzzle_selection/_hidden_inputs.html.twig') }}
 
+                {{ include('collections/_collection_quick_pick.html.twig', {
+                    choices: collection_choices,
+                    selected: form.collection.vars.value,
+                    input_id: form.collection.vars.id,
+                    system_id: system_collection_id,
+                }) }}
                 {{ form_row(form.collection, {attr: {'data-puzzle-collection-form-target': 'collection'}}) }}
 
                 {# A typed name creates the collection #}

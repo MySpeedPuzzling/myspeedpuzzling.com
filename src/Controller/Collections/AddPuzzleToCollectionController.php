@@ -29,6 +29,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Turbo\TurboBundle;
+use SpeedPuzzling\Web\Value\CollectionPreselection;
 
 final class AddPuzzleToCollectionController extends AbstractController
 {
@@ -92,9 +93,10 @@ final class AddPuzzleToCollectionController extends AbstractController
         // Set default collection to system collection for users without membership
         if ($hasActiveMembership === false) {
             $formData->collection = Collection::SYSTEM_ID;
-        } elseif (count($collectionChoices) === 1) {
-            // Pre-fill if only one collection is available (saves a click)
-            $formData->collection = array_first($collectionChoices);
+        } else {
+            // The member's default collection, else the system one (CollectionPreselection); a submitted value
+            // replaces it in handleRequest() below
+            $formData->collection = CollectionPreselection::pick($loggedPlayer, $collectionChoices);
         }
 
         $form = $this->createForm(CollectionPuzzleActionFormType::class, $formData, [
@@ -112,6 +114,10 @@ final class AddPuzzleToCollectionController extends AbstractController
             $formData = $form->getData();
 
             $collectionId = $formData->collection;
+
+            // The toast names the collection the puzzle went to (a typed name = a new collection, or the existing one of that name)
+            $collectionName = $collectionId === null ? false : array_search($collectionId, $collectionChoices, true);
+            $collectionName = $collectionName === false ? (string) $collectionId : (string) $collectionName;
 
             // Convert system collection placeholder back to null
             if ($collectionId === Collection::SYSTEM_ID) {
@@ -179,7 +185,7 @@ final class AddPuzzleToCollectionController extends AbstractController
                 $templateParams = [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
-                    'message' => $this->translator->trans('collections.flash.puzzle_added'),
+                    'message' => $this->translator->trans('collections.flash.puzzle_added_to', ['%collection%' => $collectionName]),
                     'context' => $context,
                 ];
 
@@ -196,7 +202,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             }
 
             // Non-Turbo request: redirect with flash message
-            $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_added'));
+            $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_added_to', ['%collection%' => $collectionName]));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }
@@ -208,6 +214,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             'has_active_membership' => $hasActiveMembership,
             'has_available_collections' => $hasAvailableCollections,
             'system_collection_id' => Collection::SYSTEM_ID,
+            'collection_choices' => $collectionChoices,
             'puzzle_id' => $puzzleId,
             'context' => $request->query->getString('context', 'detail'),
         ];

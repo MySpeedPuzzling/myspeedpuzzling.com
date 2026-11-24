@@ -51,6 +51,7 @@ use SpeedPuzzling\Web\Query\IsRoundPuzzleUnboxed;
 use SpeedPuzzling\Web\Services\RoundResults\OfficialEntryTimePrefill;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
+use SpeedPuzzling\Web\Value\CollectionPreselection;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
@@ -317,9 +318,10 @@ final class PuzzleAddController extends AbstractController
         // For non-members, force system collection
         if ($hasActiveMembership === false) {
             $data->collection = Collection::SYSTEM_ID;
-        } elseif (count($collections) === 1 && $data->collection === null) {
-            // Pre-fill if only one collection is available (saves a click)
-            $data->collection = array_first($collections);
+        } elseif ($data->collection === null) {
+            // The member's default collection, else the system one (CollectionPreselection) - a ?collection= preset
+            // stays, and handleRequest() below puts a submitted value over this one, an empty one included
+            $data->collection = CollectionPreselection::pick($userProfile, $collections);
         }
 
         /** @var array<string> $groupPlayers */
@@ -638,7 +640,7 @@ final class PuzzleAddController extends AbstractController
                         $officialEntry?->roundId,
                     ),
                     PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $groupPlayers, $teamName),
-                    PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
+                    PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId, $collections),
                 };
 
                 // The photos stay until they expire: a resend of this form (the answer got lost, the automatic retry)
@@ -957,12 +959,20 @@ final class PuzzleAddController extends AbstractController
         return $this->redirectToRoute('added_tracking_recap', ['trackingId' => $trackingId]);
     }
 
+    /**
+     * @param array<string, string> $collections label => id, the form's choices (the flash names the collection the puzzle went to)
+     */
     private function handleCollection(
         PuzzleAddFormData $data,
         string $playerId,
+        array $collections,
     ): Response {
         assert($data->puzzle !== null);
         assert($data->collection !== null);
+
+        // A typed name is a new collection (or the existing one of that name)
+        $collectionName = array_search($data->collection, $collections, true);
+        $collectionName = $collectionName === false ? $data->collection : (string) $collectionName;
 
         $collectionId = $data->collection;
         $targetCollectionId = $collectionId;
@@ -1005,7 +1015,7 @@ final class PuzzleAddController extends AbstractController
             ),
         );
 
-        $this->addFlash('success', $this->translator->trans('flashes.puzzle_added_to_collection'));
+        $this->addFlash('success', $this->translator->trans('flashes.puzzle_added_to_named_collection', ['%collection%' => $collectionName]));
 
         // Redirect to the specific collection
         if ($targetCollectionId === null) {

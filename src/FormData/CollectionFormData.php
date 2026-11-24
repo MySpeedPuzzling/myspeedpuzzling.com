@@ -19,6 +19,9 @@ final class CollectionFormData
 
     public CollectionVisibility $visibility = CollectionVisibility::Private;
 
+    // Preselected by every collection picker (docs/features/collections/default-collection.md); unticked = the system collection
+    public bool $isDefault = false;
+
     public static function fromCollectionOverview(CollectionOverview $collection): self
     {
         $data = new self();

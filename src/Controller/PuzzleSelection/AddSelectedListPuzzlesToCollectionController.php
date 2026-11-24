@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\PuzzleListSelectionResponder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\SelectedPuzzlesCollectionTarget;
+use SpeedPuzzling\Web\Value\CollectionPreselection;
 use SpeedPuzzling\Web\Value\MultiscanAction;
 use SpeedPuzzling\Web\Value\PuzzleList;
 use SpeedPuzzling\Web\Value\PuzzleSelection;
@@ -78,7 +79,11 @@ final class AddSelectedListPuzzlesToCollectionController extends AbstractControl
             $choices[$collection->name] = $collection->collectionId;
         }
 
-        $form = $this->createForm(CollectionPuzzleActionFormType::class, new CollectionPuzzleActionFormData(), [
+        // The member's default collection, else the system one (CollectionPreselection); a submitted value replaces it
+        $formData = new CollectionPuzzleActionFormData();
+        $formData->collection = CollectionPreselection::pick($player, $choices);
+
+        $form = $this->createForm(CollectionPuzzleActionFormType::class, $formData, [
             'collections' => $choices,
         ]);
         $form->handleRequest($request);
@@ -134,6 +139,7 @@ final class AddSelectedListPuzzlesToCollectionController extends AbstractControl
             'list' => $list,
             'selection' => $selection,
             'system_collection_id' => Collection::SYSTEM_ID,
+            'collection_choices' => $choices,
         ], new Response(status: $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 }

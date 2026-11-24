@@ -424,3 +424,18 @@
 .competitor-list-chevron {
     flex: 0 0 auto;
 }
+
+// A row's table(s) - only on rows that have one (search by table, competitor-pages.md)
+.competitor-list-tables {
+    flex: 0 1 auto;
+    max-width: 40%;
+    text-align: right;
+}
+
+// Why the row matched the typed table: "Table A1 L · <round>" (hidden until it matched)
+.competitor-list-table-hint {
+    display: block;
+    margin-top: .125rem;
+    color: $primary;
+    font-weight: 600;
+}

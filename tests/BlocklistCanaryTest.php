@@ -870,6 +870,11 @@ final class BlocklistCanaryTest extends WebTestCase
         );
         $url = '/en/competitor/' . $cup;
         $sharks = CompetitionLineupId::of($cup, [OfficialResultsFixture::PARTICIPANT_ANNA, OfficialResultsFixture::PARTICIPANT_BEN]);
+        // The pair's table (search by table) goes with its row: the Sharks sit at table 1 of the Pairs round
+        $database->executeStatement(
+            'UPDATE competition_round SET table_labels = :labels WHERE id = :id',
+            ['labels' => json_encode(['Q7 SHARKS', 'Q7 CORNERS', 'Q7 EDGES'], JSON_THROW_ON_ERROR), 'id' => OfficialResultsFixture::ROUND_PAIRS],
+        );
 
         foreach ([self::BYSTANDER, self::BLOCKED] as $viewer) {
             TestingLogin::asPlayer($browser, $viewer);
@@ -879,6 +884,7 @@ final class BlocklistCanaryTest extends WebTestCase
             self::assertStringContainsString('Ben Steady', $content, 'No canary: the list does not show him.');
             self::assertStringContainsString('Puzzle Sharks', $content, 'No canary: the list does not show his pair.');
             self::assertStringContainsString($sharks, $content);
+            self::assertStringContainsString('Q7 SHARKS', $content, 'No canary: the list does not show their table.');
         }
 
         TestingLogin::asPlayer($browser, self::BLOCKER);
@@ -888,6 +894,7 @@ final class BlocklistCanaryTest extends WebTestCase
         self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
         self::assertStringNotContainsString('Puzzle Sharks', $content, 'The blocker is shown a pair with a player they blocked.');
         self::assertStringNotContainsString($sharks, $content);
+        self::assertStringNotContainsString('Q7 SHARKS', $content, 'The blocker is shown the table of a pair with a player they blocked.');
         self::assertStringNotContainsString(self::BLOCKED, $content);
         self::assertStringNotContainsString(self::BLOCKED_NAME, $content);
         self::assertStringContainsString('Anna Fast', $content, 'Only the blocked player and their pair go.');

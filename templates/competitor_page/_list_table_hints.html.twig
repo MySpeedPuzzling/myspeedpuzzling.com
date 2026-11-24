@@ -1,0 +1,6 @@
+{# Why a row matched the search by its table (competitor-pages.md "Competitor list - search by table"): one hidden line per table, its key for competitor_list_controller.js - "Table A1 L · Pairs - Challenges 1 + 2" (+ "and N more" rounds at the same table). #}
+{%- for table in tables -%}
+    <span class="competitor-list-table-hint small" data-competitor-list-table="{{ table.key }}" hidden>
+        {{- 'competitor_page.list.table_match'|trans({'%table%': table.label, '%round%': table.firstRound, '%count%': table.moreRounds}) -}}
+    </span>
+{%- endfor -%}

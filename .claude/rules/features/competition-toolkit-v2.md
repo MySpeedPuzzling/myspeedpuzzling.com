@@ -80,6 +80,10 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
 - **Competitor list + visibility** (`competitor-pages.md`): `competitor_list` (2 statements, canaries); competitor
   pages, the list, tag landings and proposals of an event that is not publicly visible (draft / waiting for approval /
   rejected) are its team's only (`IsCompetitionPubliclyVisible`; the team check only for such events).
+  **Search by table** (SPWS, `competitor-pages.md` "Search by table"): rows carry `CompetitorListTable`s (person = solo
+  rounds, line-up = its rounds, never `table_numbers_off`; same statement), "Table A1 L" on the row + hidden per-table
+  hints; `competitor_list_filter.js` matches the typed text's `key()` in tiers exact / whole segments / started (digit
+  needed unless exact), reorders while a table matched; `externalId` is never public.
 - **Proposal puzzle choice** (`competitor-pages.md`): `puzzles: [{position,label}]` with the tap - a bad choice never
   costs the tap (`puzzlesRefused`); `ChangeTimeProposalPuzzles` (owner, pending, proposals on, before end + grace,
   `chosenAtMs` replay guard); judges get round-puzzle ids, competitors labels only; the judge card pre-selects, nothing

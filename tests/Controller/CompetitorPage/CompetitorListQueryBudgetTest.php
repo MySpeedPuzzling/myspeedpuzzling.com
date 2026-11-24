@@ -55,8 +55,8 @@ final class CompetitorListQueryBudgetTest extends WebTestCase
             ['competition' => F::COMPETITION_RESULTS_CUP],
         );
         $database->executeStatement(
-            "INSERT INTO competition_team (id, round_id, name)
-             SELECT CAST('019a0c11-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), :round, 'Budget Pair ' || n
+            "INSERT INTO competition_team (id, round_id, name, table_number)
+             SELECT CAST('019a0c11-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), :round, 'Budget Pair ' || n, n + 10
              FROM generate_series(1, 120) AS n",
             ['round' => F::ROUND_PAIRS],
         );
@@ -70,8 +70,21 @@ final class CompetitorListQueryBudgetTest extends WebTestCase
             ['round' => F::ROUND_PAIRS],
         );
 
+        // Tables (search by table) ride on the same statement: the rest of the people at tables of the Final
+        $database->executeStatement(
+            "INSERT INTO competition_participant_round (id, participant_id, round_id, table_number)
+             SELECT CAST('019a0c13-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid),
+                 CAST('019a0c10-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid),
+                 :round,
+                 n
+             FROM generate_series(241, 400) AS n",
+            ['round' => F::ROUND_FINAL],
+        );
+
         self::assertSame(self::GUEST, $this->measure($browser), implode("\n", $this->executedSql($browser)));
         $crawler = $browser->getCrawler();
+        self::assertCount(160 + 8, $crawler->filter('[data-competitor-list-row="p"] [data-competitor-list-tables]'));
+        self::assertCount(120 + 3, $crawler->filter('[data-competitor-list-row="g"] [data-competitor-list-tables]'));
         self::assertCount(409, $crawler->filter('[data-competitor-list-row="p"]'));
         self::assertCount(124, $crawler->filter('[data-competitor-list-row="g"]'));
 

@@ -145,3 +145,23 @@ figure.w-60 { width: 60%; margin-left: auto; margin-right: auto; }
 .small { font-size: 8.5pt; color: var(--muted); }
 .page-break { break-before: page; }
 .keep { break-inside: avoid; }
+
+/* Generated contents (build.py fills <nav class="guide-toc" data-toc></nav>): chapter, its sections, its situations,
+   each a link with a dotted leader to its page number. The number box has a fixed width, so filling it in never
+   moves a page break. */
+.contents-page { break-after: page; }
+.guide-toc { columns: 2; column-gap: 8mm; margin: 2mm 0 0; font-size: 8.2pt; line-height: 1.3; }
+.guide-toc ol { list-style: none; margin: 0; padding: 0; }
+.toc-chapter { break-inside: avoid-column; margin: 0 0 2mm; }
+.guide-toc li a { word-break: normal; display: flex; align-items: baseline; gap: 1.5mm; color: inherit; text-decoration: none; }
+.guide-toc li a .t { flex: 0 1 auto; }
+.guide-toc li a::after { content: ''; flex: 1 1 4mm; order: 1; border-bottom: 1px dotted var(--line); transform: translateY(-0.8mm); }
+.guide-toc li a .pg { order: 2; flex: 0 0 6mm; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted, #7d879c); }
+.guide-toc .toc-h1 { font-weight: 700; font-size: 9.6pt; padding: 1mm 0 0.6mm; border-bottom: 1px solid var(--line); margin-bottom: 0.8mm; }
+.guide-toc .toc-h1 b { display: inline-block; min-width: 6.5mm; color: var(--primary); }
+.guide-toc .toc-h1 .pg { color: inherit; }
+.guide-toc .toc-sec { padding: 0.2mm 0 0.2mm 6.5mm; }
+.guide-toc .toc-sit { padding: 0.1mm 0 0.1mm 9mm; color: #4b566b; }
+.guide-toc .toc-sit i { font-style: normal; font-size: 6.6pt; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary); margin-right: 0.8mm; }
+.guide-toc li a .t { min-width: 0; word-break: normal; overflow-wrap: normal; hyphens: manual; }
+.toc-key { display: inline-block; width: 0; height: 0; overflow: visible; vertical-align: top; font-size: 1px; line-height: 0; color: transparent; white-space: nowrap; }

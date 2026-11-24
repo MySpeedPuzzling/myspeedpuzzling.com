@@ -648,33 +648,130 @@ def build_html(folder: str, cfg: dict, facts: dict) -> tuple[str, list[str]]:
     return 'build/guide.html', problems
 
 
+# The contents at the start, built from the guide itself: every chapter, its sections (h2/h3) and its real-life
+# situations, each a link with its page number. Placeholder in guide.html: <nav class="guide-toc" data-toc></nav>.
+# The page numbers need two prints: print once, find each entry's page in the PDF's text (pdftotext finds the invisible
+# key the heading carries in the first print), write them in, print again. The number boxes have a fixed width, so the second print
+# breaks the pages exactly like the first.
+TOC_JS = r"""
+const nav = document.querySelector('[data-toc]');
+if (!nav) { return []; }
+const skip = /^(real-life situations|situations)$/i;
+const text = (e) => (e.innerText || e.textContent || '').replace(/\s+/g, ' ').trim();
+const entries = [];
+let n = 0;
+const id = (e) => { if (!e.id) { e.id = 'toc-' + (++n); } return e.id; };
+const esc = (t) => t.replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const line = (cls, e, label, find) => {
+  entries.push({id: id(e), find, key: 'TOCKEY' + entries.length + 'X'});
+  // A key the first print carries on the heading's own page (a zero-size inline box, so it moves nothing; an absolutely positioned one is dropped at a page break); the page
+  // numbers are read from it and it is removed before the final print
+  const k = document.createElement('span');
+  k.className = 'toc-key';
+  k.textContent = entries[entries.length - 1].key;
+  e.prepend(k);
+  return `<li class="${cls}"><a href="#${e.id}"><span class="t">${label}</span><span class="pg" data-pg="${e.id}"></span></a></li>`;
+};
+let html = '';
+document.querySelectorAll('section.chapter').forEach((ch) => {
+  const h1 = ch.querySelector('.chapter-head h1');
+  if (!h1) { return; }
+  const num = text(ch.querySelector('.chapter-head .num') || {textContent: ''});
+  html += '<div class="toc-chapter"><ol>';
+  html += line('toc-h1', h1, `<b>${esc(num)}</b>${esc(text(h1))}`, text(h1));
+  ch.querySelectorAll('h2, h3, .situation h4').forEach((h) => {
+    if (h.closest('.chapter-head')) { return; }
+    if (h.tagName === 'H4') {
+      html += line('toc-sit', h, `<i>Situation</i> ${esc(text(h))}`, text(h));
+    } else if (!skip.test(text(h))) {
+      html += line('toc-sec', h, esc(text(h)), text(h));
+    }
+  });
+  html += '</ol></div>';
+});
+nav.innerHTML = html;
+return entries;
+"""
+
+TOC_FILL_JS = r"""
+const pages = arguments[0];
+document.querySelectorAll('.toc-key').forEach((e) => e.remove());
+document.querySelectorAll('[data-toc] [data-pg]').forEach((e) => { e.textContent = pages[e.dataset.pg] || ''; });
+return true;
+"""
+
+
+def _norm(t: str) -> str:
+    return re.sub(r'[^0-9a-z]+', '', t.lower())
+
+
+def toc_pages(raw: bytes, entries: list[dict]) -> tuple[dict, list[str]]:
+    """The page of every contents entry: where its heading's invisible key is."""
+    if not shutil.which('pdftotext'):
+        return {}, ['contents: pdftotext (poppler) is not installed - the contents have links but no page numbers']
+    res = subprocess.run(['pdftotext', '-raw', '-enc', 'UTF-8', '-', '-'], input=raw, capture_output=True, check=True)
+    pages = [_norm(pg) for pg in res.stdout.decode('utf-8', 'replace').split('\f')]
+    at = [next((i for i, pg in enumerate(pages) if _norm(e['key']) in pg), None) for e in entries]
+    # Chrome drops the key of a heading that starts a page: find that one by its own text, but only between the
+    # pages of its keyed neighbours (contents entries are in document order), so a same word elsewhere never wins
+    for n, e in enumerate(entries):
+        if at[n] is not None:
+            continue
+        lo = next((at[j] for j in range(n - 1, -1, -1) if at[j] is not None), 0)
+        hi = next((at[j] for j in range(n + 1, len(entries)) if at[j] is not None), len(pages) - 1)
+        key = _norm(e['find'])[:40]
+        at[n] = next((i for i in range(lo, hi + 1) if key and key in pages[i]), None)
+    found, problems = {}, []
+    for e, page in zip(entries, at):
+        if page is None:
+            problems.append(f'contents: page of "{e["find"]}" not found')
+        else:
+            found[e['id']] = str(page + 1)
+    return found, problems
+
+
 def render(folder: str, cfg: dict, facts: dict) -> list[str]:
     rel, problems = build_html(folder, cfg, facts)
     out = os.path.join(folder, cfg.get('output', 'guide') + '.pdf')
     b = Browser(folder)
-    try:
-        b.start()
-        b.go('file:///guide/' + rel)
-        b.wait_for('body')
-        b.js('return document.fonts.ready.then(() => true)')
-        time.sleep(1.5)
-        footer = cfg.get('footer', 'MySpeedPuzzling - competition toolkit guide')
-        pdf = b.cdp('Page.printToPDF', {
+    footer = cfg.get('footer', 'MySpeedPuzzling - competition toolkit guide')
+
+    def print_pdf() -> bytes:
+        return base64.b64decode(b.cdp('Page.printToPDF', {
             'paperWidth': 8.27, 'paperHeight': 11.69, 'printBackground': True, 'preferCSSPageSize': True,
             'displayHeaderFooter': True, 'headerTemplate': '<span></span>',
             'footerTemplate': ('<div style="width:100%;font:8px Helvetica,Arial,sans-serif;color:#7d879c;padding:0 14mm;'
                                f'display:flex;justify-content:space-between"><span>{html.escape(footer)}</span>'
                                '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>'),
             'marginTop': 0.5, 'marginBottom': 0.6, 'marginLeft': 0.55, 'marginRight': 0.55,
-        })['data']
+        })['data'])
+
+    try:
+        b.start()
+        b.go('file:///guide/' + rel)
+        b.wait_for('body')
+        b.js('return document.fonts.ready.then(() => true)')
+        entries = b.js(TOC_JS) or []
+        time.sleep(1.5)
+        raw = print_pdf()
+        if entries:
+            if os.environ.get('GUIDE_DEBUG'):
+                with open(out + '.pass1.pdf', 'wb') as f:
+                    f.write(raw)
+            pages, toc_problems = toc_pages(raw, entries)
+            problems += toc_problems
+            if pages:
+                b.js(TOC_FILL_JS, pages)
+                time.sleep(0.5)
+                raw = print_pdf()
+            log(f'  contents: {len(entries)} entries, {len(pages)} with a page number')
         b.quit()
     finally:
         b.stop()
-    raw = base64.b64decode(pdf)
     with open(out, 'wb') as f:
         f.write(raw)
-    pages = len(re.findall(rb'/Type\s*/Page[^s]', raw))
-    log(f'  PDF: {out} - {pages} pages, {len(raw) / 1_000_000:.1f} MB')
+    count = len(re.findall(rb'/Type\s*/Page[^s]', raw))
+    log(f'  PDF: {out} - {count} pages, {len(raw) / 1_000_000:.1f} MB')
     return problems
 
 

@@ -81,12 +81,18 @@ event (new ids/URLs) just run the full command - URLs, ids and round lines come 
      `settle` ms before the shot; `css` for the shot (e.g. a grey backdrop behind a transparent OBS overlay).
    Scrolling a page is unreliable - use `clip` / `clip_from` instead.
 5. **Write `guide.html`** from `templates/guide-skeleton.html`. Structure: cover (MSP logo × event logo), welcome +
-   how to use + try it yourself + contents + who does what; ch. 1 the event at a glance (their schedule, how it is
+   how to use + try it yourself + who does what (the contents come right after the cover, generated); ch. 1 the event at a glance (their schedule, how it is
    set up - the `{{rounds.<slug>.format}}` lines -, their rules → MSP settings table); one chapter per role with
    Purpose / Open it / Sign in, setting up, on the day, options, 2-4 **real situations from their format**, and
    annotated screenshots (`<figure data-shot="name">` + `<ol class="callouts"><li data-n="1">…`); data in / data out;
    checklists (weeks before / week before / each round / after); glossary; help (Jan). Drop a role the event does not
    have; one line for features the event does not use.
+   **Contents** (Jan, 2026-11-24: always, right after the cover): `<nav class="guide-toc" data-toc></nav>` in its own
+   `<section class="contents-page">` (see the skeleton). The render builds it from every chapter's `h1`, its `h2`/`h3`
+   sections and its `.situation h4`s, as links with page numbers (two prints; `pdftotext` from poppler reads where each
+   heading landed). Never write it by hand - write clear section headings and situation titles instead, they ARE the
+   contents ("Real-life situations" headings are left out, the situations under them are listed). Aim for one page:
+   shorten long situation titles before shrinking the type. `GUIDE_DEBUG=1` keeps the first print as `*.pass1.pdf`.
    **Tone**: friendly plain English, explain why not just how, short sentences, UI labels exactly as on screen in
    `<span class="ui">`. Never internal words (round_puzzle, pick round, entry, value object, split → say "the moment
    … was recorded", reveal mode, as_zero_pieces…). Say clearly what the software does and what judges decide.

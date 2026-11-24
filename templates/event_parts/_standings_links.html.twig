@@ -2,7 +2,8 @@
     The published standings of an event or edition (competition toolkit A7) above its rounds: one link per standing -
     and the bracket of its declared advancement steps (competition toolkit A9), and its competitor list while it has
     competitor pages on (competition toolkit v2).
-    Variables: standings (list<TimelineStanding>), bracket_url (null|string, optional), competitors_url (null|string, optional).
+    Variables: standings (list<TimelineStanding>), bracket_url (null|string, optional), competitors_url (null|string, optional),
+    own_competitor_url (null|string, optional - the signed-in competitor's own page, spws-demo-ux-leftovers.md §1).
 #}
 <div class="ev-standings-links d-flex flex-wrap align-items-center gap-2 mb-3" data-event-standings>
     {% if standings is not empty %}
@@ -15,6 +16,9 @@
         <a class="btn btn-sm btn-outline-primary" href="{{ bracket_url }}" data-event-bracket-link><i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ 'bracket.link'|trans }}</a>
     {% endif %}
     {%- if competitors_url|default(null) is not null %}
+        {%- if own_competitor_url|default(null) is not null %}
+        <a class="btn btn-sm btn-primary" href="{{ own_competitor_url }}" rel="nofollow" data-own-competitor-page-link><i class="bi bi-person-badge me-1" aria-hidden="true"></i>{{ 'competitor_page.own_link'|trans }}</a>
+        {%- endif %}
         <a class="btn btn-sm btn-outline-primary" href="{{ competitors_url }}" rel="nofollow" data-event-competitors-link><i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'event_rounds.competitors_link'|trans }}</a>
     {% endif %}
 </div>

@@ -39,6 +39,7 @@ use SpeedPuzzling\Web\Message\SetCompetitionDivisions;
 use SpeedPuzzling\Web\Message\SetRoundEntryDivisions;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Message\SetRoundTableLabels;
+use SpeedPuzzling\Web\Message\StartSandboxDemoRoundStopwatch;
 use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
@@ -191,6 +192,7 @@ final readonly class SandboxDemoEvents
         $this->divisions($event, $competitionId, $roundIds, $people, $say);
         $this->tables($event, $competitionId, $roundIds, $say);
         $this->results($event, $competitionId, $roundIds, $organizerPlayerId, $say);
+        $this->stopwatches($event, $roundIds, $say);
 
         if ($event->standings) {
             $this->standings($event, $competitionId, $roundIds, $say);
@@ -524,7 +526,8 @@ final readonly class SandboxDemoEvents
                 brand: $secret['brand'],
                 puzzle: $secret['name'],
                 piecesCount: $round->piecesOf($position),
-                puzzlePhoto: null,
+                // A made-up box picture, so an unboxed challenge shows the difference before / after its results
+                puzzlePhoto: SandboxPlaceholderBox::upload($secret['name']),
                 eans: EanList::fromInputs([]),
                 brandCodes: BrandCodeList::fromInputs([]),
                 hideUntilRoundStarts: true,
@@ -863,6 +866,13 @@ final readonly class SandboxDemoEvents
 
         foreach ($event->rounds as $round) {
             $roundId = $roundIds[$round->key];
+
+            if ($this->waitsForItsDay($round, $roundId, $event->timezone)) {
+                $say(sprintf('"%s" is the demo day\'s running block - the day is ahead: no results, not started (start it yourself)', $round->name));
+
+                continue;
+            }
+
             $changes = SandboxDemoResultPlanner::changes(
                 $round,
                 $this->getRoundResultEntries->forRound($roundId),
@@ -886,6 +896,72 @@ final readonly class SandboxDemoEvents
             if ($round->state === SandboxDemoRound::PUBLISHED && ($roundOverview === null || $roundOverview->resultsPublishedAt === null)) {
                 $this->messageBus->dispatch(new PublishRoundResults($competitionId, $roundId));
                 $say(sprintf('Results of "%s" published', $round->name));
+            }
+        }
+    }
+
+    /**
+     * A demo built on a day still ahead (`--date` after today in the event's zone - e.g. the real SPWS dates, months
+     * ahead, so the organisers try it now, starting any stopwatch early): the running round with `stopwatchFromStart`
+     * gets neither seeded results nor a stopwatch - seeded splits would be later than a stopwatch started live today and
+     * block "Finished now", and a start scheduled months ahead would refuse their own Start (spws-demo-ux-leftovers.md
+     * §5). Nothing else of the demo depends on today: earlier rounds are recorded and published as always. Today or a
+     * day past: as designed (results seeded, the stopwatch from the round's start).
+     */
+    private function waitsForItsDay(SandboxDemoRound $round, string $roundId, string $timezone): bool
+    {
+        if ($round->state !== SandboxDemoRound::RUNNING || $round->stopwatchFromStart === false) {
+            return false;
+        }
+
+        // The round's stored day - a re-run with another --date never moves an existing round, so it decides
+        $stored = $this->demoData->roundReveal($roundId);
+
+        if ($stored === null) {
+            return false;
+        }
+
+        $zone = new DateTimeZone($timezone);
+        $roundDay = new DateTimeImmutable($stored['starts_at'], new DateTimeZone('UTC'))->setTimezone($zone)->format('Y-m-d');
+
+        return $roundDay > $this->clock->now()->setTimezone($zone)->format('Y-m-d');
+    }
+
+    /**
+     * A running round with `stopwatchFromStart`: its stopwatch runs from the round's stored start (started at that moment
+     * when it has passed, scheduled for it while ahead - StartSandboxDemoRoundStopwatch), so the judge's "Finished now"
+     * works and the seeded splits lie in the clock's past (spws-demo-ux-leftovers.md §5). A stopwatch with a status (a
+     * rehearsal, an earlier run) is left alone.
+     *
+     * @param array<string, string> $roundIds
+     * @param \Closure(string): void $say
+     */
+    private function stopwatches(SandboxDemoEvent $event, array $roundIds, \Closure $say): void
+    {
+        foreach ($event->rounds as $round) {
+            if ($round->state !== SandboxDemoRound::RUNNING || $round->stopwatchFromStart === false || $this->waitsForItsDay($round, $roundIds[$round->key], $event->timezone)) {
+                continue;
+            }
+
+            $roundId = $roundIds[$round->key];
+            $stored = $this->demoData->roundReveal($roundId);
+
+            if ($stored === null) {
+                continue;
+            }
+
+            // The round's start as stored - a re-run on another --date never moves an existing round
+            $startsAt = new DateTimeImmutable($stored['starts_at'], new DateTimeZone('UTC'));
+            $changed = $this->messageBus->dispatch(new StartSandboxDemoRoundStopwatch($roundId, $startsAt))->last(HandledStamp::class)?->getResult();
+
+            if ($changed === true) {
+                $say(sprintf(
+                    'Stopwatch of "%s" %s %s (%s)',
+                    $round->name,
+                    $startsAt > $this->clock->now() ? 'scheduled to start at' : 'started at',
+                    $startsAt->setTimezone(new DateTimeZone($event->timezone))->format('Y-m-d H:i'),
+                    $event->timezone,
+                ));
             }
         }
     }

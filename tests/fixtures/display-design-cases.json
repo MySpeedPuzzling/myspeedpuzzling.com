@@ -7243,6 +7243,746 @@
         "results": false,
         "live": false
       }
+    },
+    {
+      "name": "visibility when results are in (has_rows) on any element, unknown values are any",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "rows0001",
+            "type": "box",
+            "frame": {},
+            "when": {
+              "results": "has_rows"
+            }
+          },
+          {
+            "id": "rows0002",
+            "type": "text",
+            "frame": {},
+            "when": {
+              "results": "has_rows"
+            },
+            "props": {
+              "text": "Just finished"
+            }
+          },
+          {
+            "id": "rows0003",
+            "type": "leaderboard",
+            "frame": {},
+            "when": {
+              "results": "HAS_ROWS"
+            },
+            "props": {
+              "source": "live"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "rows0001",
+            "type": "box",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "has_rows",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {}
+          },
+          {
+            "id": "rows0002",
+            "type": "text",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "has_rows",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "text": "Just finished"
+            }
+          },
+          {
+            "id": "rows0003",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "live",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "leaderboard name lines: optional, a whole number 1-3, stored only when set",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "name0001",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "nameLines": 2
+            }
+          },
+          {
+            "id": "name0002",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "nameLines": 2.6
+            }
+          },
+          {
+            "id": "name0003",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "nameLines": 0
+            }
+          },
+          {
+            "id": "name0004",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "nameLines": 9
+            }
+          },
+          {
+            "id": "name0005",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {
+              "nameLines": "2"
+            }
+          },
+          {
+            "id": "name0006",
+            "type": "leaderboard",
+            "frame": {},
+            "props": {}
+          },
+          {
+            "id": "name0007",
+            "type": "ticker",
+            "frame": {},
+            "props": {
+              "nameLines": 2
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "name0001",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "nameLines": 2
+            }
+          },
+          {
+            "id": "name0002",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "nameLines": 3
+            }
+          },
+          {
+            "id": "name0003",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "nameLines": 1
+            }
+          },
+          {
+            "id": "name0004",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": "",
+              "nameLines": 3
+            }
+          },
+          {
+            "id": "name0005",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "name0006",
+            "type": "leaderboard",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 10,
+              "columns": [
+                "rank",
+                "flag",
+                "name",
+                "result"
+              ],
+              "highlightLatestSeconds": 10,
+              "rowStyle": {
+                "background": null,
+                "altBackground": null,
+                "gap": 4
+              },
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          },
+          {
+            "id": "name0007",
+            "type": "ticker",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "rows": 5,
+              "source": "published",
+              "whenUnpublished": "nothing",
+              "unpublishedText": ""
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "field puzzle_label with an optional position 1-50, stored only when set",
+      "input": {
+        "schema": 1,
+        "elements": [
+          {
+            "id": "plab0001",
+            "type": "field",
+            "frame": {},
+            "props": {
+              "field": "puzzle_label",
+              "position": 3
+            }
+          },
+          {
+            "id": "plab0002",
+            "type": "field",
+            "frame": {},
+            "props": {
+              "field": "puzzle_label"
+            }
+          },
+          {
+            "id": "plab0003",
+            "type": "field",
+            "frame": {},
+            "props": {
+              "field": "puzzle_label",
+              "position": 99
+            }
+          },
+          {
+            "id": "plab0004",
+            "type": "field",
+            "frame": {},
+            "props": {
+              "field": "round_name",
+              "position": "2"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "schema": 1,
+        "canvas": {
+          "aspect": "16:9",
+          "background": {
+            "type": "color",
+            "color": "#0d1017",
+            "chroma": "#00b140",
+            "image": null
+          }
+        },
+        "theme": {
+          "font": "rubik",
+          "color": "#ffffff",
+          "accent": "#fe696a"
+        },
+        "elements": [
+          {
+            "id": "plab0001",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "puzzle_label",
+              "prefix": "",
+              "suffix": "",
+              "position": 3
+            }
+          },
+          {
+            "id": "plab0002",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "puzzle_label",
+              "prefix": "",
+              "suffix": ""
+            }
+          },
+          {
+            "id": "plab0003",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "puzzle_label",
+              "prefix": "",
+              "suffix": "",
+              "position": 50
+            }
+          },
+          {
+            "id": "plab0004",
+            "type": "field",
+            "name": "",
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 10,
+              "h": 10,
+              "rotate": 0
+            },
+            "z": 0,
+            "hidden": false,
+            "locked": false,
+            "when": {
+              "phases": [
+                "idle",
+                "scheduled",
+                "running",
+                "times_up",
+                "stopped"
+              ],
+              "results": "any",
+              "puzzle": "any"
+            },
+            "style": {},
+            "props": {
+              "field": "round_name",
+              "prefix": "",
+              "suffix": ""
+            }
+          }
+        ]
+      }
     }
   ]
 }

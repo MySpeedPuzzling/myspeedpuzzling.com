@@ -91,6 +91,8 @@ final class OnlineControlRoomController extends AbstractController
             'start_at_min' => RoundTimezone::toLocal($now, $timezone)->format('Y-m-d\TH:i'),
             'stopwatch_reveal' => $stopwatchReveal,
             'stopwatch_reveal_hash' => $stopwatchReveal !== [] ? SecretRevealPreview::stopwatchStartHash($stopwatchReveal, $round) : null,
+            // An unboxed puzzle's picture waits for the results, not for the reveal (spws-demo-ux-leftovers.md §7)
+            'stopwatch_reveal_unboxed' => $stopwatchReveal !== [] ? SecretRevealPreview::unboxedPuzzleIds($round) : [],
             // The puzzle cameras, push-to-talk and the studio's invitations (templates/online_rounds/control_video*.html.twig)
             'video_console' => $this->liveKitSettings->isAvailable() && $onlineRound->videoEnabled,
         ]);

@@ -177,7 +177,7 @@ readonly final class AnalyticsStudioStateBuilder
     /**
      * A slot: its label always, the puzzle only from RoundPuzzlesVisibleNow - a hidden one is `puzzle: null`.
      *
-     * @return array{key: string, position: int, label: string, revealsAtMs: null|int, puzzle: null|array{key: string, name: string, brand: null|string, pieces: int, imageUrl: null|string}}
+     * @return array{key: string, position: int, label: string, revealsAtMs: null|int, puzzle: null|array{key: string, name: string, brand: null|string, pieces: int, imageUrl: null|string, imageLater?: true}}
      */
     private function slot(RoundPuzzleSlot $slot): array
     {
@@ -194,6 +194,9 @@ readonly final class AnalyticsStudioStateBuilder
                 'brand' => $puzzle->manufacturerName,
                 'pieces' => $puzzle->piecesCount,
                 'imageUrl' => $puzzle->puzzleImage !== null ? $this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, self::IMAGE_PRESET) : null,
+                // Its picture waits (an unboxed puzzle before the results) - the key only then; a puzzle without a picture
+                // is just that (spws-demo-ux-leftovers.md §7)
+                ...($puzzle->imageHidden ? ['imageLater' => true] : []),
             ],
         ];
     }

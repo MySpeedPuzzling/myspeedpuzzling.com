@@ -178,3 +178,23 @@ Built on the sandbox with `--date=2026-12-02` (URLs: the guide §6). The walk fo
 - **No-show left out of the Pairs standing**: the same pair (last by name) did not start in all three rounds, and an
   only-no-show entrant is left out. `SandboxDemoRound::$noShowFromEnd` puts each round's no-show on another pair (a
   rebuild shows it; the current sandbox event keeps its recorded results).
+
+## The running block's stopwatch (UX leftovers, 2026-11-24 - [spws-demo-ux-leftovers.md](spws-demo-ux-leftovers.md) §5)
+
+`SandboxDemoRound` got two opt-in fields, set on `t12` only (the old demo and Carnival plan and build as before):
+- `stopwatchFromStart`: the step `stopwatches()` (after the results) sends `StartSandboxDemoRoundStopwatch(round, its
+  stored start)` - a sandbox-only message (`SandboxMode::assertOn()`): a start still ahead is scheduled for that moment
+  (`scheduleStopwatchStart()` - it runs by itself from then on), a start already past is started at it
+  (`startStopwatch(<start>)`). A stopwatch with any status (a rehearsal, an earlier run) is never touched.
+- `seededWithinMinutes: 60` (base seconds 1700): the running round is seeded only within its first hour - of the first
+  third, who finishes within 60 min finishes, later ones have Challenge 1 only (when that is within 60 min); the
+  middle third has Challenge 1 only; the rest nothing.
+
+A demo day **after today** (e.g. the real dates, `--date=2027-06-03`): the block gets neither results nor a
+stopwatch - it waits like every later round, and the organisers start any stopwatch early themselves (seeded splits
+would block "Finished now" on a clock started today). The Pairs day is recorded and published as always.
+
+So with `--date` = the call's day: until 10:00 Toronto the block counts down, 10:00-12:00 it runs (Finished now on the
+judge's phone, Challenge 2 for the teams with Challenge 1 in), from 11:00 Toronto every seeded time lies in the clock's
+past, after 12:00 "Time's up" until somebody stops it. The rebuild (delete + build) is needed - a re-run never moves a
+round or re-plans recorded results.

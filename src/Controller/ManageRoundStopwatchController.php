@@ -81,6 +81,8 @@ final class ManageRoundStopwatchController extends AbstractController
             'start_at_min' => RoundTimezone::toLocal($now, $timezone)->format('Y-m-d\TH:i'),
             'stopwatch_reveal' => $stopwatchReveal,
             'stopwatch_reveal_hash' => $stopwatchReveal !== [] ? SecretRevealPreview::stopwatchStartHash($stopwatchReveal, $round) : null,
+            // An unboxed puzzle's picture waits for the results, not for the reveal (spws-demo-ux-leftovers.md §7)
+            'stopwatch_reveal_unboxed' => $stopwatchReveal !== [] ? SecretRevealPreview::unboxedPuzzleIds($round) : [],
             // "Spotlight on displays" (competition toolkit v2 L2): only for an event with displays - the cached answer the
             // display signals keep warm (0 statements); COMPETITION_EDIT above is exactly COMPETITION_TOOLKIT_MANAGE
             'display_spotlight' => $this->displaysPresence->forRound($round->id->toString())->displays,

@@ -100,7 +100,8 @@ final class CompetitionDisplayStateControllerTest extends WebTestCase
         $results = $state['results'];
         self::assertIsArray($results);
         self::assertTrue($results['published']);
-        self::assertSame(4, $results['finished']);
+        // Finished = finished results - Dan's "Didn't finish" is ranked, never counted as finished
+        self::assertSame(3, $results['finished']);
         self::assertSame(5, $results['total']);
         self::assertSame([[1, 'Anna Fast'], [2, 'Ben Steady'], [2, 'Cara Tied'], [4, 'Dan Unfinished']], self::ranksAndNames($results['top']));
         self::assertSame(['cz'], self::at($results, 'top.0.countries'));
@@ -137,6 +138,55 @@ final class CompetitionDisplayStateControllerTest extends WebTestCase
         // Gina is the private PLAYER_PRIVATE: the organiser's name only, nothing of her profile
         self::assertStringNotContainsString('Jane Smith', $raw);
         self::assertNoIdentifiers($raw);
+    }
+
+    /**
+     * While the round runs (not published, its time not over) a "Didn't finish" is neither finished nor on the live
+     * board - teams still solving may finish yet; once the time is over it follows the finishers (spws-demo-ux-leftovers.md §8)
+     */
+    public function testADidNotFinishWaitsOffTheLiveBoardWhileTheRoundRuns(): void
+    {
+        $browser = self::createClient();
+        $live = ['type' => 'finished_count', 'props' => ['source' => 'live']];
+        $database = $browser->getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "UPDATE competition_round SET stopwatch_status = 'running', stopwatch_started_at = :started, stopwatch_first_started_at = :started, stopwatch_stopped_at = NULL WHERE id = :id",
+            ['started' => TestClock::now()->modify('-10 minutes')->format('Y-m-d H:i:s'), 'id' => OfficialResultsFixture::ROUND_PAIRS],
+        );
+        $token = self::createDisplay(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [self::LIVE_LEADERBOARD, $live], OfficialResultsFixture::ROUND_PAIRS);
+
+        [, $state] = self::displayState($browser, $token);
+        $top = self::at($state, 'results.top');
+        self::assertIsArray($top);
+        self::assertSame([[1, 'Puzzle Sharks'], [2, 'Edge Hunters']], self::ranksAndNames($top));
+        self::assertSame(2, self::at($state, 'results.finished'));
+
+        // The time is over (stopped): the "Didn't finish" follows as ranked, still not counted as finished
+        $database->executeStatement(
+            "UPDATE competition_round SET stopwatch_status = 'stopped', stopwatch_stopped_at = :stopped WHERE id = :id",
+            ['stopped' => TestClock::now()->modify('-1 minute')->format('Y-m-d H:i:s'), 'id' => OfficialResultsFixture::ROUND_PAIRS],
+        );
+        $token = self::createDisplay(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [self::LIVE_LEADERBOARD, $live], OfficialResultsFixture::ROUND_PAIRS);
+
+        [, $state] = self::displayState($browser, $token);
+        $top = self::at($state, 'results.top');
+        self::assertIsArray($top);
+        self::assertSame([[1, 'Puzzle Sharks'], [2, 'Edge Hunters'], [3, 'Corner Pieces']], self::ranksAndNames($top));
+        self::assertSame(2, self::at($state, 'results.finished'));
+    }
+
+    public function testPuzzleLabelsOnlyForADesignNamingOne(): void
+    {
+        $browser = self::createClient();
+
+        [$raw] = self::displayState($browser, self::createDisplay(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [['type' => 'timer']], OfficialResultsFixture::ROUND_GROUP_A));
+        self::assertStringNotContainsString('puzzleLabels', $raw);
+
+        [, $state] = self::displayState($browser, self::createDisplay(OfficialResultsFixture::COMPETITION_RESULTS_CUP, [['type' => 'field', 'props' => ['field' => 'puzzle_label', 'position' => 1]]], OfficialResultsFixture::ROUND_GROUP_A));
+        $labels = $state['puzzleLabels'] ?? null;
+        self::assertIsArray($labels);
+        self::assertSame(['1'], array_map('strval', array_keys($labels)));
+        self::assertIsString($labels['1'] ?? $labels[1] ?? null);
     }
 
     public function testPairRowsCarryTheirMembersAndNoIdentifiers(): void

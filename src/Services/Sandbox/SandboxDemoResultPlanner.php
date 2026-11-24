@@ -22,7 +22,8 @@ use SpeedPuzzling\Web\Value\SandboxDemoRound;
  * A published round: everybody has a result - the last entrant (by name) did not start (the no-show), the one before
  * it ran out of time with pieces missing, the 3rd and 6th finished with 1 and 2 pieces missing, slow ones time out on
  * their own; a round with `tie` gives the 5th exactly the 4th's result. A running round: the first third finished, on a block of challenges the next third has only its first
- * challenge's split, the rest nothing yet.
+ * challenge's split, the rest nothing yet - with `seededWithinMinutes` only what lies within that many minutes of the
+ * start (a later finisher has only its first challenge, when that fits).
  */
 final readonly class SandboxDemoResultPlanner
 {
@@ -98,13 +99,21 @@ final readonly class SandboxDemoResultPlanner
         }
 
         $timesUp = ($published && $index === $count - 2) || $elapsed > $limit - 20;
+        // A running round seeded only up to a moment (SandboxDemoRound::$seededWithinMinutes): who would finish later
+        // has only their first challenge in (when that fits), the rest nothing yet
+        $seedUpTo = $published === false && $round->seededWithinMinutes !== null ? $round->seededWithinMinutes * 60 : null;
+        $finishesLater = $seedUpTo !== null && $elapsed > $seedUpTo;
+
+        if ($seedUpTo !== null && $finishesLater && $pick === false) {
+            return [];
+        }
 
         // A block running: the middle third has only its first challenge
-        if ($published === false && $pick && $index >= intdiv($count, 3)) {
+        if ($published === false && $pick && ($index >= intdiv($count, 3) || $finishesLater)) {
             $firstSplit = $splits[0];
             $firstPuzzle = $puzzles[0]['id'] ?? null;
 
-            if ($firstPuzzle === null || $firstSplit >= $limit - 20) {
+            if ($firstPuzzle === null || $firstSplit >= $limit - 20 || ($seedUpTo !== null && $firstSplit > $seedUpTo)) {
                 return [];
             }
 

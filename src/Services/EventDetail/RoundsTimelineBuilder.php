@@ -66,13 +66,24 @@ readonly final class RoundsTimelineBuilder
         // The event has competitor pages on (CompetitionEvent::$competitorPages) - its competitor list exists
         bool $competitorPages = false,
     ): RoundsTimeline {
-        $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startsAt->modify('+' . ($round->minutesLimit ?? 0) . ' minutes') <= $now;
+        // A round started early by its stopwatch counts from that start (EditionRoundDetail::startedAt())
+        $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startedAt($now)->modify('+' . ($round->minutesLimit ?? 0) . ' minutes') <= $now;
 
         // Next: the first round not over - a running one counts
         $nextRoundId = null;
 
         foreach ($rounds as $round) {
             if ($isPastAt($round) === false) {
+                $nextRoundId = $round->id;
+
+                break;
+            }
+        }
+
+        // ... a round running now wins over an earlier-scheduled one still ahead (started early by its stopwatch -
+        // spws-demo-ux-leftovers.md §4); with no early start this is the round found above
+        foreach ($rounds as $round) {
+            if ($isPastAt($round) === false && $round->startedAt($now) <= $now) {
                 $nextRoundId = $round->id;
 
                 break;
@@ -92,7 +103,7 @@ readonly final class RoundsTimelineBuilder
         $videoAvailable = $isPublic && $this->liveKitSettings->isAvailable();
 
         foreach ($rounds as $round) {
-            $started = $round->startsAt <= $now;
+            $started = $round->startedAt($now) <= $now;
             $past = $isPastAt($round);
             $status = match (true) {
                 $past => RoundStatus::Past,

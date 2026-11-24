@@ -164,6 +164,30 @@ readonly final class SecretRevealPreview
     }
 
     /**
+     * The puzzles of the round whose picture still waits for its results to be published (an unboxed round or puzzle -
+     * CompetitionRoundPuzzle::isUnboxed() - before the first publish): the reveal lists say so instead of "its picture on
+     * this event" (spws-demo-ux-leftovers.md §7). Display only - never part of a list's hash.
+     *
+     * @return list<string> puzzle ids
+     */
+    public static function unboxedPuzzleIds(CompetitionRound $round): array
+    {
+        if ($round->resultsFirstPublishedAt !== null) {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach ($round->roundPuzzles as $row) {
+            if ($row->isUnboxed()) {
+                $ids[] = $row->puzzle->id->toString();
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * The round's rows still waiting for a stopwatch start with "Reveal" that never came (RoundPuzzleReveal::Stopwatch,
      * hidden, no moment - a countdown started with the tick is not listed): what "Also reveal the hidden puzzles now"
      * of the results desk's publish reveals (competition toolkit G3, A-round-formats.md §4.4) - each with how far it comes

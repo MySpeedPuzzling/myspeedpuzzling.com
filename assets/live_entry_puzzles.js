@@ -48,6 +48,41 @@ export function choiceOf(format, record) {
 }
 
 /**
+ * Whether the round solves every one of its puzzles ("Solve all N (order recorded)", K = N ≥ 2) - only the order is
+ * recorded, nothing is chosen (spws-demo-ux-leftovers.md §3).
+ */
+export function solvesAll(format) {
+    return format !== null && Array.isArray(format?.puzzles) && format.puzzles.length >= 2 && format.toSolve === format.puzzles.length;
+}
+
+/**
+ * The choice of a solve-all round completed with the puzzles not in it, in the round's order (its position, else the
+ * list's order) - what "Didn't finish" starts from, so the open puzzle is the one after those finished. Any other round,
+ * or a choice holding something not of the round: the choice as it is.
+ *
+ * @param {string[]} choice
+ * @returns {string[]}
+ */
+export function solveAllOrder(format, choice) {
+    if (!solvesAll(format)) {
+        return choice;
+    }
+
+    const ordered = format.puzzles
+        .map((puzzle, index) => ({ id: key(puzzle.roundPuzzleId), position: Number.isInteger(puzzle.position) ? puzzle.position : Number.MAX_SAFE_INTEGER, index }))
+        .sort((a, b) => a.position - b.position || a.index - b.index)
+        .map((puzzle) => puzzle.id);
+    const known = new Set(ordered);
+    const current = (Array.isArray(choice) ? choice : []).map(key);
+
+    if (!current.every((id) => known.has(id))) {
+        return choice;
+    }
+
+    return [...current, ...ordered.filter((id) => !current.includes(id))];
+}
+
+/**
  * The card's choice with a pending proposal's (competition toolkit v2 C3): `proposalIds` = the proposal's `puzzles`
  * (round puzzle ids, solving order - only of the round, at most K). Nothing chosen on the card, or a choice that is
  * the start of the proposal's → the proposal's (`fromProposal`); else the card's choice stays - the judge's own record
@@ -166,7 +201,11 @@ export function recordFor(format, choice, result, previous = null, notDone = nul
             return { record: null, refusal: null };
         }
 
-        items = [...doneItems(choice.slice(0, -1), before), { roundPuzzleId: choice[choice.length - 1], done: true }];
+        // The last puzzle's split is the time itself (W5 withFinishSplit()) - kept when the record shown says so, so an
+        // unchanged record is no change (no "Save order" for nothing, spws-demo-ux-leftovers.md §3)
+        const last = choice[choice.length - 1];
+        const shownLast = before.find((item) => key(item.roundPuzzleId) === last);
+        items = [...doneItems(choice.slice(0, -1), before), shownLast?.done === true && shownLast.atSeconds === result.seconds ? { roundPuzzleId: last, done: true, atSeconds: result.seconds } : { roundPuzzleId: last, done: true }];
     } else if (notDone instanceof Map) {
         // The judge said which puzzles are not finished and each one's pieces (official_results_missing.js)
         items = [...doneItems(choice.filter((id) => !notDone.has(id)), before), ...choice.filter((id) => notDone.has(id)).map((id) => open(id, notDone.get(id)))];

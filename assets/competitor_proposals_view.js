@@ -222,7 +222,9 @@ export function proposalPanel({ round, nowMs, item = null, blocked = null, answe
         case 'rejected':
             return panel('rejected', { button: open, status: { label: 'rejected', time: proposed, reason: proposal.decided?.reason ?? 'other' } });
         case 'withdrawn':
-            return panel('withdrawn', { button: open, status: { label: 'withdrawn', time: proposed } });
+            // "You took back …" is for the moment after the Undo, while the competitor may still tap again - once the
+            // entry has a result or the round no longer runs it is past, nothing to say (spws-demo-ux-leftovers.md §7)
+            return open ? panel('withdrawn', { button: true, status: { label: 'withdrawn', time: proposed } }) : NONE;
         case 'superseded':
             if (proposal.decided?.reason === 'stopwatch_reset') {
                 return panel('reset', { button: open, status: { label: 'reset', time: proposed } });

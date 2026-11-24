@@ -795,7 +795,7 @@ export class EditorPanel {
                     }
                     break;
                 case 'int':
-                    this.numberField(parent, { label, fieldKey, value, min: spec.min, max: spec.max, onValue: (v) => set(v, fieldKey) });
+                    this.numberField(parent, { label, fieldKey, value, min: spec.min, max: spec.max, optional: spec.optional === true, onValue: (v) => set(v, fieldKey) });
                     break;
                 case 'bool':
                     this.checkField(parent, { label, fieldKey, checked: value, onValue: (v) => set(v) });

@@ -418,6 +418,9 @@ const scenarios = {
 
         const withdrawn = proposalPanel({ round: round({ proposal: proposal({ status: 'withdrawn' }) }), nowMs: NOW });
         assert.deepEqual([withdrawn.mode, withdrawn.button], ['withdrawn', true]);
+        // Once the entry has a result, or the round no longer runs, the take-back is past - nothing shown
+        assert.equal(proposalPanel({ round: round({ proposal: proposal({ status: 'withdrawn' }), entry: { isTeam: false, own: true, unpaired: false, result: { seconds: 600 }, entry: ENTRY } }), nowMs: NOW }).mode, 'none');
+        assert.equal(proposalPanel({ round: round({ proposal: proposal({ status: 'withdrawn' }), stopwatch: stopwatch('stopped', NOW - 600_000) }), nowMs: NOW }).mode, 'none');
 
         const reset = proposalPanel({ round: round({ proposal: proposal({ status: 'superseded', decided: { seconds: null, reason: 'stopwatch_reset' } }) }), nowMs: NOW });
         assert.equal(reset.mode, 'reset');

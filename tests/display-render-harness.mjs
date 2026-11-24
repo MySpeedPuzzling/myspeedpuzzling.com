@@ -305,6 +305,66 @@ check('leaderboard: rows diffed by key - nodes reused and moved, removed rows go
     equal(renderer.nextChangeMs(state([ROW('e', 1, 'E', { enteredAtMs: START - 2_000 })]), START), 8_005, 'next change at the highlight end');
 });
 
+check('when results are in (has_rows): a panel box, its title and the list stay off until a row is in', () => {
+    const { document, root } = dom();
+    const elements = [
+        element('hr000001', 'box', {}, { when: { results: 'has_rows' } }),
+        element('hr000002', 'text', { text: 'Just finished' }, { when: { results: 'has_rows' } }),
+        element('hr000003', 'ticker', { source: 'live' }, { when: { results: 'has_rows' } }),
+        element('hr000004', 'text', { text: 'Always' }),
+    ];
+    const renderer = createRenderer({ document, root, design: { schema: 1, elements }, competitionId: COMPETITION, kind: 'overlay' });
+    const nodes = () => [...root.querySelectorAll('.msp-el')];
+    const state = (results) => baseState({ kind: 'overlay', results });
+    renderer.render(state(null), START);
+    equal(nodes().map(visible), [false, false, false, true], 'no results at all');
+    renderer.render(state({ published: false, finished: 0, total: 10, top: [], latest: [] }), START);
+    equal(nodes().map(visible), [false, false, false, true], 'results, but no row yet');
+    renderer.render(state({ published: false, finished: 1, total: 10, top: [], latest: [ROW('a', null, 'Anna')] }), START);
+    equal(nodes().map(visible), [true, true, true, true], 'a row is in');
+    // Only rows a list of this design shows count: `top` rows are no ticker's
+    renderer.render(state({ published: false, finished: 1, total: 10, top: [ROW('b', 1, 'Ben')], latest: [] }), START);
+    equal(nodes().map(visible), [false, false, false, true], 'rows of another list');
+});
+
+check('when results are in: a published-only list counts once published', () => {
+    const elements = [
+        element('hp000001', 'box', {}, { when: { results: 'has_rows' } }),
+        element('hp000002', 'leaderboard', { source: 'published' }),
+    ];
+    const before = render(elements, baseState({ results: { published: false, finished: 1, total: 10, top: [ROW('c', 1, 'Cid')], latest: [] } }));
+    equal(visible(before.node('hp000001')), false, 'not published yet');
+    const after = render(elements, baseState({ results: { published: true, finished: 1, total: 10, top: [ROW('c', 1, 'Cid')], latest: [] } }));
+    equal(visible(after.node('hp000001')), true, 'published');
+});
+
+check('field puzzle_label: the label of the round puzzle at its position, nothing without labels', () => {
+    const elements = [
+        element('pl000001', 'field', { field: 'puzzle_label', position: 2 }),
+        element('pl000002', 'field', { field: 'puzzle_label' }),
+        element('pl000003', 'field', { field: 'puzzle_label', position: 4 }),
+    ];
+    const shown = render(elements, baseState({ puzzleLabels: { 1: 'Challenge 3', 2: 'Challenge 4' } }));
+    equal(text(shown.node('pl000001')), 'Challenge 4', 'position 2');
+    equal(text(shown.node('pl000002')), 'Challenge 3', 'no position = the first');
+    equal(text(shown.node('pl000003')), '', 'no such puzzle');
+    const none = render(elements, baseState());
+    equal(text(none.node('pl000001')), '', 'a state without labels');
+});
+
+check('leaderboard name lines: long names wrap only on an element that asks for it', () => {
+    const long = 'Hanna Longname-Fastpuzzler & Ingrid Evenlongername';
+    const state = baseState({ results: { published: false, finished: 1, total: 2, top: [ROW('a', 1, long)], latest: [] } });
+    const wrapped = render([element('nl000001', 'leaderboard', { source: 'live', nameLines: 2 })], state);
+    const row = wrapped.root.querySelector('.msp-el__row');
+    assert(row.classList.contains('msp-el__row--wrap'), 'wrap class');
+    equal(row.style.getPropertyValue('--msp-name-lines'), '2', 'line count');
+    equal(row.querySelector('.msp-el__name').textContent, long, 'the whole name');
+    const plain = render([element('nl000002', 'leaderboard', { source: 'live' })], state);
+    const plainRow = plain.root.querySelector('.msp-el__row');
+    assert(!plainRow.classList.contains('msp-el__row--wrap') && plainRow.getAttribute('style') !== null && !plainRow.getAttribute('style').includes('--msp-name-lines'), 'one line as before');
+});
+
 check('views: a division / challenge element shows its own rows, a plain one the whole round, gating per element', () => {
     const DIVISION = '018d0004-0000-0000-0000-00000000d1d1';
     const elements = [

@@ -15,6 +15,9 @@ use SpeedPuzzling\Web\Value\DisplayKind;
  */
 final readonly class SandboxDemoDisplays
 {
+    // An element shown only once the round has a result row (`when.results`, spws-demo-ux-leftovers.md §4)
+    private const string ONCE_RESULTS_ARE_IN = 'has_rows';
+
     public const string NAVY = '#0a1a6b';
     public const string NAVY_DARK = '#050b3a';
     public const string GOLD = '#d4af37';
@@ -57,14 +60,16 @@ final readonly class SandboxDemoDisplays
             self::element('status01', 'status', 'Status', [2.5, 62, 57, 7], 6, ['fontSize' => 44, 'color' => self::GOLD_LIGHT], []),
             self::element('progres1', 'progress', 'Progress', [2.5, 72, 57, 2.5], 7, ['radius' => 12], ['trackColor' => '#ffffff22', 'barColor' => self::GOLD, 'warningColor' => '#fe696a', 'warningSeconds' => 600]),
             self::element('finished', 'finished_count', 'Finished', [2.5, 80, 57, 9], 8, ['fontSize' => 56, 'fontWeight' => 700, 'color' => self::GOLD], ['source' => 'live', 'format' => 'fraction']),
-            self::element('boardbox', 'box', 'Board panel', [62, 4, 35.5, 92], 9, ['background' => '#00000040', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::GOLD]], []),
-            self::element('boardttl', 'text', 'Board title', [64, 6, 31.5, 6], 10, ['fontSize' => 36, 'fontWeight' => 700, 'color' => self::GOLD_LIGHT, 'uppercase' => true, 'letterSpacing' => 3], ['text' => 'Live top 10']),
+            // The board panel waits for the first result - no empty box at the start (spws-demo-ux-leftovers.md §4)
+            self::element('boardbox', 'box', 'Board panel', [62, 4, 35.5, 92], 9, ['background' => '#00000040', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::GOLD]], [], self::ONCE_RESULTS_ARE_IN),
+            self::element('boardttl', 'text', 'Board title', [64, 6, 31.5, 6], 10, ['fontSize' => 36, 'fontWeight' => 700, 'color' => self::GOLD_LIGHT, 'uppercase' => true, 'letterSpacing' => 3], ['text' => 'Live top 10'], self::ONCE_RESULTS_ARE_IN),
             self::element('leaders1', 'leaderboard', 'Top 10', [64, 13.5, 31.5, 80], 11, ['fontSize' => 32, 'align' => 'left'], [
                 'rows' => 10,
                 'columns' => ['rank', 'flag', 'name', 'table', 'result'],
                 'source' => 'live',
                 'rowStyle' => ['background' => '#ffffff12', 'altBackground' => '#ffffff06', 'gap' => 6],
-            ]),
+                'nameLines' => 2,
+            ], self::ONCE_RESULTS_ARE_IN),
         ]);
     }
 
@@ -81,17 +86,20 @@ final readonly class SandboxDemoDisplays
             self::element('timerbox', 'box', 'Timer box', [74, 2.5, 24.5, 15], 2, ['gradient' => ['from' => self::NAVY, 'to' => self::NAVY_DARK, 'angle' => 180], 'radius' => 18, 'border' => ['width' => 3, 'color' => self::GOLD]], []),
             self::element('roundnm1', 'field', 'Round', [75, 3.5, 22.5, 4.5], 3, ['fontSize' => 30, 'fontWeight' => 700, 'color' => self::GOLD_LIGHT, 'fit' => 'shrink'], ['field' => 'round_name']),
             self::element('timer001', 'timer', 'Timer', [75, 8, 22.5, 8.5], 4, ['fontSize' => 96, 'font' => 'bebas', 'color' => '#ffffff', 'letterSpacing' => 2], self::timerProps()),
-            self::element('sidebox1', 'box', 'Board column', [79, 19.5, 19.5, 58], 5, ['background' => '#050b3ae0', 'radius' => 18, 'border' => ['width' => 2, 'color' => self::GOLD]], []),
-            self::element('finished', 'finished_count', 'Finished', [80, 20.5, 17.5, 4.5], 6, ['fontSize' => 26, 'fontWeight' => 700, 'color' => self::GOLD], ['source' => 'live']),
-            self::element('leaders1', 'leaderboard', 'Top 8', [80, 26, 17.5, 50], 7, ['fontSize' => 24, 'align' => 'left'], [
+            // The board column and the finishers box wait for the first result - nothing over the camera picture at a
+            // round's start; as wide as the timer box, names on two lines (spws-demo-ux-leftovers.md §4)
+            self::element('sidebox1', 'box', 'Board column', [74, 19.5, 24.5, 58], 5, ['background' => '#050b3ae0', 'radius' => 18, 'border' => ['width' => 2, 'color' => self::GOLD]], [], self::ONCE_RESULTS_ARE_IN),
+            self::element('finished', 'finished_count', 'Finished', [75, 20.5, 22.5, 4.5], 6, ['fontSize' => 26, 'fontWeight' => 700, 'color' => self::GOLD], ['source' => 'live'], self::ONCE_RESULTS_ARE_IN),
+            self::element('leaders1', 'leaderboard', 'Top 8', [75, 26, 22.5, 50], 7, ['fontSize' => 24, 'align' => 'left'], [
                 'rows' => 8,
                 'columns' => ['rank', 'flag', 'name', 'result'],
                 'source' => 'live',
                 'rowStyle' => ['background' => '#ffffff10', 'altBackground' => '#ffffff04', 'gap' => 4],
-            ]),
-            self::element('tickerbx', 'box', 'Finishers box', [1.5, 80, 40, 17.5], 8, ['background' => '#050b3ae0', 'radius' => 18, 'border' => ['width' => 2, 'color' => self::GOLD]], []),
-            self::element('tickerhd', 'text', 'Finishers title', [2.5, 81, 38, 4], 9, ['fontSize' => 24, 'fontWeight' => 700, 'color' => self::GOLD_LIGHT, 'uppercase' => true, 'letterSpacing' => 2, 'align' => 'left'], ['text' => 'Just finished']),
-            self::element('ticker01', 'ticker', 'Latest finishers', [2.5, 85.5, 38, 11], 10, ['fontSize' => 22, 'align' => 'left'], ['rows' => 3, 'source' => 'live']),
+                'nameLines' => 2,
+            ], self::ONCE_RESULTS_ARE_IN),
+            self::element('tickerbx', 'box', 'Finishers box', [1.5, 80, 40, 17.5], 8, ['background' => '#050b3ae0', 'radius' => 18, 'border' => ['width' => 2, 'color' => self::GOLD]], [], self::ONCE_RESULTS_ARE_IN),
+            self::element('tickerhd', 'text', 'Finishers title', [2.5, 81, 38, 4], 9, ['fontSize' => 24, 'fontWeight' => 700, 'color' => self::GOLD_LIGHT, 'uppercase' => true, 'letterSpacing' => 2, 'align' => 'left'], ['text' => 'Just finished'], self::ONCE_RESULTS_ARE_IN),
+            self::element('ticker01', 'ticker', 'Latest finishers', [2.5, 85.5, 38, 11], 10, ['fontSize' => 22, 'align' => 'left'], ['rows' => 3, 'source' => 'live'], self::ONCE_RESULTS_ARE_IN),
         ]);
     }
 
@@ -138,7 +146,8 @@ final readonly class SandboxDemoDisplays
         foreach ([1, 2] as $index => $challenge) {
             $x = 3 + $index * 48;
             $elements[] = self::element(sprintf('panel%03d', $challenge), 'box', 'Challenge ' . $challenge . ' panel', [$x, 18, 46, 78], 4, ['background' => '#00000040', 'radius' => 24, 'border' => ['width' => 3, 'color' => self::GOLD]], []);
-            $elements[] = self::element(sprintf('title%03d', $challenge), 'text', 'Challenge ' . $challenge, [$x + 1, 20, 44, 7], 5, ['fontSize' => 44, 'fontWeight' => 700, 'color' => self::GOLD, 'uppercase' => true, 'letterSpacing' => 2], ['text' => 'Challenge ' . $challenge]);
+            // The puzzle's own label ("Challenge 3" on the second block) - never a fixed text (spws-demo-ux-leftovers.md §4)
+            $elements[] = self::element(sprintf('title%03d', $challenge), 'field', 'Puzzle ' . $challenge . ' label', [$x + 1, 20, 44, 7], 5, ['fontSize' => 44, 'fontWeight' => 700, 'color' => self::GOLD, 'uppercase' => true, 'letterSpacing' => 2], ['field' => 'puzzle_label', 'position' => $challenge]);
             $elements[] = self::element(sprintf('board%03d', $challenge), 'leaderboard', 'Challenge ' . $challenge, [$x + 1.5, 28.5, 43, 66], 6, ['fontSize' => 30, 'align' => 'left'], [
                 'rows' => 10,
                 'columns' => ['rank', 'flag', 'name', 'result'],
@@ -217,9 +226,9 @@ final readonly class SandboxDemoDisplays
      * @param array<string, mixed> $props
      * @return array<string, mixed>
      */
-    private static function element(string $id, string $type, string $name, array $frame, int $z, array $style, array $props): array
+    private static function element(string $id, string $type, string $name, array $frame, int $z, array $style, array $props, null|string $whenResults = null): array
     {
-        return [
+        $element = [
             'id' => $id,
             'type' => $type,
             'name' => $name,
@@ -228,5 +237,11 @@ final readonly class SandboxDemoDisplays
             'style' => $style,
             'props' => $props,
         ];
+
+        if ($whenResults !== null) {
+            $element['when'] = ['results' => $whenResults];
+        }
+
+        return $element;
     }
 }

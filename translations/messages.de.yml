@@ -136,6 +136,7 @@
   "not_started": "Diese Runde beginnt %when%. Die Ergebnisse erscheinen hier, sobald Puzzler ihre Zeiten eintragen."
   "no_results": "Noch keine Ergebnisse. Haben Sie an dieser Runde teilgenommen? Tragen Sie Ihre Zeit ein und sie erscheint hier."
   "no_puzzle_yet": "Das Puzzle für diese Runde wurde noch nicht enthüllt."
+  no_puzzles_yet: "Die Puzzles dieser Runde wurden noch nicht enthüllt."
   "column_result": "Ergebnis"
   "unofficial_note": "Von Puzzlern auf MySpeedPuzzling eingetragene Zeiten, die schnellsten zuerst - nicht die offizielle Platzierung und nur für diejenigen, die ihre Zeit eingetragen haben."
   "pieces_placed": "%placed% / %total% Teile"
@@ -5107,6 +5108,8 @@ live_results:
     pick_k: "Welche %count% Puzzles? Tippen Sie sie in Lösungsreihenfolge an."
     missing_note: "Puzzleauswahl unvollständig – das Ergebnis wird ohne sie gespeichert; ergänzen Sie sie später (Puzzle fehlt)."
     save: "Puzzleauswahl speichern"
+    save_order: "Reihenfolge speichern"
+    order_solved: "Gelöste Reihenfolge"
     none: "Kein Puzzle"
     hidden: "Noch nicht enthüllt"
     missing_filter: "Puzzle fehlt (%count%)"
@@ -14166,6 +14169,10 @@ competition_toolkit:
             everywhere: "überall auf MySpeedPuzzling"
             name_everywhere: "sein Name überall, sein Bild bei dieser Veranstaltung"
             event: "bei dieser Veranstaltung"
+        scope_unboxed:
+            everywhere: "überall auf MySpeedPuzzling, sein Bild erst nach der Veröffentlichung der Ergebnisse"
+            name_everywhere: "sein Name überall, sein Bild erst nach der Veröffentlichung der Ergebnisse"
+            event: "bei dieser Veranstaltung, sein Bild erst nach der Veröffentlichung der Ergebnisse"
         countdown_reveals: "Dieser Countdown enthüllt an seinem Ende: %puzzles%."
         countdown_reveals_nothing: "Dieser Countdown enthüllt nichts (er wurde ohne „Enthüllen“ gestartet): %puzzles%. Um sie beim Start zu enthüllen, brechen Sie ihn ab und starten Sie erneut mit angehaktem Kästchen."
         still_hidden: "Noch verborgen (die Stoppuhr wurde ohne „Enthüllen“ gestartet): %puzzles%."
@@ -14358,6 +14365,7 @@ competition_toolkit:
             none: "Keine Wertungsklassen."
             manage: "Wertungsklassen verwalten"
 competitor_page:
+    own_link: "Ihre Teilnehmerseite"
     settings:
         in_person_only: "Teilnehmerseiten und QR-Codes gibt es für Veranstaltungen vor Ort."
         qr_mode:
@@ -14387,6 +14395,7 @@ competitor_page:
         table_unused: "Noch keine Runde nutzt diesen Tisch."
     round:
         current: "Jetzt"
+        next: "Als Nächstes"
         running: "Läuft"
         scheduled: "Startet bald"
         stopped: "Pausiert"
@@ -14763,6 +14772,8 @@ competition_display:
             challenge_round: "Die ganze Runde"
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "In einem „Alle lösen“-Block nach der eigenen Zeit dieses Puzzles - sobald es enthüllt ist. Andere Runden zeigen die ganze Runde."
+            nameLines: "Zeilen pro Name"
+            position: "Puzzle (1 = das erste)"
             image:
                 source: "Bild"
             clock:
@@ -14890,6 +14901,8 @@ competition_display:
             chroma: "Key-Farbe (Chroma)"
             any: "Immer"
             not_published: "Noch nicht veröffentlicht"
+            has_rows: "Sobald Ergebnisse da sind"
+            puzzle_label: "Puzzle-Bezeichnung"
             revealed: "Enthüllt"
             not_revealed: "Noch nicht enthüllt"
             idle: "Nicht gestartet"
@@ -15984,8 +15997,8 @@ participant_linking:
         policy_label: "Wenn jemand einen Namen von Ihrer Liste wählt"
         policy:
             automatic: "Automatisch"
-            automatic_now_approval: "Jetzt: Erst mich fragen – Teilnehmer können bei dieser Veranstaltung ihre eigenen Zeiten vorschlagen."
-            automatic_now_open: "Jetzt: Sofort verknüpfen – bei dieser Veranstaltung schlägt niemand seine eigene Zeit vor."
+            automatic_now_approval: "Wirkt bei dieser Veranstaltung wie „Erst mich fragen“, weil Teilnehmer hier ihre eigenen Zeiten vorschlagen können."
+            automatic_now_open: "Wirkt bei dieser Veranstaltung wie „Sofort verknüpfen“ – hier schlägt niemand seine eigene Zeit vor."
             open: "Sofort verknüpfen"
             open_help: "Jede angemeldete Person kann einen Namen von Ihrer Liste wählen."
             approval: "Erst mich fragen"

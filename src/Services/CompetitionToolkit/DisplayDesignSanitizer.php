@@ -64,7 +64,8 @@ final readonly class DisplayDesignSanitizer
     public const array FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
     public const array PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
     private const array FONT_WEIGHTS = [300, 400, 500, 700, 900];
-    private const array FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date'];
+    // `puzzle_label`: the label of the round's puzzle at `position` (spws-demo-ux-leftovers.md §4)
+    private const array FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date', 'puzzle_label'];
     private const array PHASE_COLORS = ['idle', 'scheduled', 'running', 'warning', 'times_up', 'stopped'];
 
     private const string COLOR_PATTERN = '/^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?\z/';
@@ -185,6 +186,23 @@ final readonly class DisplayDesignSanitizer
         }
 
         return $demand;
+    }
+
+    /**
+     * Whether a shown `field` element names a round puzzle's label (`puzzle_label`, spws-demo-ux-leftovers.md §4) - only
+     * then the state carries the round's puzzle labels (`puzzleLabels`).
+     *
+     * @param array<string, mixed> $design a normalised design
+     */
+    public static function showsPuzzleLabels(array $design): bool
+    {
+        foreach (self::shownElementsOfType($design, 'field') as $element) {
+            if (is_array($element['props'] ?? null) && ($element['props']['field'] ?? null) === 'puzzle_label') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -629,7 +647,8 @@ final readonly class DisplayDesignSanitizer
             'locked' => self::boolean(self::get($input, 'locked'), false),
             'when' => [
                 'phases' => self::subset(self::get($when, 'phases'), self::PHASES, self::PHASES),
-                'results' => self::enum(self::get($when, 'results'), ['any', 'published', 'not_published'], 'any'),
+                // `has_rows`: only while the state carries result rows (spws-demo-ux-leftovers.md §4)
+                'results' => self::enum(self::get($when, 'results'), ['any', 'published', 'not_published', 'has_rows'], 'any'),
                 'puzzle' => self::enum(self::get($when, 'puzzle'), ['any', 'revealed', 'not_revealed'], 'any'),
             ],
             'style' => $this->style(self::get($input, 'style')),
@@ -732,6 +751,8 @@ final readonly class DisplayDesignSanitizer
                 'field' => self::enum(self::get($input, 'field'), self::FIELDS, 'round_name'),
                 'prefix' => self::plain(self::get($input, 'prefix'), 60, multiline: false, trim: false),
                 'suffix' => self::plain(self::get($input, 'suffix'), 60, multiline: false, trim: false),
+                // Optional - stored only when set: every other field element is unchanged
+                ...self::optionalProp('position', self::optionalInteger(self::get($input, 'position'), 1, self::MAX_CHALLENGE)),
             ],
             'round_badge' => [
                 'useRoundColors' => self::boolean(self::get($input, 'useRoundColors'), true),
@@ -766,6 +787,8 @@ final readonly class DisplayDesignSanitizer
                 ],
                 ...self::resultsSource($input),
                 ...self::resultsView($input, withChallenge: true),
+                // Optional - stored only when set (spws-demo-ux-leftovers.md §4): every other design keeps one line
+                ...self::optionalProp('nameLines', self::optionalInteger(self::get($input, 'nameLines'), 1, 3)),
             ],
             'ticker' => [
                 'rows' => self::integer(self::get($input, 'rows'), 1, 10, 5),
@@ -1125,6 +1148,16 @@ final readonly class DisplayDesignSanitizer
         }
 
         return mb_substr($value, 0, $maxLength, 'UTF-8');
+    }
+
+    /**
+     * An optional prop: the key only when it has a value (spread into the props), like schema.js's `optional: true`
+     *
+     * @return array<string, int>
+     */
+    private static function optionalProp(string $key, null|int $value): array
+    {
+        return $value === null ? [] : [$key => $value];
     }
 
     /**

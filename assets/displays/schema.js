@@ -28,11 +28,14 @@ export const FONTS = ['rubik', 'bebas', 'roboto_mono', 'courier_prime'];
 export const PHASES = ['idle', 'scheduled', 'running', 'times_up', 'stopped'];
 
 export const FONT_WEIGHTS = [300, 400, 500, 700, 900];
-export const FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date'];
+// `puzzle_label` (spws-demo-ux-leftovers.md §4): the label of the round's puzzle at `position` ("Challenge 3")
+export const FIELDS = ['competition_name', 'round_name', 'round_category', 'round_limit', 'round_start', 'location', 'event_date', 'puzzle_label'];
 export const PHASE_COLORS = ['idle', 'scheduled', 'running', 'warning', 'times_up', 'stopped'];
 export const BACKGROUND_TYPES = ['color', 'transparent', 'image', 'chroma'];
 export const BACKGROUND_FITS = ['cover', 'contain'];
-export const WHEN_RESULTS = ['any', 'published', 'not_published'];
+// `has_rows` (spws-demo-ux-leftovers.md §4): only while the state carries result rows - a panel's box and title next to a
+// leaderboard that has none yet stay off the camera picture
+export const WHEN_RESULTS = ['any', 'published', 'not_published', 'has_rows'];
 export const WHEN_PUZZLE = ['any', 'revealed', 'not_revealed'];
 
 // [min, max, default] - percent of the canvas (2 decimals), rotate in degrees
@@ -100,6 +103,8 @@ export const PROP_SPECS = {
         { key: 'field', kind: 'enum', options: FIELDS, default: 'round_name' },
         { key: 'prefix', kind: 'text', max: 60, multiline: false, trim: false },
         { key: 'suffix', kind: 'text', max: 60, multiline: false, trim: false },
+        // `puzzle_label`'s puzzle - optional, stored only when set (every other field element is unchanged); none = 1
+        { key: 'position', kind: 'int', optional: true, min: 1, max: MAX_CHALLENGE },
     ],
     round_badge: [
         { key: 'useRoundColors', kind: 'bool', default: true },
@@ -149,6 +154,9 @@ export const PROP_SPECS = {
         // Real events L2b: one view of the round - optional, stored only when set (every other design is unchanged)
         { key: 'division', kind: 'division', optional: true },
         { key: 'challenge', kind: 'challenge', optional: true, min: 1, max: MAX_CHALLENGE },
+        // Long pair/team names wrap to this many lines instead of one with an ellipsis (spws-demo-ux-leftovers.md §4) -
+        // optional, stored only when set: every other design keeps one line
+        { key: 'nameLines', kind: 'int', optional: true, min: 1, max: 3 },
     ],
     ticker: [
         { key: 'rows', kind: 'int', min: 1, max: 10, default: 5 },
@@ -549,7 +557,7 @@ function propValue(spec, value, path, competitionId, errors) {
         case 'enum':
             return oneOf(value, spec.options, spec.default);
         case 'int':
-            return integer(value, spec.min, spec.max, spec.default);
+            return spec.optional === true ? optionalInteger(value, spec.min, spec.max) : integer(value, spec.min, spec.max, spec.default);
         case 'bool':
             return boolean(value, spec.default);
         case 'color':

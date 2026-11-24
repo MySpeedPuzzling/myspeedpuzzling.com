@@ -157,6 +157,7 @@ live_refresh:
   "not_started": "Toto kolo začíná %when%. Výsledky se zde objeví, jakmile puzzleři přidají své časy."
   "no_results": "Zatím žádné výsledky. Soutěžili jste v tomto kole? Přidejte svůj čas a objeví se zde."
   "no_puzzle_yet": "Puzzle pro toto kolo zatím nebylo odhaleno."
+  no_puzzles_yet: "Puzzle tohoto kola zatím nebyly odhaleny."
   "column_result": "Výsledek"
   "unofficial_note": "Časy přidané puzzlery na MySpeedPuzzling, od nejrychlejšího - nejde o oficiální pořadí a jsou zde jen ti, kteří svůj čas přidali."
   "pieces_placed": "%placed% / %total% dílků"
@@ -5182,6 +5183,8 @@ live_results:
     pick_k: "Kterých %count% puzzlí? Klepněte na ně v pořadí skládání."
     missing_note: "Výběr puzzlí není úplný - výsledek se uloží bez něj; doplňte ho později (Chybí puzzle)."
     save: "Uložit výběr puzzlí"
+    save_order: "Uložit pořadí"
+    order_solved: "Pořadí skládání"
     none: "Žádné puzzle"
     hidden: "Zatím neodhaleno"
     missing_filter: "Chybí puzzle (%count%)"
@@ -14169,6 +14172,10 @@ competition_toolkit:
             everywhere: "všude na MySpeedPuzzling"
             name_everywhere: "jeho název všude, obrázek na této události"
             event: "na této události"
+        scope_unboxed:
+            everywhere: "všude na MySpeedPuzzling, obrázek až po zveřejnění výsledků"
+            name_everywhere: "jeho název všude, obrázek až po zveřejnění výsledků"
+            event: "na této události, obrázek až po zveřejnění výsledků"
         countdown_reveals: "Tento odpočet po skončení odhalí: %puzzles%."
         countdown_reveals_nothing: "Tento odpočet nic neodhalí (byl spuštěn bez „Odhalit“): %puzzles%. Chcete-li je odhalit při startu, zrušte ho a spusťte znovu se zaškrtnutým políčkem."
         still_hidden: "Stále skryté (stopky byly spuštěny bez „Odhalit“): %puzzles%."
@@ -14361,6 +14368,7 @@ competition_toolkit:
             none: "Žádné divize."
             manage: "Spravovat divize"
 competitor_page:
+    own_link: "Vaše stránka soutěžícího"
     settings:
         in_person_only: "Stránky soutěžících a QR kódy jsou pro prezenční události."
         qr_mode:
@@ -14390,6 +14398,7 @@ competitor_page:
         table_unused: "Tento stůl zatím žádné kolo nepoužívá."
     round:
         current: "Teď"
+        next: "Další"
         running: "Probíhá"
         scheduled: "Brzy začne"
         stopped: "Pozastaveno"
@@ -14766,6 +14775,8 @@ competition_display:
             challenge_round: "Celé kolo"
             challenge_puzzle: "Puzzle %position%"
             challenge_help: "V bloku „vyskládat vše“ řadí podle vlastního času daného puzzle - jakmile je odhalené. Ostatní kola ukazují celé kolo."
+            nameLines: "Řádků na jméno"
+            position: "Puzzle (1 = první)"
             image:
                 source: "Obrázek"
             clock:
@@ -14893,6 +14904,8 @@ competition_display:
             chroma: "Klíčovací barva (chroma)"
             any: "Vždy"
             not_published: "Zatím nezveřejněno"
+            has_rows: "Až budou výsledky"
+            puzzle_label: "Označení puzzle"
             revealed: "Odhaleno"
             not_revealed: "Zatím neodhaleno"
             idle: "Nespuštěno"
@@ -15987,8 +16000,8 @@ participant_linking:
         policy_label: "Když si někdo vybere jméno z vašeho seznamu"
         policy:
             automatic: "Automaticky"
-            automatic_now_approval: "Nyní: Nejdřív se mě zeptat – závodníci na této akci mohou navrhovat své časy."
-            automatic_now_open: "Nyní: Propojit hned – na této akci nikdo nenavrhuje svůj čas."
+            automatic_now_approval: "Na této akci funguje jako „Nejdřív se mě zeptat“, protože závodníci tu mohou navrhovat své časy."
+            automatic_now_open: "Na této akci funguje jako „Propojit hned“ – nikdo tu nenavrhuje svůj čas."
             open: "Propojit hned"
             open_help: "Kdokoli přihlášený si může vybrat jméno z vašeho seznamu."
             approval: "Nejdřív se mě zeptat"

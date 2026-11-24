@@ -10,7 +10,10 @@
 <section class="competitor-round{{ round.current ? ' is-current' }}" data-competitor-round="{{ round.roundId }}" data-competitor-round-phase="{{ phase ?? 'idle' }}"{% if round.current %} data-competitor-round-current{% endif %}>
     <header class="competitor-round-head">
         <h2 class="competitor-round-name">{{ round.name }}</h2>
-        {%- if round.current %} <span class="badge rounded-pill competitor-round-now">{{ 'competitor_page.round.current'|trans }}</span>{% endif -%}
+        {#- The round of the moment - "Next" while it has neither begun by its schedule nor by its stopwatch (nothing runs yet);
+            no badge for such a round already published (a demo built on dates ahead) -#}
+        {%- set ahead = phase is null and round.startsAt.instant > round.stopwatch.asOf -%}
+        {%- if round.current and not (ahead and round.published) %} <span class="badge rounded-pill competitor-round-now">{{ (ahead ? 'competitor_page.round.next' : 'competitor_page.round.current')|trans }}</span>{% endif -%}
         {#- The phase badge - the live clock (competitor_page_controller.js) keeps its text and colour current -#}
         {%- if phase == 'running' %} <span class="badge rounded-pill bg-success" data-competitor-round-badge data-competitor-round-running>{{ 'competitor_page.round.running'|trans }}</span>
         {%- elseif phase == 'scheduled' %} <span class="badge rounded-pill bg-primary" data-competitor-round-badge>{{ 'competitor_page.round.scheduled'|trans }}</span>

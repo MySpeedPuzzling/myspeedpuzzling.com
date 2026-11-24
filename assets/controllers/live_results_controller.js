@@ -38,12 +38,13 @@ import { clearDraft, readDraft, readPrefs, writeDraft, writePrefs } from '../liv
 import { parseLiveEntryRoute } from '../live_entry_route.js';
 import { liveUrlOnceLive, loginUrlWithReturn, shellPlan, snapshotOfTag } from '../live_entry_shell.js';
 import { entryOfTag, tagPath } from '../live_entry_tag.js';
-import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, togglePick } from '../live_entry_puzzles.js';
+import { choiceOf, describeChoice, missingChoice, pickFormat, piecesLimit, puzzleChips, saveFields, solveAllOrder, solvesAll, togglePick } from '../live_entry_puzzles.js';
 import { finishesWholeRound, finishFields, finishGate, splitFormat, splitRows, splitStep } from '../live_entry_splits.js';
 import { convertTyped, MISSING, openAfterPick, openFor, openOfRecord, opensUnfinished, pickUnfinished, piecesMode, timesUp, toggleOpen, typedPieces } from '../official_results_missing.js';
 import { FIELD as MISSING_PIECES, missingOf, missingPiecesChange, parseMissingPieces, withMissing } from '../official_results_finished_missing.js';
 import { myTablesOf, parseTables, recentMine, splitMine, storableText, todo, withMyTables } from '../live_entry_my_tables.js';
 import { labelRanges, tableLabels, tableText } from '../table_labels.js';
+import { pausedTable, pauseStillValid, TABLE_PAUSE_MS } from '../live_entry_table_pause.js';
 import { ageOf, applyOutcome, choiceAfterProposal, confirmFields, decisionOnDevice, mergeProposals, proposalAlternative, proposalChoiceLabels, proposalChoiceNote, proposalChoiceUntouched, proposalNotes, proposalOfEntry, proposalPanel, proposalValue, proposerName, rejectionChange, waitingNote, waitingProposals } from '../live_entry_proposals.js';
 
 /**
@@ -960,6 +961,7 @@ export default class extends Controller {
         clearTimeout(this.toastTimer);
         clearTimeout(this.countsTimer);
         clearTimeout(this.prefetchTimer);
+        clearTimeout(this.tablePauseTimer);
         this.snapshots?.flush();
         this.events?.close();
         this.channel?.close();
@@ -2365,15 +2367,18 @@ export default class extends Controller {
                     <span class="lr-chip-text"><strong>${escapeHtml(chip.label)}</strong>${chip.name ? `<span class="lr-chip-name" title="${escapeHtml(chip.name)}">${escapeHtml(chip.name)}</span>` : ''}</span>
                     ${chip.hidden ? `<i class="bi bi-lock" title="${escapeHtml(this.t('puzzleHidden'))}" aria-label="${escapeHtml(this.t('puzzleHidden'))}"></i>` : ''}
                 </button>`).join('');
-            const head = format.toSolve > 1 ? this.t('puzzlesPickK', { '%count%': format.toSolve }) : this.t('puzzlesPickOne');
+            const allSolved = solvesAll(format);
+            const head = allSolved ? this.t('puzzlesOrderSolved') : (format.toSolve > 1 ? this.t('puzzlesPickK', { '%count%': format.toSolve }) : this.t('puzzlesPickOne'));
             // What the competitor's phone said (v2 C3)
             const note = proposalChoiceNote(format, this.choice, this.proposalsOn ? proposalOfEntry(this.proposals, entry.ref) : null, this.choiceFromProposal);
-            const canSaveChoice = !confirming && fields.some((field) => field.field === 'puzzles') && (record !== null || this.choice.length === 0);
+            // A solve-all block without a result: the order goes with the result (or a split) - no "Save order" alone
+            const canSaveChoice = !confirming && fields.some((field) => field.field === 'puzzles') && (record !== null || this.choice.length === 0)
+                && !(allSolved && (value === null || value === undefined));
 
             html = `<div class="small fw-medium mb-1${missing ? ' text-warning-emphasis' : ' text-muted'}">${escapeHtml(missing ? this.t('puzzlesMissingNote') : head)}</div>
                 ${note !== null ? `<div class="small fw-semibold text-info-emphasis mb-1" data-proposal-choice="${note.key}">${escapeHtml(this.t(note.key, { '%labels%': note.labels ?? '' }))}</div>` : ''}
                 <div class="lr-chips">${chips}</div>
-                ${canSaveChoice ? `<button type="button" class="btn btn-outline-primary w-100 mt-2" data-action="live-results#saveChoice">${escapeHtml(this.t('puzzlesSave'))}</button>` : ''}`;
+                ${canSaveChoice ? `<button type="button" class="btn btn-outline-primary w-100 mt-2" data-action="live-results#saveChoice">${escapeHtml(this.t(allSolved ? 'puzzlesSaveOrder' : 'puzzlesSave'))}</button>` : ''}`;
         }
 
         if (this.puzzlesHtml !== html) {
@@ -2640,16 +2645,35 @@ export default class extends Controller {
     search() {
         this.query = this.findInputTarget.value;
         this.clearNotice();
+        clearTimeout(this.tablePauseTimer);
 
         // A table number nothing else starts with opens at once - no Enter (iOS's number pad has none), no row tap
         // (competition toolkit C7; a per-phone preference, on by default)
         if (this.prefs().autoOpenTable !== false) {
-            const unique = uniqueTable(this.searchIndex(), this.query, { tableNumbersOff: !this.usesTables(), labels: this.tableLabels() });
+            const options = { tableNumbersOff: !this.usesTables(), labels: this.tableLabels() };
+            const unique = uniqueTable(this.searchIndex(), this.query, options);
 
             if (unique !== null) {
                 this.openEntry(unique.ref);
 
                 return;
+            }
+
+            // A table name others continue (`a1` while A10… are seated): it opens once the judge stops typing
+            // (spws-demo-ux-leftovers.md §2) - every keystroke re-arms the pause
+            if (pausedTable(this.searchIndex(), this.query, options) !== null) {
+                const armed = this.query;
+                this.tablePauseTimer = setTimeout(() => {
+                    if (!this.isConnected() || !pauseStillValid(armed, this.findInputTarget.value, this.view, document.activeElement === this.findInputTarget)) {
+                        return;
+                    }
+
+                    const entry = pausedTable(this.searchIndex(), armed, { tableNumbersOff: !this.usesTables(), labels: this.tableLabels() });
+
+                    if (entry !== null) {
+                        this.openEntry(entry.ref);
+                    }
+                }, TABLE_PAUSE_MS);
             }
         }
 
@@ -2877,6 +2901,7 @@ export default class extends Controller {
     }
 
     openEntry(ref, { scan = null } = {}) {
+        clearTimeout(this.tablePauseTimer);
         const entry = this.entry(ref);
 
         if (entry === null) {
@@ -3187,9 +3212,17 @@ export default class extends Controller {
         this.piecesInputTarget.value = '';
         this.piecesPref = this.prefs().piecesMode ?? MISSING;
         const entry = this.openRef !== null ? this.entry(this.openRef) : null;
+        // A solve-all block: every puzzle is solved, in the round's order unless tapped otherwise - the pieces box is the
+        // next puzzle's, never "Pieces placed" of nothing (spws-demo-ux-leftovers.md §3)
+        // (also when a card opens after time's up - it opens in "Didn't finish"); a proposal's choice only grows, so
+        // choiceFromProposal stays as it was
+        this.choice = solveAllOrder(pickFormat(this.round), this.choice);
+
         this.openPuzzles = openOfRecord(this.choice, entry === null ? null : shownValue(entry, 'puzzles', this.outbox?.all() ?? []).value);
         this.pieceTexts = {};
         this.piecesTyped();
+        // The chips show the completed order at once
+        this.renderEntryInfo();
         this.focusPieces();
     }
 

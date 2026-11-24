@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundClock;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundEntryPuzzles;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -133,9 +134,20 @@ readonly final class GetCompetitionDisplayState
         $design = $display['design'];
         $results = null;
         $spotlight = null;
+        // The round's puzzle labels by position ("Challenge 3") - only for a design naming one (`puzzle_label`); labels
+        // are public before the reveal too (the event page shows them in place of names)
+        $puzzleLabels = null;
+
+        if (DisplayDesignSanitizer::showsPuzzleLabels($design)) {
+            $puzzleLabels = [];
+
+            foreach ($slots as $slot) {
+                $puzzleLabels[$slot->position] = $slot->label;
+            }
+        }
 
         if ($round !== null && $display['uses_results']) {
-            [$results, $spotlight] = $this->results($round, $design, $display['uses_live_results'], $display['token'], $slots);
+            [$results, $spotlight] = $this->results($round, $design, $display['uses_live_results'], $display['token'], $slots, $now);
         }
 
         // Published standings (v2 S2) - guest snapshots, cached per generation; a failure is an empty element, never a
@@ -223,6 +235,7 @@ readonly final class GetCompetitionDisplayState
             roundSlug: $round['slug'] ?? null,
             standings: $standings,
             control: $control,
+            puzzleLabels: $puzzleLabels,
             bracket: $bracket,
         );
     }
@@ -473,7 +486,7 @@ SQL,
      * @return array{0: null|DisplayResults, 1: null|DisplayResultRow} the results part and the chosen spotlight's row
      *                                                              (v2 L2) - one entries statement for both
      */
-    private function results(array $round, array $design, bool $usesLiveResults, string $token, array $slots): array
+    private function results(array $round, array $design, bool $usesLiveResults, string $token, array $slots, DateTimeImmutable $now): array
     {
         $demand = DisplayDesignSanitizer::resultsDemand($design);
         $views = DisplayDesignSanitizer::resultsViews($design);
@@ -513,7 +526,14 @@ SQL,
 
         $rows = [];
         $total = 0;
+        $finished = 0;
         $spotlight = null;
+        // An entry that did not finish is ranked after every finisher - but while the round still runs (not published,
+        // its time not over) the teams still solving may finish yet: a live board lists finishers only, and "finished"
+        // counts finished entries only, never a "Didn't finish" (SPWS demo rehearsal, spws-demo-ux-leftovers.md §8) - the
+        // ticker, the latest-finisher spotlight and the division views follow the board
+        $roundOver = $published || self::roundIsOver($round, $now);
+        $boardRows = [];
 
         foreach ($entries as $index => $entry) {
             if ($entry['result']->didNotStart) {
@@ -532,6 +552,14 @@ SQL,
             }
 
             $rows[$index] = self::row($entry, $rank, $token, $labels);
+
+            if ($entry['result']->isFinished()) {
+                $finished++;
+            }
+
+            if ($roundOver || $entry['result']->isUnfinished() === false) {
+                $boardRows[$index] = $rows[$index];
+            }
         }
 
         if (!$anyResults) {
@@ -540,14 +568,15 @@ SQL,
 
         $top = [];
         if ($allowed('leaderboard')) {
-            $top = self::best($rows, $demand['leaderboard']['rows']);
+            $top = self::best($boardRows, $demand['leaderboard']['rows']);
         }
 
         // The ticker's rows - and at least the newest one for a spotlight following the latest finisher (v2 L2)
         $latestRows = max($allowed('ticker') ? $demand['ticker']['rows'] : 0, $latestPick ? 1 : 0);
         $latest = [];
         if ($latestRows > 0) {
-            $latest = self::newest($rows, $latestRows);
+            // "Just finished" - a "Didn't finish" only once the round is over, like the board
+            $latest = self::newest($boardRows, $latestRows);
         }
 
         $viewRows = $emptyViews;
@@ -556,7 +585,7 @@ SQL,
             $viewRows = [];
 
             foreach ($allowedViews as $elementId => $view) {
-                $chosen = $this->viewRows($view, $facts, $entries, $results, $rows, $token, $slots, $labels);
+                $chosen = $this->viewRows($view, $facts, $entries, $results, $boardRows, $token, $slots, $labels);
                 $viewRows[$elementId] = $view['type'] === 'ticker' ? self::newest($chosen, $view['rows']) : self::best($chosen, $view['rows']);
             }
         }
@@ -564,7 +593,7 @@ SQL,
         return [
             new DisplayResults(
                 published: $published,
-                finished: $allowed('finished_count') ? count($rows) : null,
+                finished: $allowed('finished_count') ? $finished : null,
                 total: $allowed('finished_count') ? $total : null,
                 top: $top,
                 latest: $latest,
@@ -572,6 +601,33 @@ SQL,
             ),
             $spotlight,
         ];
+    }
+
+    /**
+     * The round's time is over: its stopwatch stopped, or running past its limit (RoundStopwatchStatus - the one rule);
+     * a round never timed by the stopwatch by its schedule (its start + limit passed - an event over)
+     *
+     * @param Round $round
+     */
+    private static function roundIsOver(array $round, DateTimeImmutable $now): bool
+    {
+        $status = RoundStopwatchStatus::at($round['stopwatch_status'], $round['stopwatch_started_at'], $now);
+
+        if ($status === RoundStopwatchStatus::STOPPED) {
+            return true;
+        }
+
+        if ($status === null) {
+            return $round['starts_at']->modify('+' . ($round['minutes_limit'] ?? 0) . ' minutes') <= $now;
+        }
+
+        if ($status !== RoundStopwatchStatus::RUNNING || $round['stopwatch_started_at'] === null) {
+            return false;
+        }
+
+        // A round without a limit (imported) has no "time over" - its results show as before
+        return $round['minutes_limit'] === null
+            || $now->getTimestamp() - $round['stopwatch_started_at']->getTimestamp() >= $round['minutes_limit'] * 60;
     }
 
     /**

@@ -1616,8 +1616,17 @@ scenario('render: empty states of §7.5', () => {
     const b = renderModel({ view: { puzzle: 'B' } }).root.querySelector('.as-puzzle');
     assert.ok(text(b).includes('Nobody has logged this puzzle yet'));
     assert.ok(text(b).includes('Not rated yet'));
-    assert.ok(text(b).includes('Picture shown later'));
+    // A puzzle without a picture: the plain tile - "Picture shown later" only while a picture waits (imageLater)
+    assert.ok(!text(b).includes('Picture shown later'));
+    assert.ok(b.querySelector('.as-puzzle__image--none') !== null);
     assert.equal(b.querySelector('img'), null);
+    const waiting = structuredClone(STATE);
+    waiting.slots.forEach((slot) => {
+        if (slot.puzzle !== null && slot.puzzle.imageUrl === null) {
+            slot.puzzle.imageLater = true;
+        }
+    });
+    assert.ok(text(renderModel({ state: waiting, view: { puzzle: 'B' } }).root.querySelector('.as-puzzle')).includes('Picture shown later'));
 
     // No entrants; no puzzle
     const empty = renderModel({ state: { ...clone(STATE), entrants: [], results: [], slots: [] } }).root;

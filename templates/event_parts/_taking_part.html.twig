@@ -12,6 +12,9 @@
     A participant of an online event with online timing (docs/features/online-competitions/README.md §5.4) also gets
     "Open my competition page" - their personal link (attendance.onlineToken, GetEventAttendance), opened as a full page
     load: the participant page lives without Turbo.
+
+    A competitor of an event with competitor pages on gets "Your competitor page" (attendance.ownParticipantId,
+    docs/features/competitions-management/spws-demo-ux-leftovers.md §1) - also next to "Competitors" above the rounds.
 #}
 {% if is_publicly_visible %}
 <section class="ev-detail-section ev-taking-part" id="taking-part" aria-labelledby="taking-part-title">
@@ -20,6 +23,12 @@
         {% if attendance.onlineToken is not null %}
             <a href="{{ online_link_url(attendance.onlineToken) }}" class="btn btn-sm btn-primary text-wrap" data-turbo="false" data-online-competition-page>
                 <i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'online_rounds.links.open_my_page'|trans }}
+            </a>
+        {% endif %}
+        {#- A competitor of an event with competitor pages on: their own page (spws-demo-ux-leftovers.md §1) -#}
+        {% if attendance.ownParticipantId is not null %}
+            <a href="{{ path('competitor_page', {competitionId: event.id|lower, kind: 'p', id: attendance.ownParticipantId}) }}" class="btn btn-sm btn-primary text-wrap" rel="nofollow" data-own-competitor-page>
+                <i class="bi bi-person-badge me-1" aria-hidden="true"></i>{{ 'competitor_page.own_link'|trans }}
             </a>
         {% endif %}
         {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}

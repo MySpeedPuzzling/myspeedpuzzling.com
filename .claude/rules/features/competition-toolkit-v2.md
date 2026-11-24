@@ -24,6 +24,9 @@ paths:
   - "src/**/CompetitionRoundPuzzle.php"
   - "templates/manage_round_puzzles.html.twig"
   - "docs/features/competitions-management/spws-*.md"
+  - "assets/live_entry_table_pause.js"
+  - "assets/event_wizard_days.js"
+  - "src/**/*SandboxDemo*"
   - "src/**/*TableLabel*"
   - "src/**/GetTagPlateChallenges.php"
   - "assets/table_labels*.js"
@@ -111,7 +114,7 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   `GET|PUT /internal-api/rounds/{id}/table-labels` (`labels` | `generate`, `alsoRounds`); every table write refuses a
   number beyond a list (`no_label`); same tables / copy only between rounds with equal lists; duplicate copies them.
   Judge: label keys open without Enter (`uniqueLabel()` in `official_results_live.js`; letters for the places = no
-  separator), text keyboard, My tables read labels (`labelRanges()`, `storableText()`); bundle budget 237.5 KB. Tag reads
+  separator), text keyboard, My tables read labels (`labelRanges()`, `storableText()`); bundle budget 240.5 KB. Tag reads
   carry the label in SQL (`TableLabelSql`). **Plates**: tents `?boxes=standing:<id>|solo|duo|team` (+ `?missing=0`) =
   a box per challenge on the judge's face (block K = N: per puzzle label; K < N: K numbered; else the round's name;
   labels only), the championship's first round printed (`GetTagPlateChallenges`). Tests `TableLabelsTest`,
@@ -143,3 +146,24 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   `pictures_would_show` unless `confirmReveal`), reads `unboxed` (round + puzzle) and `tableLabels {count, first, last}`
   (only when named). Tests `EventWizardExtrasTest`, `EventWizardSeveralRoundsTest`, `DuplicateCompetitionControllerTest`,
   `RoundFormatInternalApiTest`.
+- **Demo UX leftovers (UX2)**: `spws-demo-ux-leftovers.md` (Review amendments binding) — "Your competitor page" =
+  `EventAttendance::$ownParticipantId` (column of the existing attendance statement, only while competitor pages are on;
+  registration path reuses `mine.id`), shown in `_taking_part.html.twig` + next to "Competitors" (`_standings_links`).
+  Judge: a typed table name opens after `TABLE_PAUSE_MS` 700 when exactly one entry's label key matches
+  (`live_entry_table_pause.js`, labels only - numbers keep C7; not on a trailing separator; the box must keep the focus);
+  "Didn't finish" on a K = N round completes the choice in position order (`solveAllOrder()`), texts "Order solved" /
+  "Save order". Displays: `when.results: has_rows` (`hasResultRows(elements, state)` = a not-hidden leaderboard/ticker of
+  the design shows a row, own source gating) + optional leaderboard `nameLines` 1-3 (stored only when set; JS + PHP
+  sanitizer + shared cases). Sandbox: `SandboxDemoRound::$stopwatchFromStart` + `$seededWithinMinutes` (SPWS `t12`
+  only): demo day today/past → `StartSandboxDemoRoundStopwatch` (sandbox-only: start at the stored start, or schedule it
+  while ahead; never a stopwatch with a status), seeds within 60 min; demo day in the future → no seeds, no stopwatch
+  (`waitsForItsDay()`). Reveal lists: `SecretRevealPreview::unboxedPuzzleIds()` → `scope_unboxed.*` (display only, hash
+  unchanged). Wizard: a picked day fills the empty days below (`event_wizard_days.js`). Tests
+  `LiveEntryTablePauseScriptsTest`, `EventWizardDaysScriptTest`, `OwnCompetitorPageLinkTest`, `SandboxDemoEventsTest`,
+  display harnesses. Rehearsal fixes (doc §8): `SandboxGate` opens `/display/{token}(/state|/design)`; displays'
+  `finished` = finished results only, the live board lists finishers only until the round is over or published
+  (`roundIsOver()`); `field` value `puzzle_label` + optional `position` (state `puzzleLabels` only for such a design);
+  **an early stopwatch start beats the schedule** = `EditionRoundDetail::startedAt($now)` (timeline Live/Past/Next +
+  sidebar, round results page) - use it, never `startsAt <= now`, on those pages; studio `imageLater`; competitor badge
+  "Next" before anything began; "You took back" only while it can be tapped again; `SandboxPlaceholderBox` for the
+  demo's new secret puzzles.

@@ -158,9 +158,22 @@ docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events -
   --event=spws-toronto-2027-demo --logo=/tmp/spws-logo.png --maintainer=<organiser e-mail> --maintainer=<organiser e-mail>
 ```
 
-`--date` there is the **Toronto** day of the call; Teams Challenges 3 + 4 starts 15:00 Toronto that day - the secret
+`--date` there is the **Toronto** Teams day; Teams Challenges 3 + 4 starts 15:00 Toronto that day - the secret
 puzzles are added only while that is ahead. To rebuild after a rehearsal: delete the event (admin, Delete) and run
 it again (the organization is found again and reused).
+
+**Two modes of the demo day's running block** (Teams Challenges 1 + 2, `SandboxDemoRound::$stopwatchFromStart`,
+[spws-demo-ux-leftovers.md](../competitions-management/spws-demo-ux-leftovers.md) §5):
+- `--date` **today or past** (in Toronto; e.g. the call's day): the block is seeded within its first hour (some teams
+  finished, some with Challenge 1 only) and its stopwatch runs from its own start - started at 10:00 Toronto when the
+  build runs later, scheduled for 10:00 when it runs earlier (it then counts down and starts by itself). 10:00-12:00
+  it runs (Finished now on the judge's phone), from 11:00 every seeded time lies in the clock's past, after 12:00
+  "Time's up" until somebody stops it.
+- `--date` **in the future** (e.g. the real Teams day `--date=2027-06-03`, so the organisers try it now): the block has
+  **no results and no stopwatch** - like every later round, any stopwatch can be started early by the organisers (a
+  Start or a countdown, Reset puts it back). Seeded splits would be later than a clock started today and block
+  "Finished now"; a start scheduled months ahead would refuse their own Start. Everything else is the same: the Pairs
+  day (the day before) is recorded and published - standings, the tie, a no-show per round, missing pieces, plates.
 
 It prints every URL (event page, toolkit hub, participants sheet, competitor list, standings and their embeds, displays, and per round
 the desk, the judge page, the stopwatch, the round results and the analytics studio). Options: `--organizer=<email>`,

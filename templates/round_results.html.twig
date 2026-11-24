@@ -117,7 +117,7 @@
     {% endif %}
 
     {% if round.puzzles is empty and page.stillSecret is empty %}
-        <p class="text-muted">{{ 'round_results.no_puzzle_yet'|trans }}</p>
+        <p class="text-muted">{{ (round.puzzleSlots|length > 1 ? 'round_results.no_puzzles_yet' : 'round_results.no_puzzle_yet')|trans }}</p>
     {% endif %}
 
     {# Revealed by this round, but another round keeps the puzzle secret on the whole site longer - left out until then #}

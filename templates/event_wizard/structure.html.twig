@@ -182,7 +182,8 @@
         <div class="card-body">
             <h2 class="h6 mb-1">{{ 'event_wizard.structure.starts_title'|trans }}</h2>
             <p class="small text-muted">{{ 'event_wizard.structure.starts_help'|trans }}</p>
-            {{ form_start(form) }}
+            {#- A day picked in a row fills the empty days below it (event_wizard_days_controller.js, spws-demo-ux-leftovers.md §7) -#}
+            {{ form_start(form, {attr: {'data-controller': 'event-wizard-days'}}) }}
             {{ form_errors(form) }}
             {% if planned is not empty %}
                 <div class="d-none d-md-flex row g-2 small text-muted mb-1">
@@ -204,7 +205,7 @@
                         </div>
                         <div class="col-7 col-md-4">
                             {{ form_label(row.date, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}
-                            {{ form_widget(row.date, {type: 'date', attr: {min: event_days[0], max: event_days[1]}}) }}
+                            {{ form_widget(row.date, {type: 'date', attr: {min: event_days[0], max: event_days[1], 'data-event-wizard-days-target': 'day', 'data-action': 'change->event-wizard-days#picked'}}) }}
                         </div>
                         <div class="col-5 col-md-3">
                             {{ form_label(row.time, null, {label_attr: {class: 'form-label d-md-none small mb-1'}}) }}

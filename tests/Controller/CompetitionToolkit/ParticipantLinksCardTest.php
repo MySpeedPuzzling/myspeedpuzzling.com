@@ -45,7 +45,7 @@ final class ParticipantLinksCardTest extends WebTestCase
         self::assertCount(0, $card->filter('[data-counter="requests"]'));
         self::assertSame(['automatic', 'open', 'approval'], $card->filter('input[name="' . self::FORM . '[policy]"]')->each(static fn ($radio): string => (string) $radio->attr('value')));
         self::assertSame('automatic', $card->filter('input[name="' . self::FORM . '[policy]"][checked]')->attr('value'));
-        self::assertStringContainsString('Now: Link at once', $card->text());
+        self::assertStringContainsString('Works like “Link at once” at this event', $card->text());
     }
 
     public function testWaitingRequestsAreCountedAndAutomaticSaysWhy(): void
@@ -65,7 +65,7 @@ final class ParticipantLinksCardTest extends WebTestCase
         $card = $page->filter('[data-toolkit-card="participant-links"]');
         self::assertStringContainsString('1 waiting for you to confirm', $card->filter('[data-counter="requests"]')->text());
         self::assertStringContainsString('filter=asks', (string) $card->filter('[data-counter="requests"]')->attr('href'));
-        self::assertStringContainsString('Now: Ask me first', $card->text());
+        self::assertStringContainsString('Works like “Ask me first” at this event', $card->text());
     }
 
     /**

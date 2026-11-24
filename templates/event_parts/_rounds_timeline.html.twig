@@ -14,7 +14,7 @@
 {% if timeline.hasRounds %}
     <section class="ev-detail-section ev-rounds-section" aria-labelledby="event-rounds-title" data-event-rounds
         {%- if timeline.foldedCount > 0 %} data-controller="event-rounds"{% endif %}>
-        <h2 class="ev-detail-section-title" id="event-rounds-title">{{ 'event_rounds.title'|trans }} <span class="ev-month-n">{{ timeline.rounds|length }}</span></h2>{% if timeline.standings is not empty or timeline.bracketUrl is not null or timeline.competitorsUrl is not null %}{{ include('event_parts/_standings_links.html.twig', {standings: timeline.standings, bracket_url: timeline.bracketUrl, competitors_url: timeline.competitorsUrl}) }}{% endif %}
+        <h2 class="ev-detail-section-title" id="event-rounds-title">{{ 'event_rounds.title'|trans }} <span class="ev-month-n">{{ timeline.rounds|length }}</span></h2>{% if timeline.standings is not empty or timeline.bracketUrl is not null or timeline.competitorsUrl is not null %}{{ include('event_parts/_standings_links.html.twig', {standings: timeline.standings, bracket_url: timeline.bracketUrl, competitors_url: timeline.competitorsUrl, own_competitor_url: timeline.competitorsUrl is not null and (attendance.ownParticipantId ?? null) is not null ? path('competitor_page', {competitionId: event.id|lower, kind: 'p', id: attendance.ownParticipantId}) : null}) }}{% endif %}
         {% if timeline.foldedCount > 0 %}
             <details class="ev-rounds-earlier" data-event-rounds-target="earlier">
                 <summary>

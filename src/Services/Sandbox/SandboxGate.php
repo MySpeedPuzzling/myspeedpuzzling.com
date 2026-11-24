@@ -36,6 +36,12 @@ final class SandboxGate
     // redirect) stay behind the gate
     private const string OPEN_JSON_PATTERN = '#^/analytics-studio/[0-9a-fA-F-]{36}/(state|analytics|predictions|round-predictions|entrant/[0-9a-fA-F-]{36})$#';
 
+    // The displays (timer screens, OBS overlays - displays.md): the page runs in OBS or on a hall screen's browser, where
+    // nobody clicks "Enter", and its JSON (`/state`, `/design`) is fetched without cookies - closed, the screen froze on
+    // its first picture (SPWS demo rehearsal, spws-demo-ux-leftovers.md). Never indexed (noindex, no-referrer), a secret
+    // token in the path
+    private const string OPEN_DISPLAY_PATTERN = '#^/display/[A-Za-z0-9_-]{16,64}(/state|/design)?$#';
+
     private const array OPEN_PATHS = [
         '/oauth2/token',
         '/robots.txt',
@@ -53,7 +59,7 @@ final class SandboxGate
             return true;
         }
 
-        if (preg_match(self::OPEN_JSON_PATTERN, $path) === 1) {
+        if (preg_match(self::OPEN_JSON_PATTERN, $path) === 1 || preg_match(self::OPEN_DISPLAY_PATTERN, $path) === 1) {
             return true;
         }
 

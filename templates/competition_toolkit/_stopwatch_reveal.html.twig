@@ -1,7 +1,8 @@
 {#
     "Reveal the puzzles" on the round stopwatch's control page (docs/features/competitions-management/toolkit/
     A-round-formats.md §4.3) - only for a round with puzzles waiting for the stopwatch start (RoundPuzzleReveal::Stopwatch).
-    Variables: reveal (SecretRevealPreview::byStopwatchStart() - organisers see the names), start_phases, phase, round.
+    Variables: reveal (SecretRevealPreview::byStopwatchStart() - organisers see the names), start_phases, phase, round,
+    stopwatch_reveal_unboxed (optional: puzzle ids whose picture waits for the results - SecretRevealPreview::unboxedPuzzleIds()).
     The box is UNTICKED on every load (round_stopwatch_reveal_controller.js unticks a restored form too): a test run
     reveals nothing, a forgotten tick leaves the puzzles hidden ("Reveal now" fixes it).
 #}
@@ -14,7 +15,7 @@
     </div>
     <ul class="small mb-1 ps-4">
         {% for item in reveal %}
-            <li data-stopwatch-reveal-item>{{ item.name }} – <span class="text-muted">{{ ('competition_toolkit.reveal_stopwatch.scope.' ~ item.scope)|trans }}</span></li>
+            <li data-stopwatch-reveal-item>{{ item.name }} – <span class="text-muted">{{ ((item.id in stopwatch_reveal_unboxed|default([]) ? 'competition_toolkit.reveal_stopwatch.scope_unboxed.' : 'competition_toolkit.reveal_stopwatch.scope.') ~ item.scope)|trans }}</span></li>
         {% endfor %}
     </ul>
     <div class="form-text mt-0">{{ 'competition_toolkit.reveal_stopwatch.help'|trans }}</div>

@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleDifficulty;
@@ -67,7 +69,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
     private const string ENDPOINT = '/api/v1/puzzles';
 
     /** @var list<string> */
-    private const array PARAMETER_NAMES = ['query', 'ean', 'manufacturer', 'pieces_min', 'pieces_max', 'sort', 'difficulty', 'page', 'limit'];
+    private const array PARAMETER_NAMES = ['query', 'ean', 'brand', 'manufacturer', 'pieces_min', 'pieces_max', 'sort', 'difficulty', 'page', 'limit'];
 
     /** @var list<string> every limiter key a test of this class consumes from */
     private const array LIMITER_KEYS = [
@@ -273,6 +275,9 @@ final class PuzzleSearchEndpointTest extends WebTestCase
 
         $browser->request('GET', self::ENDPOINT, ['ean' => '4005556123456', 'sort' => 'a-z']);
         $this->assertUnprocessableWithViolationOn($browser, 'ean');
+
+        $browser->request('GET', self::ENDPOINT, ['ean' => '4005556123456', 'brand' => ManufacturerFixture::MANUFACTURER_TREFL]);
+        $this->assertUnprocessableWithViolationOn($browser, 'ean');
     }
 
     /**
@@ -286,7 +291,9 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         yield 'ean with letters' => [['ean' => '40055561234ab'], 'ean'];
         yield 'ean too short' => [['ean' => '1234567'], 'ean'];
         yield 'ean too long' => [['ean' => '123456789012345'], 'ean'];
-        yield 'manufacturer not a uuid' => [['manufacturer' => 'ravensburger'], 'manufacturer'];
+        yield 'manufacturer is no brand\'s name' => [['manufacturer' => 'Ravensbrger'], 'manufacturer'];
+        yield 'brand is no brand\'s name' => [['brand' => 'Nonexistent Brand'], 'brand'];
+        yield 'brand too long' => [['brand' => str_repeat('x', 101)], 'brand'];
         yield 'pieces_min below 1' => [['pieces_min' => '0'], 'pieces_min'];
         yield 'pieces_min not an integer' => [['pieces_min' => 'abc'], 'pieces_min'];
         yield 'pieces_max above 50000' => [['pieces_max' => '50001'], 'pieces_max'];
@@ -370,6 +377,91 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $browser->request('GET', self::ENDPOINT, ['manufacturer' => '00000000-0000-0000-0000-000000000000']);
         $this->assertResponseIsSuccessful();
         $this->assertSame(0, $this->decode($browser)['total']);
+    }
+
+    /**
+     * "brand" is the new name of "manufacturer": the same filter, either or both with the same id
+     */
+    public function testBrandIsTheSameFilterAsManufacturer(): void
+    {
+        $browser = $this->createApiClient();
+        $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', self::ENDPOINT, ['manufacturer' => ManufacturerFixture::MANUFACTURER_TREFL, 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $byManufacturer = $this->decode($browser);
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => ManufacturerFixture::MANUFACTURER_TREFL, 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $byBrand = $this->decode($browser);
+
+        $this->assertGreaterThan(0, $byBrand['total']);
+        $this->assertSame($byManufacturer, $byBrand);
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => ManufacturerFixture::MANUFACTURER_TREFL, 'manufacturer' => ManufacturerFixture::MANUFACTURER_TREFL, 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame($byBrand, $this->decode($browser));
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => ManufacturerFixture::MANUFACTURER_TREFL, 'manufacturer' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER]);
+        $this->assertUnprocessableWithViolationOn($browser, 'brand');
+    }
+
+    /**
+     * A brand's exact name (letter case ignored) or slug works like its id - the client in Sentry sent the name
+     */
+    public function testBrandByExactNameOrSlug(): void
+    {
+        $browser = $this->createApiClient();
+        $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => ManufacturerFixture::MANUFACTURER_TREFL, 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        $byId = $this->decode($browser);
+        $this->assertGreaterThan(0, $byId['total']);
+
+        foreach ([['brand' => 'Trefl'], ['brand' => '  TREFL '], ['manufacturer' => 'trefl'], ['brand' => 'Trefl', 'manufacturer' => ManufacturerFixture::MANUFACTURER_TREFL]] as $parameters) {
+            $browser->request('GET', self::ENDPOINT, [...$parameters, 'limit' => 100]);
+            $this->assertResponseIsSuccessful();
+            $this->assertSame($byId, $this->decode($browser), (string) json_encode($parameters));
+        }
+
+        // A part of a name is no brand - the 422 says where to search
+        $browser->request('GET', self::ENDPOINT, ['manufacturer' => 'Ravens']);
+        $this->assertUnprocessableWithViolationOn($browser, 'manufacturer');
+        $this->assertStringContainsString('GET /api/v1/brands?query=Ravens', $this->decodeProblem($browser)['violations'][0]['message'] ?? '');
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => 'Trefl', 'manufacturer' => 'Ravensburger']);
+        $this->assertUnprocessableWithViolationOn($browser, 'brand');
+    }
+
+    /**
+     * Two brands called the same (a duplicate typed by a player): the approved one wins; two approved ones are a 422
+     * naming both ids
+     */
+    public function testDuplicateBrandNames(): void
+    {
+        $browser = $this->createApiClient();
+        $entityManager = $this->entityManager($browser);
+        $unapprovedTwin = new Manufacturer(Uuid::uuid7(), 'trefl', approved: false);
+        $entityManager->persist($unapprovedTwin);
+        $entityManager->persist(new Puzzle(Uuid::uuid7(), 500, 'Twin puzzle', approved: true, manufacturer: $unapprovedTwin));
+        $entityManager->flush();
+        $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => 'TREFL', 'limit' => 100]);
+        $this->assertResponseIsSuccessful();
+        foreach ($this->decode($browser)['puzzles'] as $puzzle) {
+            $this->assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $puzzle['manufacturer']['id']);
+        }
+
+        $unapprovedTwin->approved = true;
+        $entityManager->flush();
+
+        $browser->request('GET', self::ENDPOINT, ['brand' => 'Trefl']);
+        $this->assertUnprocessableWithViolationOn($browser, 'brand');
+        $message = $this->decodeProblem($browser)['violations'][0]['message'] ?? '';
+        $this->assertStringContainsString(ManufacturerFixture::MANUFACTURER_TREFL, $message);
+        $this->assertStringContainsString($unapprovedTwin->id->toString(), $message);
     }
 
     public function testDifficultySortRequiresMembership(): void
@@ -899,7 +991,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertSame(20, $parameters['limit']['schema']['default'] ?? null);
         $this->assertSame(500, $parameters['page']['schema']['maximum'] ?? null);
         $this->assertSame('^\d{8,14}$', $parameters['ean']['schema']['pattern'] ?? null);
-        $this->assertSame('uuid', $parameters['manufacturer']['schema']['format'] ?? null);
+        $this->assertStringContainsString('/api/v1/brands', $parameters['brand']['description'] ?? '');
         $this->assertStringContainsString('members-only', $parameters['sort']['description'] ?? '');
 
         $document = $this->openApiDocument($browser);

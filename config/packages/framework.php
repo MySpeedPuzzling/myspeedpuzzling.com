@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use ApiPlatform\Validator\Exception\ValidationException;
 use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\CompetitionAlreadyInSeries;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotApprovable;
@@ -99,6 +100,9 @@ return App::config([
             BadRequestHttpException::class => ['log_level' => 'info'],
             NotAcceptableHttpException::class => ['log_level' => 'info'],
             UnsupportedMediaTypeHttpException::class => ['log_level' => 'info'],
+            // An /api/v1 request with invalid parameters or body, answered 422 with its violations (a limit above
+            // 100, a brand name where the id belongs) - the API client's mistake, already explained to it
+            ValidationException::class => ['log_level' => 'info'],
             // Moderators racing each other (or a stale form / internal-API call): the request was decided or the
             // puzzle changed after it was read - answered 409 / 422 with "read it again", nothing applied
             PuzzleChangeRequestAlreadyReviewed::class => ['log_level' => 'info'],

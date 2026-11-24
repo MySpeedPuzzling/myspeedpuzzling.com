@@ -41,6 +41,7 @@ use Symfony\Component\Validator\Constraints\Type;
                     . 'of a puzzle (all languages), identification numbers and barcodes, ignoring accents and case; '
                     . 'sort=best-match orders by how well it matched. "ean" is an exact barcode lookup (leading zeros '
                     . 'tolerated, never a part of a longer code) and cannot be combined with the other filters. '
+                    . '"brand" filters by a brand - its id from GET /api/v1/brands, or its exact name ("manufacturer" is its older name). '
                     . 'Secret competition puzzles are never returned and an embargoed image is null until its release. '
                     . 'Every card carries three insight objects that are always present and null when the token is not '
                     . 'entitled to them: "difficulty" (token owner must be a member), "prediction" (member who has not '
@@ -70,14 +71,24 @@ use Symfony\Component\Validator\Constraints\Type;
                 'ean' => new QueryParameter(
                     key: 'ean',
                     schema: ['type' => 'string', 'pattern' => '^\d{8,14}$'],
-                    description: 'Exact barcode (EAN/UPC, 8-14 digits) lookup: puzzles that carry this code as one of their barcodes, leading zeros tolerated - never a longer code that contains it. Mutually exclusive with query, manufacturer, pieces_min, pieces_max, sort and difficulty (422 when combined).',
+                    description: 'Exact barcode (EAN/UPC, 8-14 digits) lookup: puzzles that carry this code as one of their barcodes, leading zeros tolerated - never a longer code that contains it. Mutually exclusive with query, brand, manufacturer, pieces_min, pieces_max, sort and difficulty (422 when combined).',
                     constraints: [new Regex(pattern: '/^\d{8,14}$/', message: 'ean must be 8 to 14 digits.')],
+                ),
+                'brand' => new QueryParameter(
+                    key: 'brand',
+                    schema: ['type' => 'string', 'maxLength' => 100],
+                    description: 'Brand: its id from GET /api/v1/brands (the same as manufacturer.id on a card), or its exact name with letter case ignored ("ravensburger"), or its slug. A name that is no brand\'s is a 422 pointing to GET /api/v1/brands?query=… (a name two brands share too - send the id then); an unknown id yields an empty result, not 404. The same filter as manufacturer (send one of them; 422 when both differ).',
+                    constraints: [new Length(min: 1, max: 100)],
+                    castToNativeType: true,
+                    castFn: [QueryParameterCaster::class, 'trim'],
                 ),
                 'manufacturer' => new QueryParameter(
                     key: 'manufacturer',
-                    schema: ['type' => 'string', 'format' => 'uuid'],
-                    description: 'Brand (manufacturer) id. An unknown id yields an empty result, not 404.',
-                    constraints: [new Regex(pattern: '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', message: 'manufacturer must be a UUID.')],
+                    schema: ['type' => 'string', 'maxLength' => 100],
+                    description: 'The older name of brand, kept working - the same filter: a brand id from GET /api/v1/brands, or the exact name (letter case ignored) or slug.',
+                    constraints: [new Length(min: 1, max: 100)],
+                    castToNativeType: true,
+                    castFn: [QueryParameterCaster::class, 'trim'],
                 ),
                 'pieces_min' => new QueryParameter(
                     key: 'pieces_min',

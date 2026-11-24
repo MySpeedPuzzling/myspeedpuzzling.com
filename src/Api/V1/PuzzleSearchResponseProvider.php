@@ -8,6 +8,8 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ParameterNotFound;
 use ApiPlatform\State\ProviderInterface;
 use ApiPlatform\Validator\Exception\ValidationException;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetApiBrandList;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
 use SpeedPuzzling\Web\Services\Api\PuzzleResponseFactory;
@@ -37,7 +39,7 @@ use Symfony\Component\Validator\ConstraintViolationList;
 final readonly class PuzzleSearchResponseProvider implements ProviderInterface
 {
     /** @var list<string> */
-    private const array EAN_EXCLUSIVE_WITH = ['query', 'manufacturer', 'pieces_min', 'pieces_max', 'sort', 'difficulty'];
+    private const array EAN_EXCLUSIVE_WITH = ['query', 'brand', 'manufacturer', 'pieces_min', 'pieces_max', 'sort', 'difficulty'];
 
     public function __construct(
         private Security $security,
@@ -45,6 +47,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
         private SearchPuzzle $searchPuzzle,
         private PuzzleResponseFactory $puzzleResponseFactory,
         private RateLimiterFactoryInterface $apiPuzzleSearchLimiter,
+        private GetApiBrandList $getApiBrandList,
     ) {
     }
 
@@ -65,7 +68,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
         }
 
         $search = $this->stringValue($operation, 'query');
-        $manufacturer = $this->stringValue($operation, 'manufacturer');
+        $manufacturer = $this->brandId($operation);
         $piecesMin = $this->intValue($operation, 'pieces_min', null);
         $piecesMax = $this->intValue($operation, 'pieces_max', null);
         // The API default stays the most solved first, also with a query (best-match is asked for explicitly)
@@ -192,6 +195,53 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
             $retryAfterSeconds,
             sprintf('Too many puzzle searches. Try again in %d seconds.', $retryAfterSeconds),
         );
+    }
+
+    /**
+     * "brand" and its older name "manufacturer" are one filter: either, or both meaning the same brand. A value is a
+     * brand id (an unknown id finds nothing, like before), else a brand's exact name or slug (GetApiBrandList::idsCalled()).
+     */
+    private function brandId(Operation $operation): null|string
+    {
+        $brand = $this->resolveBrand('brand', $this->stringValue($operation, 'brand'));
+        $manufacturer = $this->resolveBrand('manufacturer', $this->stringValue($operation, 'manufacturer'));
+
+        if ($brand !== null && $manufacturer !== null && $brand !== $manufacturer) {
+            throw self::violation('brand', $brand, 'brand and manufacturer are the same filter - send one of them.');
+        }
+
+        return $brand ?? $manufacturer;
+    }
+
+    private function resolveBrand(string $parameter, null|string $value): null|string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (Uuid::isValid($value)) {
+            return strtolower($value);
+        }
+
+        $ids = $this->getApiBrandList->idsCalled($value);
+
+        if ($ids === []) {
+            throw self::violation($parameter, $value, sprintf(
+                'No brand is called "%s" - send a brand id or its exact name; GET /api/v1/brands?query=%s finds it.',
+                $value,
+                rawurlencode($value),
+            ));
+        }
+
+        if (count($ids) > 1) {
+            throw self::violation($parameter, $value, sprintf(
+                'More brands are called "%s" (%s) - send the id of the one you mean.',
+                $value,
+                implode(', ', $ids),
+            ));
+        }
+
+        return $ids[0];
     }
 
     private static function violation(string $parameter, mixed $value, string $message): ValidationException

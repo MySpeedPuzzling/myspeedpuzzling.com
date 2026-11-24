@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EVENT NAME on MySpeedPuzzling - organiser guide</title>
+<link rel="stylesheet" href="guide.css">
+<!-- The event's own two colours (cover band). -->
+<style>:root { --event: #0b1a5c; --event-2: #d4af37; }</style>
+</head>
+<body>
+<!--
+  Skeleton of an event guide (see ../SKILL.md). build.py fills {{placeholders}} from facts.json
+  ({{event.url}}, {{pages.edit}}, {{rounds.<slug>.desk|judge|stopwatch|seating|puzzles|results|studio|name|format}},
+  {{standings.<slug>.public|embed|edit|id}}, {{displays.<key>.url|editor}}, {{people.competitor_page|competitor_name}},
+  {{built_on}}) and replaces each <figure data-shot="name"> with the screenshot + numbered pins.
+  Callout numbers (data-n) follow the order of the shot's "marks" in shots.json.
+  Write for experienced organisers, not developers: plain English, why before how, UI labels exactly as on screen.
+-->
+
+<section class="cover">
+  <div class="brand-row"><img src="msp-logo.svg" alt="MySpeedPuzzling"><span class="x">&times;</span><img src="event-logo.png" alt=""></div>
+  <div class="kicker">Organiser guide</div>
+  <h1>Running EVENT NAME on MySpeedPuzzling</h1>
+  <p class="lead">Everything your team needs, from the first spreadsheet to the last award - a chapter for each job on the day.</p>
+  <div class="hero">
+    <img src="hero.png" alt="">
+    <div class="meta">
+      <strong>EVENT NAME · CITY</strong>
+      <span>CHAMPIONSHIP · DAY DATE</span>
+      <span style="margin-top:2mm">Prepared for ORGANISERS by Jan, MySpeedPuzzling</span>
+    </div>
+  </div>
+  <p class="edition">Screenshots from {{event.short_url}}, taken {{built_on}}.</p>
+</section>
+
+<section>
+  <h2>Welcome</h2>
+  <p>TODO: who it is for, that the demo is a safe copy (sandbox) or their live event.</p>
+  <h2>How to use this guide</h2>
+  <ul><li>Read chapter 1 first, then give each helper their chapter.</li><li>Numbered pins on screenshots match the numbered notes.</li><li>Button names are written <span class="ui">like this</span>.</li></ul>
+  <h2>Try it yourself</h2>
+  <div class="box why"><span class="label">The sandbox</span><p>TODO: link, Enter the sandbox, accounts table.</p></div>
+  <h2>Contents</h2>
+  <ol class="toc"><li><b>1</b>The event at a glance</li><li><b>2</b>Organisers</li><!-- … one per chapter --></ol>
+  <h2>Who does what</h2>
+  <table><tr><th>Job</th><th>Device</th><th>Signs in?</th><th>Chapter</th></tr><!-- one row per role --></table>
+</section>
+
+<section class="chapter">
+  <div class="chapter-head"><div class="num">1</div><div><h1>The event at a glance</h1><div class="sub">How your format maps onto MySpeedPuzzling</div></div></div>
+  <p>TODO: event → rounds → standings in their words.</p>
+  <h3>Your schedule</h3>
+  <table><tr><th>Day</th><th>Round</th><th>Puzzles</th><th>Limit</th></tr></table>
+  <h3>How it is set up</h3>
+  <table>
+    <tr><th>Round</th><th>How it is set up</th></tr>
+    <tr><td class="k">{{rounds.ROUND_SLUG.name}}</td><td>{{rounds.ROUND_SLUG.format}}</td></tr>
+  </table>
+  <h3>Your rules in MySpeedPuzzling terms</h3>
+  <table><tr><th>Your rule</th><th>What MySpeedPuzzling does</th></tr><!-- say what is a setting and what the judges decide --></table>
+  <figure data-shot="event-page" class="w-80"><figcaption><b>Your public event page.</b></figcaption>
+    <ol class="callouts"><li data-n="1">…</li></ol></figure>
+</section>
+
+<!-- One chapter per ROLE. Repeat this block: organisers, results desk, seating & printing, judges, competitors,
+     stream & hall screens, commentators, your website (+ any role the event has, minus any it has not). -->
+<section class="chapter">
+  <div class="chapter-head role"><div class="num">2</div><div><h1>ROLE</h1><div class="sub">One line: who and where</div></div></div>
+  <div class="who">
+    <div><span class="label">Purpose</span><p>…</p></div>
+    <div><span class="label">Open it</span><p>…</p></div>
+    <div><span class="label">Sign in</span><p>…</p></div>
+  </div>
+  <figure data-shot="SHOT"><figcaption><b>Page name.</b> …</figcaption>
+    <ol class="callouts"><li data-n="1">…</li></ol></figure>
+  <h3>Setting it up</h3>
+  <ol class="steps"><li>…</li></ol>
+  <h3>On the day</h3>
+  <ul><li>…</li></ul>
+  <h3>Options</h3>
+  <ul><li>…</li></ul>
+  <div class="box why"><span class="label">Why it works this way</span><p>…</p></div>
+  <h3>Real-life situations</h3>
+  <!-- 2-4 moments from THEIR format: a challenge finished mid-block, pieces missing, time's up, no-show, a tie,
+       the Wi-Fi drops, a walk-in, renaming the table places … -->
+  <div class="situation"><h4>…</h4><p>…</p></div>
+  <!-- Phone shots: <div class="side"><div>text</div><figure data-shot="…">…</figure></div>
+       or <div class="phones"><figure …>…</figure> ×3</div> -->
+</section>
+
+<section class="chapter">
+  <div class="chapter-head"><div class="num">10</div><div><h1>Data in and data out</h1></div></div>
+  <h2>Creating the event: the wizard</h2>
+  <h2>Participants</h2>
+  <table><tr><th>You want to…</th><th>How</th></tr><!-- import, template, paste, pairs/teams, profile links, registration, export --></table>
+  <h2>Rules, copies and publishing</h2>
+  <h2>Data out</h2>
+  <table><tr><th>What</th><th>Where</th><th>For</th></tr></table>
+</section>
+
+<section class="chapter">
+  <div class="chapter-head"><div class="num">11</div><div><h1>Checklists</h1></div></div>
+  <div class="cols">
+    <div><h2>Weeks before</h2><ul class="checklist"><li>…</li></ul><h2>The week before</h2><ul class="checklist"><li>…</li></ul></div>
+    <div><h2>Each round</h2><ul class="checklist"><li>…</li></ul><h2>After the event</h2><ul class="checklist"><li>…</li></ul></div>
+  </div>
+</section>
+
+<section class="chapter">
+  <div class="chapter-head"><div class="num">12</div><div><h1>Glossary and help</h1></div></div>
+  <dl class="glossary"><dt>Round</dt><dd>…</dd></dl>
+  <h2>Where to get help</h2>
+  <div class="box why"><span class="label">Jan, MySpeedPuzzling</span><p>Write to Jan at <b>CONTACT E-MAIL (ask Jan which one)</b>…</p></div>
+  <p class="small">Guide built {{built_on}} from {{event.url}}.</p>
+</section>
+</body>
+</html>

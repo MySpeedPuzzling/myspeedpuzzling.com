@@ -45,8 +45,8 @@ readonly final class StartSandboxDemoRoundStopwatchHandler
         }
 
         $now = $this->clock->now();
-        // A whole second, as every stopwatch moment
-        $startsAt = $message->startsAt->setTimestamp($message->startsAt->getTimestamp());
+        // The round's stored start - a whole second, as every stopwatch moment
+        $startsAt = $message->startsAt;
 
         if ($startsAt > $now) {
             $round->scheduleStopwatchStart($startsAt, $now);

@@ -250,7 +250,8 @@ table (same all championship), name / pair or team name + members, flags, QR, an
 Built as designed with the amendments. Deviations and details:
 - **Where the names are set**: the seating page's "Table names" panel (`templates/seating/_table_labels.html.twig`,
   lazy `table_labels_editor_controller.js`; generator defaults A-H × 1-22, places "A1 L / A1 R"; after a save the page
-  loads again) and the internal API. **Not yet in the creation wizard's Extras** - `docs/TODO.md`.
+  loads again) and the internal API. Since package D also the creation wizard's Extras ("Name the tables like your hall
+  plan", spws-wizard.md "Package D").
 - **Judge typing** (node-pinned in `TableLabelsTest::testTheJudgeTypesATableOfTheHall`): labels match by folded key only
   when the typed text has a digit or names a label exactly (a name starting with "A" never lists the A tables); digits on
   a labelled round are labels. Over the SPWS hall: one per table - 159 of 175 open without Enter (A1/A2, B1/B2 … wait for

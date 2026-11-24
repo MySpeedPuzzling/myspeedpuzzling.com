@@ -133,7 +133,7 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         $name = self::text($connection->fetchOne('SELECT name FROM competition_round WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_A]));
         $line = $this->trans('event_duplicate.puzzle_marks.round', [
             '%round%' => $name,
-            '%marks%' => $this->trans('event_duplicate.puzzle_marks.labels', ['%count%' => 1]) . ', ' . $this->trans('event_duplicate.puzzle_marks.unboxed', ['%count%' => 1]),
+            '%marks%' => $this->trans('event_duplicate.puzzle_marks.labels', ['%count%' => '1']) . ', ' . $this->trans('event_duplicate.puzzle_marks.unboxed', ['%count%' => '1']),
         ]);
 
         $browser->request('GET', self::PATH);
@@ -142,7 +142,7 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         self::assertSelectorExists('[data-duplicate-kept]');
         self::assertSelectorCount(1, '[data-duplicate-puzzle-marks] li');
         self::assertSelectorTextSame('[data-duplicate-puzzle-marks-round="' . OfficialResultsFixture::ROUND_GROUP_A . '"]', $line);
-        self::assertSame('1 puzzle label', $this->trans('event_duplicate.puzzle_marks.labels', ['%count%' => 1]));
+        self::assertSame('1 puzzle label', $this->trans('event_duplicate.puzzle_marks.labels', ['%count%' => '1']));
 
         $browser->request('POST', self::PATH, ['_token' => 'csrf-token', 'dateFrom' => '2031-05-01', 'name' => 'Results Cup Marks'], server: ['HTTP_ORIGIN' => 'http://localhost']);
 

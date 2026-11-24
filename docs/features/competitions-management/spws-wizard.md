@@ -177,8 +177,9 @@ page, `?labels` opens the panel) - the standings/displays pattern. Review lists 
 Extras) changes to "Who sits at which table is set once people are in - the "Get ready" checklist reminds you."
 (6 locales; the note was about numbers).
 
-**Reads.** `GetCompetitionRoundsForManagement` gains `cr.table_numbers_off` and `cr.table_labels` columns
-(`CompetitionRoundForManagement::$tableNumbersOff`, `$tableLabels: null|TableLabels`) - same statement, +0. Used by
+**Reads.** `GetCompetitionRoundsForManagement` gains `cr.table_numbers_off` and the count, first and last name of
+`cr.table_labels` (`$tableNumbersOff`, `$tableLabelsCount`, `$firstTableLabel`, `$lastTableLabel`; D-R3) - same
+statement, +0. Used by
 the Extras state, Review and the hub card (D5).
 
 ## D2. Resume / "Edit puzzles": a block keeps its "Challenge k" labels and "Solve all n"
@@ -199,7 +200,7 @@ rule: "Solve all" is saved only from 2 puzzles).
 per-puzzle Unboxed marks and puzzle labels cannot travel - copying puzzles stays out. The page's notice grows from
 "Puzzle formats reset" to **"The copy's rounds start without puzzles"** listing per round what the organiser sets again:
 its format (as today), "N puzzles unboxed" (`unboxedPuzzleCount`, row has it), "N puzzle labels"
-(`COUNT(*) FILTER (WHERE crp.label IS NOT NULL)`, new column of the same statement). Plus one line of what IS kept:
+(`labelledPuzzleCount` = `COUNT(crp.id) FILTER (WHERE crp.label IS NOT NULL)`, a column of the same statement). Plus one line of what IS kept:
 "Kept: each round's settings, whole-round Unboxed, table names, standings, displays, divisions". Same in the flash. The
 existing `data-duplicate-formats-reset` / `data-duplicate-format-round` attributes stay. Internal API duplicate: its
 doc lists the same (answer unchanged).
@@ -235,3 +236,43 @@ nothing written; named → line), `EventWizardSeveralRoundsTest`/Challenges (res
 draft resumed in en; "Solo 1" untouched), `DuplicateCompetition*Test` notice lines, `RoundsInternalApiTest` (format
 PATCH, arrangement, unboxed + 409 confirm, reads), JS harness for the preview if logic beyond `generate()`.
 Browser: Extras + Review + Puzzles (resume) + duplicate page + hub card, 1280 and 375 px.
+
+## Package D - Review amendments (independent review 2026-11-24 - binding)
+- D-R1 (refusals): the controller runs the generator and `TableLabels::fromList()` per category before anything is
+  written (a field error); inside the transaction `TableLabelsRefused` / `InvalidTableLabels` become
+  `EventWizardExtraRefused('tableNames')` with its own message ("somebody changed them meanwhile"), never the display
+  limit's; `$tableLabels` is in the constructor's event check and in `isEmpty()`.
+- D-R2 (style per hall, places per category): "A1 L / A1 R" with 3-4 places is refused on that category's places field.
+- D-R3 (reads): `GetCompetitionRoundsForManagement` reads only the count, the first and the last name (never the
+  list); the internal API's round answers the same (`tableLabels {count, first, last}`) - the list is `GET
+  …/table-labels`.
+- D-R4 (signals): a format sent through the round `PATCH` pushes `OfficialResultsLiveUpdates::roundChanged()` like the
+  round form; the Extras table names push `roundChanged()` (results + displays) for every round named.
+- D-R5 (duplicate page): the "Each round keeps…" line only for an event with rounds; the marks notice only when a round
+  has puzzle labels or own Unboxed marks - a plain event's page gains one line only.
+- D-R6 (plan from the name): "Solve all" is prefilled from a name-derived plan only while the round has fewer than 2
+  saved puzzles (from 2 the format shown is the organiser's); the derived plan is never put on the form's action / the
+  "+ another puzzle" redirect.
+- D-R7: "-", "–", "—" with or without spaces count as the same dash when a name is matched.
+- D-R8 (API): `unboxedPuzzleIds` left out = `null` (marks kept); the 409 asks for every held picture (secret puzzles not
+  revealed yet included - conservative); a label goes through `RoundPuzzleLabel::normalise()` before the write; a puzzle
+  twice in `puzzleIds` is a `400`; "Solve all" = K = N documented (a puzzle added later needs the format again).
+
+## Package D - As built (2026-11-24)
+As designed + the amendments. Details:
+- Extras row `data-event-wizard-extra="table_names"`, fields `tableNames`, `tableLetters` (A-H), `tableNumbers` (1-22),
+  `tableOrder`, `tableSkip`, `tableSeatStyle` (side), `tableSeats{Solo,Duo,Team}` (1; only for categories with rounds
+  using table numbers); selects carry no "Required" mark (`required: false`, `placeholder: false`, `empty_data`). The
+  seating page's words are reused (`seating.labels.*`); new texts `event_wizard.extras.table_names*`, `table_seats*`.
+  `tables_note` unchanged (still true: who sits where is decided once people are in).
+- Puzzles: `EventWizardPuzzlesController::challengesPlan()` → `[plan, fromNames]`.
+- Duplicate: `event_duplicate.kept`, `event_duplicate.puzzle_marks.*` (plural forms, cs with [2,4]).
+- Internal API: `PutRoundPuzzleArrangementController`, `PutRoundUnboxedController`, `UpdateCompetitionRoundController`
+  (`puzzleFormat`/`puzzlesToSolve`); OpenAPI gained these and A's `…/table-labels`; doc section "Round format, labels,
+  Unboxed and table names" (with the order for scripts).
+- Browser walk (own php -S + Selenium on the test DB, 1280 px and 375 px mobile emulation): Puzzles opened without
+  `?challenges` (every block prefilled), Extras row (preview "Solo: 350 names, A1 L … H21 R", "Teams: 175 names"), the
+  3-places refusal (422 under the Teams field), Review line, Extras set-up line, toolkit hub "· Tables …", duplicate page
+  (kept line; marks notice with 2 labels + 1 unboxed).
+- Left (docs/TODO.md): Get ready "Same tables" item (2 pinned statements), real A4 plates, SPWS's place naming answer,
+  editing saved puzzles' labels on the grid.

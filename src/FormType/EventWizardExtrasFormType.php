@@ -178,6 +178,10 @@ final class EventWizardExtrasFormType extends AbstractType
             ]);
             $builder->add('tableOrder', ChoiceType::class, [
                 'label' => 'seating.labels.order',
+                // Always one of the choices - no "Required" mark, no empty option
+                'required' => false,
+                'placeholder' => false,
+                'empty_data' => 'letters',
                 'choices' => ['seating.labels.order_letters' => 'letters', 'seating.labels.order_numbers' => 'numbers'],
                 'attr' => ['data-wizard-table-names-target' => 'order'],
             ]);
@@ -188,6 +192,10 @@ final class EventWizardExtrasFormType extends AbstractType
             ]);
             $builder->add('tableSeatStyle', ChoiceType::class, [
                 'label' => 'seating.labels.seat_style',
+                // Always one of the choices - no "Required" mark, no empty option
+                'required' => false,
+                'placeholder' => false,
+                'empty_data' => 'side',
                 'choices' => ['seating.labels.style_side' => 'side', 'seating.labels.style_letter' => 'letter', 'seating.labels.style_dash' => 'dash'],
                 'attr' => ['data-wizard-table-names-target' => 'seatStyle'],
             ]);
@@ -195,6 +203,10 @@ final class EventWizardExtrasFormType extends AbstractType
             foreach ($state->tableCategories() as $category) {
                 $builder->add('tableSeats' . ucfirst($category->value), ChoiceType::class, [
                     'label' => 'event_wizard.extras.table_seats.' . $category->value,
+                // Always one of the choices - no "Required" mark, no empty option
+                'required' => false,
+                'placeholder' => false,
+                'empty_data' => '1',
                     'choices' => array_combine(range(1, TableLabelGenerator::MAX_SEATS), range(1, TableLabelGenerator::MAX_SEATS)),
                     'choice_translation_domain' => false,
                     'attr' => ['data-wizard-table-names-target' => 'seats', 'data-category' => $category->value],

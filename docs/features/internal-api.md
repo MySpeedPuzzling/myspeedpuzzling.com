@@ -450,6 +450,58 @@ curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: 
   https://sandbox.myspeedpuzzling.com/internal-api/rounds/<solo>/entry-divisions | jq
 ```
 
+### Round format, labels, Unboxed and table names
+
+Setting up a real event's rounds without a browser - the Speed Puzzle World Series' back-to-back blocks, per-puzzle
+Unboxed and hall table names (`docs/features/competitions-management/spws-wizard.md` package D,
+`table-labels-and-plates.md`, `spws-unboxed-per-puzzle.md`). The web pages' messages, one per call, every check before
+anything is written.
+
+| Method | Path | The page / message | Body |
+|---|---|---|---|
+| `PATCH` | `/internal-api/rounds/{roundId}` | the round form's format field - `EditCompetitionRound` | `puzzleFormat` (`total` / `pick`), `puzzlesToSolve` (K of `pick`) - with any other round field |
+| `PUT` | `/internal-api/rounds/{roundId}/arrangement` | the round puzzles page's order + labels - `ArrangeRoundPuzzles` | `puzzleIds` (order), `labels` (`{"<puzzleId>": "Challenge 3" \| null}`) - at least one |
+| `PUT` | `/internal-api/rounds/{roundId}/unboxed` | the round puzzles page's Unboxed - `ChangeRoundUnboxed` | `unboxed` (required), `unboxedPuzzleIds`, `confirmReveal` |
+| `GET` / `PUT` | `/internal-api/rounds/{roundId}/table-labels` | the seating page's "Table names" - `SetRoundTableLabels` | `labels` (list or null) or `generate` (`{letters, numbers, seats, seatStyle, order, skip}`), `alsoRounds` |
+
+- **Format**: `pick` + `puzzlesToSolve` = each entrant solves K of the round's puzzles; K = all of them is "Solve all"
+  (a back-to-back block, the order recorded). Left out = kept; either field alone keeps the other as the round has it;
+  `puzzlesToSolve` with `total` is a `400`. Refused `409` (`RoundPuzzleFormatRefused`: K outside 1..N - add the
+  puzzles first -, a round using online timing, recorded per-puzzle results that would break). "Solve all" is stored as
+  K = N: a puzzle added later makes it "pick K of N+1" - send the format again. Open judge pages are refreshed.
+- **Arrangement**: puzzles named by their puzzle id; a puzzle left out of `puzzleIds` keeps its place after them, one
+  left out of `labels` its label; `null` / `""` = the letter of its place; a label is at most 40 characters; a puzzle
+  that is not the round's, or one named twice, is a `400`. Answers the round (`position`, `label`, `effectiveLabel`).
+- **Unboxed**: `true` = every puzzle of the round (the per-puzzle marks are cleared, like the page); `false` +
+  `unboxedPuzzleIds` = exactly these puzzles, the others not; `false` without the list = the per-puzzle marks stay as
+  they are (`ChangeRoundUnboxed` with `null`). A list with `true` is a `400`. A change that lets a box picture out
+  before the round's results are first published (a puzzle unboxed now would not be - secret puzzles not revealed yet
+  included, to be safe) is refused `409 pictures_would_show` with `puzzles` unless `"confirmReveal": true` (the page's
+  confirm). Answers the round (`unboxed` on it and on each puzzle).
+- **Table names**: the whole list of names (`["A1 L", "A1 R", …]`, item *i* names table number *i + 1*) or the hall
+  generator; `alsoRounds` gives more rounds of the event the same list; all or nothing (`422 invalid_labels` /
+  `labels_refused` - `too_few` when somebody sits at a number the list does not name). `GET` answers the list. Round
+  answers carry `tableLabels: {"count", "first", "last"}` only on a named round.
+- **Reads**: every round answer (`GET …/competitions/{idOrSlug}`, the round writes) carries `puzzleFormat`,
+  `puzzlesToSolve`, `unboxed`, `tableLabels` (when set) and per puzzle `position`, `label`, `effectiveLabel`, `unboxed`.
+- **Order for a script** (SPWS block "Challenges 3 + 4" of the Teams): `POST …/rounds` (or `PUT …/puzzles`) with both
+  puzzles → `PUT …/arrangement` (labels "Challenge 3", "Challenge 4") → `PUT …/unboxed`
+  `{"unboxed": false, "unboxedPuzzleIds": ["<Buffalo>"]}` → `PATCH` `{"puzzleFormat": "pick", "puzzlesToSolve": 2}`;
+  then `PUT …/table-labels` `{"generate": {"letters": "A-H", "numbers": "1-22", "skip": "H22", "seats": 1}, "alsoRounds":
+  [<the other Teams round>]}`.
+
+```bash
+curl -s -X PUT -H "Authorization: Bearer $SANDBOX_INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"labels": {"<puzzleA>": "Challenge 3", "<puzzleB>": "Challenge 4"}, "puzzleIds": ["<puzzleA>", "<puzzleB>"]}' \
+  https://sandbox.myspeedpuzzling.com/internal-api/rounds/<roundId>/arrangement | jq '.puzzles[] | {name, label}'
+curl -s -X PUT -H "Authorization: Bearer $SANDBOX_INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"unboxed": false, "unboxedPuzzleIds": ["<puzzleB>"]}' \
+  https://sandbox.myspeedpuzzling.com/internal-api/rounds/<roundId>/unboxed | jq '.puzzles[] | {name, unboxed}'
+curl -s -X PATCH -H "Authorization: Bearer $SANDBOX_INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"puzzleFormat": "pick", "puzzlesToSolve": 2}' \
+  https://sandbox.myspeedpuzzling.com/internal-api/rounds/<roundId> | jq '{puzzleFormat, puzzlesToSolve}'
+```
+
 ### E-mail blocks and messages to players
 
 For a player whose e-mail does not arrive (a mistyped domain like `googlemail.mail.com`): stop every e-mail to the
@@ -885,7 +937,9 @@ their own messages (`SetCompetitionRoundPuzzles`, `SetCompetitionPuzzles`, `AddA
 **Duplicating** (`POST …/competitions/{competitionId}/duplicate`, `DuplicateCompetition` - the organisers' "Duplicate",
 [competitions-management/README.md](./competitions-management/README.md#duplicating-an-event)): a new **draft** added by
 the reviewer player, same name, a fresh slug, the details, settings, rounds and page content - never participants,
-entries, teams, results, results links, referees, round puzzles, the event's own puzzles, tables or online timing. An
+entries, teams, results, results links, referees, round puzzles, the event's own puzzles, tables or online timing
+(each round keeps its settings - whole-round Unboxed and table names included; puzzle labels and per-puzzle Unboxed go
+with the round puzzles, so set them again with `…/arrangement` / `…/unboxed` once the copy has its puzzles). An
 edition's copy is a new edition of the same series. The optional body overrides `name`, `dateFrom`, `dateTo` and
 `location` (validated like a `PATCH`; `location` of an online event is a `400`); **a new `dateFrom` moves `dateTo`
 (unless sent), every round's start and the registration window by the same number of days**. Under an approved
@@ -984,12 +1038,14 @@ changing the category of a round with official results is refused (`409`).
 - `revealsAt` is the reveal moment, in UTC.
 - `hidesEverywhere` means it is hidden on the whole site, not only on the event pages.
 
-**Round format (competition toolkit A2, read-only).** A round answers `puzzleFormat` (`total` = one result for the round,
+**Round format (competition toolkit A2).** A round answers `puzzleFormat` (`total` = one result for the round,
 the default; `pick` = each entrant solves `puzzlesToSolve` of the round's puzzles, `puzzlesToSolve` = their count means
 "solve all") and every round puzzle its `position` (1..N in the organiser's order: the arranged ones, then the others in
 the order they were added), `label` (the organiser's own, `null` = none) and `effectiveLabel` (the label, else the letter
-of the position - what judges see before the reveal). The API never sets them (the round form and the round's puzzles
-page do), but `PUT …/puzzles` that would leave a `pick` round fewer puzzles than `puzzlesToSolve` is refused (`409`).
+of the position - what judges see before the reveal), and `unboxed` (round and puzzle). They are set by the round
+`PATCH` (`puzzleFormat`, `puzzlesToSolve`), `PUT …/arrangement` and `PUT …/unboxed` - see
+[Round format, labels, Unboxed and table names](#round-format-labels-unboxed-and-table-names). `PUT …/puzzles` that
+would leave a `pick` round fewer puzzles than `puzzlesToSolve` is refused (`409`).
 
 See the [competitions docs](./competitions-management/README.md), "Hide Until Round Starts".
 

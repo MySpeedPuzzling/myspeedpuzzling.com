@@ -80,7 +80,7 @@ chosen puzzle uses its own row; a `total` one-puzzle round its one row.
   round A and not in round B is hidden on surfaces of A only - byTagId/`GetCompetitionPuzzles` hide it when any row says
   so (they already OR over rows of the competition).
 - Unpublish never hides again (the moment is `results_first_published_at`).
-- Internal API: no unboxed field exists today (round or puzzle) - not added (package C uses messages).
+- Internal API: no unboxed field exists today (round or puzzle) - not added (package C uses messages). Since package D: `PUT /internal-api/rounds/{id}/unboxed` + `unboxed` in every round answer (spws-wizard.md "Package D").
 
 ## Back-compat / opt-in
 Default false everywhere; untouched events run the same statements with one more `OR crp.unboxed` term inside existing

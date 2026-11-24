@@ -613,7 +613,7 @@ final class EventWizardSeveralRoundsTest extends WebTestCase
         // Continue with every block still "decided later": nothing written
         $this->browser->submit($crawler->filter('form[name="event_wizard_puzzles"]')->form());
         self::assertResponseRedirects();
-        self::assertSame(0, (int) $this->database()->fetchOne('SELECT COUNT(*) FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id', ['id' => $competitionId]));
+        self::assertEquals(0, $this->database()->fetchOne('SELECT COUNT(*) FROM competition_round_puzzle crp JOIN competition_round cr ON cr.id = crp.round_id WHERE cr.competition_id = :id', ['id' => $competitionId]));
         self::assertSame($before, $this->database()->fetchAllAssociative('SELECT id, puzzle_format, puzzles_to_solve FROM competition_round WHERE competition_id = :id ORDER BY id', ['id' => $competitionId]));
     }
 

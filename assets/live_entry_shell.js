@@ -92,7 +92,8 @@ export function currentRound(rounds, nowMs) {
         return latestStarted(recent, nowMs);
     }
 
-    const upcoming = list.filter((round) => (momentOf(round.startsAt) ?? -Infinity) > nowMs)
+    // A round with published results is done - never "the next one", even with its schedule still ahead
+    const upcoming = list.filter((round) => (momentOf(round.startsAt) ?? -Infinity) > nowMs && round.resultsPublished !== true)
         .sort((a, b) => compare([momentOf(a.startsAt), String(a.name ?? '')], [momentOf(b.startsAt), String(b.name ?? '')]));
 
     if (upcoming.length > 0) {

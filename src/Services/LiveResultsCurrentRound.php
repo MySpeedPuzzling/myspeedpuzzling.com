@@ -14,6 +14,9 @@ use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
  * within the past 12 hours (late results of the round that just ended), else the next one, else the last one.
  * "Started" = its stopwatch's start, or its scheduled start once that has passed (rounds timed without the stopwatch).
  * A stopwatch counting down to a scheduled start is not running yet - it runs from that moment (RoundStopwatchStatus).
+ * A round whose results are published is done: never "the next one", even when its schedule is still ahead (started
+ * early and published, a demo built on the real dates - spws-demo-ux-leftovers.md §9); a published round that started
+ * within the 12 hours still holds the screen, like every round that just ended.
  */
 final readonly class LiveResultsCurrentRound
 {
@@ -48,7 +51,10 @@ final readonly class LiveResultsCurrentRound
             return self::latestStarted(array_values($recent), $now);
         }
 
-        $upcoming = array_values(array_filter($rounds, static fn (RoundResultsOverview $round): bool => $round->startsAt > $now));
+        $upcoming = array_values(array_filter(
+            $rounds,
+            static fn (RoundResultsOverview $round): bool => $round->startsAt > $now && $round->resultsPublishedAt === null,
+        ));
 
         if ($upcoming !== []) {
             usort($upcoming, static fn (RoundResultsOverview $a, RoundResultsOverview $b): int => [$a->startsAt, $a->name] <=> [$b->startsAt, $b->name]);

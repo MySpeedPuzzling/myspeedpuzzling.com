@@ -66,10 +66,10 @@ readonly final class RoundsTimelineBuilder
         // The event has competitor pages on (CompetitionEvent::$competitorPages) - its competitor list exists
         bool $competitorPages = false,
     ): RoundsTimeline {
-        // A round started early by its stopwatch counts from that start (EditionRoundDetail::startedAt())
-        $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startedAt($now)->modify('+' . ($round->minutesLimit ?? 0) . ' minutes') <= $now;
+        // A round started early by its stopwatch counts from that start, a published one is over (EditionRoundDetail::isOverAt())
+        $isPastAt = static fn (EditionRoundDetail $round): bool => $round->isOverAt($now);
 
-        // Next: the first round not over - a running one counts
+        // Next: the first round not over - a running one counts, a published one never
         $nextRoundId = null;
 
         foreach ($rounds as $round) {

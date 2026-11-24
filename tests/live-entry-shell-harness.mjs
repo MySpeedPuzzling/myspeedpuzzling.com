@@ -23,8 +23,8 @@ const ROUND_C = '018d0020-0000-0000-0000-000000000103';
 const PARTICIPANT = '018d0020-0000-0000-0000-0000000000f1';
 const NOW = Date.parse('2026-11-21T12:00:00Z');
 
-function round(id, name, startsAt, status = null, startedAt = null) {
-    return { id, name, startsAt, stopwatch: { status, startedAt, stoppedAt: null } };
+function round(id, name, startsAt, status = null, startedAt = null, resultsPublished = false) {
+    return { id, name, startsAt, stopwatch: { status, startedAt, stoppedAt: null }, resultsPublished };
 }
 
 function snapshot(roundId, competitionId, roundState, { entries = [], savedAt = NOW - 60000 } = {}) {
@@ -219,7 +219,7 @@ const scenarios = {
         assert.ok(cases.length >= 10);
 
         for (const testCase of cases) {
-            const rounds = testCase.rounds.map((item) => round(item.name.toLowerCase(), item.name, item.startsAt, item.status, item.startedAt));
+            const rounds = testCase.rounds.map((item) => round(item.name.toLowerCase(), item.name, item.startsAt, item.status, item.startedAt, item.published === true));
             const picked = currentRound(rounds, Date.parse(testCase.now));
 
             assert.equal(picked?.name ?? null, testCase.expected, testCase.case);

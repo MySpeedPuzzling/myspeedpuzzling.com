@@ -64,6 +64,17 @@ readonly final class EditionRoundDetail
         return $this->startsAt;
     }
 
+    /**
+     * The round is over: its results are published (done, even with its schedule still ahead - started early and
+     * published, a demo built on the real dates months ahead, spws-demo-ux-leftovers.md §9), or its time ran out
+     * counted from startedAt()
+     */
+    public function isOverAt(DateTimeImmutable $now): bool
+    {
+        return $this->resultsPublished
+            || $this->startedAt($now)->modify('+' . ($this->minutesLimit ?? 0) . ' minutes') <= $now;
+    }
+
     public function isPick(): bool
     {
         return $this->puzzleFormat === RoundPuzzleFormat::Pick && $this->puzzlesToSolve !== null;

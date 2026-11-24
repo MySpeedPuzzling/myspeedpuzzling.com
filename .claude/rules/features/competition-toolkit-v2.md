@@ -146,7 +146,7 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   `pictures_would_show` unless `confirmReveal`), reads `unboxed` (round + puzzle) and `tableLabels {count, first, last}`
   (only when named). Tests `EventWizardExtrasTest`, `EventWizardSeveralRoundsTest`, `DuplicateCompetitionControllerTest`,
   `RoundFormatInternalApiTest`.
-- **Demo UX leftovers (UX2)**: `spws-demo-ux-leftovers.md` (Review amendments binding) — "Your competitor page" =
+- **Demo UX leftovers (UX2)**: `spws-demo-ux-leftovers.md` (Review amendments binding) — **a published round is done** (§9): `LiveResultsCurrentRound::pick()` + its JS port never pick a published round as "the next one" (running / last 12 h unchanged), `EditionRoundDetail::isOverAt()` (published or time over) drives the timeline's Past/Next, the results page's `hasStarted` counts published; "Your competitor page" =
   `EventAttendance::$ownParticipantId` (column of the existing attendance statement, only while competitor pages are on;
   registration path reuses `mine.id`), shown in `_taking_part.html.twig` + next to "Competitors" (`_standings_links`).
   Judge: a typed table name opens after `TABLE_PAUSE_MS` 700 when exactly one entry's label key matches

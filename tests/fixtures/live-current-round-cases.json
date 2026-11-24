@@ -107,5 +107,32 @@
             {"name": "Evening", "startsAt": "2026-10-10T18:00:00+00:00", "status": null, "startedAt": null}
         ],
         "expected": "Evening"
+    },
+    {
+        "case": "a round published ahead of its schedule is done: the next unpublished round",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Pairs", "startsAt": "2027-06-02T15:00:00+00:00", "status": null, "startedAt": null, "published": true},
+            {"name": "Teams", "startsAt": "2027-06-03T14:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Teams"
+    },
+    {
+        "case": "every round ahead published: the last round, as before",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Pairs", "startsAt": "2027-06-02T15:00:00+00:00", "status": null, "startedAt": null, "published": true},
+            {"name": "Teams", "startsAt": "2027-06-03T14:00:00+00:00", "status": null, "startedAt": null, "published": true}
+        ],
+        "expected": "Teams"
+    },
+    {
+        "case": "a round published right after it ended still holds the screen for 12 hours",
+        "now": "2026-10-10T12:00:00+00:00",
+        "rounds": [
+            {"name": "Morning", "startsAt": "2026-10-10T09:00:00+00:00", "status": "stopped", "startedAt": "2026-10-10T09:00:00+00:00", "published": true},
+            {"name": "Afternoon", "startsAt": "2026-10-10T14:00:00+00:00", "status": null, "startedAt": null}
+        ],
+        "expected": "Morning"
     }
 ]

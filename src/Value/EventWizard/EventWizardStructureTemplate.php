@@ -10,6 +10,8 @@ namespace SpeedPuzzling\Web\Value\EventWizard;
  *
  * - Qualification (yes): stages - groups, semifinals, final - the best of each round going on;
  * - EveryRoundCounts (no): solo, pair and team rounds, the times added up per category;
+ * - Challenges (no - championships of challenges, the World Series): rows of challenges per category, several back to
+ *   back = one round solving them in order, one total time per category (docs/features/competitions-management/spws-wizard.md);
  * - Empty (not sure yet): no round - the organiser adds them one by one, or picks a template later.
  *
  * Asked on the entry screen, carried to the Structure step as `?structure=` - it is only the step's preselected
@@ -19,5 +21,6 @@ enum EventWizardStructureTemplate: string
 {
     case Qualification = 'qualification';
     case EveryRoundCounts = 'every_round_counts';
+    case Challenges = 'challenges';
     case Empty = 'empty';
 }

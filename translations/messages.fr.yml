@@ -15209,6 +15209,8 @@ event_wizard:
         qualify_every_round_counts_help: "Manches en solo, en duo et en équipe : les temps sont additionnés par catégorie."
         qualify_empty: "Je ne sais pas encore"
         qualify_empty_help: "Commencez sans manches et ajoutez-les une par une."
+        qualify_challenges: "Non – les défis s'additionnent par championnat"
+        qualify_challenges_help: "Comme la Speed Puzzle World Series : chacun résout tous les défis, certains enchaînés sur un seul chronomètre ; un temps total par championnat individuel, en paires et en équipes."
     calendar:
         types_help: "Choisissez-en un ou plusieurs. Vous organisez une compétition ? Revenez en arrière et choisissez l'une des réponses « compétition »."
         types_required: "Choisissez au moins un type d'événement."
@@ -15346,6 +15348,25 @@ event_wizard:
         start_outside_event: "L'événement a lieu du %from% au %to% - choisissez un jour dans cette période, ou modifiez les dates de l'événement dans L'essentiel."
         flash:
             created: "[0,1]%count% manche créée.|]1,Inf[%count% manches créées."
+        standing_rules: "Règles du classement"
+        challenges:
+            intro: "Une ligne par type de manche. Plusieurs défis enchaînés = une manche où les puzzles sont résolus dans l'ordre sur un seul chronomètre – chaque défi garde son propre temps et son classement."
+            back_to_back: "Défis enchaînés"
+            back_to_back_help: "1 = un puzzle par manche"
+            unused: "Non utilisée"
+            rounds: "Combien de manches de ce type"
+            minutes_help: "Pour toute la manche – tous ses défis"
+            add_row: "Ajouter une ligne"
+            sum: "Additionner les défis – un classement par catégorie"
+            sum_help: "Le temps total de tous les défis décide. Vous pourrez changer ces règles plus tard sur la page des classements."
+            rules: "Règles du classement – celles de la World Series, chacune modifiable"
+            puzzles_next: "Ensuite vous choisissez les puzzles : chaque défi reçoit son étiquette (Défi 1, Défi 2 …) et peut être sans boîte."
+            round_name_one: "%category% – Défi %numbers%"
+            round_name_block: "%category% – Défis %numbers%"
+            label: "Défi %number%"
+            no_rows: "Choisissez les défis d'au moins une ligne."
+            back_to_back_invalid: "Au plus %max% défis enchaînés."
+            solved_back_to_back: "Défis enchaînés : %count%"
     puzzles:
         title: "Puzzles"
         secret: "Garder chaque puzzle secret jusqu'au début de sa manche"
@@ -15372,6 +15393,10 @@ event_wizard:
         secret_stopwatch: "Secret - chronomètre"
         secret_manual: "Secret - à la main"
         secret_scheduled: "Secret - à une heure fixée"
+        label: "Étiquette"
+        label_help: "Ce que voient arbitres et participants avant le dévoilement, p. ex. Défi 3 – vide = une lettre"
+        unboxed: "Sans boîte"
+        unboxed_help: "Pas d'image de la boîte avant la publication des résultats de la manche"
     review:
         title: "Vérifier et publier"
         round: "Compétition"
@@ -15403,6 +15428,7 @@ event_wizard:
         edit_structure: "Modifier les manches"
         edit_puzzles: "Modifier les puzzles"
         no_rounds: "Pas encore de manches - vous pourrez les ajouter plus tard sur la page des manches."
+        same_tables: "La même table pour tout un championnat : une fois les participants inscrits, ouvrez le placement d'une manche suivante et choisissez « Les mêmes tables que » une manche précédente."
     get_ready:
         aria: "Liste des préparatifs"
         heading: "Préparatifs"

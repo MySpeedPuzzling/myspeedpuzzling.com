@@ -19,6 +19,10 @@ readonly final class EventWizardPlannedRound
         public int $minutesLimit,
         // The Qualification template's stage (0-based), null for the other templates
         public null|int $stage = null,
+        // The Challenges template (spws-wizard.md): the challenges this round solves, numbered per category ([3, 4] =
+        // "Challenges 3 + 4", back to back); empty for the other templates
+        /** @var list<int> */
+        public array $challengeNumbers = [],
     ) {
     }
 }

@@ -15216,6 +15216,8 @@ event_wizard:
         qualify_every_round_counts_help: "Sólová, párová a týmová kola – časy se sčítají v každé kategorii."
         qualify_empty: "Zatím nevím"
         qualify_empty_help: "Začněte bez kol a přidávejte je jedno po druhém."
+        qualify_challenges: "Ne - výzvy se sčítají za každý šampionát"
+        qualify_challenges_help: "Jako Speed Puzzle World Series: každý skládá všechny výzvy, některé za sebou na jedny stopky; jeden celkový čas za šampionát jednotlivců, dvojic a týmů."
     calendar:
         types_help: "Vyberte jednu nebo více možností. Pořádáte soutěž? Vraťte se a zvolte jednu z odpovědí pro soutěž."
         types_required: "Vyberte alespoň jeden druh události."
@@ -15353,6 +15355,25 @@ event_wizard:
         start_outside_event: "Událost se koná od %from% do %to% – zvolte den v tomto rozmezí, nebo změňte data události v kroku Základy."
         flash:
             created: "{1}Vytvořeno 1 kolo.|[2,4]Vytvořena %count% kola.|[0,Inf[Vytvořeno %count% kol."
+        standing_rules: "Pravidla pořadí"
+        challenges:
+            intro: "Jeden řádek pro každý druh kola. Více výzev za sebou = jedno kolo, ve kterém se puzzle skládají postupně na jedny stopky – každá výzva má i tak svůj čas a pořadí."
+            back_to_back: "Výzev za sebou"
+            back_to_back_help: "1 = jedno puzzle v kole"
+            unused: "Nepoužito"
+            rounds: "Kolik takových kol"
+            minutes_help: "Pro celé kolo – všechny jeho výzvy"
+            add_row: "Přidat řádek"
+            sum: "Sečíst výzvy – jedno pořadí za každou kategorii"
+            sum_help: "Rozhoduje celkový čas všech výzev. Pravidla můžete později změnit na stránce pořadí."
+            rules: "Pravidla pořadí – pravidla World Series, kterékoli můžete změnit"
+            puzzles_next: "Dále vyberete puzzle: každá výzva dostane svůj štítek (Výzva 1, Výzva 2 …) a můžete ji označit jako bez krabice."
+            round_name_one: "%category% – Výzva %numbers%"
+            round_name_block: "%category% – Výzvy %numbers%"
+            label: "Výzva %number%"
+            no_rows: "Vyberte výzvy alespoň v jednom řádku."
+            back_to_back_invalid: "Nejvýše %max% výzvy za sebou."
+            solved_back_to_back: "Výzev za sebou: %count%"
     puzzles:
         title: "Puzzle"
         secret: "Držet každé puzzle v tajnosti až do začátku jeho kola"
@@ -15379,6 +15400,10 @@ event_wizard:
         secret_stopwatch: "Tajné – stopky"
         secret_manual: "Tajné – ručně"
         secret_scheduled: "Tajné – v určený čas"
+        label: "Štítek"
+        label_help: "Co rozhodčí a soutěžící vidí před odhalením, např. Výzva 3 – prázdné = písmeno"
+        unboxed: "Bez krabice"
+        unboxed_help: "Bez obrázku krabice, dokud nezveřejníte výsledky kola"
     review:
         title: "Kontrola a zveřejnění"
         round: "Soutěž"
@@ -15410,6 +15435,7 @@ event_wizard:
         edit_structure: "Upravit kola"
         edit_puzzles: "Upravit puzzle"
         no_rounds: "Zatím žádná kola – přidat je můžete později na stránce kol."
+        same_tables: "Stejný stůl po celý šampionát: až budou přihlášení účastníci, otevřete rozsazení pozdějšího kola a zvolte „Stejné stoly jako“ v dřívějším kole."
     get_ready:
         aria: "Kontrolní seznam Připravte se"
         heading: "Připravte se"

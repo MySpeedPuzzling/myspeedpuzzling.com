@@ -15214,6 +15214,8 @@ event_wizard:
         qualify_every_round_counts_help: "Rondas individuales, por parejas y por equipos: los tiempos se suman por categoría."
         qualify_empty: "Aún no lo sé"
         qualify_empty_help: "Empieza sin rondas y añádelas una a una."
+        qualify_challenges: "No: los retos se suman por campeonato"
+        qualify_challenges_help: "Como la Speed Puzzle World Series: todos resuelven todos los retos, algunos seguidos con un mismo cronómetro; un tiempo total por campeonato individual, de parejas y de equipos."
     calendar:
         types_help: "Elige una o varias. ¿Organizas una competición? Vuelve atrás y elige una de las respuestas de competición."
         types_required: "Elige al menos un tipo de evento."
@@ -15351,6 +15353,25 @@ event_wizard:
         start_outside_event: "El evento se celebra del %from% al %to%: elige un día dentro de ese periodo o cambia las fechas del evento en Lo básico."
         flash:
             created: "{1}Se ha creado 1 ronda.|[0,Inf[Se han creado %count% rondas."
+        standing_rules: "Reglas de la clasificación"
+        challenges:
+            intro: "Una fila por tipo de ronda. Varios retos seguidos = una ronda en la que los puzzles se resuelven en orden con un mismo cronómetro; cada reto sigue teniendo su propio tiempo y clasificación."
+            back_to_back: "Retos seguidos"
+            back_to_back_help: "1 = un puzzle por ronda"
+            unused: "Sin usar"
+            rounds: "Cuántas rondas así"
+            minutes_help: "Para toda la ronda, todos sus retos"
+            add_row: "Añadir una fila"
+            sum: "Sumar los retos: una clasificación por categoría"
+            sum_help: "Decide el tiempo total de todos los retos. Puedes cambiar estas reglas más tarde en la página de clasificaciones."
+            rules: "Reglas de la clasificación: las de la World Series, puedes cambiar cualquiera"
+            puzzles_next: "Después eliges los puzzles: cada reto recibe su etiqueta (Reto 1, Reto 2 …) y puede marcarse sin caja."
+            round_name_one: "%category% – Reto %numbers%"
+            round_name_block: "%category% – Retos %numbers%"
+            label: "Reto %number%"
+            no_rows: "Elige los retos de al menos una fila."
+            back_to_back_invalid: "Como máximo %max% retos seguidos."
+            solved_back_to_back: "Retos seguidos: %count%"
     puzzles:
         title: "Puzzles"
         secret: "Mantener cada puzzle en secreto hasta que empiece su ronda"
@@ -15377,6 +15398,10 @@ event_wizard:
         secret_stopwatch: "Secreto · cronómetro"
         secret_manual: "Secreto · a mano"
         secret_scheduled: "Secreto · a una hora fijada"
+        label: "Etiqueta"
+        label_help: "Lo que ven jueces y participantes antes de la revelación, p. ej. Reto 3; vacío = una letra"
+        unboxed: "Sin caja"
+        unboxed_help: "Sin imagen de la caja hasta que publiques los resultados de la ronda"
     review:
         title: "Revisar y publicar"
         round: "Competición"
@@ -15408,6 +15433,7 @@ event_wizard:
         edit_structure: "Editar rondas"
         edit_puzzles: "Editar puzzles"
         no_rounds: "Aún no hay rondas: puedes añadirlas más tarde en la página de rondas."
+        same_tables: "La misma mesa durante todo un campeonato: cuando estén los participantes, abre la asignación de mesas de una ronda posterior y elige «Las mismas mesas que» una anterior."
     get_ready:
         aria: "Lista «Prepárate»"
         heading: "Prepárate"

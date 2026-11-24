@@ -19,6 +19,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 readonly final class EventWizardDefaults
 {
     public const int MINUTES_LIMIT = 90;
+    public const int TEAM_SIZE = 4;
 
     public function __construct(
         private TranslatorInterface $translator,
@@ -28,5 +29,26 @@ readonly final class EventWizardDefaults
     public function roundName(RoundCategory $category): string
     {
         return $this->translator->trans('event_wizard.round_name.' . $category->value);
+    }
+
+    /**
+     * A round of the Challenges template (spws-wizard.md): "Pairs – Challenge 5", "Pairs – Challenges 1 + 2"
+     *
+     * @param non-empty-list<int> $numbers
+     */
+    public function challengeRoundName(RoundCategory $category, array $numbers): string
+    {
+        return $this->translator->trans(count($numbers) === 1 ? 'event_wizard.structure.challenges.round_name_one' : 'event_wizard.structure.challenges.round_name_block', [
+            '%category%' => $this->roundName($category),
+            '%numbers%' => implode(' + ', $numbers),
+        ]);
+    }
+
+    /**
+     * A challenge's label on the Puzzles step ("Challenge 3" - RoundPuzzleLabel::MAX_LENGTH fits it)
+     */
+    public function challengeLabel(int $number): string
+    {
+        return $this->translator->trans('event_wizard.structure.challenges.label', ['%number%' => $number]);
     }
 }

@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzlesFormData;
 use SpeedPuzzling\Web\FormData\EventWizardPuzzlesRowFormData;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
+use SpeedPuzzling\Web\Value\RoundPuzzleLabel;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -16,6 +17,7 @@ use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -38,6 +40,7 @@ final class EventWizardPuzzlesFormType extends AbstractType
         /** @var string $competitionId */
         $competitionId = $options['competition_id'];
         $stopwatch = $options['stopwatch_reveal'] === true;
+        $slotExtras = $options['slot_extras'] === true;
         $reveals = $stopwatch
             ? [RoundPuzzleReveal::Automatic, RoundPuzzleReveal::Stopwatch, RoundPuzzleReveal::Manual]
             : [RoundPuzzleReveal::Automatic, RoundPuzzleReveal::Manual];
@@ -84,6 +87,29 @@ final class EventWizardPuzzlesFormType extends AbstractType
                 $slots->add((string) $index, EventWizardPuzzleSlotFormType::class, ['competition_id' => $competitionId]);
             }
             $row->add($slots);
+
+            // Toolkit (spws-wizard.md): each new puzzle's label and "Unboxed", beside the shared slot form
+            if ($slotExtras) {
+                $labels = $builder->create('labels', FormType::class, ['label' => false]);
+                $unboxed = $builder->create('unboxedSlots', FormType::class, ['label' => false]);
+
+                for ($index = 0; $index < EventWizardPuzzlesRowFormData::SLOTS; $index++) {
+                    $labels->add((string) $index, TextType::class, [
+                        'label' => 'event_wizard.puzzles.label',
+                        'help' => 'event_wizard.puzzles.label_help',
+                        'required' => false,
+                        'attr' => ['maxlength' => RoundPuzzleLabel::MAX_LENGTH],
+                    ]);
+                    $unboxed->add((string) $index, CheckboxType::class, [
+                        'label' => 'event_wizard.puzzles.unboxed',
+                        'help' => 'event_wizard.puzzles.unboxed_help',
+                        'required' => false,
+                    ]);
+                }
+
+                $row->add($labels);
+                $row->add($unboxed);
+            }
 
             $row->add('override', ChoiceType::class, [
                 'label' => 'event_wizard.puzzles.override',
@@ -136,6 +162,8 @@ final class EventWizardPuzzlesFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => EventWizardPuzzlesFormData::class,
             'stopwatch_reveal' => false,
+            // Each new puzzle's label and "Unboxed" (COMPETITION_TOOLKIT_MANAGE, spws-wizard.md)
+            'slot_extras' => false,
             'rows' => [],
             // round id => the round's puzzles now ("Solve all N" names N)
             'puzzles_counts' => [],
@@ -143,6 +171,7 @@ final class EventWizardPuzzlesFormType extends AbstractType
         $resolver->setRequired('competition_id');
         $resolver->setAllowedTypes('competition_id', 'string');
         $resolver->setAllowedTypes('stopwatch_reveal', 'bool');
+        $resolver->setAllowedTypes('slot_extras', 'bool');
         $resolver->setAllowedTypes('rows', 'array');
         $resolver->setAllowedTypes('puzzles_counts', 'array');
     }

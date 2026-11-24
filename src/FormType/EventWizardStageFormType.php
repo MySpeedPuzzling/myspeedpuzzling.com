@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\EventWizardStageFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -26,12 +27,30 @@ final class EventWizardStageFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder->add('name', TextType::class, [
-            'label' => 'event_wizard.structure.stage_name',
-            'required' => false,
-        ]);
+        $challenges = $options['challenges'] === true;
+
+        if ($challenges) {
+            // A Challenges row (spws-wizard.md): the rounds are named after their challenges - no name of its own
+            $builder->add('challenges', ChoiceType::class, [
+                'label' => 'event_wizard.structure.challenges.back_to_back',
+                'help' => 'event_wizard.structure.challenges.back_to_back_help',
+                'required' => false,
+                'placeholder' => 'event_wizard.structure.challenges.unused',
+                'choices' => array_combine(
+                    array_map(static fn (int $count): string => (string) $count, range(1, EventWizardStageFormData::CHALLENGES_MAX)),
+                    range(1, EventWizardStageFormData::CHALLENGES_MAX),
+                ),
+                'choice_translation_domain' => false,
+            ]);
+        } else {
+            $builder->add('name', TextType::class, [
+                'label' => 'event_wizard.structure.stage_name',
+                'required' => false,
+            ]);
+        }
+
         $builder->add('roundsCount', IntegerType::class, [
-            'label' => 'event_wizard.structure.stage_rounds',
+            'label' => $challenges ? 'event_wizard.structure.challenges.rounds' : 'event_wizard.structure.stage_rounds',
             'required' => false,
             'attr' => ['min' => 1, 'max' => EventWizardStageFormData::ROUNDS_MAX, 'inputmode' => 'numeric'],
         ]);
@@ -51,11 +70,13 @@ final class EventWizardStageFormType extends AbstractType
         ]);
         $builder->add('minutesLimit', IntegerType::class, [
             'label' => 'competition.round.form.minutes_limit',
+            // A block's limit covers all its challenges (one stopwatch)
+            'help' => $challenges ? 'event_wizard.structure.challenges.minutes_help' : null,
             'required' => false,
             'attr' => ['min' => 1, 'inputmode' => 'numeric'],
         ]);
 
-        if ($options['advancement'] === true) {
+        if ($options['advancement'] === true && $challenges === false) {
             $builder->add('advance', IntegerType::class, [
                 'label' => 'event_wizard.structure.advance',
                 'required' => false,
@@ -69,7 +90,9 @@ final class EventWizardStageFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => EventWizardStageFormData::class,
             'advancement' => false,
+            'challenges' => false,
         ]);
         $resolver->setAllowedTypes('advancement', 'bool');
+        $resolver->setAllowedTypes('challenges', 'bool');
     }
 }

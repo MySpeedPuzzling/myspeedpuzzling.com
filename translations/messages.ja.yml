@@ -15203,6 +15203,8 @@ event_wizard:
         qualify_every_round_counts_help: "ソロ・ペア・チームのラウンド - タイムはカテゴリごとに合計されます。"
         qualify_empty: "まだ決めていない"
         qualify_empty_help: "ラウンドなしで始めて、1つずつ追加します。"
+        qualify_challenges: "いいえ - チャレンジのタイムを選手権ごとに合計"
+        qualify_challenges_help: "Speed Puzzle World Series のように、全員がすべてのチャレンジを解き、一部は1つのストップウォッチで連続して解きます。個人・ペア・チームの選手権ごとに合計タイムで決まります。"
     calendar:
         types_help: "1つ以上選んでください。競技会を開催する場合は、前に戻って競技会の選択肢を選んでください。"
         types_required: "イベントの種類を少なくとも1つ選んでください。"
@@ -15340,6 +15342,25 @@ event_wizard:
         start_outside_event: "イベントの開催期間は%from%〜%to%です。その期間内の日を選ぶか、基本情報でイベントの日付を変更してください。"
         flash:
             created: "{1}ラウンドを1つ作成しました。|[0,Inf[ラウンドを%count%個作成しました。"
+        standing_rules: "順位のルール"
+        challenges:
+            intro: "ラウンドの種類ごとに1行。連続するチャレンジ = 1つのストップウォッチで順番にパズルを解く1ラウンドです。各チャレンジにもそれぞれのタイムと順位があります。"
+            back_to_back: "連続するチャレンジ数"
+            back_to_back_help: "1 = 1ラウンドに1つのパズル"
+            unused: "使用しない"
+            rounds: "このようなラウンドの数"
+            minutes_help: "ラウンド全体（すべてのチャレンジ）の制限時間"
+            add_row: "行を追加"
+            sum: "チャレンジを合計 - カテゴリーごとに1つの順位"
+            sum_help: "すべてのチャレンジの合計タイムで決まります。ルールは後で順位のページで変更できます。"
+            rules: "順位のルール - World Series のルール（どれでも変更できます）"
+            puzzles_next: "次にパズルを選びます。各チャレンジにラベル（チャレンジ1、チャレンジ2 …）が付き、箱なしにすることもできます。"
+            round_name_one: "%category% – チャレンジ%numbers%"
+            round_name_block: "%category% – チャレンジ%numbers%"
+            label: "チャレンジ%number%"
+            no_rows: "少なくとも1行でチャレンジ数を選んでください。"
+            back_to_back_invalid: "連続するチャレンジは最大%max%つです。"
+            solved_back_to_back: "連続するチャレンジ: %count%"
     puzzles:
         title: "パズル"
         secret: "各ラウンドの開始まで、すべてのパズルを非公開にする"
@@ -15366,6 +15387,10 @@ event_wizard:
         secret_stopwatch: "非公開 - ストップウォッチ"
         secret_manual: "非公開 - 手動"
         secret_scheduled: "非公開 - 指定時刻"
+        label: "ラベル"
+        label_help: "公開前に審判と参加者に表示される名前（例: チャレンジ3）。空欄 = アルファベット"
+        unboxed: "箱なし"
+        unboxed_help: "ラウンドの結果を公開するまで箱の画像を表示しません"
     review:
         title: "確認して公開"
         round: "大会"
@@ -15397,6 +15422,7 @@ event_wizard:
         edit_structure: "ラウンドを編集"
         edit_puzzles: "パズルを編集"
         no_rounds: "まだラウンドがありません。後からラウンドページで追加できます。"
+        same_tables: "選手権を通して同じテーブル: 参加者が揃ったら、後のラウンドの座席配置を開き、前のラウンドと「同じテーブル」を選んでください。"
     get_ready:
         aria: "準備チェックリスト"
         heading: "準備"

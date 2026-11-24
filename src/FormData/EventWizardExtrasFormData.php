@@ -74,6 +74,15 @@ final class EventWizardExtrasFormData
     // ... CreateCompetitionStanding per category, offered for several rounds without standings
     public bool $standings = false;
 
+    // ... and their rules (spws-wizard.md) - untouched = today's standing (new StandingRules())
+    #[Assert\Valid]
+    public EventWizardStandingRulesFormData $standingRules;
+
+    public function __construct()
+    {
+        $this->standingRules = new EventWizardStandingRulesFormData();
+    }
+
     public static function fromState(EventWizardExtrasState $state): self
     {
         $data = new self();

@@ -31,6 +31,7 @@ use SpeedPuzzling\Web\Results\EventWizardExtrasState;
 use SpeedPuzzling\Web\Security\CompetitionToolkitVoter;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplayLiveUpdates;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\CompetitionDisplaysPresence;
+use SpeedPuzzling\Web\Services\CompetitionToolkit\StandingsPerCategory;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardAccess;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardExtras;
 use SpeedPuzzling\Web\Services\EventWizard\EventWizardRefusal;
@@ -40,7 +41,6 @@ use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\DisplayPreset;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventWizard\EventWizardStep;
-use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\StandingRules;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -79,6 +79,7 @@ final class EventWizardExtrasController extends AbstractController
 {
     public function __construct(
         private readonly EventWizardAccess $access,
+        private readonly StandingsPerCategory $standingsPerCategoryMessages,
         private readonly EventWizardExtras $extras,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
@@ -260,7 +261,7 @@ final class EventWizardExtrasController extends AbstractController
             addReferees: $addReferees,
             competitorPages: $competitorPages,
             displays: $displays,
-            standings: $form->has('standings') && $data->standings ? $this->standingsPerCategory($competitionId) : [],
+            standings: $form->has('standings') && $data->standings ? $this->standingsPerCategory($competitionId, $data->standingRules->toRules()) : [],
         );
 
         if ($message->isEmpty()) {
@@ -361,13 +362,12 @@ final class EventWizardExtrasController extends AbstractController
     }
 
     /**
-     * One standing per category of the event's rounds - the standings page's "per category"
-     * (CreateStandingsPerCategoryController); offered only while the event has none.
-     */
-    /**
+     * One standing per category of the event's rounds with the organiser's rules - the standings page's "per category"
+     * (StandingsPerCategory, the one rule); offered only while the event has none.
+     *
      * @return list<CreateCompetitionStanding>
      */
-    private function standingsPerCategory(string $competitionId): array
+    private function standingsPerCategory(string $competitionId, StandingRules $rules): array
     {
         /** @var array<string, list<string>> $roundIdsByCategory */
         $roundIdsByCategory = [];
@@ -376,28 +376,7 @@ final class EventWizardExtrasController extends AbstractController
             $roundIdsByCategory[$round->category->value][] = $round->id;
         }
 
-        $standings = [];
-
-        foreach (RoundCategory::cases() as $category) {
-            $roundIds = $roundIdsByCategory[$category->value] ?? [];
-
-            if ($roundIds === []) {
-                continue;
-            }
-
-            $standings[] = new CreateCompetitionStanding(
-                standingId: Uuid::uuid7(),
-                competitionId: $competitionId,
-                name: $this->translator->trans('competition_standing.per_category_name', [
-                    '%category%' => $this->translator->trans('competition.round.category.' . $category->value),
-                ]),
-                category: $category,
-                roundIds: $roundIds,
-                rules: new StandingRules(),
-            );
-        }
-
-        return $standings;
+        return $this->standingsPerCategoryMessages->messages($competitionId, $roundIdsByCategory, rules: $rules);
     }
 
     /**

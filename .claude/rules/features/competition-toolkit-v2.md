@@ -30,6 +30,11 @@ paths:
   - "assets/controllers/table_labels_editor_controller.js"
   - "templates/seating/_table_labels.html.twig"
   - "docs/features/competitions-management/table-labels-and-plates.md"
+  - "src/**/EventWizardStructure*"
+  - "src/**/EventWizardPuzzles*"
+  - "src/**/EventWizardStandingRules*"
+  - "src/**/SetUpEventWizardRound*"
+  - "templates/event_wizard/**"
 ---
 
 # Competition toolkit v2 (the deferred items, 2026-11-18)
@@ -112,3 +117,13 @@ The as-built summary of the toolkit's v2 packages (record: `docs/features/compet
   labels only), the championship's first round printed (`GetTagPlateChallenges`). Tests `TableLabelsTest`,
   `SetRoundTableLabelsHandlerTest`, `TableLabelsControllerTest`, `CompetitionTagsPrintTest`, `DisplayTableLabelsTest`,
   sheet harnesses.
+- **Creation wizard: Challenges template, labels, unboxed, standing rules**: `spws-wizard.md` (Review amendments
+  binding) — Structure template `challenges` (rows = `EventWizardStageFormData` with `challenges` 1-4 instead of a name;
+  `EventWizardStructurePlanner::challenges()` numbers per category in row order, `EventWizardPlannedRound::$challengeNumbers`,
+  names `event_wizard.structure.challenges.round_name_*`); standings via `StandingsPerCategory::messages(rules:)` with
+  `EventWizardStandingRulesFormType` (`everyRoundRules` = today's defaults, `challengesRules` = `worldSeries()`; Extras
+  `standingRules`). Plan → Puzzles `?challenges[<roundId>]=3,4` (`EventWizardPuzzlesController::CHALLENGES`, prefill
+  only: n slots, labels, "Solve all n" - not saved while the round has no puzzles). Grid row fields `labels[i]` /
+  `unboxedSlots[i]` (toolkit, never on Backfill's shared slot form) → `SetUpEventWizardRound::$arrange` (no ids listed)
+  + `$unboxed` (all puzzles = the round switch; a whole-round unboxed round gets nothing); the handler clears the EM
+  before them. Tests `EventWizardSeveralRoundsTest` (Challenges end to end, Extras rules), `EventWizardStructurePlannerTest`.

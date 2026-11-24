@@ -15,7 +15,11 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  * 2. $puzzles - AddPuzzleToCompetitionRound each (a secret one with the automatic reveal its page showed -
  *    `shownAutomaticRevealAt`, the safety contract of that message);
  * 3. $reveals - ChangeRoundPuzzleReveal of a puzzle just added (when I start the stopwatch / manually);
- * 4. $format - EditCompetitionRound with the round's puzzle format (pick K of N) once its puzzles exist, every other
+ * 4. $arrange - ArrangeRoundPuzzles: the labels typed for the new puzzles ("Challenge 3"; spws-wizard.md) - no ids
+ *    listed, so the saved puzzles keep their order and the new ones follow in slot order;
+ * 5. $unboxed - ChangeRoundUnboxed: the new puzzles ticked "Unboxed" (with the round's already unboxed ones), or the
+ *    round's switch when every puzzle of it is;
+ * 6. $format - EditCompetitionRound with the round's puzzle format (pick K of N) once its puzzles exist, every other
  *    field kept.
  *
  * Whatever any of them refuses (a puzzle the round has already, the reveal moment moved meanwhile, K out of
@@ -34,6 +38,8 @@ readonly final class SetUpEventWizardRound implements SerializedByLock
         public array $puzzles = [],
         public array $reveals = [],
         public null|EditCompetitionRound $format = null,
+        public null|ArrangeRoundPuzzles $arrange = null,
+        public null|ChangeRoundUnboxed $unboxed = null,
     ) {
         if ($round->competitionId !== $competitionId || ($format !== null && $format->competitionId !== $competitionId)) {
             throw new \InvalidArgumentException('The round must belong to the event locked.');
@@ -47,6 +53,13 @@ readonly final class SetUpEventWizardRound implements SerializedByLock
 
         if ($format !== null && $format->roundId !== $round->roundId) {
             throw new \InvalidArgumentException('The format must be the round set up.');
+        }
+
+        if (
+            ($arrange !== null && ($arrange->roundId !== $round->roundId || $arrange->competitionId !== $competitionId))
+            || ($unboxed !== null && ($unboxed->roundId !== $round->roundId || $unboxed->competitionId !== $competitionId))
+        ) {
+            throw new \InvalidArgumentException('The labels and unboxed puzzles must be of the round set up.');
         }
     }
 

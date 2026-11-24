@@ -45,6 +45,13 @@ final class EventWizardStructureFormType extends AbstractType
             'label' => false,
         ]);
 
+        // Challenges (spws-wizard.md): the same row as a stage, with "challenges back to back" instead of a name
+        $builder->add('blocks', CollectionType::class, [
+            'entry_type' => EventWizardStageFormType::class,
+            'entry_options' => ['label' => false, 'challenges' => true],
+            'label' => false,
+        ]);
+
         foreach (['solo', 'pairs', 'teams'] as $category) {
             $builder->add($category . 'Rounds', IntegerType::class, [
                 'label' => 'event_wizard.structure.' . $category . '_rounds',
@@ -70,6 +77,14 @@ final class EventWizardStructureFormType extends AbstractType
                 'help' => 'event_wizard.structure.sum_per_category_help',
                 'required' => false,
             ]);
+            // The standings' rules - each template its own group, so its defaults stay its own (spws-wizard.md)
+            $builder->add('everyRoundRules', EventWizardStandingRulesFormType::class);
+            $builder->add('challengesSum', CheckboxType::class, [
+                'label' => 'event_wizard.structure.challenges.sum',
+                'help' => 'event_wizard.structure.challenges.sum_help',
+                'required' => false,
+            ]);
+            $builder->add('challengesRules', EventWizardStandingRulesFormType::class);
         }
 
         $builder->add('interleaved', ChoiceType::class, [

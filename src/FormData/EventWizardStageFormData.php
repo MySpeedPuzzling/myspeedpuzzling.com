@@ -27,7 +27,20 @@ final class EventWizardStageFormData
         public null|int $minutesLimit = null,
         // The best N of each of its rounds go on to the next stage (toolkit only), null = nobody decided
         public null|int $advance = null,
+        // A row of the Challenges template (spws-wizard.md): how many challenges each of its rounds solves back to back
+        // (1 = a normal round, 2+ = one round solving them in order on one stopwatch); null = a Qualification stage
+        public null|int $challenges = null,
     ) {
+    }
+
+    public const int CHALLENGES_MAX = 4;
+
+    /**
+     * A Challenges row in use - its challenges chosen (spare rows leave it empty)
+     */
+    public function isBlock(): bool
+    {
+        return $this->challenges !== null && $this->challenges > 0;
     }
 
     public function isUsed(): bool

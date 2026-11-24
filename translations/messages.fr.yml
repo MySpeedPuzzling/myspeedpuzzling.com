@@ -2786,8 +2786,6 @@ competition_referees:
     "badge": "Par défaut"
     "make": "Définir par défaut"
   "quick_pick":
-    "label": "Choisir une collection"
-    "more": "Plus de collections dans la recherche ci-dessous"
     "change_default": "Changer la collection par défaut"
   "display":
     "label": "Affichage"

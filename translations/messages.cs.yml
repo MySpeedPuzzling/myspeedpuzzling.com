@@ -2794,8 +2794,6 @@ recap_progress:
     "badge": "Výchozí"
     "make": "Nastavit jako výchozí"
   "quick_pick":
-    "label": "Vyber kolekci"
-    "more": "Další kolekce najdeš ve vyhledávání níže"
     "change_default": "Změnit výchozí"
   "display":
     "label": "Zobrazení"

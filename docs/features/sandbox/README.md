@@ -117,13 +117,15 @@ see the hash; the pipe keeps it inside the box (never on disk, in a log, a termi
 
 ### Demo events (real events DM, 2026-11-18)
 
-Two made-up events for showing the competition toolkit to organisers (Jan's demo ~2 Dec 2026). Invented names,
-people and results - modelled on the formats only, never on a real event's data:
+Made-up events for showing the competition toolkit to organisers (Jan's demo ~2 Dec 2026). Invented names,
+people and results - modelled on the formats only, never on a real event's data. The first two are built by a plain
+run, the third only with `--event` (it takes the real organisers' accounts and logo, given on the box):
 
 | Slug | Event | Zone |
 |---|---|---|
 | `speed-puzzle-world-series-demo` | "Speed Puzzle World Series - demo", Toronto: Individual (5 one-puzzle rounds, 75 min), Pairs (Challenges 1 + 2 and 3 + 4 = one round "Solve all 2 (order recorded)" each, 90 min, 500 pcs; Challenge 5 one 250-piece puzzle - wooden when the catalogue has one - 45 min, **unboxed**), Teams of 4 (two blocks of 2 × 1000 pcs, 90 min). One sum standing per championship: 5 s per missing piece, total only, finished-with-missing penalised, no-show = nothing placed (`as_zero_pieces`). Tables by name on each championship's first round (pairs 1.., teams 101.., individuals 201..), copied to the later rounds ("Use these tables in later rounds"). A hall timer screen (live top 10), an OBS overlay (live board + the v2 standings element) and a "Challenges board" pinned to Pairs - Challenges 1 + 2 (a leaderboard per challenge ranked by its own time - real events L2b). | `America/Toronto` |
 | `winter-carnival-jigsaw-demo` | "Winter Carnival Jigsaw - demo", Saint Paul MN: Saturday "500 Teams CHALLENGE" (90 min), "1000 Teams" (3 h, same teams and tables), "500 Teams OPEN #1" (2 h); Sunday "500 PAIRS" (divisions Regular / Senior 55+), "500 SOLO" (Regular / Senior 55+ / Junior under 16), "500 Teams OPEN #2" and "500 FAMILY" at the same time (15:00-17:00). CHALLENGE, OPEN #1 and OPEN #2 share one puzzle (shared puzzles S2). A "Divisions board" display pinned to 500 SOLO (a leaderboard per division with the division ranks - real events L2b). | `America/Chicago` |
+| `spws-toronto-2027-demo` | "Speed Puzzle World Series Toronto 2027 - demo" - **the confirmed SPWS format 1:1** ([spws-demo-event.md](../competitions-management/spws-demo-event.md), guide for the call: [spws-demo-guide.md](../competitions-management/toolkit/spws-demo-guide.md)): Pairs (C1 + C2 and C3 + C4 back to back, 90 min; C5 unboxed, 60 min), Teams of 4 (two blocks, 120 / 150 min; C4 unboxed on its own), Individual C1-C5 (75 min, C5 unboxed); catalogue stand-ins by brand (Speedmaster, Boardwalk, Wentworth wooden 250, Buffalo Games, Ravensburger), Teams C3 + C4 = two new secret puzzles revealed when the stopwatch starts. Hall table names A1-H22 (two places "A1 L"/"A1 R" for pairs and individuals), same tables per championship. 30 pairs, 16 teams, 40 individuals (the first 40 team people), a tie in every published round. Organization "Speed Puzzle World Series (demo)" owns it; five displays in the SPWS navy + gold (hall screen, stream overlay, championship standings, challenge board, lower third). Demo day = the Teams day: Pairs the day before published, Teams C1 + C2 running, Teams C3 + C4 and the individual days planned. | `America/Toronto` |
 
 `--date` is the demo day: everything of the day before is recorded and **published** (World Series: the first block
 of each championship; Carnival: Saturday), the demo day's first rounds run with some results in (a third finished, on
@@ -145,6 +147,19 @@ duplicates and never overwrites a recorded result):
 cd /srv/msp-sandbox && docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events --date=2026-12-02
 ```
 
+The SPWS demo (the logo file copied into the container first - it is never in the repository; `--maintainer` = the
+organisers' sandbox accounts, copied there with the skill `sandbox-copy-account`; both shape a **new** event only):
+
+```bash
+docker compose cp /root/spws-logo.png web:/tmp/spws-logo.png
+docker compose exec -T web php bin/console myspeedpuzzling:sandbox:demo-events --date=2026-12-02 \
+  --event=spws-toronto-2027-demo --logo=/tmp/spws-logo.png --maintainer=<organiser e-mail> --maintainer=<organiser e-mail>
+```
+
+`--date` there is the **Toronto** day of the call; Teams Challenges 3 + 4 starts 15:00 Toronto that day - the secret
+puzzles are added only while that is ahead. To rebuild after a rehearsal: delete the event (admin, Delete) and run
+it again (the organization is found again and reused).
+
 It prints every URL (event page, toolkit hub, participants sheet, competitor list, standings and their embeds, displays, and per round
 the desk, the judge page, the stopwatch, the round results and the analytics studio). Options: `--organizer=<email>`,
 `--referee=<email>` (empty = none). A line starting with `TODO:` says what could not be built (no catalogue puzzle for a
@@ -158,7 +173,9 @@ own messages one by one: `AddCompetition`, `AddCompetitionRound`, `SetCompetitio
 `SetCompetitionDivisions` + `SetRoundEntryDivisions`, `AssignTableNumbers`, `CopyRoundTableNumbers`,
 `RecordRoundResults`, `PublishRoundResults`, `CreateCompetitionStanding` + `PublishCompetitionStanding`,
 `AddCompetitionDisplay` + `ChangeCompetitionDisplayFollow` + `SaveCompetitionDisplayDesign`, `ChangeCompetitorPageSettings`, `AddCompetitionReferee`),
-the events in `SandboxDemoEventDefinitions`, results in `SandboxDemoResultPlanner` (deterministic from the entrant's
+the events in `SandboxDemoEventDefinitions` (SPWS: also `SetRoundTableLabels`, `AddPuzzleToCompetitionRound` +
+`ChangeRoundPuzzleReveal`, per-puzzle `ChangeRoundUnboxed`, `AddOrganization` + `AssignEventToOrganization` +
+`AddOrganizationMaintainer`; displays `SandboxDemoDisplays`), results in `SandboxDemoResultPlanner` (deterministic from the entrant's
 name), reads in `Query\GetSandboxDemoData`. Test: `tests/Services/Sandbox/SandboxDemoEventsTest.php`.
 
 #### Demo script - World Series (5 minutes)

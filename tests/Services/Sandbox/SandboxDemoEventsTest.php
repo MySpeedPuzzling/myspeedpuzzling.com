@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Services\SameTablesCopy;
 use SpeedPuzzling\Web\Services\Sandbox\SandboxDemoEventDefinitions;
 use SpeedPuzzling\Web\Services\Sandbox\SandboxDemoEvents;
 use SpeedPuzzling\Web\Services\Sandbox\SandboxMode;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -168,6 +169,122 @@ SQL, ['open' => $open['id'], 'challenge' => $this->round($carnival, '500 Teams C
         self::assertSame($snapshot, $this->snapshot());
     }
 
+    /**
+     * The Speed Puzzle World Series format 1:1 (docs/features/competitions-management/spws-demo-event.md), built only
+     * on request: the confirmed rounds, hall table names, a tie, secret puzzles revealed at the stopwatch start, one
+     * challenge unboxed on its own, the organization with the extra organisers, the displays in the event's look.
+     */
+    public function testBuildsTheSpwsTorontoDemoOnRequest(): void
+    {
+        self::bootKernel();
+        $database = self::getContainer()->get(Connection::class);
+        $this->createMadeUpPlayers(40);
+
+        $simulationData = self::getContainer()->get(GetSandboxSimulationData::class);
+        $organizer = $simulationData->playerIdByEmail('test-user+1@myspeedpuzzling.com');
+        $referee = $simulationData->playerIdByEmail('test-user+2@myspeedpuzzling.com');
+        // Another organiser - a fixture player who is no made-up participant
+        $maintainer = PlayerFixture::PLAYER_REGULAR;
+        self::assertNotNull($organizer);
+        self::assertNotNull($referee);
+
+        $lines = [];
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line) use (&$lines): void {
+            $lines[] = $line;
+        }, SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG, [$maintainer]);
+
+        self::assertSame([], array_values(array_filter($lines, static fn (string $line): bool => str_starts_with($line, 'TODO:'))));
+        // Only the event asked for
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM competition WHERE slug IN (:a, :b)', ['a' => SandboxDemoEventDefinitions::SPWS_SLUG, 'b' => SandboxDemoEventDefinitions::CARNIVAL_SLUG]));
+        $spws = $this->competitionId(SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG);
+
+        // The organisers: the made-up one, the extra one on the event and on the organization's team; the event in it
+        self::assertSame(2, $this->rowCount('SELECT COUNT(*) FROM competition_maintainer WHERE competition_id = :id AND player_id IN (:a, :b)', ['id' => $spws, 'a' => $organizer, 'b' => $maintainer]));
+        $organization = $database->fetchAssociative("SELECT o.id, o.approved_at IS NOT NULL AS approved FROM organization o JOIN competition c ON c.organization_id = o.id WHERE c.id = :id", ['id' => $spws]);
+        self::assertIsArray($organization);
+        self::assertTrue($organization['approved']);
+        self::assertSame(1, $this->rowCount('SELECT COUNT(*) FROM organization_maintainer WHERE organization_id = :o AND player_id = :p', ['o' => $organization['id'], 'p' => $maintainer]));
+
+        // The confirmed rounds: limits, local start times (America/Toronto, UTC-5 in winter), blocks of two challenges
+        $rounds = $database->fetchAllAssociative('SELECT name, minutes_limit, starts_at, puzzle_format, puzzles_to_solve, unboxed FROM competition_round WHERE competition_id = :id ORDER BY starts_at', ['id' => $spws]);
+        self::assertSame([
+            ['Pairs - Challenges 1 + 2', 90, '2026-12-01 16:00:00', 'pick', 2, false],
+            ['Pairs - Challenges 3 + 4', 90, '2026-12-01 18:30:00', 'pick', 2, false],
+            ['Pairs - Challenge 5', 60, '2026-12-01 21:00:00', 'total', 1, true],
+            ['Teams - Challenges 1 + 2', 120, '2026-12-02 15:00:00', 'pick', 2, false],
+            ['Teams - Challenges 3 + 4', 150, '2026-12-02 20:00:00', 'pick', 2, false],
+            ['Individual - Challenge 1', 75, '2026-12-03 16:00:00', 'total', 1, false],
+            ['Individual - Challenge 2', 75, '2026-12-03 18:30:00', 'total', 1, false],
+            ['Individual - Challenge 3', 75, '2026-12-03 20:45:00', 'total', 1, false],
+            ['Individual - Challenge 4', 75, '2026-12-04 16:00:00', 'total', 1, false],
+            ['Individual - Challenge 5', 75, '2026-12-04 18:30:00', 'total', 1, true],
+        ], array_map(static fn (array $round): array => [$round['name'], $round['minutes_limit'], $round['starts_at'], $round['puzzle_format'], $round['puzzle_format'] === 'pick' ? $round['puzzles_to_solve'] : 1, $round['unboxed']], $rounds));
+
+        // Pairs Challenges 3 + 4 labelled (the 250 piece wooden stand-in needs the real catalogue - any puzzle here)
+        $block = $this->round($spws, 'Pairs - Challenges 3 + 4');
+        self::assertSame(['Challenge 3', 'Challenge 4'], array_map(
+            static fn (array $row): mixed => $row['label'],
+            $database->fetchAllAssociative('SELECT crp.label, p.pieces_count FROM competition_round_puzzle crp JOIN puzzle p ON p.id = crp.puzzle_id WHERE crp.round_id = :id ORDER BY crp.position', ['id' => $block['id']]),
+        ));
+
+        // Teams Challenges 3 + 4: two new secret puzzles waiting for the stopwatch start, only Challenge 4 unboxed
+        $secret = $this->round($spws, 'Teams - Challenges 3 + 4');
+        self::assertSame([
+            ['Challenge 3', true, 'stopwatch', false, 'Random Cut Challenge (demo stand-in)'],
+            ['Challenge 4', true, 'stopwatch', true, 'Unboxed Challenge (demo stand-in)'],
+        ], array_map(
+            static fn (array $row): array => [$row['label'], $row['hide_until_round_starts'], $row['reveal_mode'], $row['unboxed'], $row['name']],
+            $database->fetchAllAssociative('SELECT crp.label, crp.hide_until_round_starts, crp.reveal_mode, crp.unboxed, p.name FROM competition_round_puzzle crp JOIN puzzle p ON p.id = crp.puzzle_id WHERE crp.round_id = :id ORDER BY crp.position', ['id' => $secret['id']]),
+        ));
+
+        // Hall table names on every round: two places per table for pairs and individuals, one table per team
+        $labels = $database->fetchAllKeyValue('SELECT name, table_labels::text FROM competition_round WHERE competition_id = :id', ['id' => $spws]);
+
+        foreach ($labels as $name => $list) {
+            self::assertIsString($list, $name);
+            $decoded = json_decode($list, true);
+            self::assertIsArray($decoded);
+            self::assertSame(str_starts_with((string) $name, 'Teams') ? ['A1', 'A2'] : ['A1 L', 'A1 R'], array_slice($decoded, 0, 2), $name);
+            self::assertCount(str_starts_with((string) $name, 'Teams') ? 175 : 350, $decoded, $name);
+        }
+
+        // Same tables in the next block of the championship
+        $first = $this->round($spws, 'Pairs - Challenges 1 + 2');
+        self::assertSame(30, $this->rowCount(<<<SQL
+SELECT COUNT(*)
+FROM competition_team a
+JOIN competition_team b ON b.round_id = :next AND b.name = a.name
+WHERE a.round_id = :first AND a.table_number = b.table_number
+SQL, ['first' => $first['id'], 'next' => $block['id']]));
+
+        // Pairs published with a tie: two entries share a time
+        self::assertNotNull($first['results_published_at']);
+        self::assertSame(30, $this->teamResults($first['id']));
+        self::assertGreaterThanOrEqual(1, $this->rowCount('SELECT COUNT(*) FROM (SELECT result_seconds FROM competition_team WHERE round_id = :id AND result_seconds IS NOT NULL GROUP BY result_seconds HAVING COUNT(*) >= 2) t', ['id' => $first['id']]));
+        // Teams block 1 running, individuals planned
+        self::assertNull($this->round($spws, 'Teams - Challenges 1 + 2')['results_published_at']);
+        self::assertGreaterThan(0, $this->teamResults($this->round($spws, 'Teams - Challenges 1 + 2')['id']));
+        // The individuals are the first 40 team people - one participant each
+        self::assertSame(124, $this->rowCount('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id AND deleted_at IS NULL', ['id' => $spws]));
+
+        self::assertSame(['Individual championship', 'Pairs championship', 'Teams championship'], $database->fetchFirstColumn('SELECT name FROM competition_standing WHERE competition_id = :id ORDER BY name', ['id' => $spws]));
+        self::assertSame(
+            ['SPWS challenge board', 'SPWS championship standings', 'SPWS hall screen', 'SPWS lower third', 'SPWS stream overlay'],
+            $database->fetchFirstColumn('SELECT name FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $spws]),
+        );
+        $hall = $database->fetchOne("SELECT design::text FROM competition_display WHERE competition_id = :id AND name = 'SPWS hall screen'", ['id' => $spws]);
+        self::assertIsString($hall);
+        self::assertStringContainsString('"competition_logo"', $hall);
+        self::assertStringContainsString('"live"', $hall);
+        self::assertNotEmpty(array_filter($lines, static fn (string $line): bool => str_contains($line, 'layout=tents&boxes=standing:')));
+
+        // Again: nothing new, nothing changed
+        $snapshot = $this->snapshot([SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG]);
+        $this->service(true)->setUp(self::DAY, $organizer, $referee, static function (string $line): void {
+        }, SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG, [$maintainer]);
+        self::assertSame($snapshot, $this->snapshot([SandboxDemoEventDefinitions::SPWS_TORONTO_SLUG]));
+    }
+
     public function testRefusedOutsideTheSandbox(): void
     {
         self::bootKernel();
@@ -195,6 +312,7 @@ SQL, ['open' => $open['id'], 'challenge' => $this->round($carnival, '500 Teams C
             $container->get(GetRoundResultEntries::class),
             $container->get(GetCompetitionDivisions::class),
             $container->get(SameTablesCopy::class),
+            $container->get(EntityManagerInterface::class),
             $container->get(ClockInterface::class),
             $container->get(UrlGeneratorInterface::class),
             $container->get(TranslatorInterface::class),
@@ -259,13 +377,14 @@ SQL, ['id' => $competitionId, 'name' => $name]);
     /**
      * Everything the demo writes, counted - and every recorded result as it stands
      *
+     * @param list<string> $slugs
      * @return array<string, mixed>
      */
-    private function snapshot(): array
+    private function snapshot(array $slugs = [SandboxDemoEventDefinitions::SPWS_SLUG, SandboxDemoEventDefinitions::CARNIVAL_SLUG]): array
     {
         $database = self::getContainer()->get(Connection::class);
-        $events = ['a' => SandboxDemoEventDefinitions::SPWS_SLUG, 'b' => SandboxDemoEventDefinitions::CARNIVAL_SLUG];
-        $ofEvents = 'SELECT id FROM competition WHERE slug IN (:a, :b)';
+        $events = ['slugs' => '{' . implode(',', $slugs) . '}'];
+        $ofEvents = 'SELECT id FROM competition WHERE slug = ANY(CAST(:slugs AS text[]))';
         $rounds = "SELECT id FROM competition_round WHERE competition_id IN ({$ofEvents})";
 
         return [
@@ -279,6 +398,11 @@ SQL, ['id' => $competitionId, 'name' => $name]);
             'standings' => $this->rowCount("SELECT COUNT(*) FROM competition_standing WHERE competition_id IN ({$ofEvents})", $events),
             'displays' => $this->rowCount("SELECT COUNT(*) FROM competition_display WHERE competition_id IN ({$ofEvents})", $events),
             'divisions' => $this->rowCount("SELECT COUNT(*) FROM competition_division WHERE competition_id IN ({$ofEvents})", $events),
+            'designs' => $database->fetchFirstColumn("SELECT design::text FROM competition_display WHERE competition_id IN ({$ofEvents}) ORDER BY id", $events),
+            'reveals' => $database->fetchAllAssociative("SELECT id, label, position, unboxed, reveal_mode, hide_until_round_starts FROM competition_round_puzzle WHERE round_id IN ({$rounds}) ORDER BY id", $events),
+            'table names' => $database->fetchFirstColumn("SELECT COALESCE(table_labels::text, '') FROM competition_round WHERE id IN ({$rounds}) ORDER BY id", $events),
+            'organizations' => $this->rowCount('SELECT COUNT(*) FROM organization', []),
+            'organization teams' => $this->rowCount('SELECT COUNT(*) FROM organization_maintainer', []),
         ];
     }
 }

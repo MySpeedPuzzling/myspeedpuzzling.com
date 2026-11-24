@@ -10,6 +10,8 @@ that would otherwise be forgotten. Newest section on top.
       is copied) - say so on the duplicate form next to the format-reset notice.
 - [ ] Wizard (spws-wizard.md R10): a "Get ready" item "Same tables for the whole championship" once entries exist (the
       checklist's 2 statements are pinned - from the existing facts only); today a Review line says it.
+- [ ] Wizard: a Challenges block left "Decide later" loses its prefill on resume (no labels, "One result") - derive the
+      plan from the draft (e.g. the round's planned challenge count stored, or the round name) if organisers trip on it.
 - [ ] Wizard: labels / Unboxed of puzzles already saved are edited on the round puzzles page, not on the grid.
 - [ ] Internal API has no unboxed field (round or puzzle) - add `unboxed` / `unboxedRoundPuzzleIds` to the round
       endpoints if Claude Code should set it there.

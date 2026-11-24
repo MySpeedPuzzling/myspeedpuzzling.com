@@ -131,3 +131,12 @@ As designed + the amendments, and:
   the event has standings, the "Same table for a whole championship" hint.
 - Browser walk (Selenium, 1280 + 375 px): entry → Basics → Structure (Challenges) → start times → Puzzles (labels
   prefilled, Teams C4 unboxed, secret + stopwatch) → Extras → Review; `cm-delivery/shots/spws-b/b2-*`.
+- Diff review (PR #486): "Solve all" is saved only from 2 puzzles (a block filled one at a time stays one result until its
+  second, so a puzzle added later on the round puzzles page never leaves "pick 1 of 2"); the plan's next labels follow
+  the puzzles already saved; a challenge row filled in without "challenges back to back" is refused (never dropped);
+  `?challenges=<string>` is ignored.
+- **Known limit**: the plan is a prefill. A block round left "Decide later" and opened again without `?challenges`
+  (Review → Edit puzzles, Finish later, resume) shows no "Challenge k" labels and "One result for the round" - the
+  organiser types the labels and picks "Solve all" (the round's name still says "Challenges 3 + 4"). docs/TODO.md.
+- The event page's note under an unboxed puzzle says "Picture shown once the results are published"
+  (`VisibleRoundPuzzle::$pictureWaitsForResults` → `EditionRoundPuzzle`, `event_rounds.picture_after_results`).

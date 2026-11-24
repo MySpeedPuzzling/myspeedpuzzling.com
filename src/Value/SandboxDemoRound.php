@@ -16,6 +16,11 @@ readonly final class SandboxDemoRound
     /**
      * @param list<string> $labels the round puzzles' labels in their order (a block of challenges), empty = the letters
      * @param list<string> $divisions names of the event's divisions this round uses
+     * @param list<null|string> $brands the catalogue brand (exact name) preferred for each puzzle position, null = any
+     * @param list<array{brand: string, name: string}> $secretPuzzles new secret puzzles made for the round instead of
+     *     catalogue ones - hidden entirely, revealed when the stopwatch starts with the tick (SPWS demo)
+     * @param list<string> $unboxedLabels labels of the round's puzzles unboxed on their own (the rest not)
+     * @param list<int> $piecesOfPuzzles the pieces of each puzzle position, empty = $piecesPerPuzzle for every one
      */
     public function __construct(
         public string $key,
@@ -44,7 +49,21 @@ readonly final class SandboxDemoRound
         // Typical seconds an average entrant needs for one of its puzzles
         public int $baseSeconds = 2400,
         public array $divisions = [],
+        public array $brands = [],
+        public array $secretPuzzles = [],
+        public array $unboxedLabels = [],
+        // Table names on this (first) round of its kind, every round of the kind gets the same list (SPWS hall: A-H ×
+        // 1-22 without H22; 2 = "A1 L" / "A1 R"); null = plain numbers
+        public null|int $seatsPerTable = null,
+        // A published round: the 5th entrant by name gets exactly the 4th's result - a shared place
+        public bool $tie = false,
+        public array $piecesOfPuzzles = [],
     ) {
+    }
+
+    public function piecesOf(int $position): int
+    {
+        return $this->piecesOfPuzzles[$position] ?? $this->piecesPerPuzzle;
     }
 
     public function teamSize(): null|int

@@ -14,6 +14,7 @@ readonly final class SandboxDemoEvent
      * @param list<SandboxDemoRound> $rounds in their order
      * @param list<SandboxDemoGroup> $groups
      * @param list<array{name: string, short: string}> $divisions the event's divisions in their order
+     * @param null|array{name: string, slug: string} $organization
      */
     public function __construct(
         public string $slug,
@@ -31,6 +32,10 @@ readonly final class SandboxDemoEvent
         // A timer screen and an OBS overlay
         public bool $displays = false,
         public array $divisions = [],
+        // The organization owning the event, found again by its slug - null = none
+        public null|array $organization = null,
+        // The displays in the event's own look (SandboxDemoDisplays) instead of the generic ones
+        public bool $brandedDisplays = false,
     ) {
     }
 

@@ -21,7 +21,7 @@ use SpeedPuzzling\Web\Value\SandboxDemoRound;
  *
  * A published round: everybody has a result - the last entrant (by name) did not start (the no-show), the one before
  * it ran out of time with pieces missing, the 3rd and 6th finished with 1 and 2 pieces missing, slow ones time out on
- * their own. A running round: the first third finished, on a block of challenges the next third has only its first
+ * their own; a round with `tie` gives the 5th exactly the 4th's result. A running round: the first third finished, on a block of challenges the next third has only its first
  * challenge's split, the rest nothing yet.
  */
 final readonly class SandboxDemoResultPlanner
@@ -47,7 +47,9 @@ final readonly class SandboxDemoResultPlanner
                 continue;
             }
 
-            $plan = self::plan($round, $entry, $index, $count, $pick ? $roundPuzzles : array_slice($roundPuzzles, 0, 1), $pick);
+            // A tie (SPWS demo): the 5th by name solves exactly like the 4th - a shared place
+            $tied = $round->tie && $round->state === SandboxDemoRound::PUBLISHED && $index === 4 && $count >= 8;
+            $plan = self::plan($round, $tied ? $entries[3] : $entry, $tied ? 3 : $index, $count, $pick ? $roundPuzzles : array_slice($roundPuzzles, 0, 1), $pick);
 
             foreach ($plan as $field => $value) {
                 $changes[] = RoundResultChange::forEntry(

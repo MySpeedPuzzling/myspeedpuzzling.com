@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\Sandbox;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\CompetitorPage\CompetitorListController;
@@ -13,6 +14,11 @@ use SpeedPuzzling\Web\Controller\Standings\StandingEmbedController;
 use SpeedPuzzling\Web\Exceptions\SandboxModeIsOff;
 use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Message\AddCompetitionDisplay;
+use SpeedPuzzling\Web\Message\AddOrganization;
+use SpeedPuzzling\Web\Message\AddOrganizationMaintainer;
+use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
+use SpeedPuzzling\Web\Message\AssignEventToOrganization;
+use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\AddCompetitionReferee;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\ApproveCompetition;
@@ -32,6 +38,7 @@ use SpeedPuzzling\Web\Message\SaveCompetitionDisplayDesign;
 use SpeedPuzzling\Web\Message\SetCompetitionDivisions;
 use SpeedPuzzling\Web\Message\SetRoundEntryDivisions;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
+use SpeedPuzzling\Web\Message\SetRoundTableLabels;
 use SpeedPuzzling\Web\Query\GetCompetitionDivisions;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
@@ -43,7 +50,14 @@ use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Services\CompetitionToolkit\DisplayPresets;
 use SpeedPuzzling\Web\Services\SameTablesCopy;
+use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\CompetitorPageSettings;
+use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\OrganizationItemKind;
+use SpeedPuzzling\Web\Value\OrganizationKind;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\TableLabelGenerator;
 use SpeedPuzzling\Web\Value\DisplayFollowMode;
 use SpeedPuzzling\Web\Value\DisplayKind;
 use SpeedPuzzling\Web\Value\DivisionInput;
@@ -59,6 +73,8 @@ use SpeedPuzzling\Web\Value\SandboxDemoRound;
 use SpeedPuzzling\Web\Value\StandingMissing;
 use SpeedPuzzling\Web\Value\StandingOrder;
 use SpeedPuzzling\Web\Value\StandingRules;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -90,6 +106,7 @@ final readonly class SandboxDemoEvents
         private GetRoundResultEntries $getRoundResultEntries,
         private GetCompetitionDivisions $getCompetitionDivisions,
         private SameTablesCopy $sameTablesCopy,
+        private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
@@ -99,11 +116,22 @@ final readonly class SandboxDemoEvents
     /**
      * @param null|string $date the demo day (Y-m-d) - null = today in each event's zone
      * @param \Closure(string): void $say one line of progress for the console
+     * @param null|string $onlySlug build only the event of this slug (any known one), null = the default ones (all())
+     * @param list<string> $maintainerIds more organisers of a new event and of its organization (players' ids)
+     * @param null|string $logoPath the logo of a new event and of its new organization (a file on the box - never in
+     *     the repository)
      *
      * @throws SandboxModeIsOff
      */
-    public function setUp(null|string $date, string $organizerPlayerId, null|string $refereePlayerId, \Closure $say): void
-    {
+    public function setUp(
+        null|string $date,
+        string $organizerPlayerId,
+        null|string $refereePlayerId,
+        \Closure $say,
+        null|string $onlySlug = null,
+        array $maintainerIds = [],
+        null|string $logoPath = null,
+    ): void {
         $this->sandboxMode->assertOn();
 
         $people = array_values(array_filter(
@@ -111,35 +139,54 @@ final readonly class SandboxDemoEvents
             static fn (array $person): bool => $person['id'] !== $organizerPlayerId && $person['id'] !== $refereePlayerId,
         ));
 
-        foreach (SandboxDemoEventDefinitions::all() as $event) {
+        $events = array_values(array_filter(
+            $onlySlug === null ? SandboxDemoEventDefinitions::all() : SandboxDemoEventDefinitions::known(),
+            static fn (SandboxDemoEvent $event): bool => $onlySlug === null || $event->slug === $onlySlug,
+        ));
+
+        if ($events === []) {
+            throw new \InvalidArgumentException(sprintf('No demo event %s', (string) $onlySlug));
+        }
+
+        foreach ($events as $event) {
             $day = $date ?? $this->clock->now()->setTimezone(new DateTimeZone($event->timezone))->format('Y-m-d');
             $say('');
             $say(sprintf('== %s (demo day %s, %s)', $event->name, $day, $event->timezone));
-            $this->setUpEvent($event, $day, $organizerPlayerId, $refereePlayerId, $people, $say);
+            $this->setUpEvent($event, $day, $organizerPlayerId, $refereePlayerId, $people, $say, $maintainerIds, $logoPath);
         }
     }
 
     /**
      * @param list<array{id: string, name: string, country: null|string, email: string}> $people
      * @param \Closure(string): void $say
+     * @param list<string> $maintainerIds
      */
-    private function setUpEvent(SandboxDemoEvent $event, string $day, string $organizerPlayerId, null|string $refereePlayerId, array $people, \Closure $say): void
+    private function setUpEvent(SandboxDemoEvent $event, string $day, string $organizerPlayerId, null|string $refereePlayerId, array $people, \Closure $say, array $maintainerIds, null|string $logoPath): void
     {
-        $competitionId = $this->competition($event, $day, $organizerPlayerId, $say);
+        $isNew = $this->demoData->competitionBySlug($event->slug) === null;
+        $competitionId = $this->competition($event, $day, $organizerPlayerId, $say, $maintainerIds, $logoPath);
 
-        $this->messageBus->dispatch(new ChangeCompetitorPageSettings($competitionId, new CompetitorPageSettings(
-            competitorPages: true,
-            liveResultsBeforePublishing: true,
-            timeProposals: true,
-            qrTagMode: QrTagMode::Entrant,
-        )));
+        // The old demos keep getting their settings on every run (as built); the SPWS demo only once - a switch the
+        // organisers turn during a rehearsal stays
+        if ($isNew || $event->organization === null) {
+            $this->messageBus->dispatch(new ChangeCompetitorPageSettings($competitionId, new CompetitorPageSettings(
+                competitorPages: true,
+                liveResultsBeforePublishing: true,
+                timeProposals: true,
+                qrTagMode: QrTagMode::Entrant,
+            )));
+        }
+
+        if ($event->organization !== null) {
+            $this->organization($event->organization, $competitionId, $organizerPlayerId, $maintainerIds, $say);
+        }
 
         if ($refereePlayerId !== null) {
             $this->messageBus->dispatch(new AddCompetitionReferee($competitionId, $refereePlayerId, $organizerPlayerId));
         }
 
         $roundIds = $this->rounds($event, $competitionId, $day, $say);
-        $this->puzzles($event, $competitionId, $day, $roundIds, $say);
+        $this->puzzles($event, $competitionId, $day, $roundIds, $organizerPlayerId, $say);
         $this->participants($event, $competitionId, $people, $say);
         $this->divisions($event, $competitionId, $roundIds, $people, $say);
         $this->tables($event, $competitionId, $roundIds, $say);
@@ -153,16 +200,21 @@ final readonly class SandboxDemoEvents
             $this->displays($competitionId, $organizerPlayerId, $say);
         }
 
-        // Real events L2b: a board per challenge of the first block, a board per division of the round with the most
-        $this->viewDisplays($event, $competitionId, $roundIds, $organizerPlayerId, $say);
+        if ($event->brandedDisplays) {
+            $this->brandedDisplays($competitionId, $roundIds, $organizerPlayerId, $say);
+        } else {
+            // Real events L2b: a board per challenge of the first block, a board per division of the round with the most
+            $this->viewDisplays($event, $competitionId, $roundIds, $organizerPlayerId, $say);
+        }
 
         $this->urls($event, $competitionId, $say);
     }
 
     /**
      * @param \Closure(string): void $say
+     * @param list<string> $maintainerIds
      */
-    private function competition(SandboxDemoEvent $event, string $day, string $organizerPlayerId, \Closure $say): string
+    private function competition(SandboxDemoEvent $event, string $day, string $organizerPlayerId, \Closure $say, array $maintainerIds = [], null|string $logoPath = null): string
     {
         $existing = $this->demoData->competitionBySlug($event->slug);
         $competitionId = $existing['id'] ?? null;
@@ -171,6 +223,7 @@ final readonly class SandboxDemoEvents
             [$firstDay, $lastDay] = $event->dayRange();
             $competitionId = Uuid::uuid7()->toString();
 
+            $logo = self::logoUpload($logoPath);
             $this->messageBus->dispatch(new AddCompetition(
                 competitionId: Uuid::fromString($competitionId),
                 playerId: $organizerPlayerId,
@@ -185,14 +238,22 @@ final readonly class SandboxDemoEvents
                 dateFrom: self::localDay($day, $firstDay, $event->timezone),
                 dateTo: self::localDay($day, $lastDay, $event->timezone),
                 isOnline: false,
-                logo: null,
-                maintainerIds: [$organizerPlayerId],
+                logo: $logo,
+                maintainerIds: array_values(array_unique([$organizerPlayerId, ...$maintainerIds])),
                 slug: $event->slug,
                 notifyAdmin: false,
             ));
-            $say('Event created');
+
+            if ($logo !== null && is_file($logo->getPathname())) {
+                unlink($logo->getPathname());
+            }
+            $say(sprintf('Event created%s', $logoPath !== null ? ' with its logo' : ''));
         } else {
             $say('Event exists - completing it');
+
+            if ($maintainerIds !== [] || $logoPath !== null) {
+                $say('NOTE: --maintainer and --logo shape a new event only - an existing one keeps its team and logo (its organization gets the maintainers)');
+            }
         }
 
         if (($existing['approved'] ?? false) === false) {
@@ -252,7 +313,7 @@ final readonly class SandboxDemoEvents
      * @param array<string, string> $roundIds
      * @param \Closure(string): void $say
      */
-    private function puzzles(SandboxDemoEvent $event, string $competitionId, string $day, array $roundIds, \Closure $say): void
+    private function puzzles(SandboxDemoEvent $event, string $competitionId, string $day, array $roundIds, string $organizerPlayerId, \Closure $say): void
     {
         $used = [];
 
@@ -263,13 +324,31 @@ final readonly class SandboxDemoEvents
         }
 
         $flags = $this->demoData->rounds($competitionId);
+        /** @var array<string, list<string>> $intendedOrder round id => its new rows' or puzzles' ids in the definition's order */
+        $intendedOrder = [];
 
         foreach ($event->rounds as $round) {
             $roundId = $roundIds[$round->key];
 
-            if ($this->demoData->roundPuzzles($roundId) === []) {
-                if ($round->sharesPuzzleOf !== null) {
+            $hadPuzzles = $this->demoData->roundPuzzles($roundId) !== [];
+
+            if ($hadPuzzles === false) {
+                if ($round->secretPuzzles !== []) {
+                    $intendedOrder[$roundId] = $this->addSecretPuzzles($round, $roundId, $organizerPlayerId, $say);
+                } elseif ($round->sharesPuzzleOf !== null) {
                     $this->sharePuzzle($round, $roundId, $roundIds[$round->sharesPuzzleOf], $event, $say);
+                } elseif ($round->brands !== []) {
+                    $puzzleIds = $this->brandedCataloguePuzzles($round, $event->slug, $used);
+
+                    if ($puzzleIds === []) {
+                        $say(sprintf('TODO: no catalogue puzzle for "%s" - import the catalogue first', $round->name));
+
+                        continue;
+                    }
+
+                    $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId, $puzzleIds));
+                    $used = [...$used, ...$puzzleIds];
+                    $intendedOrder[$roundId] = $puzzleIds;
                 } else {
                     $puzzleIds = $this->demoData->cataloguePuzzles($round->piecesPerPuzzle, $round->puzzles, $event->slug, $used, $round->woodenPuzzle);
 
@@ -287,6 +366,12 @@ final readonly class SandboxDemoEvents
                     $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId, $puzzleIds));
                     $used = [...$used, ...$puzzleIds];
                 }
+            }
+
+            if ($hadPuzzles === false) {
+                // The adds persist the rows without touching the round's loaded collection (a web request starts with
+                // an empty EntityManager, this one command does not): forget what is loaded, the next handlers read fresh
+                $this->entityManager->clear();
             }
 
             $roundPuzzles = $this->demoData->roundPuzzles($roundId);
@@ -309,6 +394,12 @@ final readonly class SandboxDemoEvents
                 ));
             }
 
+            // Puzzles just added have no position yet (ordered by their row id): put them in the definition's order
+            if (isset($intendedOrder[$roundId])) {
+                $order = array_flip($intendedOrder[$roundId]);
+                usort($roundPuzzles, static fn (array $a, array $b): int => ($order[$a['id']] ?? $order[$a['puzzle_id']] ?? PHP_INT_MAX) <=> ($order[$b['id']] ?? $order[$b['puzzle_id']] ?? PHP_INT_MAX));
+            }
+
             if ($round->labels !== [] && $roundPuzzles !== []) {
                 $labels = [];
 
@@ -322,9 +413,130 @@ final readonly class SandboxDemoEvents
             if ($round->unboxed && ($flags[$round->name]['unboxed'] ?? false) === false) {
                 $this->messageBus->dispatch(new ChangeRoundUnboxed($competitionId, $roundId, true));
             }
+
+            // SPWS: one challenge of a back-to-back block unboxed on its own (spws-unboxed-per-puzzle.md) - set with the
+            // puzzles, so what the organisers change later stays
+            if ($round->unboxedLabels !== [] && $roundPuzzles !== [] && $hadPuzzles === false) {
+                $wanted = [];
+                $current = [];
+
+                foreach ($roundPuzzles as $position => $roundPuzzle) {
+                    if (in_array($round->labels[$position] ?? null, $round->unboxedLabels, true)) {
+                        $wanted[] = $roundPuzzle['id'];
+                    }
+
+                    if ($roundPuzzle['unboxed']) {
+                        $current[] = $roundPuzzle['id'];
+                    }
+                }
+
+                sort($wanted);
+                sort($current);
+
+                if ($wanted !== $current) {
+                    $this->messageBus->dispatch(new ChangeRoundUnboxed($competitionId, $roundId, false, $wanted));
+                }
+            }
+
+            // Secret puzzles revealed when the stopwatch starts with the tick (round-formats.md) - while not yet so
+            foreach ($round->secretPuzzles !== [] ? $roundPuzzles : [] as $roundPuzzle) {
+                if ($roundPuzzle['secret'] && $roundPuzzle['reveal_mode'] !== RoundPuzzleReveal::Stopwatch->value) {
+                    try {
+                        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle['id'], PuzzleHideMode::Entirely, RoundPuzzleReveal::Stopwatch));
+                    } catch (HandlerFailedException $exception) {
+                        // A rehearsal started the stopwatch or revealed the puzzle - it stays as it is
+                        $say(sprintf('NOTE: "%s" keeps its reveal (%s)', $round->name, $exception->getPrevious()?->getMessage() ?? $exception->getMessage()));
+                    }
+                }
+            }
         }
 
-        $say('Puzzles, formats, labels and unboxed rounds set');
+        $say('Puzzles, formats, labels, unboxed puzzles and reveals set');
+    }
+
+    /**
+     * Catalogue stand-ins of the brand each puzzle position names (any brand when none, or none of it is left), in the
+     * definition's order.
+     *
+     * @param list<string> $used
+     * @return list<string> puzzle ids
+     */
+    private function brandedCataloguePuzzles(SandboxDemoRound $round, string $salt, array $used): array
+    {
+        $puzzleIds = [];
+
+        for ($position = 0; $position < $round->puzzles; $position++) {
+            $brand = $round->brands[$position] ?? null;
+            $pieces = $round->piecesOf($position);
+            $except = [...$used, ...$puzzleIds];
+            $found = $brand !== null ? $this->demoData->cataloguePuzzles($pieces, 1, $salt, $except, brand: $brand) : [];
+            // A small catalogue (tests): any puzzle of the pieces, then any puzzle anybody may see
+            $found = $found !== [] ? $found : $this->demoData->cataloguePuzzles($pieces, 1, $salt, $except);
+            $found = $found !== [] ? $found : $this->demoData->cataloguePuzzles(null, 1, $salt, $except);
+
+            if ($found === []) {
+                break;
+            }
+
+            $puzzleIds[] = $found[0];
+        }
+
+        return $puzzleIds;
+    }
+
+    /**
+     * New puzzles made for the round and kept secret (hidden entirely) - the way the organiser's "Add a puzzle" with
+     * "Keep it secret" does it: a yes to the round's automatic reveal as read now, switched to the stopwatch reveal
+     * afterwards (puzzles()).
+     *
+     * @param \Closure(string): void $say
+     * @return list<string> the new rows' ids in the definition's order
+     */
+    private function addSecretPuzzles(SandboxDemoRound $round, string $roundId, string $organizerPlayerId, \Closure $say): array
+    {
+        $userId = $this->demoData->userIdOfPlayer($organizerPlayerId);
+        $reveal = $this->demoData->roundReveal($roundId);
+
+        if ($userId === null || $reveal === null) {
+            $say(sprintf('TODO: "%s" - the organiser has no account, no secret puzzles added', $round->name));
+
+            return [];
+        }
+
+        $startsAt = new DateTimeImmutable($reveal['starts_at'], new DateTimeZone('UTC'));
+
+        // Its automatic reveal must still be ahead, or the puzzle would be public the moment it is made
+        if ($startsAt <= $this->clock->now()) {
+            $say(sprintf('TODO: "%s" has started already - no secret puzzles added (delete the event and build it again with a later --date)', $round->name));
+
+            return [];
+        }
+
+        $automaticRevealAt = RoundPuzzleReveal::automaticRevealAt($startsAt, $reveal['reveal_delay_minutes']);
+        $ids = [];
+
+        foreach ($round->secretPuzzles as $position => $secret) {
+            $roundPuzzleId = Uuid::uuid7();
+            $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+                roundPuzzleId: $roundPuzzleId,
+                roundId: $roundId,
+                userId: $userId,
+                brand: $secret['brand'],
+                puzzle: $secret['name'],
+                piecesCount: $round->piecesOf($position),
+                puzzlePhoto: null,
+                eans: EanList::fromInputs([]),
+                brandCodes: BrandCodeList::fromInputs([]),
+                hideUntilRoundStarts: true,
+                hideMode: PuzzleHideMode::Entirely,
+                shownAutomaticRevealAt: $automaticRevealAt,
+            ));
+            $ids[] = $roundPuzzleId->toString();
+        }
+
+        $say(sprintf('"%s": %d new secret puzzles', $round->name, count($ids)));
+
+        return $ids;
     }
 
     /**
@@ -590,6 +802,7 @@ final readonly class SandboxDemoEvents
      */
     private function tables(SandboxDemoEvent $event, string $competitionId, array $roundIds, \Closure $say): void
     {
+        $this->tableLabels($event, $competitionId, $roundIds, $say);
         $copies = [];
 
         foreach ($event->rounds as $round) {
@@ -865,6 +1078,158 @@ final readonly class SandboxDemoEvents
     }
 
     /**
+     * SPWS hall table names (table-labels-and-plates.md) on every round of a kind whose first round asks for them -
+     * one list for all of them, so "Use these tables in later rounds" keeps the names. Only while none of those rounds
+     * has names yet: a scheme the organisers chose meanwhile is theirs.
+     *
+     * @param array<string, string> $roundIds
+     * @param \Closure(string): void $say
+     */
+    private function tableLabels(SandboxDemoEvent $event, string $competitionId, array $roundIds, \Closure $say): void
+    {
+        $current = [];
+
+        foreach ($this->demoData->rounds($competitionId) as $round) {
+            $current[$round['id']] = $round['table_labels'];
+        }
+
+        foreach ($event->rounds as $round) {
+            if ($round->seatsPerTable === null) {
+                continue;
+            }
+
+            $ids = [$roundIds[$round->key]];
+
+            foreach ($event->rounds as $later) {
+                if ($later->tablesFrom === $round->key) {
+                    $ids[] = $roundIds[$later->key];
+                }
+            }
+
+            // Only before anybody sits anywhere: names cleared by the organisers stay cleared
+            foreach ($this->getRoundResultEntries->forRound($roundIds[$round->key]) as $entry) {
+                if ($entry->tableNumber !== null) {
+                    continue 2;
+                }
+            }
+
+            $expected = [];
+
+            foreach ($ids as $id) {
+                if (($current[$id] ?? null) !== null) {
+                    continue 2;
+                }
+
+                $expected[$id] = null;
+            }
+
+            $labels = TableLabelGenerator::generate('A-H', '1-22', $round->seatsPerTable, 'side', 'letters', 'H22');
+            $this->messageBus->dispatch(new SetRoundTableLabels($competitionId, $ids, $labels, $expected));
+            $say(sprintf('Table names of "%s" and %d later rounds: %s, %s … %s (%d places)', $round->name, count($ids) - 1, $labels[0] ?? '', $labels[1] ?? '', $labels[count($labels) - 1] ?? '', count($labels)));
+        }
+    }
+
+    /**
+     * The organization owning the event (approved at once, the organiser's logo), the extra organisers on its team.
+     *
+     * @param array{name: string, slug: string} $definition
+     * @param list<string> $maintainerIds
+     * @param \Closure(string): void $say
+     */
+    private function organization(array $definition, string $competitionId, string $organizerPlayerId, array $maintainerIds, \Closure $say): void
+    {
+        $organizationId = $this->demoData->organizationIdBySlug($definition['slug']);
+
+        if ($organizationId === null) {
+            $organizationId = Uuid::uuid7()->toString();
+            $this->messageBus->dispatch(new AddOrganization(
+                organizationId: Uuid::fromString($organizationId),
+                playerId: $organizerPlayerId,
+                name: $definition['name'],
+                shortName: 'SPWS',
+                about: 'A made-up organization on the MySpeedPuzzling sandbox for demonstrating the competition toolkit.',
+                website: null,
+                socialLinks: [],
+                countryCode: null,
+                region: null,
+                kind: OrganizationKind::Organizer,
+                logo: null,
+                maintainerIds: $maintainerIds,
+                slug: $definition['slug'],
+                approve: true,
+                // The event's logo, when it has one
+                storedLogo: $this->demoData->competitionLogo($competitionId),
+            ));
+            $say(sprintf('Organization "%s" created', $definition['name']));
+        } else {
+            $team = $this->demoData->organizationTeam($organizationId);
+
+            foreach ($maintainerIds as $maintainerId) {
+                if (!in_array($maintainerId, $team, true)) {
+                    $this->messageBus->dispatch(new AddOrganizationMaintainer($organizationId, $maintainerId));
+                    $say('Organiser added to the organization\'s team');
+                }
+            }
+        }
+
+        if ($this->demoData->competitionOrganizationId($competitionId) !== $organizationId) {
+            $this->messageBus->dispatch(new AssignEventToOrganization(OrganizationItemKind::Competition, $competitionId, $organizationId, $organizerPlayerId));
+            $say('Event moved into the organization');
+        }
+    }
+
+    /**
+     * The displays in the event's own look (SandboxDemoDisplays), found again by name - kept as the organisers edit them.
+     *
+     * @param array<string, string> $roundIds
+     * @param \Closure(string): void $say
+     */
+    private function brandedDisplays(string $competitionId, array $roundIds, string $organizerPlayerId, \Closure $say): void
+    {
+        $existing = $this->demoData->displays($competitionId);
+
+        foreach (SandboxDemoDisplays::all($roundIds) as $display) {
+            if (isset($existing[$display['name']])) {
+                continue;
+            }
+
+            $displayId = Uuid::uuid7();
+            $this->messageBus->dispatch(new AddCompetitionDisplay($displayId, $competitionId, $display['kind'], $display['name'], 'en', $organizerPlayerId, DisplayPreset::Blank));
+
+            if ($display['pinnedRoundId'] !== null) {
+                $this->messageBus->dispatch(new ChangeCompetitionDisplayFollow($displayId->toString(), DisplayFollowMode::Pinned, $display['pinnedRoundId']));
+            }
+
+            $this->messageBus->dispatch(new SaveCompetitionDisplayDesign(
+                displayId: $displayId->toString(),
+                design: json_decode(json_encode($display['design'], JSON_THROW_ON_ERROR), false, flags: JSON_THROW_ON_ERROR),
+                baseVersion: 1,
+                // Live results on screen are the organiser's explicit choice - this is it
+                liveConfirmed: true,
+            ));
+            $say(sprintf('Display "%s" added', $display['name']));
+        }
+    }
+
+    /**
+     * A copy of the logo file the handlers may optimise in place - the organiser's own file stays as it is.
+     */
+    private static function logoUpload(null|string $logoPath): null|UploadedFile
+    {
+        if ($logoPath === null) {
+            return null;
+        }
+
+        $copy = sys_get_temp_dir() . '/msp-sandbox-logo-' . bin2hex(random_bytes(6)) . '.' . (pathinfo($logoPath, PATHINFO_EXTENSION) ?: 'png');
+
+        if (!copy($logoPath, $copy)) {
+            throw new \RuntimeException(sprintf('Cannot read the logo %s', $logoPath));
+        }
+
+        return new UploadedFile($copy, basename($logoPath), null, null, test: true);
+    }
+
+    /**
      * @param \Closure(string): void $say
      */
     private function urls(SandboxDemoEvent $event, string $competitionId, \Closure $say): void
@@ -882,6 +1247,14 @@ final readonly class SandboxDemoEvents
             $say(sprintf('  Standing          %s  (%s)', $url('event_standing', ['slug' => $event->slug, 'standingSlug' => $standing['slug']]), $name));
             // Real events L3: the <iframe> page an organiser puts on their own website (the SPWS Wix site)
             $say(sprintf('  Standing embed    %s  (%s)', $url(StandingEmbedController::ROUTE, ['standingId' => strtolower($standing['id'])], false), $name));
+        }
+
+        if ($event->organization !== null) {
+            // Name plates (table tents) with a time box per challenge of the championship (table-labels-and-plates.md)
+            foreach ($this->demoData->standings($competitionId) as $name => $standing) {
+                $kind = str_starts_with($name, 'Individual') ? 'people' : 'lineups';
+                $say(sprintf('  Name plates       %s?kind=%s&layout=tents&boxes=standing:%s&flags=1  (%s)', $url('competition_name_tags', ['competitionId' => $competitionId]), $kind, strtolower($standing['id']), $name));
+            }
         }
 
         foreach ($this->demoData->displays($competitionId) as $name => $display) {

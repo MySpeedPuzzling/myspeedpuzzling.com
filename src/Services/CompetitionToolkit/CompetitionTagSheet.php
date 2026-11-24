@@ -88,7 +88,8 @@ readonly final class CompetitionTagSheet
         // Name plates with time boxes (table-labels-and-plates.md): offered on table tents of people, line-ups and
         // entries - `?boxes=standing:<id>` or a category's rounds; without a round chosen the championship's first round
         // is the printed one (its entrants, its tables)
-        $plates = $this->plates($request, $competitionId, $rounds, $kind, $layout, $round);
+        // "Only this round" needs the printed round: the chosen one, or for entries the round the select shows (the first)
+        $plates = $this->plates($request, $competitionId, $rounds, $kind, $layout, $round ?? ($kind === CompetitionTagPrintKind::Entries ? ($rounds[0] ?? null) : null));
 
         if ($round === null && $plates['rounds'] !== []) {
             $round = $plates['rounds'][0];

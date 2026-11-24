@@ -298,12 +298,6 @@ readonly final class CompetitionTagSheet
         }
 
         $options = $this->getTagPlateChallenges->options($competitionId);
-        $byId = [];
-
-        foreach ($rounds as $overview) {
-            $byId[$overview->roundId] = $overview;
-        }
-
         $choices = [];
 
         foreach ($options['standings'] as $standing) {
@@ -353,7 +347,7 @@ readonly final class CompetitionTagSheet
             $toSolve = $overview->puzzleFormat === 'pick' ? (int) $overview->puzzlesToSolve : 1;
             $roundLabels = $labels[$overview->roundId] ?? [];
 
-            if ($toSolve >= 2 && $toSolve >= count($roundLabels)) {
+            if ($toSolve >= 2 && $toSolve === count($roundLabels)) {
                 // A back-to-back block: a box per puzzle, by its label ("Challenge 1"; a bare letter with the round's name)
                 foreach ($roundLabels as $label) {
                     $boxes[] = mb_strlen($label) > 1 ? $label : $overview->name . ' · ' . $label;

@@ -4,17 +4,15 @@
  * format; labels are shown and typed. Twin of src/Value/TableLabels.php + TableLabelGenerator.php (shared cases
  * tests/fixtures/table-labels-cases.json - change both).
  *
+ * What the judge page, the desk, the seating page and the sheet need to show and read labels - the editor's half (the
+ * hall plan generator, validation) is assets/table_labels_editor.js, kept out of the judge page's bundle.
+ *
  * Pure functions - tests/table-labels-harness.mjs runs them under node.
  */
 
 export const MAX_LENGTH = 12;
 export const MAX_COUNT = 9999;
 export const MAX_SEATS = 4;
-const LABEL_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9 .\-/]*[A-Za-z0-9])?$/;
-
-export function normalise(label) {
-    return String(label ?? '').replace(/\s+/gu, ' ').trim();
-}
 
 /**
  * The folded key: letter runs and digit runs are segments, upper-cased, digit runs without leading zeros, joined by
@@ -28,62 +26,6 @@ export function segmentsOf(text) {
 
 export function key(text) {
     return segmentsOf(text).join('.');
-}
-
-export function problemOf(label) {
-    if (label === '') {
-        return 'empty';
-    }
-
-    if ([...label].length > MAX_LENGTH) {
-        return 'too_long';
-    }
-
-    return LABEL_PATTERN.test(label) ? null : 'characters';
-}
-
-/**
- * The organiser's list → `{labels}` (normalised) or `{problems: [{label, reason, first?}]}` - the server's rules.
- */
-export function validate(list) {
-    if (!Array.isArray(list) || list.length === 0) {
-        return { problems: [{ label: '', reason: 'empty_list' }] };
-    }
-
-    if (list.length > MAX_COUNT) {
-        return { problems: [{ label: '', reason: 'too_many' }] };
-    }
-
-    const problems = [];
-    const seen = new Map();
-    const labels = list.map(normalise);
-
-    for (const label of labels) {
-        const reason = problemOf(label);
-
-        if (reason !== null) {
-            problems.push({ label, reason });
-            continue;
-        }
-
-        const folded = key(label);
-
-        if (seen.has(folded)) {
-            problems.push({ label, reason: 'duplicate', first: seen.get(folded) });
-            continue;
-        }
-
-        seen.set(folded, label);
-    }
-
-    return problems.length > 0 ? { problems: problems.slice(0, 20) } : { labels };
-}
-
-/**
- * The editor's text: one label per line, or separated by commas / semicolons / tabs. Empty items dropped.
- */
-export function parseList(text) {
-    return String(text ?? '').split(/[\n\r,;\t]+/).map(normalise).filter((label) => label !== '');
 }
 
 /**
@@ -157,190 +99,6 @@ export function continues(typedKey, labelKey) {
     return label[typed.length - 1].startsWith(typed[typed.length - 1]);
 }
 
-function letterList(text) {
-    const source = String(text ?? '').trim().toUpperCase().replace(/\s*[-–—]\s*/g, '-');
-
-    if (source === '') {
-        return [];
-    }
-
-    const letters = [];
-
-    for (const token of source.split(/\s*[,;]\s*|\s+/)) {
-        if (token === '') {
-            continue;
-        }
-
-        const match = /^([A-Z])(?:-([A-Z]))?$/.exec(token);
-
-        if (match === null) {
-            throw { label: token, reason: 'letters' };
-        }
-
-        const from = match[1].charCodeAt(0);
-        const to = (match[2] ?? match[1]).charCodeAt(0);
-
-        if (to < from) {
-            throw { label: token, reason: 'letters' };
-        }
-
-        for (let code = from; code <= to; code++) {
-            const letter = String.fromCharCode(code);
-
-            if (!letters.includes(letter)) {
-                letters.push(letter);
-            }
-        }
-    }
-
-    return letters;
-}
-
-function numberList(text) {
-    const source = String(text ?? '').trim().replace(/\s*[-–—]\s*/g, '-');
-    const numbers = [];
-    const seen = new Set();
-
-    for (const token of source.split(/\s*[,;]\s*|\s+/)) {
-        if (token === '') {
-            continue;
-        }
-
-        const match = /^(\d{1,4})(?:-(\d{1,4}))?$/.exec(token);
-
-        if (match === null) {
-            throw { label: token, reason: 'numbers' };
-        }
-
-        const from = Number(match[1]);
-        const to = match[2] === undefined ? from : Number(match[2]);
-
-        if (from < 1 || to < from || to > MAX_COUNT) {
-            throw { label: token, reason: 'numbers' };
-        }
-
-        for (let number = from; number <= to; number++) {
-            if (!seen.has(number)) {
-                seen.add(number);
-                numbers.push(number);
-            }
-        }
-    }
-
-    if (numbers.length === 0) {
-        throw { label: source, reason: 'numbers' };
-    }
-
-    return numbers;
-}
-
-function seatLabel(table, seat, style) {
-    if (style === 'letter') {
-        return table + String.fromCharCode(96 + seat);
-    }
-
-    if (style === 'side') {
-        return `${table} ${seat === 1 ? 'L' : 'R'}`;
-    }
-
-    return `${table}-${seat}`;
-}
-
-/**
- * The hall plan generator (TableLabelGenerator::generate()): `{letters: 'A-H', numbers: '1-22', seats: 2, seatStyle:
- * 'dash'|'letter'|'side', order: 'letters'|'numbers', skip: 'H22'}` → `{labels}` or `{problems: [{label, reason}]}`.
- */
-export function generate({ letters = '', numbers = '', seats = 1, seatStyle = 'dash', order = 'letters', skip = '' } = {}) {
-    let letterValues;
-    let numberValues;
-
-    try {
-        letterValues = letterList(letters);
-        numberValues = numberList(numbers);
-    } catch (problem) {
-        return { problems: [problem] };
-    }
-
-    const seatCount = Number(seats);
-
-    if (!Number.isInteger(seatCount) || seatCount < 1 || seatCount > MAX_SEATS) {
-        return { problems: [{ label: String(seats), reason: 'seats' }] };
-    }
-
-    if (!['dash', 'letter', 'side'].includes(seatStyle) || (seatStyle === 'side' && seatCount > 2)) {
-        return { problems: [{ label: String(seatStyle), reason: 'seat_style' }] };
-    }
-
-    const skipped = new Set(String(skip ?? '').trim().split(/[\s,;]+/u).filter((token) => token !== '').map(key));
-    const tables = [];
-
-    if (letterValues.length === 0) {
-        tables.push(...numberValues.map(String));
-    } else if (order === 'numbers') {
-        for (const number of numberValues) {
-            for (const letter of letterValues) {
-                tables.push(letter + number);
-            }
-        }
-    } else {
-        for (const letter of letterValues) {
-            for (const number of numberValues) {
-                tables.push(letter + number);
-            }
-        }
-    }
-
-    const labels = [];
-
-    for (const table of tables) {
-        if (skipped.has(key(table))) {
-            continue;
-        }
-
-        for (let seat = 1; seat <= seatCount; seat++) {
-            const label = seatCount === 1 ? table : seatLabel(table, seat, seatStyle);
-
-            if (!skipped.has(key(label))) {
-                labels.push(label);
-            }
-        }
-
-        if (labels.length > MAX_COUNT) {
-            return { problems: [{ label: '', reason: 'too_many' }] };
-        }
-    }
-
-    return { labels };
-}
-
-/**
- * What saving a new list (null = plain numbers) does to a round's seated entries (the editor's warning): `renamed` =
- * the entries whose table reads differently afterwards (`{name, from, to}`, in table order), `highest` = the highest
- * table number somebody sits at - a list shorter than that is refused.
- */
-export function labelChanges(entries, oldList, newList) {
-    const before = tableLabels(oldList);
-    const after = tableLabels(newList);
-    const renamed = [];
-    let highest = 0;
-
-    for (const entry of [...(entries ?? [])].sort((a, b) => (a.tableNumber ?? 0) - (b.tableNumber ?? 0))) {
-        if (!Number.isInteger(entry.tableNumber)) {
-            continue;
-        }
-
-        highest = Math.max(highest, entry.tableNumber);
-        const from = tableText(before, entry.tableNumber);
-        const to = tableText(after, entry.tableNumber);
-
-        if (from !== to) {
-            renamed.push({ name: entry.displayName ?? entry.name ?? '', from, to });
-        }
-    }
-
-    return { renamed, highest };
-}
-
 /**
  * "My tables" on a labelled round (judge page, live_entry_my_tables.js): `A, B` = every label starting with segment A /
  * B (a whole column), `C3` = the labels of table C3 (C3-1, C3-2) or C3 itself, `A1-1..A5-2` (also ` to ` or an en/em
@@ -356,6 +114,21 @@ export function labelRanges(text, lookup, { lenient = false } = {}) {
 
     const keys = lookup.labels.map((label) => key(label));
     const numbers = new Set();
+    // The table numbers whose label starts with the token's whole segments ("C3" = C3, C3 L, C3 R)
+    const prefixed = (token) => {
+        const typed = key(token).split('.');
+        const found = [];
+
+        keys.forEach((labelKey, index) => {
+            const label = labelKey.split('.');
+
+            if (typed.length <= label.length && typed.every((segment, position) => segment === label[position])) {
+                found.push(index + 1);
+            }
+        });
+
+        return found;
+    };
 
     for (const raw of source.replace(/\s*(?:\.\.|[–—]|\bto\b)\s*/giu, '..').split(/[,;]+/)) {
         const token = raw.trim();
@@ -375,8 +148,11 @@ export function labelRanges(text, lookup, { lenient = false } = {}) {
         }
 
         if (range.length === 2) {
-            const from = lookup.numberOf(range[0]);
-            const to = lookup.numberOf(range[1]);
+            // An end is a label or a whole table ("A1..A5" = from A1's first place to A5's last)
+            const fromSet = prefixed(range[0]);
+            const toSet = prefixed(range[1]);
+            const from = fromSet.length > 0 ? Math.min(...fromSet) : null;
+            const to = toSet.length > 0 ? Math.max(...toSet) : null;
 
             if (from === null || to === null) {
                 if (lenient) {
@@ -393,17 +169,9 @@ export function labelRanges(text, lookup, { lenient = false } = {}) {
             continue;
         }
 
-        const typed = key(token).split('.');
-        let found = false;
-
-        keys.forEach((labelKey, index) => {
-            const label = labelKey.split('.');
-
-            if (typed.length <= label.length && typed.every((segment, position) => segment === label[position])) {
-                numbers.add(index + 1);
-                found = true;
-            }
-        });
+        const matched = prefixed(token);
+        matched.forEach((number) => numbers.add(number));
+        const found = matched.length > 0;
 
         if (!found && !lenient) {
             return { error: 'unknown', token };

@@ -90,7 +90,7 @@ readonly final class TableLabelGenerator
     private static function seatLabel(string $table, int $seat, string $style): string
     {
         return match ($style) {
-            'letter' => $table . chr(ord('a') + $seat - 1),
+            'letter' => $table . ['a', 'b', 'c', 'd'][$seat - 1],
             'side' => $table . ' ' . ($seat === 1 ? 'L' : 'R'),
             default => $table . '-' . $seat,
         };

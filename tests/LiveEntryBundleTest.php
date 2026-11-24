@@ -54,13 +54,16 @@ use Symfony\Component\Process\Process;
  *   phone says", the labels on the waiting rows; round_puzzle_pick.js shared with the competitor page); budget
  *   231.5 KB / 63.5 KB gzip. 2026-11-18 (follow-ups FU-M): 231.0 → 231.6 KB / 63.3 → 63.4 KB gzip - the record's shape
  *   rules of RoundEntryPuzzles::fromWire() mirrored in official_results_puzzles.js (shapeRefusal(): keys, types, UUID
- *   ids, at most 50 items - `invalid_change` like the server); budget 232.5 KB / 64 KB gzip;
+ *   ids, at most 50 items - `invalid_change` like the server); budget 232.5 KB / 64 KB gzip. 2026-11-24 (SPWS table
+ *   names, table-labels-and-plates.md): 231.6 → 236.7 KB / 63.4 → 65.0 KB gzip - typed labels ("a1l" opens A1 L,
+ *   table_labels.js: folded keys, the label lookup, My tables over labels; the editor's half stays out in
+ *   table_labels_editor.js); budget 237.5 KB / 65.5 KB gzip;
  * - one file of its own: `live_entry` shares no split chunk with `app`, so the site's pages keep their script tags.
  */
 final class LiveEntryBundleTest extends TestCase
 {
-    private const int MINIFIED_BUDGET_BYTES = 232_500;
-    private const int GZIP_BUDGET_BYTES = 64_000;
+    private const int MINIFIED_BUDGET_BYTES = 237_500;
+    private const int GZIP_BUDGET_BYTES = 65_500;
     private const string ENTRYPOINTS = __DIR__ . '/../public/build/entrypoints.json';
 
     /** @var null|array{modules: list<string>, packages: list<string>, dynamicImports: list<string>, minifiedBytes: int, gzipBytes: int} */

@@ -3,8 +3,8 @@ import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest, newClientId, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
-import {
 import { tableLabels, tableText } from '../table_labels.js';
+import {
     clearAssignments,
     highestTable,
     holderOf,

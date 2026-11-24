@@ -62,7 +62,11 @@ readonly final class CompetitorPageView implements \JsonSerializable
             return null;
         }
 
-        $named = $this->currentRound()?->tableLabel ?? array_find($this->rounds, static fn (CompetitorPageRound $round): bool => $round->tableLabel !== null)?->tableLabel;
+        $named = $this->currentRound()?->tableLabel;
+
+        if ($named === null) {
+            $named = array_find($this->rounds, static fn (CompetitorPageRound $round): bool => $round->tableLabel !== null)?->tableLabel;
+        }
 
         return $named ?? (string) $number;
     }

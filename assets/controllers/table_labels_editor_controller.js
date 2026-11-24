@@ -1,7 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest } from '../official_results_api.js';
-import { generate, labelChanges, parseList, validate } from '../table_labels.js';
+import { generate, labelChanges, parseList, validate } from '../table_labels_editor.js';
 
 /**
  * "Table names" on the seating page (docs/features/competitions-management/table-labels-and-plates.md): a hall plan

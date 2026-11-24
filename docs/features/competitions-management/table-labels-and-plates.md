@@ -244,3 +244,26 @@ table (same all championship), name / pair or team name + members, flags, QR, an
 - **A13 Plates physically:** the time strip goes on the face toward the judge; the big label shrinks with its length
   (≥ 5 characters → 90 pt, ≥ 8 → 64 pt); the print page warns "N entrants have another table in a later round of this
   championship" when tables differ.
+
+## As built (PR 1, 2026-11-24)
+
+Built as designed with the amendments. Deviations and details:
+- **Where the names are set**: the seating page's "Table names" panel (`templates/seating/_table_labels.html.twig`,
+  lazy `table_labels_editor_controller.js`; generator defaults A-H × 1-22, places "A1 L / A1 R"; after a save the page
+  loads again) and the internal API. **Not yet in the creation wizard's Extras** - `docs/TODO.md`.
+- **Judge typing** (node-pinned in `TableLabelsTest::testTheJudgeTypesATableOfTheHall`): labels match by folded key only
+  when the typed text has a digit or names a label exactly (a name starting with "A" never lists the A tables); digits on
+  a labelled round are labels. Over the SPWS hall: one per table - 159 of 175 open without Enter (A1/A2, B1/B2 … wait for
+  the second digit like numbers today); `side`/`letter` places - all 350 open with no separator ("a1l"); `dash` - all 350
+  need a space or "-" ("a1 1"). Hence the default style "A1 L / A1 R" and the recommendation to SPWS.
+- **Displays / studio** read the label in the statement that reads the round; the studio's search over labels uses its
+  own loose match (separators and case ignored) to stay within its bundle budget.
+- **Same tables / copy**: rounds with different lists are simply not offered (A1); the seating page's copy button too.
+- **Export**: "Table" = the name, "Table number" right after it - only for a labelled round.
+- **Plates**: `CompetitionTagSheet::plates()`; the box strip sits on the lower face (`.tent-face.with-boxes`, QR 44 mm,
+  boxes ≥ 7 → two rows); the select "Time boxes" appears on the tents layout of people / line-ups / entries (one more
+  statement there, `GetTagPlateChallenges::options()`); a warning counts the people with another table in a later round.
+- Live entry bundle budget 232.5 → 237.5 KB / 64 → 65.5 KB gzip (`LiveEntryBundleTest`).
+- Browser walk (throwaway stack, Selenium, 1280 + 375): seating panel + save, renumber/seat-the-rest texts, judge
+  "a1r" → Corner Pieces (A1 R) without Enter, desk editor "b3 r" / unknown "z9", sheet Pairs tab, plates print, competitor
+  page (entry + table page title), display state.

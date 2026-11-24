@@ -436,6 +436,68 @@ final class CompetitionTagsPrintTest extends WebTestCase
         self::assertCount(3, $tagStatements, implode("\n---\n", $tagStatements));
     }
 
+    public function testTableNamesArePrintedWhereTheRoundHasThem(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->setTableLabels(OfficialResultsFixture::ROUND_PAIRS, ['A1 L', 'A1 R', 'A2 L', 'A2 R']);
+
+        // A round's entries: Puzzle Sharks sits at table 1 = A1 L
+        $page = $browser->request('GET', self::PAGE . '?kind=entries&round=' . OfficialResultsFixture::ROUND_PAIRS . '&sort=table');
+        self::assertResponseIsSuccessful();
+        self::assertSame('A1 L', trim($page->filter('.tag-table strong')->first()->text()));
+
+        // Table cards print the first labelled round's names; the QR stays the number's frozen path
+        $page = $browser->request('GET', self::PAGE . '?kind=tables');
+        self::assertResponseIsSuccessful();
+        self::assertSame('A1 L', trim($page->filter('.tent-table.only strong')->first()->text()));
+        self::assertSame('/live/' . self::EVENT . '/t/1', self::path((string) $page->filter('[data-qr-url]')->first()->attr('data-qr-url')));
+        self::assertCount(1, $page->filter('[data-table-names-hint]'));
+
+        // A round without names prints numbers as before
+        $browser->request('GET', self::PAGE . '?kind=entries&round=' . OfficialResultsFixture::ROUND_GROUP_A . '&sort=table');
+        self::assertDoesNotMatchRegularExpression('/A1 L/', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testPlatesCarryABoxPerChallengeOnlyWhenAsked(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_WITH_STRIPE);
+
+        // Tents offer the choice; nothing printed differs until it is made
+        $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tents');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $page->filter('[data-tag-boxes]'));
+        self::assertCount(0, $page->filter('[data-time-boxes]'));
+        // The sheet of tags never offers it
+        $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tags');
+        self::assertCount(0, $page->filter('[data-tag-boxes]'));
+
+        // The pairs rounds of the event: Pairs, then Pairs Final - a box each, on the face toward the judge only
+        $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tents&boxes=duo');
+        self::assertResponseIsSuccessful();
+        $tents = $page->filter('.tent');
+        self::assertGreaterThan(0, $tents->count());
+        self::assertCount($tents->count(), $page->filter('.tent-face.lower [data-time-boxes]'));
+        self::assertCount(0, $page->filter('.tent-face.upper [data-time-boxes]'));
+        self::assertSame(['Pairs', 'Pairs Final'], $tents->first()->filter('.time-box-label')->each(static fn (Crawler $label): string => trim($label->text())));
+        self::assertCount(2, $tents->first()->filter('.time-box-field.missing'));
+        // The printed round is the championship's first: its line-ups
+        self::assertSame('duo', $page->filter('[data-tag-boxes] option[selected]')->attr('value'));
+        self::assertCount(1, $page->filter('[data-plates-hint]'));
+
+        // Without the "missing pieces" field
+        $page = $browser->request('GET', self::PAGE . '?kind=lineups&layout=tents&boxes=duo&missing=0');
+        self::assertCount(0, $page->filter('.time-box-field.missing'));
+        self::assertCount(2, $page->filter('.tent')->first()->filter('.time-box'));
+    }
+
+    /**
+     * @param list<string> $labels
+     */
+    private function setTableLabels(string $roundId, array $labels): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition_round SET table_labels = :labels WHERE id = :id', ['labels' => json_encode($labels, JSON_THROW_ON_ERROR), 'id' => $roundId]);
+    }
+
     private static function path(string $url): string
     {
         return (string) parse_url($url, PHP_URL_PATH);

@@ -3,15 +3,16 @@
 
 import { readFileSync } from 'node:fs';
 import * as labels from '../assets/table_labels.js';
+import * as editor from '../assets/table_labels_editor.js';
 import { buildSearchIndex, searchEntries, uniqueTable } from '../assets/official_results_live.js';
 
 const entriesAt = (list) => list.map((label, index) => ({ ref: `p:${index + 1}`, name: `Entrant ${index + 1}`, members: [], tableNumber: index + 1 }));
 
 const operations = {
     key: ({ text }) => labels.key(text),
-    validate: ({ list }) => labels.validate(list),
-    generate: ({ settings }) => labels.generate(settings),
-    parseList: ({ text }) => labels.parseList(text),
+    validate: ({ list }) => editor.validate(list),
+    generate: ({ settings }) => editor.generate(settings),
+    parseList: ({ text }) => editor.parseList(text),
     lookup: ({ list, number, typed }) => {
         const lookup = labels.tableLabels(list);
 

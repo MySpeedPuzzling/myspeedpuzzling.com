@@ -898,6 +898,10 @@ const scenarios = {
         assert.deepEqual(parseResultTime('58:12'), { seconds: 3492 });
         assert.deepEqual(parseResultTime('1:60:00'), { error: 'invalid' });
         assert.deepEqual(parseResultTime('6000'), { error: 'invalid' });
+        // Leading zeros never count (fast-time-entry.md) - one digit is kept, so zeros alone stay out of range
+        assert.deepEqual(parseResultTime('0013025'), { seconds: 5425 });
+        assert.deepEqual(parseResultTime('0000000'), { error: 'out_of_range' });
+        assert.deepEqual(parseResultTime('1234567'), { error: 'invalid' });
         assert.deepEqual(parseResultTime(''), { empty: true });
         assert.equal(formatResultTime(3492), '0:58:12');
     },

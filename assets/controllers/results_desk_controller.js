@@ -3,7 +3,8 @@ import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
 import { officialResultsRequest, newClientId, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
-import { formatResultTime, parseResultTime } from '../official_results_time.js';
+import { formatResultTime } from '../official_results_time.js';
+import { bindTimeEntry, formatTimeEntry, readTimeEntry } from '../time_entry.js';
 import { rankEntries } from '../official_results_ranking.js';
 import { bestOfEachCountry, overallForRound, qualificationDiff, topN } from '../official_results_qualification.js';
 import {
@@ -63,6 +64,8 @@ export default class extends Controller {
     };
 
     connect() {
+        // Typed times fill from the right, a clicked part is fixed on its own (toolkit/fast-time-entry.md)
+        this.unbindTimeEntry = bindTimeEntry(this.element);
         this.pending = new PendingChanges();
         this.competition = this.stateValue.competition;
         this.round = this.stateValue.round;
@@ -135,6 +138,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.unbindTimeEntry?.();
         this.events.close();
         document.removeEventListener('official-results:unsaved-marks', this.onUnsavedMarks);
         document.removeEventListener('visibilitychange', this.onVisibility);
@@ -1018,7 +1022,7 @@ export default class extends Controller {
     resultEditorHtml(entry) {
         const shown = this.shown(entry, RESULT);
         const mode = shown === null ? 'time' : (Number.isInteger(shown.seconds) ? 'time' : (Number.isInteger(shown.piecesPlaced) ? 'pieces' : (shown.didNotStart ? 'dns' : 'time')));
-        const value = shown === null ? '' : (Number.isInteger(shown.seconds) ? formatResultTime(shown.seconds) : (Number.isInteger(shown.piecesPlaced) ? String(shown.piecesPlaced) : ''));
+        const value = shown === null ? '' : (Number.isInteger(shown.seconds) ? formatTimeEntry(shown.seconds) : (Number.isInteger(shown.piecesPlaced) ? String(shown.piecesPlaced) : ''));
         const missing = missingOf(this.shown(entry, MISSING_PIECES));
         const option = (key, label) => `<option value="${key}" ${key === mode ? 'selected' : ''}>${escapeHtml(label)}</option>`;
 
@@ -1031,7 +1035,7 @@ export default class extends Controller {
                     ${option('dns', this.t('mode_dns'))}
                     ${option('none', this.t('mode_none'))}
                 </select>
-                <input type="text" class="form-control form-control-sm results-desk-input" data-editor-input inputmode="numeric" autocomplete="off" value="${escapeHtml(value)}" aria-label="${escapeHtml(this.t('editor_value'))}" aria-describedby="results-desk-preview" data-action="input->results-desk#editorPreview">
+                <input type="text" class="form-control form-control-sm results-desk-input" data-editor-input ${mode === 'time' ? 'data-time-entry' : ''} inputmode="numeric" autocomplete="off" value="${escapeHtml(value)}" aria-label="${escapeHtml(this.t('editor_value'))}" aria-describedby="results-desk-preview" data-action="input->results-desk#editorPreview">
                 <button type="submit" class="btn btn-sm btn-primary" data-editor-save>${escapeHtml(this.t('save'))}</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#cancelEditor">${escapeHtml(this.t('cancel'))}</button>
             </div>
@@ -1071,7 +1075,7 @@ export default class extends Controller {
                     <option value="done" ${row.done ? 'selected' : ''}>${escapeHtml(this.t('puzzles_status_done'))}</option>
                     <option value="open" ${row.done ? '' : 'selected'}>${escapeHtml(this.t('puzzles_status_open'))}</option>
                 </select>
-                <input type="text" class="form-control form-control-sm results-desk-input" data-row-at inputmode="numeric" autocomplete="off" value="${row.at !== null ? escapeHtml(formatResultTime(row.at)) : ''}" placeholder="${escapeHtml(this.t('puzzles_placeholder_at'))}" aria-label="${escapeHtml(this.t('puzzles_row_at', { position }))}" data-action="input->results-desk#editorPreview">
+                <input type="text" class="form-control form-control-sm results-desk-input" data-row-at data-time-entry inputmode="numeric" autocomplete="off" value="${row.at !== null ? escapeHtml(formatTimeEntry(row.at)) : ''}" placeholder="${escapeHtml(this.t('puzzles_placeholder_at'))}" aria-label="${escapeHtml(this.t('puzzles_row_at', { position }))}" data-action="input->results-desk#editorPreview">
                 <input type="text" class="form-control form-control-sm results-desk-input" data-row-pieces inputmode="numeric" autocomplete="off" value="${row.pieces !== null ? escapeHtml(String(row.pieces)) : ''}" placeholder="${escapeHtml(this.t('placeholder_pieces'))}" aria-label="${escapeHtml(this.t('puzzles_row_pieces', { position }))}" data-action="input->results-desk#editorPreview">
             </li>`;
         }).join('');
@@ -1137,10 +1141,10 @@ export default class extends Controller {
             let piecesPlaced = null;
 
             if (done && atText !== '') {
-                const parsed = parseResultTime(atText);
+                const parsed = readTimeEntry(atText);
 
                 if (parsed.error || parsed.empty) {
-                    error ??= this.t('puzzles_error_split', { position: index + 1 });
+                    error ??= `${this.t('puzzles_error_split', { position: index + 1 })} ${this.timeErrorText(parsed.error, '')}`.trim();
                 } else {
                     atSeconds = parsed.seconds;
                 }
@@ -1341,14 +1345,14 @@ export default class extends Controller {
             return { value: { piecesPlaced: Number(text) }, preview: this.formatResult({ piecesPlaced: Number(text) }) };
         }
 
-        const parsed = parseResultTime(text);
+        const parsed = readTimeEntry(text);
 
         if (parsed.empty) {
             return { error: this.t('error_time_empty') };
         }
 
         if (parsed.error) {
-            return { error: parsed.error === 'out_of_range' ? this.t('error_time_range') : this.t('error_time') };
+            return { error: this.timeErrorText(parsed.error, this.t('error_time')) };
         }
 
         // Finished with pieces missing (competition toolkit T6): the optional count next to the time
@@ -1364,7 +1368,7 @@ export default class extends Controller {
         return {
             value,
             missing: missing.empty ? null : missing.value,
-            preview: withMissing(this.t('preview_time', { time: formatResultTime(parsed.seconds) }), value, missing.value ?? null, (count) => this.tc('missing_pieces', count)),
+            preview: withMissing(this.t('preview_time', { time: formatTimeEntry(parsed.seconds) }), value, missing.value ?? null, (count) => this.tc('missing_pieces', count)),
         };
     }
 
@@ -1372,11 +1376,26 @@ export default class extends Controller {
      * Didn't finish ↔ Didn't finish (missing pieces): the counts typed or prefilled keep what they meant - 4900 placed of
      * 5000 becomes 100 missing (reliability hardening T1).
      */
+    /** A typed time's error said precisely (fast-time-entry.md) - `fallback` for anything else */
+    timeErrorText(error, fallback) {
+        const key = { minutes: 'error_time_minutes', seconds: 'error_time_seconds', too_long: 'error_time_too_long', out_of_range: 'error_time_range' }[error];
+
+        return key === undefined ? fallback : this.t(key);
+    }
+
     convertCounts(form) {
         const select = form.querySelector('[data-editor-mode]');
         const was = form.dataset.counts ?? select?.querySelector('[selected]')?.value;
         const mode = select?.value;
         form.dataset.counts = mode ?? '';
+
+        // The one field of the result editor is a time only in time mode: a time never becomes a count, nor back
+        const field = form.dataset.editor === 'result' ? form.querySelector('[data-editor-input]') : null;
+
+        if (field !== null && select !== null && was !== mode && (was === 'time') !== (mode === 'time')) {
+            field.toggleAttribute('data-time-entry', mode === 'time');
+            field.value = '';
+        }
 
         if (select === null || was === mode || ![was, mode].every((one) => one === 'pieces' || one === 'missing')) {
             return;

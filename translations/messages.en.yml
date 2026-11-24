@@ -1212,6 +1212,7 @@ event_rounds:
     minutes: "%count% min"
     not_announced: "Puzzles not announced yet"
     picture_hidden: "Picture revealed when the round starts"
+    picture_after_results: "Picture shown once the results are published"
     official_results: "Official results"
     add_my_time: "Add my time"
     more_puzzles: "More puzzles of this event"
@@ -15462,11 +15463,11 @@ event_wizard:
         qualify_qualification_help: "The best of each round go on to the next stage."
         qualify_every_round_counts: "No - every round counts"
         qualify_every_round_counts_help: "Solo, pair and team rounds - the times are added up per category."
+        qualify_challenges: "No - challenges added up per championship"
+        qualify_challenges_help: "Like the Speed Puzzle World Series: everyone solves every challenge, some back to back on one stopwatch; one total time per solo, pairs and teams championship."
         qualify_empty: "Not sure yet"
         qualify_empty_help: "Start with no rounds and add them one by one."
     # "Something else" - an event on the calendar without rounds (the calendar path)
-        qualify_challenges: "No - challenges added up per championship"
-        qualify_challenges_help: "Like the Speed Puzzle World Series: everyone solves every challenge, some back to back on one stopwatch; one total time per solo, pairs and teams championship."
     calendar:
         types_help: "Pick one or more. Running a competition? Go back and choose one of the competition answers."
         types_required: "Pick at least one kind of event."
@@ -15622,6 +15623,7 @@ event_wizard:
             label: "Challenge %number%"
             no_rows: "Choose the challenges of at least one row."
             back_to_back_invalid: "At most %max% challenges back to back."
+            missing: "Choose how many challenges back to back - or empty the row."
             solved_back_to_back: "%count% challenges back to back"
     puzzles:
         title: "Puzzles"

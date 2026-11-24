@@ -164,11 +164,16 @@ final class EventWizardStructureFormData
         }
 
         foreach ($this->blocks as $index => $block) {
+            $path = 'blocks[' . $index . '].';
+
+            // A row filled in without its challenges would be dropped silently
             if ($block->isBlock() === false) {
+                if ($block->roundsCount !== null || $block->minutesLimit !== null) {
+                    $context->buildViolation('event_wizard.structure.challenges.missing')->setTranslationDomain('messages')->atPath($path . 'challenges')->addViolation();
+                }
+
                 continue;
             }
-
-            $path = 'blocks[' . $index . '].';
 
             if ($block->challenges > EventWizardStageFormData::CHALLENGES_MAX) {
                 $context->buildViolation('event_wizard.structure.challenges.back_to_back_invalid')

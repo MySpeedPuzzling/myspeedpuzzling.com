@@ -185,6 +185,7 @@ SQL;
                     puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                     manufacturerName: $row['manufacturer_name'],
                     imageHidden: $imageHidden || $row['puzzle_image_embargoed'],
+                    pictureWaitsForResults: $keepsPicturesUnboxed,
                 );
                 $puzzlesByRound[$roundId][] = $visible;
             } elseif ($row['puzzle_embargoed_until'] !== null) {

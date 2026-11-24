@@ -8923,6 +8923,7 @@ participants_sheet_people:
   "minutes": "%count% Min."
   "not_announced": "Puzzles noch nicht bekannt gegeben"
   "picture_hidden": "Bild wird zum Rundenbeginn enthüllt"
+  "picture_after_results": "Bild sichtbar, sobald die Ergebnisse veröffentlicht sind"
   "official_results": "Offizielle Ergebnisse"
   "add_my_time": "Meine Zeit hinzufügen"
   "more_puzzles": "Weitere Puzzles dieser Veranstaltung"
@@ -15211,10 +15212,10 @@ event_wizard:
         qualify_qualification_help: "Die Besten jeder Runde kommen in die nächste Stufe."
         qualify_every_round_counts: "Nein – jede Runde zählt"
         qualify_every_round_counts_help: "Solo-, Paar- und Team-Runden – die Zeiten werden pro Kategorie zusammengezählt."
-        qualify_empty: "Noch nicht sicher"
-        qualify_empty_help: "Ohne Runden beginnen und sie einzeln hinzufügen."
         qualify_challenges: "Nein - Challenges werden je Meisterschaft addiert"
         qualify_challenges_help: "Wie die Speed Puzzle World Series: Alle lösen jede Challenge, manche direkt nacheinander mit einer Stoppuhr; eine Gesamtzeit je Einzel-, Paar- und Teammeisterschaft."
+        qualify_empty: "Noch nicht sicher"
+        qualify_empty_help: "Ohne Runden beginnen und sie einzeln hinzufügen."
     calendar:
         types_help: "Wähle eine oder mehrere Arten. Du veranstaltest einen Wettbewerb? Geh zurück und wähle eine der Wettbewerbs-Antworten."
         types_required: "Wähle mindestens eine Art von Event."
@@ -15370,6 +15371,7 @@ event_wizard:
             label: "Challenge %number%"
             no_rows: "Wähle die Challenges mindestens einer Zeile."
             back_to_back_invalid: "Höchstens %max% Challenges nacheinander."
+            missing: "Wähle, wie viele Challenges nacheinander – oder leere die Zeile."
             solved_back_to_back: "Challenges nacheinander: %count%"
     puzzles:
         title: "Puzzles"

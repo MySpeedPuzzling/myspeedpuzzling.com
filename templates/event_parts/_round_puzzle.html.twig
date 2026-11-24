@@ -26,7 +26,7 @@
         <span class="ev-round-puzzle-meta">
             {%- if logged_user.profile is not null and logged_user.profile.activeMembership %}{{ difficulty_icon(difficulty_data[puzzle.puzzleId].difficultyTier ?? null, false, 16) }} {% endif -%}
             {{- 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}{% if puzzle.manufacturerName %} · {{ puzzle.manufacturerName }}{% endif -%}
-            {%- if puzzle.imageHidden %} · <span class="ev-round-puzzle-secret-note">{{ 'event_rounds.picture_hidden'|trans }}</span>{% endif -%}
+            {%- if puzzle.imageHidden %} · <span class="ev-round-puzzle-secret-note">{{ (puzzle.pictureWaitsForResults ? 'event_rounds.picture_after_results' : 'event_rounds.picture_hidden')|trans }}</span>{% endif -%}
         </span>
         {%- if not puzzle.imageHidden -%}
             {%- set badges = include('puzzle/_badges.html.twig', {puzzle_id: puzzle.puzzleId})|trim -%}

@@ -9006,6 +9006,7 @@ participants_sheet_people:
   "minutes": "%count% min"
   "not_announced": "Puzzles pas encore annoncés"
   "picture_hidden": "Image révélée au début de la manche"
+  "picture_after_results": "Image affichée à la publication des résultats"
   "official_results": "Résultats officiels"
   "add_my_time": "Ajouter mon temps"
   "more_puzzles": "Autres puzzles de cet événement"
@@ -15207,10 +15208,10 @@ event_wizard:
         qualify_qualification_help: "Les meilleurs de chaque manche passent à la phase suivante."
         qualify_every_round_counts: "Non - chaque manche compte"
         qualify_every_round_counts_help: "Manches en solo, en duo et en équipe : les temps sont additionnés par catégorie."
-        qualify_empty: "Je ne sais pas encore"
-        qualify_empty_help: "Commencez sans manches et ajoutez-les une par une."
         qualify_challenges: "Non – les défis s'additionnent par championnat"
         qualify_challenges_help: "Comme la Speed Puzzle World Series : chacun résout tous les défis, certains enchaînés sur un seul chronomètre ; un temps total par championnat individuel, en paires et en équipes."
+        qualify_empty: "Je ne sais pas encore"
+        qualify_empty_help: "Commencez sans manches et ajoutez-les une par une."
     calendar:
         types_help: "Choisissez-en un ou plusieurs. Vous organisez une compétition ? Revenez en arrière et choisissez l'une des réponses « compétition »."
         types_required: "Choisissez au moins un type d'événement."
@@ -15366,6 +15367,7 @@ event_wizard:
             label: "Défi %number%"
             no_rows: "Choisissez les défis d'au moins une ligne."
             back_to_back_invalid: "Au plus %max% défis enchaînés."
+            missing: "Choisissez combien de défis enchaînés – ou videz la ligne."
             solved_back_to_back: "Défis enchaînés : %count%"
     puzzles:
         title: "Puzzles"

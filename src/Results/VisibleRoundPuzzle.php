@@ -21,6 +21,8 @@ readonly final class VisibleRoundPuzzle
         public null|float $puzzleImageRatio,
         public null|string $manufacturerName,
         public bool $imageHidden,
+        // The picture waits for the round's results (an unboxed round or puzzle not published yet - spws-unboxed-per-puzzle.md)
+        public bool $pictureWaitsForResults = false,
     ) {
     }
 }

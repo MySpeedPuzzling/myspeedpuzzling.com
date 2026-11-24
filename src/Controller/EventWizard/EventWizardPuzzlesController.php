@@ -192,7 +192,9 @@ final class EventWizardPuzzlesController extends AbstractController
     private static function challengesOf(Request $request): array
     {
         $challenges = [];
-        $given = $request->query->all(self::CHALLENGES);
+        // A plain string instead of a list is ignored like any other wrong value (InputBag::all() would answer 400)
+        $given = $request->query->all()[self::CHALLENGES] ?? [];
+        $given = is_array($given) ? $given : [];
 
         foreach ($given as $roundId => $numbers) {
             if (is_string($roundId) === false || Uuid::isValid($roundId) === false || is_string($numbers) === false) {
@@ -240,10 +242,11 @@ final class EventWizardPuzzlesController extends AbstractController
             // The round's format - a toolkit setting; a round using it keeps it (the edit round form's rule)
             $rowOptions[$roundId] = $toolkit || $round->puzzleFormat !== RoundPuzzleFormat::Total;
 
-            // The Challenges plan of a round without puzzles yet: its challenges' labels, several = solved back to back
+            // The Challenges plan: the labels of the challenges the round has no puzzle for yet (after the saved ones - the
+            // no-JS "+ another puzzle" saves one at a time), several = solved back to back
             $plan = $challenges[$roundId] ?? [];
-            if ($plan !== [] && $puzzlesCounts[$roundId] === 0) {
-                foreach ($plan as $index => $number) {
+            if ($plan !== [] && $puzzlesCounts[$roundId] < count($plan)) {
+                foreach (array_slice($plan, $puzzlesCounts[$roundId]) as $index => $number) {
                     $rows[$roundId]->labels[$index] = $this->defaults->challengeLabel($number);
                 }
 
@@ -456,7 +459,9 @@ final class EventWizardPuzzlesController extends AbstractController
     {
         // A round still without puzzles ("Decide later") keeps its format - "Solve all" prefilled by the Challenges plan
         // (spws-wizard.md) waits for its puzzles
-        if ($asked === false || ($puzzlesAfterSave === 0 && $row->puzzleFormatChoice === CompetitionRoundFormData::FORMAT_CHOICE_ALL)) {
+        // ("Solve all 1" is one result anyway - a block filled one puzzle at a time stays "one result" until its second, so
+        // a puzzle added later on the round puzzles page never leaves it at "pick 1 of 2")
+        if ($asked === false || ($puzzlesAfterSave < 2 && $row->puzzleFormatChoice === CompetitionRoundFormData::FORMAT_CHOICE_ALL)) {
             return null;
         }
 
@@ -628,6 +633,7 @@ final class EventWizardPuzzlesController extends AbstractController
             'toolkit' => $toolkit,
             // The Challenges plan: how many slots a round opens with (spws-wizard.md)
             'open_slots' => array_map(count(...), $challenges),
+            'saved_counts' => array_map(static fn (CompetitionRound $round): int => $round->roundPuzzles->count(), array_combine(array_map(static fn (CompetitionRound $round): string => $round->id->toString(), $rounds), $rounds)),
             // The brands of every picker, handed over once (event_wizard_puzzles_controller.js)
             'brand_choices' => $this->roundPuzzleFormType->brandChoices($competitionId),
         ]);

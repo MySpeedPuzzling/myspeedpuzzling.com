@@ -127,7 +127,7 @@
                             <a class="small d-inline-block mb-2" href="{{ path('manage_round_puzzles', {roundId: round_id}) }}">{{ 'event_wizard.puzzle.manage_existing'|trans }}</a>
                         {% endif %}
 
-                        {%- set open = existing is empty ? (open_slots[round_id] ?? 1) : 1 -%}
+                        {%- set open = max(1, (open_slots[round_id] ?? 1) - (saved_counts[round_id] ?? 0)) -%}
                         {% for index, slot in row.puzzles %}
                             {%- set filled = slot.vars.value.puzzle is not empty or slot.vars.value.brand is not empty or not slot.vars.valid -%}
                             {%- set label = row.labels is defined ? row.labels[index] : null -%}

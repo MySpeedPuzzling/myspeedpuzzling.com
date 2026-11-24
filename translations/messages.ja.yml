@@ -8913,6 +8913,7 @@ participants_sheet_people:
   "minutes": "%count%分"
   "not_announced": "パズルはまだ発表されていません"
   "picture_hidden": "画像はラウンド開始時に公開されます"
+  "picture_after_results": "結果の公開後に画像を表示します"
   "official_results": "公式結果"
   "add_my_time": "自分のタイムを追加"
   "more_puzzles": "このイベントのその他のパズル"
@@ -15201,10 +15202,10 @@ event_wizard:
         qualify_qualification_help: "各ラウンドの上位者が次のステージに進みます。"
         qualify_every_round_counts: "いいえ - すべてのラウンドが対象"
         qualify_every_round_counts_help: "ソロ・ペア・チームのラウンド - タイムはカテゴリごとに合計されます。"
-        qualify_empty: "まだ決めていない"
-        qualify_empty_help: "ラウンドなしで始めて、1つずつ追加します。"
         qualify_challenges: "いいえ - チャレンジのタイムを選手権ごとに合計"
         qualify_challenges_help: "Speed Puzzle World Series のように、全員がすべてのチャレンジを解き、一部は1つのストップウォッチで連続して解きます。個人・ペア・チームの選手権ごとに合計タイムで決まります。"
+        qualify_empty: "まだ決めていない"
+        qualify_empty_help: "ラウンドなしで始めて、1つずつ追加します。"
     calendar:
         types_help: "1つ以上選んでください。競技会を開催する場合は、前に戻って競技会の選択肢を選んでください。"
         types_required: "イベントの種類を少なくとも1つ選んでください。"
@@ -15360,6 +15361,7 @@ event_wizard:
             label: "チャレンジ%number%"
             no_rows: "少なくとも1行でチャレンジ数を選んでください。"
             back_to_back_invalid: "連続するチャレンジは最大%max%つです。"
+            missing: "連続するチャレンジ数を選ぶか、行を空にしてください。"
             solved_back_to_back: "連続するチャレンジ: %count%"
     puzzles:
         title: "パズル"

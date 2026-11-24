@@ -166,10 +166,6 @@ final readonly class SandboxDemoEvents
         $isNew = $this->demoData->competitionBySlug($event->slug) === null;
         $competitionId = $this->competition($event, $day, $organizerPlayerId, $say, $maintainerIds, $logoPath);
 
-        if ($event->organization !== null) {
-            $this->organization($event->organization, $competitionId, $organizerPlayerId, $maintainerIds, $say);
-        }
-
         // The old demos keep getting their settings on every run (as built); the SPWS demo only once - a switch the
         // organisers turn during a rehearsal stays
         if ($isNew || $event->organization === null) {
@@ -179,6 +175,10 @@ final readonly class SandboxDemoEvents
                 timeProposals: true,
                 qrTagMode: QrTagMode::Entrant,
             )));
+        }
+
+        if ($event->organization !== null) {
+            $this->organization($event->organization, $competitionId, $organizerPlayerId, $maintainerIds, $say);
         }
 
         if ($refereePlayerId !== null) {
@@ -223,6 +223,7 @@ final readonly class SandboxDemoEvents
             [$firstDay, $lastDay] = $event->dayRange();
             $competitionId = Uuid::uuid7()->toString();
 
+            $logo = self::logoUpload($logoPath);
             $this->messageBus->dispatch(new AddCompetition(
                 competitionId: Uuid::fromString($competitionId),
                 playerId: $organizerPlayerId,
@@ -237,11 +238,15 @@ final readonly class SandboxDemoEvents
                 dateFrom: self::localDay($day, $firstDay, $event->timezone),
                 dateTo: self::localDay($day, $lastDay, $event->timezone),
                 isOnline: false,
-                logo: self::logoUpload($logoPath),
+                logo: $logo,
                 maintainerIds: array_values(array_unique([$organizerPlayerId, ...$maintainerIds])),
                 slug: $event->slug,
                 notifyAdmin: false,
             ));
+
+            if ($logo !== null && is_file($logo->getPathname())) {
+                unlink($logo->getPathname());
+            }
             $say(sprintf('Event created%s', $logoPath !== null ? ' with its logo' : ''));
         } else {
             $say('Event exists - completing it');
@@ -409,8 +414,9 @@ final readonly class SandboxDemoEvents
                 $this->messageBus->dispatch(new ChangeRoundUnboxed($competitionId, $roundId, true));
             }
 
-            // SPWS: one challenge of a back-to-back block unboxed on its own (spws-unboxed-per-puzzle.md)
-            if ($round->unboxedLabels !== [] && $roundPuzzles !== []) {
+            // SPWS: one challenge of a back-to-back block unboxed on its own (spws-unboxed-per-puzzle.md) - set with the
+            // puzzles, so what the organisers change later stays
+            if ($round->unboxedLabels !== [] && $roundPuzzles !== [] && $hadPuzzles === false) {
                 $wanted = [];
                 $current = [];
 
@@ -492,6 +498,8 @@ final readonly class SandboxDemoEvents
         $reveal = $this->demoData->roundReveal($roundId);
 
         if ($userId === null || $reveal === null) {
+            $say(sprintf('TODO: "%s" - the organiser has no account, no secret puzzles added', $round->name));
+
             return [];
         }
 
@@ -499,7 +507,7 @@ final readonly class SandboxDemoEvents
 
         // Its automatic reveal must still be ahead, or the puzzle would be public the moment it is made
         if ($startsAt <= $this->clock->now()) {
-            $say(sprintf('TODO: "%s" has started already - no secret puzzles added (run with a later --date)', $round->name));
+            $say(sprintf('TODO: "%s" has started already - no secret puzzles added (delete the event and build it again with a later --date)', $round->name));
 
             return [];
         }
@@ -1095,6 +1103,13 @@ final readonly class SandboxDemoEvents
             foreach ($event->rounds as $later) {
                 if ($later->tablesFrom === $round->key) {
                     $ids[] = $roundIds[$later->key];
+                }
+            }
+
+            // Only before anybody sits anywhere: names cleared by the organisers stay cleared
+            foreach ($this->getRoundResultEntries->forRound($roundIds[$round->key]) as $entry) {
+                if ($entry->tableNumber !== null) {
+                    continue 2;
                 }
             }
 

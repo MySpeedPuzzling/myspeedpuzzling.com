@@ -9,7 +9,7 @@ nothing can break. How the event is built: [spws-demo-event.md](../spws-demo-eve
 
 - The sandbox shows a welcome page first - click **Enter** (once per browser).
 - The event: **Speed Puzzle World Series Toronto 2027 - demo**, `/en/events/spws-toronto-2027-demo`.
-- It is laid out as if today were the **Teams day** (Thursday): Pairs (yesterday) is finished and published, Teams
+- It is laid out as if the call's day (`--date`) were the **Teams day** (Thursday at the real event): Pairs (yesterday) is finished and published, Teams
   Challenges 1 + 2 has some results in, Teams Challenges 3 + 4 (15:00 Toronto) and the two Individual days are still
   to come. Times are Toronto times - on a call in the European evening it is morning in Toronto, so the organisers
   start the stopwatches themselves (step 3) rather than wait for the schedule.
@@ -35,7 +35,7 @@ see every organiser page. A second judge on the call: an organiser's phone (orga
 1. Event page → **Manage** → **Toolkit** (`/en/manage-event-toolkit/<event id>`): one card per area.
 2. **Seating** of "Pairs - Challenges 1 + 2": tables named A1 L, A1 R, A2 L … (two places per table; Teams: A1, A2 …
    one table per team). "Table names" panel: change the scheme (e.g. A1-1 / A1-2) for the whole championship.
-3. **Name plates**: Toolkit → Name tags → Table tents, "Time boxes for" = the championship, "Show country flags":
+3. **Name plates**: Toolkit → Name tags → Table tents, "Time boxes" = the championship, "Show country flags":
    name, flag, table, pair/team name, QR and a box per challenge for writing times by pen. Print preview.
 4. **Results desk** of "Teams - Challenges 1 + 2": who has finished, who has only Challenge 1, the standing preview.
 5. **Standings** (`/en/manage-event-standings/<event id>`): one standing per championship, rules 5 s per missing piece,
@@ -49,7 +49,7 @@ see every organiser page. A second judge on the call: an organiser's phone (orga
 3. Airplane mode: keep entering - the phone keeps the results and sends them when back online.
 
 ### Competitor (phone)
-1. Sign in as a made-up player → the event page → "Your page" (or scan the QR on the plate).
+1. Sign in as a made-up player → the event page → "Your competitor page" (or scan the QR on the plate).
 2. Their table, the clock of their round, their results and rank; with the stopwatch running, **Stop** proposes
    their time to the judge, who confirms it on the table's card.
 
@@ -76,13 +76,13 @@ which table, their history and predictions, live results as the judges enter the
 | 0-5 | Jan | Event page: three championships in the timeline, the Pairs standing (provisional), a no-show ranked last, a tie (shared place), "+ 1 piece missing". Round page `?challenge=1` / `?challenge=2`. |
 | 5-10 | Organiser | Toolkit → Seating (table names) → Name plates print preview with the time boxes. |
 | 10-12 | Jan | Open the hall screen in one window and the stream overlay in another (shows how it looks over a camera). |
-| 12-15 | Organiser | **Stopwatch** of "Teams - Challenges 3 + 4" (`/en/manage-round-stopwatch/<round id>`) → tick **"Reveal the puzzle(s) when the stopwatch starts"** → Start. The two secret puzzles appear on the event page and screens at that moment; Challenge 4 stays without a box picture (unboxed) until the results are published. |
+| 12-15 | Organiser | **Stopwatch** of "Teams - Challenges 3 + 4" (`/en/manage-round-stopwatch/<round id>`) → tick **"Reveal the 2 puzzles when the stopwatch starts"** → Start. The two secret puzzles appear on the event page and screens at that moment; Challenge 4 stays without a box picture (unboxed) until the results are published. |
 | 15-25 | Judges | Judge 1 (`test-user+2`) on a phone: table `a1` → Finished now (Challenge 3), later Finished now (Challenge 4). Judge 2 (an organiser's phone): one team **Didn't finish** with 40 pieces loose, one **finished with 1 piece missing**, one **Did not start** (no-show). |
 | 18 | Competitor | Signed in as a made-up player of a team: their page → Stop → the judge sees the proposal on the table card and confirms. |
 | 15-25 | Everyone | Watch the hall screen and the overlay update (finished count, top 10, latest finishers); the challenge board. |
 | 25-30 | Commentators | Analytics studio of the running round: entrants, history, predictions, live order. Live control page: type a message → it shows on the lower third. |
 | 30-35 | Organiser | Results desk → review → **Publish** → the Teams standing moves (Challenges 3 + 4 counted, the no-show ranked with its penalty, the missing piece +5 s) → the embed on "their website" shows the same. |
-| 35-45 | All | Questions; the organisers can set the same format up themselves in the **event creation wizard** ("Several rounds" → "No - challenges added up per championship", the Challenges template with labels and Unboxed per puzzle). |
+| 35-45 | All | Questions; the organisers can set the same format up themselves in the **event creation wizard** ("A competition with several rounds" → "No - challenges added up per championship", the Challenges template with labels and Unboxed per puzzle). |
 
 ## 4. What is made up
 

@@ -24,6 +24,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'FindPlayerByNameAndCountry' => self::BACKGROUND,
         'GetBotTrustEligibility' => 'Reads only the signed-in account\'s own rows (bot-blocker trust eligibility) - returns a boolean, no player identity.',
         'GetSandboxSimulationData' => 'The sandbox simulation\'s own made-up players, read by its console commands - no viewer (docs/features/sandbox/README.md).',
+        'GetSandboxDemoData' => 'The sandbox demo events command reads its own events, their organisers and the organization team to stay idempotent - no viewer, never a page (docs/features/sandbox/README.md "Demo events").',
         'GetRequestableListings' => 'What the buyer may ask a seller for - shared by the request sheet and the AskForListings handler, so it filters on user_block itself, in both directions, for the buyer id it is given (docs/features/marketplace/12-listing-requests.md).',
         'GetBorrowCandidates' => 'Who the asker may ask to borrow from - shared by the wishlist page and the AskToBorrowPuzzles handler, so it filters on user_block itself, in both directions, for the asker id it is given (docs/features/wishlist-availability.md).',
         'FindSimilarSpeedPuzzler' => 'Filters on user_block itself, in both directions, for the viewer id it is given - a random suggestion must not depend on a security token.',

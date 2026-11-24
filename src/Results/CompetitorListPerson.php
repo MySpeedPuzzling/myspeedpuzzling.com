@@ -21,7 +21,7 @@ readonly final class CompetitorListPerson
         public bool $isViewer,
         // SearchText::fold() of the name and the #code (only when it is shown) - the list's filter reads it
         public string $search,
-        // Their tables in solo rounds (a pair's/team's table is on the line-up's row) - [] without tables
+        // Their tables in solo rounds and pair/team rounds they wait in alone (a pair's/team's table is on the line-up's row)
         public array $tables = [],
     ) {
     }

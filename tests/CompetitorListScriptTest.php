@@ -78,6 +78,11 @@ final class CompetitorListScriptTest extends TestCase
         yield 'a letter alone is a name search, not a column' => ['a', [false, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
         yield 'a name still finds its row, no table shown' => ['zed', [true, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
         yield 'a table nobody has' => ['b7', [false, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
+        yield 'the word table first' => ['Table A1 L', [false, true, false, false, false, false, false, false], [1, 0, 2, 3, 4, 5, 6, 7], [[], ['A.1.L'], [], [], [], [], [], []]];
+        yield 'the word table in Czech' => ['stůl 12', [false, false, false, false, false, true, true, false], [5, 6, 0, 1, 2, 3, 4, 7], [[], [], [], [], [], ['12'], ['120'], []]];
+        yield 'a name and a table' => ['yew a1', [false, true, false, false, false, false, false, false], [1, 0, 2, 3, 4, 5, 6, 7], [[], ['A.1.L'], [], [], [], [], [], []]];
+        yield 'another name before the table' => ['zed a1 l', [false, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
+        yield 'a #code is never a table' => ['#12', [false, false, false, false, false, false, false, false], [0, 1, 2, 3, 4, 5, 6, 7], $none];
     }
 
     /**
@@ -104,6 +109,22 @@ final class CompetitorListScriptTest extends TestCase
         self::assertSame([$shown], $result['shown']);
         self::assertSame([$order], $result['order']);
         self::assertSame([$tables], $result['tables']);
+    }
+
+    public function testTableMatchesComeFirstInEverySectionAndANameMatchFollows(): void
+    {
+        $sections = [
+            [['search' => 'anna a10 fan', 'tables' => ['B.2']], ['search' => 'ben', 'tables' => ['A.10']]],
+            [['search' => 'sharks', 'tables' => ['C.1']], ['search' => 'corners', 'tables' => ['A.10', 'D.4']]],
+        ];
+
+        $result = $this->runInNode([['sections' => $sections, 'query' => 'a10']])[0];
+
+        // Anna's name holds "a10" (made up) - she still shows, after the table match
+        self::assertSame([[true, true], [false, true]], $result['shown']);
+        self::assertSame([[1, 0], [1, 0]], $result['order']);
+        self::assertSame([[[], ['A.10']], [[], ['A.10']]], $result['tables']);
+        self::assertSame([2, 1], $result['counts']);
     }
 
     /**

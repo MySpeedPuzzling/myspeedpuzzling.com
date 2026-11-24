@@ -3,10 +3,11 @@
 // (TableLabels::key()), the browser folds only what was typed.
 //
 // - Names: every typed word must be in a row's text.
-// - Tables (competitor-pages.md "Competitor list - search by table"): the whole typed text as one table key
+// - Tables (competitor-pages.md "Competitor list - search by table"): the typed text as one table key
 //   (table_labels.js key(): "a1 l", "A1-L", "a1l" → `A.1.L`) - an exact table name first, then a table that continues it
 //   with whole segments ("a1" → A1 L, A1 R), then one whose last segment only starts like it ("a1" → A10 L). Only an
-//   exact name matches without a digit typed - "a" is a name search, not every table of column A.
+//   exact name matches without a digit typed - "a" is a name search, not every table of column A. Leading words may be
+//   the row's names or the word "table" in any of the 6 languages ("anna a1", "table a1"); a "#code" is never a table.
 // - A row shows when its names or one of its tables match; while some row matched by a table, rows are ordered by how
 //   well (exact, whole segments, started, names only), the server's order within each.
 //
@@ -14,6 +15,9 @@
 
 import { foldSearchText } from './search_fold.js';
 import { continues, key } from './table_labels.js';
+
+// The word "table" as people type it before a table name, folded (en/fr, cs, de, es, ja)
+const TABLE_WORDS = new Set(['table', 'tables', 'stul', 'stol', 'stolu', 'stoly', 'tisch', 'mesa', 'テーブル', '卓']);
 
 export const TABLE_EXACT = 0;
 export const TABLE_SEGMENTS = 1;
@@ -63,6 +67,33 @@ export function tableMatch(typedKey, tableKey) {
 }
 
 /**
+ * The ways the typed text names a table: the words from position i on as one key, the words before it being the row's
+ * names or "table" - [{key, before: folded words}], the whole text first. None for a "#code".
+ *
+ * @param {string} query
+ * @returns {{key: string, before: string[]}[]}
+ */
+export function tableQueries(query) {
+    const words = String(query ?? '').trim().split(/\s+/u).filter((word) => word !== '');
+
+    if (words.length === 0 || words[0].startsWith('#')) {
+        return [];
+    }
+
+    const queries = [];
+
+    words.forEach((word, index) => {
+        const typedKey = key(words.slice(index).join(' '));
+
+        if (typedKey !== '' && !word.startsWith('#')) {
+            queries.push({ key: typedKey, before: words.slice(0, index).map((before) => foldSearchText(before)).filter((before) => before !== '') });
+        }
+    });
+
+    return queries;
+}
+
+/**
  * @param {string|{search?: string, tables?: string[]}} row a row's `data-search`, or it with its tables' keys
  */
 function rowOf(row) {
@@ -84,7 +115,7 @@ function rowOf(row) {
  */
 export function filterCompetitorList(sections, query) {
     const tokens = competitorListTokens(query);
-    const typedKey = key(query ?? '');
+    const typedTables = tableQueries(query);
 
     const shown = [];
     const order = [];
@@ -99,8 +130,15 @@ export function filterCompetitorList(sections, query) {
             let best = null;
             let matched = [];
 
+            // The table part only for rows whose names (or "table") are the words before it
+            const usable = typedTables.filter(({ before }) => before.every((word) => TABLE_WORDS.has(word) || search.includes(word)));
+
             keys.forEach((tableKey) => {
-                const match = tableMatch(typedKey, tableKey);
+                const match = usable.reduce((best, { key: typedKey }) => {
+                    const tier = tableMatch(typedKey, tableKey);
+
+                    return tier !== null && (best === null || tier < best) ? tier : best;
+                }, null);
 
                 if (match === null) {
                     return;

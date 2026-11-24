@@ -215,7 +215,7 @@ somebody without a printed tag.
   without JavaScript the field stays hidden and every row shows. No pagination, no cache (viewer-dependent, D1).
 - **Search by table (SPWS demo, 2026-11-24)** - Jan: "find him by table, see his results". Each row carries its tables,
   read in the entrants statement (still 2 statements, `CompetitorListQueryBudgetTest`): a person's tables of their solo
-  rounds (a pair's/team's table is its line-up's row - else `a1` would list both members too), a line-up's tables of
+  rounds and of a pair/team round they wait in without a pair/team (as their page; a pair's/team's table is its line-up's row - else `a1` would list both members too), a line-up's tables of
   every round it plays; never of a round with table numbers off - exactly what the competitor pages show, so nothing
   new is public (blocked rows are dropped whole, drafts are the team's only). Collapsed per table name
   (`CompetitorListTable`: `TableLabels::key()`, label or number, its rounds in schedule order) - SPWS keeps one table for
@@ -224,7 +224,8 @@ somebody without a printed tag.
   one hidden hint per table "Table A1 L · <first round>" (+ "and N more rounds"). Browser
   (`competitor_list_filter.js`, `table_labels.js` `key()`/`continues()`): the whole typed text as one key ("a1 l",
   "A1-L", "a1l" → `A.1.L`); tiers exact → whole segments (`a1` → A1 L, A1 R) → started (`a1` → A10 L); without a digit
-  typed only an exact name (`a` stays a name search); a row shows when its names or a table match, rows reorder by tier
+  typed only an exact name (`a` stays a name search); leading words may be the row's names or the word "table" in the
+  6 languages (`anna a1`, `table a1`, `stůl 12`), a `#code` is never a table; a row shows when its names or a table match, rows reorder by tier
   while some table matched (server order within, back on an empty search via `data-competitor-list-index`), the
   matched tables' hints replace the plain line. Every team name a line-up played under is searchable. No start
   numbers: the only participant number is `externalId`, the organiser's reference from their own system (sheet,

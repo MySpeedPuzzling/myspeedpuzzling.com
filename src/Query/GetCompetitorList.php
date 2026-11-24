@@ -34,8 +34,8 @@ use SpeedPuzzling\Web\Value\TableLabels;
  * - Masked like the public round page (OfficialEntrantsView::entrant()), without avatars; the blocklist's group rule
  *   (OfficialEntrantsView::isHiddenFromViewer()): a person hidden from the viewer, and a line-up with one, is not listed -
  *   the viewer's own pair/team stays.
- * - Each row's tables (competitor-pages.md "Competitor list - search by table"): a person's in their solo rounds, a
- *   pair's/team's in its rounds - what their competitor page shows already (no round with table numbers off), searched
+ * - Each row's tables (competitor-pages.md "Competitor list - search by table"): a person's in their solo rounds (and
+ *   a pair/team round they wait in without a pair/team - as their page), a pair's/team's in its rounds - what their competitor page shows already (no round with table numbers off), searched
  *   in the browser. Nothing about results or puzzles.
  *
  * Statements: the competition (1), its people and pairs/teams with their members and tables (1) - whatever the event's
@@ -258,8 +258,9 @@ SELECT
     (
         SELECT json_agg(json_build_object('number', tcpr.table_number, 'label', {$soloLabel}, 'round', tcr.name) ORDER BY tcr.starts_at, tcr.name, tcr.id)
         FROM competition_participant_round tcpr
-        INNER JOIN competition_round tcr ON tcr.id = tcpr.round_id AND tcr.category = 'solo' AND tcr.table_numbers_off = false
+        INNER JOIN competition_round tcr ON tcr.id = tcpr.round_id AND tcr.table_numbers_off = false
         WHERE tcpr.participant_id = cp.id
+            AND (tcr.category = 'solo' OR tcpr.team_id IS NULL)
             AND tcpr.table_number IS NOT NULL
     )::text AS tables
 FROM competition_participant cp

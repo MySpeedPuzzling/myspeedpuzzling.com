@@ -116,6 +116,17 @@ final class CompetitorListControllerTest extends WebTestCase
         );
         $database->executeStatement('UPDATE competition_participant_round SET table_number = 1 WHERE id = :id', ['id' => F::ENTRY_FINAL_ANNA]);
         $database->executeStatement('UPDATE competition_round SET table_numbers_off = true WHERE id = :id', ['id' => F::ROUND_GROUP_B]);
+        $finalSharks = Uuid::uuid7()->toString();
+        $database->executeStatement(
+            "INSERT INTO competition_team (id, round_id, name, table_number) VALUES (:id, :round, 'Final Sharks', 1)",
+            ['id' => $finalSharks, 'round' => F::ROUND_PAIRS_FINAL],
+        );
+        foreach ([[F::PARTICIPANT_ANNA, $finalSharks, null], [F::PARTICIPANT_BEN, $finalSharks, null], [F::PARTICIPANT_IVAN, null, 2]] as [$participant, $team, $table]) {
+            $database->executeStatement(
+                'INSERT INTO competition_participant_round (id, participant_id, round_id, team_id, table_number) VALUES (:id, :participant, :round, :team, :table)',
+                ['id' => Uuid::uuid7()->toString(), 'participant' => $participant, 'round' => F::ROUND_PAIRS_FINAL, 'team' => $team, 'table' => $table],
+            );
+        }
 
         $crawler = $browser->request('GET', self::URL);
         self::assertResponseIsSuccessful();
@@ -124,10 +135,23 @@ final class CompetitorListControllerTest extends WebTestCase
         self::assertSame('Table 1', $anna->filter('[data-competitor-list-tables]')->text());
         self::assertSame('Table 1 · Group A and 1 more round', $anna->filter('[data-competitor-list-table]')->text());
 
-        // Group B's tables are off: Gina, Hugo and Ivan have none (their pages show none either)
-        foreach ([6, 7, 8] as $index) {
+        // Group B's tables are off: Gina and Hugo have none (their pages show none either)
+        foreach ([6, 7] as $index) {
             self::assertCount(0, $crawler->filter('[data-competitor-list-row="p"]')->eq($index)->filter('[data-competitor-list-tables]'));
         }
+
+        // Ivan waits for a pair in the Pairs Final at table 2 - his page shows it, so does his row
+        $ivan = $crawler->filter('[data-competitor-list-row="p"]')->eq(8);
+        self::assertSame('Ivan Last', $ivan->filter('[data-competitor-list-name]')->text());
+        self::assertSame('Table 2 · Pairs Final', $ivan->filter('[data-competitor-list-table]')->text());
+
+        // The Sharks play the Pairs Final as "Final Sharks" at table 1: named by the latest round, both names searchable,
+        // both tables listed
+        $sharks = $crawler->filter('[data-competitor-list-row="g"]')->reduce(static fn (Crawler $row): bool => $row->filter('[data-competitor-list-name]')->text() === 'Final Sharks');
+        self::assertCount(1, $sharks);
+        self::assertSame('puzzle sharks final sharks anna fast ben steady', $sharks->attr('data-search'));
+        self::assertSame('Tables A1 L, 1', $sharks->filter('[data-competitor-list-tables]')->text());
+        self::assertSame(['Table A1 L · Pairs', 'Table 1 · Pairs Final'], $sharks->filter('[data-competitor-list-table]')->each(static fn (Crawler $hint): string => $hint->text()));
 
         $tables = [];
         $crawler->filter('[data-competitor-list-row="g"]')->each(static function (Crawler $row) use (&$tables): void {
@@ -138,7 +162,7 @@ final class CompetitorListControllerTest extends WebTestCase
             'Corner Pieces' => ['A.1.R', 'Table A1 R · Pairs', 'Table A1 R'],
             'Edge Hunters' => ['A.10.L', 'Table A10 L · Pairs', 'Table A10 L'],
             'Eva Noshow & Filip Pending' => null,
-            'Puzzle Sharks' => ['A.1.L', 'Table A1 L · Pairs', 'Table A1 L'],
+            'Final Sharks' => ['A.1.L', 'Table A1 L · Pairs', 'Tables A1 L, 1'],
         ], $tables);
     }
 

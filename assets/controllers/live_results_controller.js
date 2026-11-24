@@ -2,7 +2,8 @@
 // (The page loads this controller eagerly from its own Encore entry, assets/live_entry.js - competition toolkit C2. The
 // comment above only keeps it out of the site's `app` bundle, which never needs it.)
 import { Controller } from '@hotwired/stimulus';
-import { formatResultTime, parseResultTime } from '../official_results_time.js';
+import { formatResultTime } from '../official_results_time.js';
+import { bindTimeEntry, formatTimeEntry, readTimeEntry, setTimeEntry, timeInWords } from '../time_entry.js';
 import { isGone, newClientId, officialResultsRequest } from '../official_results_api.js';
 import { createIndexedDbStorage, createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../official_results_outbox.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
@@ -168,6 +169,8 @@ export default class extends Controller {
     };
 
     connect() {
+        // Typed times fill from the right, a tapped part is fixed on its own (toolkit/fast-time-entry.md)
+        this.unbindTimeEntry = bindTimeEntry(this.element);
         // The server's clock: the state fetch with the shortest round trip (round_stopwatch_clock.js) - "Finished now"
         // and the countdown agree with the projector. On the monotonic clock: a change of the phone's clock while the page
         // is open moves neither (D2); a sleep or a clock change seen asks for a fresh sample
@@ -874,7 +877,7 @@ export default class extends Controller {
             this.piecesTyped();
         } else {
             this.showTimeForm();
-            this.timeInputTarget.value = draft.typed;
+            setTimeEntry(this.timeInputTarget, draft.typed);
             this.timeTyped();
         }
 
@@ -954,6 +957,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.unbindTimeEntry?.();
         clearTimeout(this.loadTimer);
         clearInterval(this.clockTimer);
         clearInterval(this.flushTimer);
@@ -2305,7 +2309,7 @@ export default class extends Controller {
         this.proposalEditing = proposal.id;
         this.rejecting = false;
         this.showTimeForm();
-        this.timeInputTarget.value = formatResultTime(proposalValue(proposal).seconds);
+        setTimeEntry(this.timeInputTarget, formatTimeEntry(proposalValue(proposal).seconds));
         this.timeTyped();
         this.timeInputTarget.focus();
         this.timeInputTarget.select();
@@ -2936,7 +2940,7 @@ export default class extends Controller {
 
         // A refused result opens with the refused value, ready to fix
         const rejected = (this.outbox?.all() ?? []).find((item) => item.entryRef === ref && item.field === 'result' && item.state === 'rejected');
-        this.timeInputTarget.value = rejected && rejected.to && typeof rejected.to.seconds === 'number' ? formatResultTime(rejected.to.seconds) : '';
+        setTimeEntry(this.timeInputTarget, rejected && rejected.to && typeof rejected.to.seconds === 'number' ? formatTimeEntry(rejected.to.seconds) : '');
         this.timeTyped();
         this.showView('entry');
 
@@ -2975,6 +2979,8 @@ export default class extends Controller {
             this.finishedNowTarget.focus();
         } else {
             this.timeInputTarget.focus();
+            // A refused time is retyped over, never appended to (fast-time-entry.md)
+            this.timeInputTarget.select();
         }
 
         this.rememberDraft();
@@ -3087,36 +3093,46 @@ export default class extends Controller {
     // ---- Enter ----
 
     timeTyped() {
-        const text = this.timeInputTarget.value;
-        const parsed = parseResultTime(text);
+        this.showTimeReading(false);
+        this.rememberDraft();
+    }
+
+    /**
+     * The line under the Time field: the time in words ("1 h 23 min 45 s"). While typing, a time on its way (14:72 before
+     * 1:47:23) is said calmly; red only on Review (`strict`) - or at once for too many digits (fast-time-entry.md).
+     */
+    showTimeReading(strict) {
+        const parsed = readTimeEntry(this.timeInputTarget.value);
         const limit = (this.round?.minutesLimit ?? 0) * 60;
+        const red = parsed.error !== undefined && (strict || parsed.error === 'too_long');
         let html;
 
         if (parsed.empty) {
             html = `<span class="text-muted small">${escapeHtml(this.t('timeHint'))}</span>`;
-        } else if (parsed.error === 'out_of_range') {
-            html = `<span class="text-danger">${escapeHtml(this.t('timeOutOfRange'))}</span>`;
         } else if (parsed.error) {
-            html = `<span class="text-danger">${escapeHtml(this.t('timeInvalid'))}</span>`;
+            html = `<span class="${red ? 'text-danger' : 'text-muted small'}">${escapeHtml(this.timeErrorText(parsed.error))}</span>`;
         } else {
-            html = `<strong>${escapeHtml(this.t('timeParsed', { '%time%': formatResultTime(parsed.seconds) }))}</strong>`;
+            html = `<strong>${escapeHtml(timeInWords(parsed.seconds, this.t('timeWords'), this.t('timeWordsHours')))}</strong>`;
 
             if (limit > 0 && parsed.seconds > limit) {
                 html += ` <span class="text-warning small">${escapeHtml(this.t('overLimit', { '%minutes%': this.round.minutesLimit }))}</span>`;
             }
         }
 
-        this.timeInputTarget.classList.toggle('is-invalid', !parsed.empty && parsed.error !== undefined);
+        this.timeInputTarget.classList.toggle('is-invalid', red);
         this.timeParsedTarget.innerHTML = html;
-        this.rememberDraft();
+    }
+
+    timeErrorText(error) {
+        return this.t({ minutes: 'timeMinutes', seconds: 'timeSeconds', too_long: 'timeTooLong', out_of_range: 'timeOutOfRange' }[error] ?? 'timeInvalid');
     }
 
     reviewTime(event) {
         event.preventDefault();
-        const parsed = parseResultTime(this.timeInputTarget.value);
+        const parsed = readTimeEntry(this.timeInputTarget.value);
 
         if (parsed.empty || parsed.error) {
-            this.timeTyped();
+            this.showTimeReading(true);
             this.timeInputTarget.focus();
 
             return;
@@ -3547,7 +3563,7 @@ export default class extends Controller {
             const id = escapeHtml(row.id);
             const at = row.at !== null ? `✓ ${formatResultTime(row.at)}${row.own !== null && row.order > 1 ? ` ${this.t('splitOwn', { '%time%': formatResultTime(row.own) })}` : ''}` : (row.done ? '✓' : '');
             const form = this.splitEditing === row.id
-                ? `<form class="lr-split-form" data-id="${id}" data-action="submit->live-results#typedSplit" novalidate><input class="form-control" value="${row.at !== null ? escapeHtml(formatResultTime(row.at)) : ''}" placeholder="${escapeHtml(this.t('splitPlaceholder'))}" aria-label="${escapeHtml(row.label)}" inputmode="numeric" enterkeyhint="done" autocomplete="off"><button type="submit" class="btn btn-primary">${escapeHtml(this.t('splitSave'))}</button></form>`
+                ? `<form class="lr-split-form" data-id="${id}" data-action="submit->live-results#typedSplit" novalidate><input class="form-control" data-time-entry value="${row.at !== null ? escapeHtml(formatTimeEntry(row.at)) : ''}" placeholder="${escapeHtml(this.t('splitPlaceholder'))}" aria-label="${escapeHtml(row.label)}" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocorrect="off" spellcheck="false"><button type="submit" class="btn btn-primary">${escapeHtml(this.t('splitSave'))}</button></form>`
                 : '';
 
             return `<div class="lr-srow"><span class="lr-chip-order${row.done ? '' : ' lr-srow-open'}">${row.done ? row.order : ''}</span><strong class="lr-srow-label">${escapeHtml(row.label)}</strong><span class="lr-srow-at">${escapeHtml(at)}</span>${row.tap ? `<button type="button" class="btn btn-success lr-split-now" data-id="${id}" data-action="live-results#finishPuzzle"${row.waiting ? ' disabled' : ''}><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>${escapeHtml(this.t('splitFinishedNow'))}</button>` : ''}${row.edit ? `<button type="button" class="btn btn-link px-1 lr-split-edit" data-id="${id}" data-action="live-results#editSplit"${row.waiting ? ' disabled' : ''} title="${escapeHtml(this.t('splitType'))}" aria-label="${escapeHtml(this.t('splitType'))} - ${escapeHtml(row.label)}"><i class="bi bi-pencil" aria-hidden="true"></i></button>` : ''}${form}</div>`;
@@ -3616,7 +3632,9 @@ export default class extends Controller {
         this.splitEditing = this.splitEditing === id ? null : id;
         this.splitNote = null;
         this.renderSplits();
-        this.splitsTarget.querySelector('.lr-split-form input')?.focus();
+        const input = this.splitsTarget.querySelector('.lr-split-form input');
+        input?.focus();
+        input?.select();
     }
 
     typedSplit(event) {
@@ -3625,10 +3643,10 @@ export default class extends Controller {
         if (this.outboxKnown !== true) {
             return;
         }
-        const parsed = parseResultTime(event.currentTarget.querySelector('input')?.value ?? '');
+        const parsed = readTimeEntry(event.currentTarget.querySelector('input')?.value ?? '');
 
         if (parsed.empty || parsed.error) {
-            this.splitNote = this.t('timeInvalid');
+            this.splitNote = parsed.empty ? this.t('timeHint') : this.timeErrorText(parsed.error);
             this.renderSplits();
             this.splitsTarget.querySelector('.lr-split-form input')?.focus();
 

@@ -4,7 +4,8 @@
  *
  * - "1:23:45" = h:mm:ss, "58:12" or "83:45" = mm:ss (minutes may pass 59 here, seconds may not);
  *   ".", "," and spaces work as separators too.
- * - Digits only are read right-aligned as h:mm:ss: "45" = 0:00:45, "5812" = 0:58:12, "12345" = 1:23:45.
+ * - Digits only are read right-aligned as h:mm:ss: "45" = 0:00:45, "5812" = 0:58:12, "12345" = 1:23:45; leading zeros
+ *   never count ("0013025" = 1:30:25 - fast-time-entry.md).
  * - Minutes or seconds of 60 or more in an h:mm:ss form are an error, never carried silently.
  * - A result is 1 second to 23:59:59 (RoundEntryResult::MAX_SECONDS on the server).
  */
@@ -27,11 +28,13 @@ export function parseResultTime(input) {
     let seconds;
 
     if (/^\d+$/.test(text)) {
-        if (text.length > 6) {
+        const digits = text.replace(/^0+(?=\d)/, '');
+
+        if (digits.length > 6) {
             return { error: 'invalid' };
         }
 
-        const padded = text.padStart(6, '0');
+        const padded = digits.padStart(6, '0');
         hours = parseInt(padded.slice(0, 2), 10);
         minutes = parseInt(padded.slice(2, 4), 10);
         seconds = parseInt(padded.slice(4, 6), 10);

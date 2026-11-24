@@ -20,7 +20,11 @@
     you: 'live_results.entry.you'|trans,
     local: 'live_results.entry.local'|trans,
     timeHint: 'live_results.entry.time_hint'|trans,
-    timeParsed: 'live_results.entry.time_parsed'|trans,
+    timeWords: 'live_results.entry.time_words'|trans,
+    timeWordsHours: 'live_results.entry.time_words_hours'|trans,
+    timeMinutes: 'live_results.entry.time_minutes_invalid'|trans,
+    timeSeconds: 'live_results.entry.time_seconds_invalid'|trans,
+    timeTooLong: 'live_results.entry.time_too_long'|trans,
     timeInvalid: 'live_results.entry.time_invalid'|trans,
     timeOutOfRange: 'official_results.reason.invalid_seconds'|trans,
     overLimit: 'live_results.entry.over_limit'|trans,
@@ -513,6 +517,7 @@
                        class="form-control lr-time-input"
                        data-live-results-target="timeInput"
                        data-action="input->live-results#timeTyped"
+                       data-time-entry
                        inputmode="numeric"
                        enterkeyhint="done"
                        autocomplete="off"

@@ -71,8 +71,8 @@ final readonly class SandboxDemoEventDefinitions
         $rounds = [
             // Pairs - the day before
             new SandboxDemoRound('p12', 'Pairs - Challenges 1 + 2', $duo, -1, '11:00', 90, 500, puzzles: 2, solveAll: true, labels: ['Challenge 1', 'Challenge 2'], firstTable: 1, state: $published, baseSeconds: 1900, brands: [$speedmaster, $boardwalk], seatsPerTable: 2, tie: true),
-            new SandboxDemoRound('p34', 'Pairs - Challenges 3 + 4', $duo, -1, '13:30', 90, 500, puzzles: 2, solveAll: true, labels: ['Challenge 3', 'Challenge 4'], tablesFrom: 'p12', state: $published, baseSeconds: 1900, brands: [$boardwalk, 'Wentworth Wooden Puzzles'], piecesOfPuzzles: [500, 250], tie: true),
-            new SandboxDemoRound('p5', 'Pairs - Challenge 5', $duo, -1, '16:00', 60, 500, labels: ['Challenge 5'], unboxed: true, tablesFrom: 'p12', state: $published, baseSeconds: 2300, brands: [$buffalo], tie: true),
+            new SandboxDemoRound('p34', 'Pairs - Challenges 3 + 4', $duo, -1, '13:30', 90, 500, puzzles: 2, solveAll: true, labels: ['Challenge 3', 'Challenge 4'], tablesFrom: 'p12', state: $published, baseSeconds: 1900, brands: [$boardwalk, 'Wentworth Wooden Puzzles'], piecesOfPuzzles: [500, 250], tie: true, noShowFromEnd: 2),
+            new SandboxDemoRound('p5', 'Pairs - Challenge 5', $duo, -1, '16:00', 60, 500, labels: ['Challenge 5'], unboxed: true, tablesFrom: 'p12', state: $published, baseSeconds: 2300, brands: [$buffalo], tie: true, noShowFromEnd: 3),
             // Teams of 4 - the demo day
             new SandboxDemoRound('t12', 'Teams - Challenges 1 + 2', $team, 0, '10:00', 120, 1000, puzzles: 2, solveAll: true, labels: ['Challenge 1', 'Challenge 2'], firstTable: 1, state: $running, baseSeconds: 2300, brands: [$boardwalk, $speedmaster], seatsPerTable: 1),
             new SandboxDemoRound('t34', 'Teams - Challenges 3 + 4', $team, 0, '15:00', 150, 1000, puzzles: 2, solveAll: true, labels: ['Challenge 3', 'Challenge 4'], tablesFrom: 't12', state: $planned, baseSeconds: 2700, secretPuzzles: [

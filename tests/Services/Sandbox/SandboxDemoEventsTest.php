@@ -15,6 +15,8 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Query\GetSandboxDemoData;
 use SpeedPuzzling\Web\Query\GetSandboxSimulationData;
+use SpeedPuzzling\Web\Query\RoundPuzzlesVisibleNow;
+use SpeedPuzzling\Web\Results\VisibleRoundPuzzle;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
@@ -261,6 +263,14 @@ SQL, ['first' => $first['id'], 'next' => $block['id']]));
         self::assertNotNull($first['results_published_at']);
         self::assertSame(30, $this->teamResults($first['id']));
         self::assertGreaterThanOrEqual(1, $this->rowCount('SELECT COUNT(*) FROM (SELECT result_seconds FROM competition_team WHERE round_id = :id AND result_seconds IS NOT NULL GROUP BY result_seconds HAVING COUNT(*) >= 2) t', ['id' => $first['id']]));
+        // Public pages list an arranged block in its order (Challenge 1 first), never by name
+        $byPosition = $database->fetchFirstColumn('SELECT puzzle_id FROM competition_round_puzzle WHERE round_id = :id ORDER BY position', ['id' => $first['id']]);
+        self::assertIsString($first['id']);
+        $visible = self::getContainer()->get(RoundPuzzlesVisibleNow::class)->forRound($first['id'], new \DateTimeImmutable('2026-12-02 12:00:00'));
+        self::assertSame($byPosition, array_map(static fn (VisibleRoundPuzzle $puzzle): string => $puzzle->puzzleId, $visible->puzzles));
+
+        // A no-show in each published round - another pair each time, so every no-show stays ranked in the standing
+        self::assertSame(3, $this->rowCount("SELECT COUNT(DISTINCT ct.name) FROM competition_team ct JOIN competition_round cr ON cr.id = ct.round_id WHERE cr.competition_id = :id AND cr.category = 'duo' AND ct.result_did_not_start", ['id' => $spws]));
         // Teams block 1 running, individuals planned
         self::assertNull($this->round($spws, 'Teams - Challenges 1 + 2')['results_published_at']);
         self::assertGreaterThan(0, $this->teamResults($this->round($spws, 'Teams - Challenges 1 + 2')['id']));

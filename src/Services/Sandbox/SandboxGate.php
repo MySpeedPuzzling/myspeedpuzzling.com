@@ -30,6 +30,12 @@ final class SandboxGate
         '/embed/',
     ];
 
+    // The analytics studio's JSON answers (analytics-studio.md) - fetched without cookies (the stateless firewall's
+    // shape, config/packages/security.php), so the gate's cookie never comes along: closed, the studio page stayed on
+    // "Loading…". Data only - the pages (/{locale}/events/…/analytics-studio/…, the Czech /analytics-studio/{roundId}
+    // redirect) stay behind the gate
+    private const string OPEN_JSON_PATTERN = '#^/analytics-studio/[0-9a-fA-F-]{36}/(state|analytics|predictions|round-predictions|entrant/[0-9a-fA-F-]{36})$#';
+
     private const array OPEN_PATHS = [
         '/oauth2/token',
         '/robots.txt',
@@ -44,6 +50,10 @@ final class SandboxGate
     public static function isOpenPath(string $path): bool
     {
         if (in_array($path, self::OPEN_PATHS, true)) {
+            return true;
+        }
+
+        if (preg_match(self::OPEN_JSON_PATTERN, $path) === 1) {
             return true;
         }
 

@@ -134,9 +134,9 @@ final readonly class SandboxDemoEventDefinitions
             // Sunday
             new SandboxDemoRound('pairs', '500 Pairs', RoundCategory::Duo, 0, '09:30', 120, 500, firstTable: 1, state: $published, baseSeconds: 5300, divisions: [self::REGULAR, self::SENIOR], brands: $puzzleTwist, tie: true),
             new SandboxDemoRound('solo', '500 Solo', RoundCategory::Solo, 0, '12:15', 120, 500, firstTable: 1, state: $published, baseSeconds: 5600, divisions: [self::REGULAR, self::SENIOR, self::JUNIOR_15], brands: $puzzleTwist, tie: true),
-            new SandboxDemoRound('open2', '500 Teams OPEN #2', $team, 0, '15:00', 120, 500, sharesPuzzleOf: 'challenge', firstTable: 1, state: $running, baseSeconds: 5200, stopwatchFromStart: true, seededWithinMinutes: 60),
+            new SandboxDemoRound('open2', '500 Teams OPEN #2', $team, 0, '15:00', 120, 500, sharesPuzzleOf: 'challenge', firstTable: 1, state: $running, baseSeconds: 5200, stopwatchFromStart: true, seededWithinMinutes: 90),
             // The same hall at the same time as OPEN #2: the tables after OPEN #2's
-            new SandboxDemoRound('family', '500 Family Teams', $team, 0, '15:00', 120, 500, firstTable: 61, state: $running, baseSeconds: 5600, brands: $puzzleTwist, stopwatchFromStart: true, seededWithinMinutes: 60),
+            new SandboxDemoRound('family', '500 Family Teams', $team, 0, '15:00', 120, 500, firstTable: 61, state: $running, baseSeconds: 5600, brands: $puzzleTwist, stopwatchFromStart: true, seededWithinMinutes: 90),
         ];
 
         return new SandboxDemoEvent(

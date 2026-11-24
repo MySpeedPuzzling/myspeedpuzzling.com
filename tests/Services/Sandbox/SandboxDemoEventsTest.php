@@ -484,6 +484,14 @@ SQL, ['id' => $carnival]));
             ['Divisions board', 'Hall screen', 'Hall screen - Family Teams', 'Stream overlay'],
             $database->fetchFirstColumn('SELECT name FROM competition_display WHERE competition_id = :id ORDER BY name', ['id' => $carnival]),
         );
+        // The main hall screen follows every round but Family Teams (which has its own screen) - OPEN #2 at 15:00
+        $follows = $database->fetchOne("SELECT follow_round_ids::text FROM competition_display WHERE competition_id = :id AND name = 'Hall screen'", ['id' => $carnival]);
+        self::assertIsString($follows);
+        $followed = json_decode($follows, true);
+        self::assertIsArray($followed);
+        self::assertCount(6, $followed);
+        self::assertNotContains($this->round($carnival, '500 Family Teams')['id'], $followed);
+        self::assertContains($this->round($carnival, '500 Teams OPEN #2')['id'], $followed);
 
         // Again: nothing new, nothing changed
         $snapshot = $this->snapshot([SandboxDemoEventDefinitions::CARNIVAL_2027_SLUG]);

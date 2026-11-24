@@ -1284,7 +1284,7 @@ final readonly class SandboxDemoEvents
     /**
      * The displays in the event's own look (SandboxDemoDisplays), found again by name - kept as the organisers edit them.
      *
-     * @param list<array{name: string, kind: DisplayKind, pinnedRoundId: null|string, design: array<string, mixed>}> $displays
+     * @param list<array{name: string, kind: DisplayKind, pinnedRoundId: null|string, design: array<string, mixed>, followRoundIds?: list<string>}> $displays
      * @param \Closure(string): void $say
      */
     private function brandedDisplays(string $competitionId, array $displays, string $organizerPlayerId, \Closure $say): void
@@ -1301,6 +1301,8 @@ final readonly class SandboxDemoEvents
 
             if ($display['pinnedRoundId'] !== null) {
                 $this->messageBus->dispatch(new ChangeCompetitionDisplayFollow($displayId->toString(), DisplayFollowMode::Pinned, $display['pinnedRoundId']));
+            } elseif (($display['followRoundIds'] ?? []) !== []) {
+                $this->messageBus->dispatch(new ChangeCompetitionDisplayFollow($displayId->toString(), DisplayFollowMode::Current, null, $display['followRoundIds']));
             }
 
             $this->messageBus->dispatch(new SaveCompetitionDisplayDesign(

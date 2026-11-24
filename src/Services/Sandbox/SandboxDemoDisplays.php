@@ -56,12 +56,15 @@ final readonly class SandboxDemoDisplays
      * the current round, one pinned to Family Teams, which runs side by side with OPEN #2 in the same hall.
      *
      * @param array<string, string> $roundIds round key => round id
-     * @return list<array{name: string, kind: DisplayKind, pinnedRoundId: null|string, design: array<string, mixed>}>
+     * @return list<array{name: string, kind: DisplayKind, pinnedRoundId: null|string, design: array<string, mixed>, followRoundIds?: list<string>}>
      */
     public static function winter(array $roundIds): array
     {
+        // The main screen follows the current round among all but Family Teams - two rounds starting together are picked
+        // by name otherwise, and both screens would show Family Teams
+        $main = array_values(array_filter($roundIds, static fn (string $key): bool => $key !== 'family', ARRAY_FILTER_USE_KEY));
         $displays = [
-            ['name' => 'Hall screen', 'kind' => DisplayKind::Screen, 'pinnedRoundId' => null, 'design' => self::winterHallScreen()],
+            ['name' => 'Hall screen', 'kind' => DisplayKind::Screen, 'pinnedRoundId' => null, 'design' => self::winterHallScreen(), 'followRoundIds' => $main],
         ];
 
         if (isset($roundIds['family'])) {

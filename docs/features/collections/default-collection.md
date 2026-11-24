@@ -62,7 +62,7 @@ zone; `byId()` never does) - no statement more on any page (`PuzzleAddPageQueryB
 | Add form "Puzzle to collection" (`PuzzleAddController`) | `pick()` for an empty field (non-members: system, as before) |
 | Add-to-collection modal / page (`Collections/AddPuzzleToCollectionController`) | `pick()` over the choices without the collections already holding the puzzle |
 | Bulk "Add to collection…" of the wishlist / unsolved lists (`PuzzleSelection/AddSelectedListPuzzlesToCollectionController`) | `pick()` on the new form data (the modal-opening POST carries no form data, so it is not a submit) |
-| Multiscan (`MultiscanTray::mount()`) | a valid `presetCollectionId` wins, else `defaultOf()`; a restored tray (`restore`) still puts its own collection over it |
+| Multiscan (`MultiscanTray::mount()`) | a valid `presetCollectionId` wins, else `defaultOf()`; a restored tray (`restore`) still puts its own collection over it (browser-checked: the select follows the restore). Not when the tray opens as "Move to…" ("Scan to move or remove" of the default collection's page would start with target = source; `MultiscanEligibility` would skip them all as `same_collection`) |
 | Recap one-click (`AddToCollectionCta`) | unchanged: members open the modal above, non-members have only the system collection |
 | Puzzle picker | unchanged: its collection list is a filter, not a target |
 | Move (`MovePuzzleToCollectionController`, `MoveSelectedPuzzlesController`) | unchanged on purpose: the target can equal the source, a preselected default would invite a no-op move |
@@ -73,9 +73,11 @@ zone; `byId()` never does) - no statement more on any page (`PuzzleAddPageQueryB
 ## Seeing which one is chosen
 
 Jan: a silent preselection in a closed select is not enough. Above the picker of the add form, the add-to-collection
-modal and the bulk add, members with 2+ choices get one-tap chips (`collections/_collection_quick_pick.html.twig` +
+modal and the bulk add, members with 2+ choices get one-tap chips under the field label (the partial renders the
+whole row: label, chips, picker, help, errors) (`collections/_collection_quick_pick.html.twig` +
 `collection_quick_pick_controller.js`): the default first (marked "Default"), then the system collection, then the newest
-own ones, at most 5 (more = "More collections in the search below" - the TomSelect picker stays below). The chosen one
+own ones, at most 5 (more = "More collections in the search below" - the TomSelect picker stays below); the one the
+field holds is always among them (a `?collection=` preset further down takes the fifth chip). The chosen one
 is filled with a check mark. A tap sets the picker's value (`tomselect.setValue()`, which fires the input's change event
 the forms already listen to); the chips follow the picker. The picker stays the submitted field - same name, same
 values - so nothing changes for the server or the add-form tests. "Change default" links to the library overview.

@@ -225,9 +225,11 @@ final class MultiscanTray
 
         if ($presetCollectionId !== null && $this->collectionBelongsToPlayer($presetCollectionId)) {
             $this->collectionId = $presetCollectionId;
-        } elseif (($profile = $this->retrieveLoggedUserProfile->getProfile()) !== null) {
+        } elseif ($this->currentAction() !== MultiscanAction::MoveToCollection && ($profile = $this->retrieveLoggedUserProfile->getProfile()) !== null) {
             // No ?collection= preset: the member's default collection (CollectionPreselection) - a restored tray
-            // (restoreState) still puts its own collection over this one
+            // (restoreState) still puts its own collection over this one. Not as a Move target: "Scan to move" of the
+            // default collection's page would start with the target = the source (MultiscanEligibility skips those as
+            // same_collection) - the Move pickers are left without a default on purpose
             $default = CollectionPreselection::defaultOf($profile);
 
             if ($this->collectionBelongsToPlayer($default)) {

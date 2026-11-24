@@ -45,6 +45,16 @@ final class MultiscanTrayDefaultCollectionTest extends WebTestCase
         self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $this->collectionOf($tray));
     }
 
+    public function testAMoveDoesNotStartWithTheDefaultAsItsTarget(): void
+    {
+        $client = self::createClient();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ChangeDefaultCollection(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_STRIPE_TREFL));
+
+        // "Scan to move or remove" of the default collection's page
+        $tray = $this->tray($client, ['presetAction' => 'move_to_collection', 'presetSourceCollectionId' => CollectionFixture::COLLECTION_STRIPE_TREFL]);
+        self::assertSame(Collection::SYSTEM_ID, $this->collectionOf($tray));
+    }
+
     public function testANonMembersDefaultIsIgnored(): void
     {
         $client = self::createClient();

@@ -6,12 +6,15 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Entity\Collection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ChangeDefaultCollection;
+use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -58,6 +61,28 @@ final class DefaultCollectionTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection&collection=' . Collection::SYSTEM_ID);
         self::assertSame(Collection::SYSTEM_ID, $this->addFormCollection($crawler));
+    }
+
+    public function testAtMostFiveChipsAndThePresetOneIsAlwaysAmongThem(): void
+    {
+        $browser = $this->member();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        // 2 own collections + 4 new ones + the system collection = 7 choices
+        foreach (['Shelf A', 'Shelf B', 'Shelf C', 'Shelf D'] as $name) {
+            $bus->dispatch(new CreateCollection(Uuid::uuid7()->toString(), PlayerFixture::PLAYER_WITH_STRIPE, $name, null, CollectionVisibility::Private));
+        }
+
+        $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection');
+        self::assertCount(5, $crawler->filter('[data-testid="collection-quick-pick"] button[data-value]'));
+        self::assertStringContainsString('More collections in the search below', $crawler->filter('[data-testid="collection-quick-pick"]')->text());
+
+        // The oldest collection comes last in the list (newest first): preset, it takes the fifth chip
+        $crawler = $browser->request('GET', '/en/puzzle-add?mode=collection&collection=' . CollectionFixture::COLLECTION_PUBLIC);
+        $chips = $crawler->filter('[data-testid="collection-quick-pick"] button[data-value]');
+        self::assertCount(5, $chips);
+        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $chips->last()->attr('data-value'));
+        self::assertSame('true', $chips->last()->attr('aria-pressed'));
     }
 
     public function testASubmittedEmptyCollectionIsNotReplacedByTheDefault(): void

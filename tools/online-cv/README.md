@@ -11,7 +11,7 @@ Python 3.12 + OpenCV 4.14 (headless) + numpy, pinned in `requirements.txt`. No m
 |---|---|
 | `completeness.py` | the checks - background holes (empty-mat photo vs finish photo), reference-grid matching (the motif vs finish photo), `combine()`, `check_photo()`; every threshold a named option with its reason; `VERSION` (bump on any threshold or rule change). **The one implementation**: the bench (`tools/online-bench/completeness/`) imports it from here |
 | `server.py` | the HTTP worker (standard library HTTP server, one process) |
-| `Dockerfile` | `python:3.12.15-slim` pinned by digest, non-root (uid 10001), runs with a read-only file system |
+| `Dockerfile` | `python:3.12.16-slim` pinned by digest, non-root (uid 10001), runs with a read-only file system |
 | `tests/test_server.py` + `test.sh` | the worker's tests (stdlib `unittest`) in a throwaway container |
 | `http_selftest.py` | the bench's synthetic self-test (+ unfinished puzzles) through the worker's HTTP endpoint |
 
@@ -118,7 +118,7 @@ docker build -t msp-online-cv tools/online-cv # the image (~440 MB)
 # The bench's self-test through the HTTP endpoint: the worker + a client on their own network
 docker network create cv-selftest
 docker run -d --rm --name cv --network cv-selftest --read-only -e ONLINE_CV_ALLOWED_HOSTS=fixtures:8080 msp-online-cv
-docker run --rm --name fixtures --network cv-selftest -v "$PWD/tools":/tools:ro python:3.12.15-slim \
+docker run --rm --name fixtures --network cv-selftest -v "$PWD/tools":/tools:ro python:3.12.16-slim \
   sh -c 'pip install -q -r /tools/online-cv/requirements.txt && python /tools/online-cv/http_selftest.py --worker http://cv:8000 --serve-host fixtures'
 docker rm -f cv; docker network rm cv-selftest
 ```

@@ -2,7 +2,7 @@
 # Python 3.12 + OpenCV (headless) + numpy, pinned like the bench. No public port - the app reaches it on the internal
 # network. Runs as a non-root user and with a read-only file system: photos are read into memory, nothing is written.
 #   docker build -t msp-online-cv tools/online-cv
-FROM python:3.12.15-slim@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d
+FROM python:3.12.16-slim@sha256:191083cdf6c7bda8c76158983163ead5d5cf7b77cf3033e805bb0f5296f51b4b
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

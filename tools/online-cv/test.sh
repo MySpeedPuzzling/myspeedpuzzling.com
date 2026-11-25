@@ -8,5 +8,5 @@ exec docker run --rm \
   -v "$TOOLS":/tools:ro \
   -w /tools/online-cv \
   -e PYTHONDONTWRITEBYTECODE=1 \
-  python:3.12.15-slim \
+  python:3.12.16-slim \
   sh -c 'pip install -q --root-user-action=ignore --disable-pip-version-check -r requirements.txt && python -m unittest discover -s tests -v "$@"' sh "$@"
